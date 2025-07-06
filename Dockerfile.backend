@@ -1,0 +1,26 @@
+# Use an official PHP image with Apache
+FROM php:8.2-apache
+
+# Set working directory for Apache web root
+WORKDIR /var/www/html
+
+# Install system dependencies required for pdo_mysql and other common extensions
+RUN apt-get update && apt-get install -y \
+    libzip-dev \
+    zip \
+    # Add other dependencies if needed by your app or other extensions
+    && docker-php-ext-install pdo pdo_mysql zip
+
+# Copy the backend PHP script and any other backend files
+# This part is handled by volumes in docker-compose for development, 
+# but good to have a base in the image if run without compose.
+COPY src/backend/ /var/www/html/backend/
+
+# Ensure that my_library.json (if it exists or gets created) is writable by Apache/PHP
+# This is less relevant now as we move to MySQL, but keeps the directory writable.
+RUN chown -R www-data:www-data /var/www/html/backend
+
+# Apache typically runs on port 80
+EXPOSE 80
+
+# The base image's entrypoint (apache2-foreground) will start Apache. 

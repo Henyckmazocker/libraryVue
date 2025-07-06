@@ -1,0 +1,16 @@
+[
+    {
+        "isbn": "9788417347628",
+        "title": "Dune",
+        "author": "Frank Herbert",
+        "coverUrl": "https:\/\/covers.openlibrary.org\/b\/id\/10448201-L.jpg",
+        "rating": 1.5
+    },
+    {
+        "isbn": "849759682X",
+        "title": "Dune",
+        "author": "Author not found",
+        "coverUrl": "https:\/\/covers.openlibrary.org\/b\/id\/4917636-L.jpg",
+        "rating": 3.5
+    }
+]

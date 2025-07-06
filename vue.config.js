@@ -1,18 +1,14 @@
 const { defineConfig } = require('@vue/cli-service')
+
 module.exports = defineConfig({
   outputDir: '../build',
   publicPath: '/',
   devServer: {
-    headers: { "Access-Control-Allow-Origin": "*" },
-    https: false,
+    host: '0.0.0.0',
     port: 8080,
-    host: 'localhost', /* its your Vue.app url */
-    proxy: {
-      '/admin/*': {
-        target: 'http://localhost:8888', /* its your API-server url */
-        ws: true,
-        changeOrigin: true
-      }
-    }
+    client: {
+      webSocketURL: 'auto://0.0.0.0:0/ws',
+    },
+    headers: { "Access-Control-Allow-Origin": "*" }
   }
 })

@@ -1,0 +1,46 @@
+# Use an official PHP image with Apache
+FROM php:8.2-apache
+
+# Set working directory for Apache web root
+WORKDIR /var/www/html
+
+# Install system dependencies that PHP extensions might need
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libzip-dev \
+    zip \
+    # Add other dependencies your application might require
+    && docker-php-ext-configure zip \
+    && docker-php-ext-install -j$(nproc) pdo pdo_mysql zip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# PHP Configuration (optional: copy a custom php.ini for production)
+# COPY php.ini.prod /usr/local/etc/php/php.ini
+
+# --- If you were using Composer ---
+# COPY composer.json composer.lock* ./
+# RUN composer install --no-dev --no-interaction --no-plugins --no-scripts --prefer-dist --optimize-autoloader
+# ---------------------------------
+
+# Copy all application code
+# This assumes your Docker context is the project root where 'src' is located.
+# It will create /var/www/html/src/... and /var/www/html/backend/...
+COPY ./src/Application /var/www/html/src/Application
+COPY ./src/Infrastructure /var/www/html/src/Infrastructure
+COPY ./src/backend /var/www/html/backend
+
+# Copy the my_library.json file if it exists at the root of backend, or let it be created by api.php
+# If it must exist and be pre-filled, copy it explicitly:
+# COPY ./src/backend/my_library.json /var/www/html/backend/my_library.json
+
+# Ensure necessary directories are writable by Apache/PHP (www-data user)
+# The main data directory for my_library.json is no longer primary, but other dirs might be needed.
+RUN mkdir -p /var/www/html/backend && \
+    chown -R www-data:www-data /var/www/html/backend && \
+    # Ensure src is readable
+    chmod -R o+r /var/www/html/src /var/www/html/backend
+
+# Apache typically runs on port 80
+EXPOSE 80
+
+# The base image's entrypoint (apache2-foreground) will start Apache.
+# You can add a custom entrypoint or command if needed for migrations, etc. 

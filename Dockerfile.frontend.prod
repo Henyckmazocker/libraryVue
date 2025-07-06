@@ -1,0 +1,49 @@
+# Stage 1: Build the Vue.js application
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+# Copy package.json and package-lock.json (or npm-shrinkwrap.json if you use it)
+COPY package.json package-lock.json ./
+
+# Install dependencies cleanly. npm ci is generally preferred for CI/CD if you have a lock file.
+RUN npm ci
+
+# Copy the rest of the application source code
+COPY ./src ./src
+COPY ./public ./public
+COPY babel.config.js .
+COPY jsconfig.json .
+COPY vue.config.js .
+# Add any other necessary config files for the build process
+
+# Set the API URL for the production build.
+# This can be overridden at build time using --build-arg
+ARG VUE_APP_API_URL=/backend/api.php 
+ENV VUE_APP_API_URL=${VUE_APP_API_URL}
+
+# Build the application
+# Assuming your build script outputs to a 'dist' folder (common for Vue CLI)
+# Adjust if your vue.config.js specifies a different outputDir.
+# The comment in your dev Dockerfile said "../build", so /app/build
+RUN npm run build
+
+# Stage 2: Serve the application with Nginx
+FROM nginx:1.25-alpine
+
+# Remove default Nginx welcome page
+RUN rm -rf /usr/share/nginx/html/*
+
+# Copy built assets from the builder stage
+# Adjust source path if your build output is different (e.g., /app/dist or /app/build)
+# Your dev Dockerfile indicated build output might be in /build relative to project root, 
+# which means /app/build in the builder stage if WORKDIR is /app.
+COPY --from=builder /app/build /usr/share/nginx/html
+
+# Copy the production Nginx configuration
+# This assumes you have an 'nginx.prod.conf' in the same directory as this Dockerfile
+COPY nginx.prod.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"] 

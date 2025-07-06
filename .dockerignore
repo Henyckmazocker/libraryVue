@@ -1,0 +1,20 @@
+.git
+.vscode
+node_modules
+dist
+
+# Docker specific files
+Dockerfile.frontend
+Dockerfile.backend
+docker-compose.yml
+.env.development
+*.env
+
+# PHP specific (if any, like composer.lock, vendor/ if you were using Composer)
+# src/backend/my_library.json # We want this IN the backend image initially if it exists,
+                             # but docker-compose volume will manage it at runtime.
+                             # For development, better to let the volume create it or start empty.
+
+# OS specific
+.DS_Store
+Thumbs.db 

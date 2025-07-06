@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend.dev
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./babel.config.js:/app/babel.config.js
+      - ./jsconfig.json:/app/jsconfig.json
+      - ./vue.config.js:/app/vue.config.js
+    environment:
+      - NODE_ENV=development
+      - VUE_APP_API_URL=http://localhost:8888/backend/api.php
+    depends_on:
+      - backend
+    networks:
+      - library_network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8888:80"
+    volumes:
+      - ./src/backend:/var/www/html/backend
+      - ./src:/var/www/html/src
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=library_db
+      - DB_USERNAME=library_user
+      - DB_PASSWORD=library_pass
+    depends_on:
+      - mysql
+    networks:
+      - library_network
+
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3308:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: library_db
+      MYSQL_USER: library_user
+      MYSQL_PASSWORD: library_pass
+    command: --init-file /docker-entrypoint-initdb.d/init.sql
+    restart: always
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - library_network
+
+networks:
+  library_network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+
+# Optional named volume for node_modules if you choose Option 2 above
+# volumes:
+#   node_modules_volume: 

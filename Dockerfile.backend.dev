@@ -1,0 +1,35 @@
+# Dockerfile for PHP backend development
+FROM php:8.2-apache
+
+# Set working directory for Apache web root
+WORKDIR /var/www/html
+
+# Install system dependencies required for pdo_mysql, xdebug, and other common extensions
+RUN apt-get update && apt-get install -y \
+    libzip-dev \
+    zip \
+    nano \
+    git \
+    && docker-php-ext-install pdo pdo_mysql zip \
+    && pecl install xdebug \
+    && docker-php-ext-enable xdebug
+
+# Enable Apache mod_rewrite for pretty URLs (if needed)
+RUN a2enmod rewrite
+
+# Copy backend files (will be overridden by volume in docker-compose for dev)
+COPY src/backend/ /var/www/html/backend/
+
+# Set permissions for development (less strict)
+RUN chown -R www-data:www-data /var/www/html/backend
+
+# Expose port 80 for Apache
+EXPOSE 80
+
+# Set recommended PHP development settings
+ENV PHP_DISPLAY_ERRORS=On
+ENV PHP_ERROR_REPORTING=E_ALL
+ENV PHP_MEMORY_LIMIT=512M
+
+# Start Apache in the foreground
+CMD ["apache2-foreground"]

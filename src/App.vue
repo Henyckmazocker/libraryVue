@@ -1,6 +1,6 @@
 <template>
   <div id="nav">
-    <router-link to="/">ISBN Finder</router-link> | 
+    <router-link to="/">Inicio</router-link> | 
     <router-link to="/library">My Library</router-link>
   </div>
   <router-view/> <!-- Router will render components here -->

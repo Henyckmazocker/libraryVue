@@ -40,6 +40,15 @@
           </div>
         </div>
         
+        <div class="user-statuses-section">
+          <template v-if="book.userStatuses && book.userStatuses.length > 0">
+            <span v-for="status in book.userStatuses" :key="status" class="user-status-chip">{{ status }}</span>
+          </template>
+          <template v-else>
+            <span class="user-status-none">No consta de status</span>
+          </template>
+        </div>
+        
         <button @click="onDeleteBook" class="delete-button">Delete</button>
       </div>
     </div>
@@ -190,6 +199,30 @@ const setRating = (ratingValue) => {
   color: #f5b508; /* Slightly different for hover to show intent */
 }
 
+.user-statuses-section {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.user-status-chip {
+  background-color: #444;
+  color: #e0e0e0;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.user-status-none {
+  color: #888;
+  font-size: 0.85rem;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background-color: #333;
+}
+
 .delete-button {
   padding: 8px 15px; /* Adjusted padding */
   font-size: 0.85rem; /* Adjusted font size */
@@ -209,4 +242,4 @@ const setRating = (ratingValue) => {
   background-color: #c82333;
   border-color: #bd2130;
 }
-</style> 
+</style>

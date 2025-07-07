@@ -26,4 +26,6 @@ interface BookRepositoryInterface
     public function save(Book $book): void;
 
     public function deleteByIsbn(string $isbn): bool;
+
+    public function fetchAllowedStatuses(): array;
 } 

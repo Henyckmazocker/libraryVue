@@ -10,11 +10,11 @@
         <p class="book-isbn-large"><strong>ISBN:</strong> {{ book.isbn }}</p>
 
         <!-- Status Selector - Using Vue Multiselect -->
-        <div v-if="showAddButton && allowedUserStatuses.length > 0" class="status-selector-container">
+        <div v-if="showAddButton && normalizedAllowedUserStatuses.length > 0" class="status-selector-container">
           <p class="status-selector-title"><strong>Status:</strong> (select one or more)</p>
           <vue-multiselect
             v-model="selectedUserStatuses"
-            :options="allowedUserStatuses"
+            :options="normalizedAllowedUserStatuses"
             :multiple="true"
             :close-on-select="false"
             :clear-on-select="false"
@@ -55,7 +55,7 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, ref, watch } from 'vue';
+import { defineProps, defineEmits, ref, watch, computed } from 'vue';
 import VueMultiselect from 'vue-multiselect'; // Import the component
 
 const props = defineProps({
@@ -74,7 +74,7 @@ const props = defineProps({
   },
   allowedUserStatuses: { // Added prop
     type: Array,
-    default: () => ['owned', 'read', 'want to buy', 'reading'] // Default, but should be passed from HelloWorld
+    required: true
   }
 });
 
@@ -82,7 +82,14 @@ const emit = defineEmits(['add-book-to-library', 'delete-book']);
 
 // Initialize selectedUserStatuses with a default value, e.g., 'to buy'
 // Ensure the default is part of the allowedUserStatuses passed or the hardcoded default here
-const selectedUserStatuses = ref(['want to buy']);
+const selectedUserStatuses = ref([]);
+
+// Computed property to normalize allowedUserStatuses
+const normalizedAllowedUserStatuses = computed(() => {
+  return Array.isArray(props.allowedUserStatuses)
+    ? props.allowedUserStatuses.map(s => typeof s === 'string' ? s : String(s))
+    : [];
+});
 
 // Watch for changes in the book prop to reset statuses if a new book is displayed
 watch(() => props.book, (newBook, oldBook) => {
@@ -94,14 +101,23 @@ watch(() => props.book, (newBook, oldBook) => {
   }
 }, { deep: true });
 
+// Asegurar que siempre haya al menos un status seleccionado por defecto si allowedUserStatuses tiene elementos
+watch(() => props.allowedUserStatuses, (newAllowed) => {
+  if (Array.isArray(newAllowed) && newAllowed.length > 0 && selectedUserStatuses.value.length === 0) {
+    // Preferir 'want to buy' si existe, si no el primero
+    const defaultStatus = newAllowed.includes('want to buy') ? 'want to buy' : newAllowed[0];
+    selectedUserStatuses.value = [defaultStatus];
+  }
+}, { immediate: true });
+
 const onAddBook = () => {
-  if (selectedUserStatuses.value.length === 0) {
-    // This should ideally be handled by disabling the button or a more prominent UI error
+  // Garantizar que nunca se emita un array vacío o nulo
+  if (!Array.isArray(selectedUserStatuses.value) || selectedUserStatuses.value.length === 0) {
     alert("Please select at least one status for the book.");
     return;
   }
-  // Emit an object containing both book data and selected statuses
-  emit('add-book-to-library', { book: props.book, statuses: selectedUserStatuses.value });
+  // Emitir siempre un array válido
+  emit('add-book-to-library', { book: props.book, statuses: [...selectedUserStatuses.value] });
 };
 
 const onDeleteBook = () => {
@@ -294,4 +310,4 @@ const onDeleteBook = () => {
 
 /* Remove old native select styles */
 /* .status-multiselect, .status-multiselect option, .status-multiselect option:checked ... */
-</style> 
+</style>

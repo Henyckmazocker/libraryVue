@@ -39,6 +39,13 @@ class MySqlBookRepository implements BookRepositoryInterface
         return $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
     }
 
+    // Hacer público el método para los UseCases
+    public function fetchAllowedStatuses(): array
+    {
+        $stmt = $this->db->query("SELECT name FROM book_statuses");
+        return $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+    }
+
     /**
      * @param array $filters Optional filters (e.g., ['userStatus' => 'read'])
      * @return Book[]
@@ -76,12 +83,12 @@ class MySqlBookRepository implements BookRepositoryInterface
         foreach ($booksData as $data) {
             $data['rating'] = isset($data['rating']) ? (float)$data['rating'] : null;
             $data['addedTimestamp'] = isset($data['addedTimestamp']) ? (int)$data['addedTimestamp'] : null;
-            $data['userStatuses'] = $this->fetchBookStatusNames($data['isbn']);
-            if (empty($data['userStatuses'])) {
-                 error_log("Warning: Book with ISBN " . $data['isbn'] . " has no user book_statuses in DB.");
-            }
+            $userStatuses = $this->fetchBookStatusNames($data['isbn']);
+            // Si no tiene userStatuses, asignamos un array vacío
+            $data['userStatuses'] = is_array($userStatuses) ? $userStatuses : [];
             try {
-                $books[] = Book::fromArray($data);
+                $allowedStatuses = $this->fetchAllowedStatuses();
+                $books[] = Book::fromArray($data, $allowedStatuses);
             } catch (\InvalidArgumentException $e) {
                 error_log("Error hydrating book from DB (findAll): " . $e->getMessage() . " Data: " . json_encode($data));
             }
@@ -102,13 +109,13 @@ class MySqlBookRepository implements BookRepositoryInterface
         $data['rating'] = isset($data['rating']) ? (float)$data['rating'] : null;
         $data['addedTimestamp'] = isset($data['addedTimestamp']) ? (int)$data['addedTimestamp'] : null;
         $data['userStatuses'] = $this->fetchBookStatusNames($isbn);
-
-        if (empty($data['userStatuses'])) {
-            error_log("Critical: Book with ISBN " . $isbn . " found but has no user book_statuses in DB. This violates domain rules.");
+        // Si no tiene userStatuses, asignamos un array vacío
+        if (!is_array($data['userStatuses']) || empty($data['userStatuses'])) {
+            $data['userStatuses'] = [];
         }
-
         try {
-            return Book::fromArray($data);
+            $allowedStatuses = $this->fetchAllowedStatuses();
+            return Book::fromArray($data, $allowedStatuses);
         } catch (\InvalidArgumentException $e) {
             error_log("Error hydrating book from DB (findByIsbn): " . $e->getMessage() . " Data: " . json_encode($data));
             throw new RuntimeException("Failed to hydrate book from DB due to inconsistent data: " . $e->getMessage(), 0, $e);
@@ -164,7 +171,11 @@ class MySqlBookRepository implements BookRepositoryInterface
             $stmtDeleteStatuses->execute();
 
             if (empty($userStatusNames)) {
-                 // This should be caught by Book model validation, but as a safeguard:
+                // Log detallado para depuración
+                error_log("[BookRepository] Intento de guardar libro sin userStatuses. ISBN: $isbn. userStatusNames: " . json_encode($userStatusNames));
+                // También mostrar los statuses permitidos en la tabla
+                $allowed = $this->fetchAllowedStatuses();
+                error_log("[BookRepository] Statuses permitidos en tabla: " . json_encode($allowed));
                 throw new RuntimeException("Book must have at least one user status to save. ISBN: " . $isbn);
             }
 
@@ -174,7 +185,10 @@ class MySqlBookRepository implements BookRepositoryInterface
             foreach ($userStatusNames as $statusName) {
                 $statusId = $this->getStatusId($statusName);
                 if ($statusId === null) {
-                    // This implies an invalid status name not caught by Book model or a desync with 'statuses' table
+                    // Log detallado para depuración
+                    error_log("[BookRepository] Status inválido recibido: '$statusName' para ISBN: $isbn. userStatusNames: " . json_encode($userStatusNames));
+                    $allowed = $this->fetchAllowedStatuses();
+                    error_log("[BookRepository] Statuses permitidos en tabla: " . json_encode($allowed));
                     throw new RuntimeException("Invalid status name '{$statusName}' encountered for book ISBN {$isbn}. Not found in 'book_statuses' table.");
                 }
                 $stmtInsertStatus->execute([':isbn' => $isbn, ':status_id' => $statusId]);
@@ -220,4 +234,4 @@ class MySqlBookRepository implements BookRepositoryInterface
             throw new RuntimeException("An unexpected error occurred while deleting book: " . $e->getMessage(), 0, $e);
         }
     }
-} 
+}

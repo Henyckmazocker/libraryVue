@@ -37,8 +37,9 @@ class Book
         if ($rating !== null && floor($rating * 2) != $rating * 2) {
             throw new \InvalidArgumentException('Rating must be a multiple of 0.5.');
         }
-        if (empty($userStatuses)) {
-            throw new \InvalidArgumentException('A book must have at least one user status.');
+        // Permitir userStatuses vacío (mostrar en la vista, no lanzar excepción)
+        if (!is_array($userStatuses)) {
+            $userStatuses = [];
         }
         foreach ($userStatuses as $status) {
             if (!in_array($status, $allowedStatuses, true)) {
@@ -146,8 +147,9 @@ class Book
      */
     public static function fromArray(array $data, array $allowedStatuses): self
     {
-        if (empty($data['userStatuses']) || !is_array($data['userStatuses'])) {
-            throw new \InvalidArgumentException('User statuses are required and must be an array.');
+        // Permitir userStatuses vacío (mostrar en la vista, no lanzar excepción)
+        if (!isset($data['userStatuses']) || !is_array($data['userStatuses'])) {
+            $data['userStatuses'] = [];
         }
         foreach ($data['userStatuses'] as $status) {
             if (!in_array($status, $allowedStatuses, true)) {
@@ -166,4 +168,4 @@ class Book
             isset($data['addedTimestamp']) ? (int)$data['addedTimestamp'] : null
         );
     }
-} 
+}

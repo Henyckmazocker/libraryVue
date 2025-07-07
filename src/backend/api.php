@@ -139,6 +139,27 @@ try {
             $statusCode = 200;
             break;
 
+        // --- Allowed Book Statuses endpoint ---
+        case 'get_book_statuses':
+            $useCase = new \App\Application\UseCase\GetBookAllowedStatusesUseCase($bookRepository);
+            $statuses = $useCase->execute();
+            $response['status'] = 'success';
+            $response['message'] = 'Allowed book statuses retrieved.';
+            $response['data'] = $statuses;
+            $statusCode = 200;
+            break;
+
+        // --- Allowed Movie Statuses endpoint ---
+        case 'get_movie_statuses':
+            $movieRepository = new \App\Infrastructure\Persistence\MySqlMovieRepository();
+            $useCase = new \App\Application\UseCase\GetMovieAllowedStatusesUseCase($movieRepository);
+            $statuses = $useCase->execute();
+            $response['status'] = 'success';
+            $response['message'] = 'Allowed movie statuses retrieved.';
+            $response['data'] = $statuses;
+            $statusCode = 200;
+            break;
+
         default:
             if (isset($inputData['message']) && $action === null) { // Keep old message echo behavior if no other action matches
                  $response['status'] = 'success';

@@ -20,11 +20,12 @@ services:
       - backend
     networks:
       - library_network
+    restart: always
 
   backend:
     build:
       context: .
-      dockerfile: Dockerfile.backend
+      dockerfile: Dockerfile.backend.dev  # Usar el Dockerfile de desarrollo
     ports:
       - "8888:80"
     volumes:
@@ -40,6 +41,7 @@ services:
       - mysql
     networks:
       - library_network
+    restart: always
 
   mysql:
     image: mysql:8.0
@@ -56,7 +58,7 @@ services:
       - mysql_data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
-      - library_network
+      - library_network    
 
 networks:
   library_network:
@@ -67,4 +69,4 @@ volumes:
 
 # Optional named volume for node_modules if you choose Option 2 above
 # volumes:
-#   node_modules_volume: 
+#   node_modules_volume:

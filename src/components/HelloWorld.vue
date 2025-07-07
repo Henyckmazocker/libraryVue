@@ -10,7 +10,7 @@
     <BookDisplay 
       :book="currentBook" 
       @add-book-to-library="addBookToLibrary" 
-      :allowed-user-statuses="ALLOWED_USER_STATUSES" 
+      :allowedUserStatuses="allowedUserStatusesList" 
       v-if="currentBook.title" 
     />
 
@@ -24,13 +24,10 @@
 </template>
 
 <script setup>
-import { ref, reactive } from "vue";
+import { ref, reactive, onMounted, computed } from "vue";
 import axios from 'axios';
 import BarcodeScanner from './BarcodeScanner.vue';
 import BookDisplay from './BookDisplay.vue';
-
-// Ideally, this should come from the backend or a shared configuration
-const ALLOWED_USER_STATUSES = ['owned', 'read', 'want to buy', 'reading'];
 
 const decodedText = ref("");
 const currentBook = reactive({
@@ -42,6 +39,10 @@ const currentBook = reactive({
 const searchError = ref("");
 const addBookMessage = ref("");
 const addBookStatus = ref(""); // 'success' or 'error'
+const allowedUserStatuses = ref([]);
+const allowedUserStatusesList = computed(() => {
+  return Array.isArray(allowedUserStatuses.value) ? allowedUserStatuses.value : [];
+});
 
 const clearBookDetails = () => {
   currentBook.isbn = "";
@@ -141,11 +142,14 @@ const addBookToLibrary = async (bookDetailsWithStatuses) => {
   try {
     const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
     console.log("Attempting to POST to backend at:", backendApiUrl);
+    console.log("Book details being sent:", book);
+    console.log("User statuses being sent:", statuses);
     const response = await axios.post(backendApiUrl, {
       action: 'add_book',
       book: { 
         ...book,
-        userStatuses: statuses
+        userStatuses: statuses,
+        allowedStatuses: allowedUserStatusesList.value // Include allowed statuses for validation
       }
     });
     if (response.data && response.data.status === 'success') {
@@ -162,6 +166,15 @@ const addBookToLibrary = async (bookDetailsWithStatuses) => {
     if (error.response) console.error("Backend Error Response:", error.response.data);
   }
 };
+
+// Load allowed user statuses from backend on component mount
+onMounted(async () => {
+  const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
+  const response = await axios.get(backendApiUrl, {
+    params: { action: 'get_book_statuses' }
+  });
+  allowedUserStatuses.value = Array.isArray(response.data.data) ? response.data.data : [];
+});
 
 </script>
 

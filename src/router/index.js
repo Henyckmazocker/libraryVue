@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import HomePage from '../components/HomePage.vue';
 import HelloWorld from '../components/HelloWorld.vue';
+import MovieSearch from '../components/MovieSearch.vue';
 // We will create MyLibrary.vue in the next step
 // import MyLibrary from '../components/MyLibrary.vue'; 
 
@@ -7,7 +9,17 @@ const routes = [
   {
     path: '/',
     name: 'Home',
+    component: HomePage
+  },
+  {
+    path: '/books',
+    name: 'Books',
     component: HelloWorld
+  },
+  {
+    path: '/movies',
+    name: 'Movies',
+    component: MovieSearch
   },
   {
     path: '/library',
@@ -23,4 +35,4 @@ const router = createRouter({
   routes
 });
 
-export default router; 
+export default router;

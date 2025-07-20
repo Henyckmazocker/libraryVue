@@ -68,9 +68,34 @@ const normalizedAllowedUserStatuses = computed(() => {
 console.log('MovieDisplay allowedUserStatuses:', props.allowedUserStatuses);
 console.log('MovieDisplay normalizedAllowedUserStatuses:', normalizedAllowedUserStatuses.value);
 
-const onSaveMovie = () => {
-  // Aquí puedes emitir un evento o manejar el guardado
-  alert(`Película guardada con estados: ${selectedUserStatuses.value.join(', ')}`);
+import axios from 'axios';
+
+const onSaveMovie = async () => {
+  const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
+  try {
+    const payload = {
+      action: 'add_movie',
+      movie: {
+        id: props.movie.imdbID,
+        title: props.movie.Title,
+        originalTitle: props.movie.Title,
+        director: props.movie.Director,
+        coverUrl: props.movie.Poster,
+        rating: null, // No guardar la nota de OMDb como rating en la base de datos
+        userStatuses: selectedUserStatuses.value,
+        addedTimestamp: Date.now()
+      }
+    };
+    const response = await axios.post(backendApiUrl, payload);
+    if (response.data && response.data.status === 'success') {
+      alert('Película guardada correctamente en tu colección.');
+    } else {
+      alert(response.data.message || 'Error al guardar la película.');
+    }
+  } catch (error) {
+    console.error('Error al guardar película:', error);
+    alert('No se pudo guardar la película en el backend.');
+  }
 };
 </script>
 

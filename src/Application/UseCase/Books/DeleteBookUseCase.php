@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Application\UseCase;
+namespace App\Application\UseCase\Books;
 
 use App\Application\Domain\Repository\BookRepositoryInterface;
 use InvalidArgumentException;
@@ -27,7 +27,7 @@ class DeleteBookUseCase
             throw new InvalidArgumentException('ISBN is required to delete a book.');
         }
 
-        if (!$this->bookRepository->findByIsbn($isbn)) {
+        if (!$this->bookRepository->findById($isbn)) {
             // Or throw a more specific BookNotFoundException
             throw new InvalidArgumentException('Book with ISBN ' . $isbn . ' not found.');
         }

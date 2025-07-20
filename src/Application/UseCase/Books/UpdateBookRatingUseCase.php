@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Application\UseCase;
+namespace App\Application\UseCase\Books;
 
 use App\Application\Domain\Repository\BookRepositoryInterface;
 use InvalidArgumentException;
@@ -28,7 +28,7 @@ class UpdateBookRatingUseCase
             throw new InvalidArgumentException('ISBN is required to update a rating.');
         }
 
-        $book = $this->bookRepository->findByIsbn($isbn);
+        $book = $this->bookRepository->findById($isbn);
         if (!$book) {
             // Or throw a more specific BookNotFoundException
             throw new InvalidArgumentException('Book with ISBN ' . $isbn . ' not found.');

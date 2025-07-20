@@ -1,16 +1,74 @@
 [
     {
-        "isbn": "9788417347628",
-        "title": "Dune",
-        "author": "Frank Herbert",
-        "coverUrl": "https:\/\/covers.openlibrary.org\/b\/id\/10448201-L.jpg",
-        "rating": 1.5
+        "isbn": "0375703764",
+        "title": "House of Leaves",
+        "author": null,
+        "coverUrl": "https://covers.openlibrary.org/b/id/228503-L.jpg",
+        "rating": 3.5,
+        "userStatuses": [],
+        "addedTimestamp": 1751909657
     },
     {
-        "isbn": "849759682X",
+        "isbn": "178227376X",
+        "title": "The King in Yellow, Deluxe Edition",
+        "author": null,
+        "coverUrl": "https://covers.openlibrary.org/b/id/8762699-L.jpg",
+        "rating": 4.5,
+        "userStatuses": [],
+        "addedTimestamp": 1751909322
+    },
+    {
+        "isbn": "9788497596671",
+        "title": "El Mesias De Dune / Dune Messiah",
+        "author": null,
+        "coverUrl": "https://covers.openlibrary.org/b/id/5277575-L.jpg",
+        "rating": 2,
+        "userStatuses": [],
+        "addedTimestamp": 1751909024
+    },
+    {
+        "isbn": "9780330493109",
+        "title": "The City & The City",
+        "author": null,
+        "coverUrl": "https://covers.openlibrary.org/b/id/10134797-L.jpg",
+        "rating": 2.5,
+        "userStatuses": [],
+        "addedTimestamp": 1748969115
+    },
+    {
+        "isbn": "0575068566",
         "title": "Dune",
-        "author": "Author not found",
-        "coverUrl": "https:\/\/covers.openlibrary.org\/b\/id\/4917636-L.jpg",
-        "rating": 3.5
+        "author": "Frank Herbert",
+        "coverUrl": "https://covers.openlibrary.org/b/id/8740672-L.jpg",
+        "rating": null,
+        "userStatuses": [],
+        "addedTimestamp": 1748941027
+    },
+    {
+        "isbn": "9781848421059",
+        "title": "random",
+        "author": "debbie tucker green",
+        "coverUrl": "https://covers.openlibrary.org/b/id/10359465-L.jpg",
+        "rating": 2.5,
+        "userStatuses": [],
+        "addedTimestamp": 1748536939
+    },
+    {
+        "isbn": "9780425071601",
+        "title": "Dune (Dune Chronicles (Berkley Paperback))",
+        "author": "Frank Herbert",
+        "coverUrl": "https://covers.openlibrary.org/b/id/9499649-L.jpg",
+        "rating": 3.5,
+        "userStatuses": [],
+        "addedTimestamp": 1748115156
+    },
+    {
+        "isbn": "9780575068568",
+        "title": "Dune",
+        "author": "Frank Herbert",
+        "coverUrl": "https://covers.openlibrary.org/b/id/8740672-L.jpg",
+        "rating": 4,
+        "userStatuses": [],
+        "addedTimestamp": 1748112089
     }
 ]

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Application\UseCase;
+namespace App\Application\UseCase\Books;
 
 use App\Application\Domain\Model\Book;
 use App\Application\Domain\Repository\BookRepositoryInterface;
@@ -29,7 +29,7 @@ class UpdateBookUserStatusesUseCase
             throw new InvalidArgumentException('ISBN is required to update book statuses.');
         }
 
-        $book = $this->bookRepository->findByIsbn($isbn);
+        $book = $this->bookRepository->findById($isbn);
         if (!$book) {
             throw new InvalidArgumentException('Book with ISBN ' . $isbn . ' not found.');
         }

@@ -14,7 +14,7 @@ interface BookRepositoryInterface
      */
     public function findAll(array $filters = []): array;
 
-    public function findByIsbn(string $isbn): ?Book;
+    public function findById(string $isbn): ?Book;
 
     /**
      * Finds books by a specific user status.

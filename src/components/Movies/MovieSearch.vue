@@ -85,7 +85,7 @@ const toggleMovie = async (imdbID) => {
 onMounted(async () => {
   const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
   const response = await axios.get(backendApiUrl, {
-    params: { action: 'get_movie_statuses' }
+    params: { action: 'get_movie_allowed_statuses' }
   });
   // Asegura que solo se pase el array de statuses
   allowedMovieStatuses.value = Array.isArray(response.data.data) ? response.data.data : [];

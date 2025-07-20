@@ -45,7 +45,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
-import LibraryBookItem from './LibraryBookItem.vue';
+import LibraryBookItem from './Books/LibraryBookItem.vue';
 
 const books = ref([]);
 const isLoading = ref(true);
@@ -70,9 +70,7 @@ const fetchLibrary = async () => {
   // overallStatus.value = "";
   try {
     const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
-    const response = await axios.get(backendApiUrl, {
-      params: { action: 'get_library' }
-    });
+    const response = await axios.get(backendApiUrl + '?action=get_library');
     if (response.data && response.data.status === 'success') {
       books.value = response.data.data || [];
     } else {

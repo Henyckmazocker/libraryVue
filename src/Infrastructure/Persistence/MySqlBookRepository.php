@@ -96,7 +96,7 @@ class MySqlBookRepository implements BookRepositoryInterface
         return $books;
     }
 
-    public function findByIsbn(string $isbn): ?Book
+    public function findById(string $isbn): ?Book
     {
         $stmt = $this->db->prepare("SELECT * FROM books WHERE isbn = :isbn");
         $stmt->bindParam(':isbn', $isbn);
@@ -117,7 +117,7 @@ class MySqlBookRepository implements BookRepositoryInterface
             $allowedStatuses = $this->fetchAllowedStatuses();
             return Book::fromArray($data, $allowedStatuses);
         } catch (\InvalidArgumentException $e) {
-            error_log("Error hydrating book from DB (findByIsbn): " . $e->getMessage() . " Data: " . json_encode($data));
+            error_log("Error hydrating book from DB (findById): " . $e->getMessage() . " Data: " . json_encode($data));
             throw new RuntimeException("Failed to hydrate book from DB due to inconsistent data: " . $e->getMessage(), 0, $e);
         }
     }
@@ -160,7 +160,7 @@ class MySqlBookRepository implements BookRepositoryInterface
                 ':author' => $book->getAuthor(),
                 ':coverUrl' => $book->getCoverUrl(),
                 ':rating' => $book->getRating(),
-                ':addedTimestamp' => $book->getAddedTimestamp() ?? time()
+                ':addedTimestamp' => time()
             ]);
 
             $isbn = $book->getIsbn();

@@ -25,12 +25,16 @@ spl_autoload_register(function ($class) {
     }
 });
 
+
 use App\Infrastructure\Persistence\MySqlBookRepository;
-use App\Application\UseCase\AddBookUseCase;
+use App\Infrastructure\Persistence\MySqlMovieRepository;
+use App\Application\UseCase\Books\AddBookUseCase;
 use App\Application\UseCase\GetLibraryUseCase;
-use App\Application\UseCase\DeleteBookUseCase;
-use App\Application\UseCase\UpdateBookRatingUseCase;
-use App\Application\Domain\Model\Book; // For type hinting and potentially Book::toArray
+use App\Application\UseCase\Books\DeleteBookUseCase;
+use App\Application\UseCase\Books\UpdateBookRatingUseCase;
+use App\Application\UseCase\Movies\AddMovieUseCase;
+use App\Application\UseCase\Movies\GetMovieAllowedStatusesUseCase;
+use App\Application\Domain\Model\Book;
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -56,28 +60,32 @@ $statusCode = 500;
 try {
     // Initialization
     $bookRepository = new MySqlBookRepository();
+    $movieRepository = new App\Infrastructure\Persistence\MySqlMovieRepository();
 
-    // Use cases (could be managed by a simple DI container in a larger app)
+    // Use cases libros
     $addBookUseCase = new AddBookUseCase($bookRepository);
     $getLibraryUseCase = new GetLibraryUseCase($bookRepository);
     $deleteBookUseCase = new DeleteBookUseCase($bookRepository);
     $updateBookRatingUseCase = new UpdateBookRatingUseCase($bookRepository);
+
+    // Use cases películas
+    $addMovieUseCase = new App\Application\UseCase\Movies\AddMovieUseCase($movieRepository);
+    $getMovieAllowedStatusesUseCase = new App\Application\UseCase\Movies\GetMovieAllowedStatusesUseCase($movieRepository);
 
     // Decode incoming JSON data
     $inputData = json_decode(file_get_contents('php://input'), true) ?? [];
 
     // Determine action
     $action = $inputData['action'] ?? $_REQUEST['action'] ?? null;
-    if ($_SERVER['REQUEST_METHOD'] === 'GET' && empty($action) && isset($_GET['action']) && $_GET['action'] == 'get_library') {
-        // Compatibility for existing GET ?action=get_library
-        $action = 'get_library';
-    } else if ($_SERVER['REQUEST_METHOD'] === 'GET' && empty($action)) {
-        // Default GET action if no specific action is provided in query params (e.g. simple health check or root access)
-        // For now, let's assume if it's GET and no action, it might be an attempt to get library, but we should be explicit.
-        // Let's make get_library explicit for GET requests.
-    }
 
     switch ($action) {
+        case 'get_book_allowed_statuses':
+            $statuses = $bookRepository->fetchAllowedStatuses();
+            $response['status'] = 'success';
+            $response['message'] = 'Allowed book statuses retrieved.';
+            $response['data'] = $statuses;
+            $statusCode = 200;
+            break;
         case 'add_book':
             if (!isset($inputData['book']) || !is_array($inputData['book'])) {
                 throw new InvalidArgumentException('Book data is required for add_book action.');
@@ -89,11 +97,44 @@ try {
             $statusCode = 201; // Created
             break;
 
+        case 'add_movie':
+            if (!isset($inputData['movie']) || !is_array($inputData['movie'])) {
+                throw new InvalidArgumentException('Movie data is required for add_movie action.');
+            }
+            $addedMovie = $addMovieUseCase->execute($inputData['movie']);
+            $response['status'] = 'success';
+            $response['message'] = 'Movie added: ' . $addedMovie->getTitle();
+            $response['data'] = $addedMovie->toArray();
+            $statusCode = 201;
+            break;
+
         case 'get_library':
             $library = $getLibraryUseCase->execute();
             $response['status'] = 'success';
             $response['message'] = 'Library data retrieved.';
             $response['data'] = array_map(fn(Book $book) => $book->toArray(), $library);
+            $statusCode = 200;
+            break;
+
+        case 'get_movies':
+            $movies = $movieRepository->findAll();
+            $response['status'] = 'success';
+            $response['message'] = 'Movies data retrieved.';
+            $response['data'] = array_map(function($movieArr) use ($movieRepository) {
+                // Si ya es Movie, toArray, si es array, lo convertimos
+                if ($movieArr instanceof App\Application\Domain\Model\Movie) {
+                    return $movieArr->toArray();
+                }
+                return $movieArr;
+            }, $movies);
+            $statusCode = 200;
+            break;
+
+        case 'get_movie_allowed_statuses':
+            $statuses = $getMovieAllowedStatusesUseCase->execute();
+            $response['status'] = 'success';
+            $response['message'] = 'Allowed movie statuses retrieved.';
+            $response['data'] = $statuses;
             $statusCode = 200;
             break;
 
@@ -104,6 +145,16 @@ try {
             $deleteBookUseCase->execute($inputData['isbn']);
             $response['status'] = 'success';
             $response['message'] = 'Book deleted: ' . $inputData['isbn'];
+            $statusCode = 200;
+            break;
+
+        case 'delete_movie':
+            if (!isset($inputData['id']) || !is_string($inputData['id'])) {
+                throw new InvalidArgumentException('ID is required for delete_movie action.');
+            }
+            $movieRepository->deleteById($inputData['id']);
+            $response['status'] = 'success';
+            $response['message'] = 'Movie deleted: ' . $inputData['id'];
             $statusCode = 200;
             break;
 
@@ -136,27 +187,6 @@ try {
             $response['status'] = 'success';
             $response['message'] = 'pong';
             $response['data'] = null;
-            $statusCode = 200;
-            break;
-
-        // --- Allowed Book Statuses endpoint ---
-        case 'get_book_statuses':
-            $useCase = new \App\Application\UseCase\GetBookAllowedStatusesUseCase($bookRepository);
-            $statuses = $useCase->execute();
-            $response['status'] = 'success';
-            $response['message'] = 'Allowed book statuses retrieved.';
-            $response['data'] = $statuses;
-            $statusCode = 200;
-            break;
-
-        // --- Allowed Movie Statuses endpoint ---
-        case 'get_movie_statuses':
-            $movieRepository = new \App\Infrastructure\Persistence\MySqlMovieRepository();
-            $useCase = new \App\Application\UseCase\GetMovieAllowedStatusesUseCase($movieRepository);
-            $statuses = $useCase->execute();
-            $response['status'] = 'success';
-            $response['message'] = 'Allowed movie statuses retrieved.';
-            $response['data'] = $statuses;
             $statusCode = 200;
             break;
 

@@ -7,6 +7,7 @@ use PDO;
 use PDOException;
 use RuntimeException;
 use App\Application\Domain\Repository\MovieRepositoryInterface;
+use App\Application\Domain\Model\Movie;
 
 class MySqlMovieRepository implements MovieRepositoryInterface
 {
@@ -77,7 +78,7 @@ class MySqlMovieRepository implements MovieRepositoryInterface
         return $movies;
     }
 
-    public function save(array $movie): void
+    public function save(Movie $movie): void
     {
         $this->db->beginTransaction();
         try {
@@ -88,15 +89,15 @@ class MySqlMovieRepository implements MovieRepositoryInterface
                    "rating = VALUES(rating), addedTimestamp = VALUES(addedTimestamp)";
             $stmtMovie = $this->db->prepare($sqlMovie);
             $stmtMovie->execute([
-                ':isbn' => $movie['isbn'],
-                ':title' => $movie['title'],
-                ':author' => $movie['author'] ?? null,
-                ':coverUrl' => $movie['coverUrl'] ?? null,
-                ':rating' => $movie['rating'] ?? null,
-                ':addedTimestamp' => $movie['addedTimestamp'] ?? time()
+                ':isbn' => $movie->getId(),
+                ':title' => $movie->getTitle(),
+                ':author' => $movie->getDirector(),
+                ':coverUrl' => $movie->getCoverUrl(),
+                ':rating' => $movie->getRating(),
+                ':addedTimestamp' => time()
             ]);
-            $isbn = $movie['isbn'];
-            $userStatusNames = $movie['userStatuses'] ?? [];
+            $isbn = $movie->getId();
+            $userStatusNames = $movie->getUserStatuses();
             $stmtDeleteStatuses = $this->db->prepare("DELETE FROM movie_has_statuses WHERE movie_isbn = :isbn");
             $stmtDeleteStatuses->bindParam(':isbn', $isbn);
             $stmtDeleteStatuses->execute();
@@ -115,11 +116,11 @@ class MySqlMovieRepository implements MovieRepositoryInterface
             $this->db->commit();
         } catch (PDOException $e) {
             $this->db->rollBack();
-            error_log("DB Save Error (MySqlMovieRepository): " . $e->getMessage() . " Movie data: " . json_encode($movie));
+            error_log("DB Save Error (MySqlMovieRepository): " . $e->getMessage() . " Movie data: " . json_encode($movie->toArray()));
             throw new RuntimeException("Could not save movie and/or its statuses. DB Error: " . $e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             $this->db->rollBack();
-            error_log("Generic Error during save (MySqlMovieRepository): " . $e->getMessage() . " Movie data: " . json_encode($movie));
+            error_log("Generic Error during save (MySqlMovieRepository): " . $e->getMessage() . " Movie data: " . json_encode($movie->toArray()));
             throw new RuntimeException("An unexpected error occurred while saving movie and statuses: " . $e->getMessage(), 0, $e);
         }
     }
@@ -196,7 +197,7 @@ class MySqlMovieRepository implements MovieRepositoryInterface
         }
     }
 
-    public function findByIsbn(string $isbn): ?array
+    public function findById(string $isbn): ?array
     {
         $sql = "SELECT * FROM movie WHERE isbn = :isbn";
         $stmt = $this->db->prepare($sql);

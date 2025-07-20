@@ -4,7 +4,20 @@
     <h1 class="title">ISBN Book Finder</h1>
     <div class="input-group">
       <input type="text" class="isbn-input" placeholder="Enter ISBN manually" v-model="decodedText" @keyup.enter="triggerFetchBookInfo" required />
-      <button @click="triggerFetchBookInfo" class="search-button">Search</button>
+      <button @click="triggerFetchBookInfo" class="search-button">Buscar por ISBN</button>
+    </div>
+    <div class="input-group">
+      <input type="text" class="isbn-input" placeholder="Buscar por nombre de libro" v-model="bookName" @keyup.enter="triggerFetchBookByName" />
+      <button @click="triggerFetchBookByName" class="search-button">Buscar por nombre</button>
+    </div>
+    <div v-if="foundBooks.length > 0">
+      <h3>Resultados por nombre:</h3>
+      <ul>
+        <li v-for="book in foundBooks" :key="book.key">
+          <span><strong>{{ book.title }}</strong> - {{ book.author_name ? book.author_name.join(', ') : 'Autor desconocido' }}</span>
+          <button @click="selectBookFromList(book)">Ver detalles</button>
+        </li>
+      </ul>
     </div>
 
     <BookDisplay 
@@ -26,7 +39,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from "vue";
 import axios from 'axios';
-import BarcodeScanner from './BarcodeScanner.vue';
+import BarcodeScanner from '../BarcodeScanner.vue';
 import BookDisplay from './BookDisplay.vue';
 
 const decodedText = ref("");
@@ -43,6 +56,8 @@ const allowedUserStatuses = ref([]);
 const allowedUserStatusesList = computed(() => {
   return Array.isArray(allowedUserStatuses.value) ? allowedUserStatuses.value : [];
 });
+const bookName = ref("");
+const foundBooks = ref([]);
 
 const clearBookDetails = () => {
   currentBook.isbn = "";
@@ -125,6 +140,34 @@ const fetchBookInfo = async () => {
   }
 };
 
+const triggerFetchBookByName = async () => {
+  foundBooks.value = [];
+  if (!bookName.value.trim()) return;
+  try {
+    const apiUrl = `https://openlibrary.org/search.json?title=${encodeURIComponent(bookName.value.trim())}`;
+    const response = await axios.get(apiUrl);
+    const docs = response.data.docs || [];
+    foundBooks.value = docs.slice(0, 10); // Muestra los primeros 10 resultados
+    if (docs.length === 0) {
+      searchError.value = "No se encontraron libros con ese nombre.";
+    } else {
+      searchError.value = "";
+    }
+  } catch (error) {
+    searchError.value = "Error buscando libros por nombre.";
+    foundBooks.value = [];
+  }
+};
+
+const selectBookFromList = (book) => {
+  clearBookDetails();
+  currentBook.isbn = book.isbn && book.isbn.length > 0 ? book.isbn[0] : "";
+  currentBook.title = book.title || "Title not found";
+  currentBook.author = book.author_name ? book.author_name.join(', ') : "Author not found";
+  currentBook.coverUrl = book.cover_i ? `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg` : "";
+  foundBooks.value = [];
+};
+
 const addBookToLibrary = async (bookDetailsWithStatuses) => {
   const { book, statuses } = bookDetailsWithStatuses;
 
@@ -170,16 +213,15 @@ const addBookToLibrary = async (bookDetailsWithStatuses) => {
 // Load allowed user statuses from backend on component mount
 onMounted(async () => {
   const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
-  const response = await axios.get(backendApiUrl, {
-    params: { action: 'get_book_statuses' }
+  const response = await axios.post(backendApiUrl, {
+    action: 'get_book_allowed_statuses'
   });
   allowedUserStatuses.value = Array.isArray(response.data.data) ? response.data.data : [];
 });
-
 </script>
 
 <style scoped>
-/* Styles for elements directly within HelloWorld.vue */
+/* Styles for elements directly within BookSearch.vue */
 .hello-container {
   display: flex;
   flex-direction: column;
@@ -270,8 +312,4 @@ onMounted(async () => {
   background-color: rgba(255, 77, 79, 0.1);
   color: #ff4d4f;
 }
-
-/* Removed styles that were moved to BookDisplay.vue and BarcodeScanner.vue */
-/* e.g., .barcode-reader-small, .result-container, .book-details, etc. */
-
 </style>

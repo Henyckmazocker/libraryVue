@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Application\UseCase;
+namespace App\Application\UseCase\Books;
 
 use App\Application\Domain\Model\Book;
 use App\Application\Domain\Repository\BookRepositoryInterface;
@@ -35,7 +35,7 @@ class AddBookUseCase
         }
         // Further validation of statuses (e.g., against Book::ALLOWED_STATUSES) will be done in Book::fromArray or Book constructor
 
-        if ($this->bookRepository->findByIsbn($bookData['isbn'])) {
+        if ($this->bookRepository->findById($bookData['isbn'])) {
             throw new InvalidArgumentException('Book with ISBN ' . $bookData['isbn'] . ' already exists.');
         }
 
@@ -59,4 +59,4 @@ class AddBookUseCase
         $this->bookRepository->save($book);
         return $book;
     }
-} 
+}

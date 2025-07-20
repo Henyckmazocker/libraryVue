@@ -10,12 +10,59 @@
       <router-link class="home-link" to="/movies">Películas (Buscador OMDb)</router-link>
       <router-link class="home-link disabled" to="#" @click.prevent>Música (próximamente)</router-link>
     </div>
+    <button @click="saveBooksToBackend" class="export-button">
+      Guardar cambios en la biblioteca
+    </button>
+    <button @click="downloadEntradas" class="download-button">
+      Descargar archivos de entradas
+    </button>
   </div>
 </template>
 
-<script>
-export default {
-  name: 'HomePage',
+<script setup>
+import axios from 'axios';
+
+const saveBooksToBackend = async () => {
+  try {
+    const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
+    const response = await axios.post(backendApiUrl, {
+      type: 'books',
+      action: 'get_library'
+    });
+    const books = Array.isArray(response.data.data) ? response.data.data : [];
+    // Ahora enviamos los libros al backend para sobrescribir el archivo
+    const saveResponse = await axios.post(backendApiUrl, {
+      action: 'save_library',
+      books
+    });
+    if (saveResponse.data && saveResponse.data.status === 'success') {
+      alert('Biblioteca guardada correctamente en el backend.');
+    } else {
+      alert('Error al guardar la biblioteca en el backend.');
+    }
+  } catch (error) {
+    console.error("Error al guardar libros en backend:", error);
+    alert("No se pudo guardar la biblioteca en el backend.");
+  }
+};
+
+const downloadEntradas = () => {
+  // Ruta relativa a la carpeta pública
+  const entradas = [
+    'entrada-EL-MESTRE-I-MARGARITA-- (1).pdf',
+    'entrada-EL-MESTRE-I-MARGARITA--.pdf',
+    'entrada-LITTLE-WOMEN-- (1).pdf',
+    'entrada-LITTLE-WOMEN--.pdf'
+  ];
+  entradas.forEach(filename => {
+    const url = `/Entradas/${filename}`;
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  });
 };
 </script>
 
@@ -68,5 +115,35 @@ export default {
   background: #222;
   cursor: not-allowed;
   pointer-events: none;
+}
+.export-button {
+  margin-top: 32px;
+  padding: 12px 24px;
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.export-button:hover {
+  background: #1565c0;
+}
+.download-button {
+  margin-top: 16px;
+  padding: 12px 24px;
+  background: #4caf50;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.download-button:hover {
+  background: #388e3c;
 }
 </style>

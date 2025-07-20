@@ -43,7 +43,7 @@ class JsonFileBookRepository implements BookRepositoryInterface
         return $books;
     }
 
-    public function findByIsbn(string $isbn): ?Book
+    public function findById(string $isbn): ?Book
     {
         $books = $this->findAll();
         foreach ($books as $book) {

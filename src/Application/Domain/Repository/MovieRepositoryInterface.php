@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Domain\Repository;
 
+use App\Application\Domain\Model\Movie;
+
 interface MovieRepositoryInterface
 {
     /**
@@ -16,13 +18,13 @@ interface MovieRepositoryInterface
      * @param string $isbn
      * @return array|null
      */
-    public function findByIsbn(string $isbn): ?array;
+    public function findById(string $isbn): ?array;
 
     /**
      * @param array $movie
      * @return void
      */
-    public function save(array $movie): void;
+    public function save(Movie $movie): void;
 
     /**
      * @param int $id

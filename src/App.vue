@@ -10,7 +10,7 @@
 // No script changes needed here unless HelloWorld was being imported for other reasons
 export default {
   name: 'App'
-  // components: { HelloWorld } // HelloWorld is now rendered by the router, not directly here
+  // components: { BookSearch } // BookSearch es ahora renderizado por el router, no directamente aquí
 }
 </script>
 
@@ -62,11 +62,7 @@ html, body {
 }
 
 /* Adjust padding for main content area to account for fixed nav */
-.hello-container { /* Assuming HelloWorld.vue uses this class, and MyLibrary.vue will too */
-  padding-top: 80px; /* Height of nav + some space */ 
+.hello-container { /* Asumiendo que BookSearch.vue usa esta clase, y MyLibrary.vue también */
+  padding-top: 80px; /* Height of nav + some space */
 }
-
-/* img {
-  width: 400px;
-} */ /* Commenting out as the img tag is removed */
 </style>

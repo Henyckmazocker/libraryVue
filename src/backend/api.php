@@ -79,6 +79,22 @@ try {
     $action = $inputData['action'] ?? $_REQUEST['action'] ?? null;
 
     switch ($action) {
+        case 'save_library':
+            // Obtiene la biblioteca actual y la guarda en my_library.json
+            $library = $getLibraryUseCase->execute();
+            $libraryArray = array_map(fn($book) => $book->toArray(), $library);
+            $libraryFilePath = __DIR__ . '/my_library.json';
+            $json = json_encode($libraryArray, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            if (file_put_contents($libraryFilePath, $json) !== false) {
+                $response['status'] = 'success';
+                $response['message'] = 'Library saved successfully.';
+                $statusCode = 200;
+            } else {
+                $response['status'] = 'error';
+                $response['message'] = 'Failed to save library to file.';
+                $statusCode = 500;
+            }
+            break;
         case 'get_book_allowed_statuses':
             $statuses = $bookRepository->fetchAllowedStatuses();
             $response['status'] = 'success';

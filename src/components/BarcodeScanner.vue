@@ -24,7 +24,7 @@ const onLoadedInternal = () => {
 };
 </script>
 
-<style scoped>
+<style>
 .barcode-reader-small {
   width: 1px;
   height: 1px;

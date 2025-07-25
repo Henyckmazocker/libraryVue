@@ -20,12 +20,16 @@
       </ul>
     </div>
 
-    <BookDisplay 
-      :book="currentBook" 
-      @add-book-to-library="addBookToLibrary" 
-      :allowedUserStatuses="allowedUserStatusesList" 
-      v-if="currentBook.title" 
-    />
+    <div v-if="currentBook.title">
+      <LibraryBookItem
+        :book="currentBook"
+        :allowedUserStatuses="allowedUserStatusesList"
+        :editable="true"
+        @update-rating="onUpdateRating"
+        @update-statuses="onUpdateStatuses"
+        @save-book="addBookToLibrary"
+      />
+    </div>
 
     <div v-if="searchError" class="error-message">
       <p>{{ searchError }}</p>
@@ -40,14 +44,24 @@
 import { ref, reactive, onMounted, computed } from "vue";
 import axios from 'axios';
 import BarcodeScanner from '../BarcodeScanner.vue';
-import BookDisplay from './BookDisplay.vue';
+// import StatusSelector from '../StatusSelector.vue';
+// Maneja la actualización de estados desde LibraryBookItem
+const onUpdateStatuses = ({ statuses }) => {
+  currentBook.userStatuses = [...statuses];
+};
+import LibraryBookItem from './LibraryBookItem.vue';
+// Maneja la actualización de rating desde LibraryBookItem
+const onUpdateRating = ({ rating }) => {
+  currentBook.rating = rating;
+};
 
 const decodedText = ref("");
 const currentBook = reactive({
   isbn: "",
   title: "",
   author: "",
-  coverUrl: ""
+  coverUrl: "",
+  publishers: ""
 });
 const searchError = ref("");
 const addBookMessage = ref("");
@@ -64,6 +78,7 @@ const clearBookDetails = () => {
   currentBook.title = "";
   currentBook.author = "";
   currentBook.coverUrl = "";
+  currentBook.publishers = "";
   addBookMessage.value = "";
   addBookStatus.value = "";
 };
@@ -108,7 +123,7 @@ const fetchBookInfo = async () => {
       currentBook.title = details.title || "Title not found";
       currentBook.author = (details.authors && details.authors.length > 0) ? details.authors[0].name : "Author not found";
       currentBook.coverUrl = (details.covers && details.covers.length > 0) ? `https://covers.openlibrary.org/b/id/${details.covers[0]}-L.jpg` : "";
-      
+      currentBook.publishers = (details.publishers && details.publishers.length > 0) ? details.publishers : [];
       if (currentBook.title === "Title not found" && currentBook.author === "Author not found") {
         searchError.value = "Book details not found for this ISBN.";
       }
@@ -220,7 +235,7 @@ onMounted(async () => {
 });
 </script>
 
-<style scoped>
+<style>
 /* Styles for elements directly within BookSearch.vue */
 .hello-container {
   display: flex;

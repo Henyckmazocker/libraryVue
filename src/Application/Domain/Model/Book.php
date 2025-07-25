@@ -97,15 +97,10 @@ class Book
         return $this->userStatuses;
     }
 
-    public function setUserStatuses(array $userStatuses, array $allowedStatuses): void
+    public function setUserStatuses(array $userStatuses): void
     {
         if (empty($userStatuses)) {
             throw new \InvalidArgumentException('A book must have at least one user status.');
-        }
-        foreach ($userStatuses as $status) {
-            if (!in_array($status, $allowedStatuses, true)) {
-                throw new \InvalidArgumentException("Invalid status: {$status}. Allowed statuses are: " . implode(', ', $allowedStatuses));
-            }
         }
         $this->userStatuses = array_unique($userStatuses);
     }

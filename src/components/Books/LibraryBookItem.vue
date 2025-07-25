@@ -7,6 +7,12 @@
       <div class="info-text">
         <h3 class="book-title">{{ book.title }}</h3>
         <p v-if="book.author" class="book-author"><strong>Author:</strong> {{ book.author }}</p>
+        <p v-if="book.publishers && Array.isArray(book.publishers) && book.publishers.length > 0" class="book-publisher">
+          <strong>Editorial:</strong> {{ book.publishers.join(', ') }}
+        </p>
+        <p v-else-if="book.publisher" class="book-publisher">
+          <strong>Editorial:</strong> {{ book.publisher }}
+        </p>
         <p class="book-isbn"><strong>ISBN:</strong> {{ book.isbn }}</p>
         
         <div class="rating-section">
@@ -40,33 +46,73 @@
           </div>
         </div>
         
-        <div class="user-statuses-section">
-          <template v-if="book.userStatuses && book.userStatuses.length > 0">
-            <span v-for="status in book.userStatuses" :key="status" class="user-status-chip">{{ status }}</span>
-          </template>
-          <template v-else>
-            <span class="user-status-none">No consta de status</span>
-          </template>
+        <!-- Multiselect editable de estados -->
+        <div class="status-selector-container" v-if="allowedUserStatuses && allowedUserStatuses.length > 0" style="overflow:visible;">
+          <p class="status-selector-title"><strong>Status:</strong> (selecciona uno o más)</p>
+          <MultiSelect
+            v-model="selectedUserStatuses"
+            :options="allowedUserStatuses"
+            :filter="true"
+            :display="'chip'"
+            placeholder="Selecciona estados"
+            style="width: 100%; max-width: 20rem;"
+            @change="onStatusesChange"
+          >
+          </MultiSelect>
         </div>
-        
-        <button @click="onDeleteBook" class="delete-button">Delete</button>
+        <button v-if="!book.userStatuses || book.userStatuses.length === 0" @click="onSaveBook" class="save-button" :disabled="!book.title || selectedUserStatuses.length === 0">Guardar libro</button>
+        <button v-if="book.userStatuses && book.userStatuses.length > 0" @click="onDeleteBook" class="delete-button">Delete</button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { defineProps, defineEmits, ref, computed } from 'vue';
+import { defineProps, defineEmits, ref, computed, watch } from 'vue';
+import MultiSelect from 'primevue/multiselect';
 
 const props = defineProps({
   book: {
     type: Object,
     required: true,
     default: () => ({ isbn: "", title: "", author: "", coverUrl: "", rating: null })
+  },
+  allowedUserStatuses: {
+    type: Array,
+    required: true
+  },
+  editable: {
+    type: Boolean,
+    default: false
   }
 });
 
-const emit = defineEmits(['delete-book', 'update-rating']);
+const emit = defineEmits(['delete-book', 'update-rating', 'update-statuses', 'save-book']);
+// Estados seleccionados (editable)
+const selectedUserStatuses = ref(props.book.userStatuses ? [...props.book.userStatuses] : []);
+
+// Mantener sincronía solo si cambia el ISBN (nuevo libro)
+watch(() => props.book.isbn, (newIsbn, oldIsbn) => {
+  if (newIsbn !== oldIsbn) {
+    selectedUserStatuses.value = props.book.userStatuses ? [...props.book.userStatuses] : [];
+  }
+});
+
+// Emitir evento cuando cambian los estados
+const onStatusesChange = () => {
+  // Si el libro ya está guardado (tiene userStatuses), emitir inmediatamente
+  console.log('onStatusesChange:', props.book.userStatuses);
+  if (props.book.userStatuses && props.book.userStatuses.length > 0) {
+    emit('update-statuses', { isbn: props.book.isbn, statuses: [...selectedUserStatuses.value] });
+  }
+  // Si no está guardado, no emitir nada (esperar a guardar)
+};
+
+// Guardar libro (emitir evento con datos)
+const onSaveBook = () => {
+  if (!props.book.title || selectedUserStatuses.value.length === 0) return;
+  emit('save-book', { book: { ...props.book, userStatuses: [...selectedUserStatuses.value] }, statuses: [...selectedUserStatuses.value] });
+};
 const hoverRating = ref(0); // For hover effect on stars
 
 const currentVisualRating = computed(() => {
@@ -87,13 +133,51 @@ const setRating = (ratingValue) => {
 
 </script>
 
-<style scoped>
+<style>
+/* Botón azul para guardar */
+.save-button {
+  background-color: #007bff;
+  border-color: #007bff;
+  color: #fff;
+  padding: 8px 15px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-radius: 20px;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+  margin-top: 15px;
+  align-self: flex-start;
+  position: relative;
+  z-index: 1;
+}
+.save-button:hover {
+  background-color: #0056b3;
+  border-color: #0056b3;
+}
+.save-button:disabled {
+  background-color: #555;
+  border-color: #444;
+  color: #888;
+  cursor: not-allowed;
+}
+
 .library-book-item-container {
   padding: 20px;
   background-color: #2c2c2c;
   border-radius: 15px; /* Slightly less rounded than main display */
   box-shadow: 0 4px 10px rgba(0,0,0,0.25);
-  width: 100%;
+  /* width: 100%;  Eliminado para que el grid controle el ancho */
+  width: auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 480px) {
+  .library-book-item-container {
+    width: 100%;
+  }
 }
 
 .book-details {
@@ -127,7 +211,9 @@ const setRating = (ratingValue) => {
   margin-bottom: 8px;
 }
 
+
 .book-author,
+.book-publisher,
 .book-isbn {
   font-size: 0.95rem; /* Slightly smaller */
   color: #bbb;
@@ -241,5 +327,9 @@ const setRating = (ratingValue) => {
 .delete-button:hover {
   background-color: #c82333;
   border-color: #bd2130;
+}
+/* Fix para panel de PrimeVue que queda detrás de otros elementos */
+.p-multiselect-panel {
+  z-index: 1002 !important;
 }
 </style>

@@ -1,12 +1,6 @@
 -- Make sure we're using the right database
+CREATE DATABASE IF NOT EXISTS library_db;
 USE library_db;
-
--- Drop dependent table first
-DROP TABLE IF EXISTS book_has_statuses;
--- Drop the statuses table
-DROP TABLE IF EXISTS book_statuses;
--- Optionally, if you want to reset the books table too for a full clean slate:
--- DROP TABLE IF EXISTS books;
 
 -- Recreate tables (your existing CREATE TABLE statements)
 CREATE TABLE IF NOT EXISTS books (
@@ -47,14 +41,6 @@ CREATE TABLE IF NOT EXISTS book_has_statuses (
 
 -- Optional: Add an index on status_id in book_has_statuses for faster filtering if you frequently query by status
 CREATE INDEX idx_book_has_statuses_status_id ON book_has_statuses(status_id);
-
-
--- Drop dependent table first
-DROP TABLE IF EXISTS movie_has_statuses;
--- Drop the statuses table
-DROP TABLE IF EXISTS movie_statuses;
--- Optionally, if you want to reset the books table too for a full clean slate:
--- DROP TABLE IF EXISTS books;
 
 -- Recreate tables (your existing CREATE TABLE statements)
 CREATE TABLE IF NOT EXISTS movie (

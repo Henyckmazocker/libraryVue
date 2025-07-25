@@ -93,7 +93,7 @@ onMounted(async () => {
 });
 </script>
 
-<style scoped>
+<style>
 .movie-search-container {
   display: flex;
   flex-direction: column;

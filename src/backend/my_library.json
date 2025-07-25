@@ -1,13 +1,24 @@
 [
     {
-        "isbn": "1470825554",
-        "title": "Between Two Fires",
+        "isbn": "8412057643",
+        "title": "La ciutat i la ciutat",
         "author": null,
-        "coverUrl": "https:\/\/covers.openlibrary.org\/b\/id\/13763374-L.jpg",
+        "coverUrl": "https:\/\/covers.openlibrary.org\/b\/id\/13934511-L.jpg",
         "rating": null,
         "userStatuses": [
-            "want to buy"
+            "owned"
         ],
-        "addedTimestamp": 1753027169
+        "addedTimestamp": 1753457219
+    },
+    {
+        "isbn": "9781405000178",
+        "title": "The City & the City",
+        "author": null,
+        "coverUrl": "https:\/\/covers.openlibrary.org\/b\/id\/10286366-L.jpg",
+        "rating": null,
+        "userStatuses": [
+            "owned"
+        ],
+        "addedTimestamp": 1753457099
     }
 ]

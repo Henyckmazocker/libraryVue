@@ -23,7 +23,9 @@
 
     <div v-if="isLoading" class="loading-message">Loading library...</div>
     <div v-if="fetchError" class="error-message">{{ fetchError }}</div>
-    <div v-if="statusMessage" :class="['status-message', overallStatus]">{{ statusMessage }}</div>
+    <div :class="['status-message', overallStatus]" aria-live="polite" style="min-height: 2.5em;">
+      <span v-if="statusMessage">{{ statusMessage }}</span>
+    </div>
 
     <div v-if="!isLoading && !fetchError && displayedBooks.length === 0 && !statusMessage" class="empty-library-message">
       Your library is currently empty. Add some books from the ISBN Finder!
@@ -34,8 +36,10 @@
         v-for="(book) in displayedBooks" 
         :key="book.isbn" 
         :book="book" 
+        :allowedUserStatuses="allowedUserStatusesList"
         @delete-book="handleDeleteBook" 
         @update-rating="handleUpdateRating" 
+        @update-statuses="handleUpdateStatuses"
         class="book-item" 
       />
     </div>
@@ -53,7 +57,10 @@ const fetchError = ref("");
 const statusMessage = ref("");
 const overallStatus = ref("");
 const searchQuery = ref("");
-
+const allowedUserStatuses = ref([]);
+const allowedUserStatusesList = computed(() => {
+  return Array.isArray(allowedUserStatuses.value) ? allowedUserStatuses.value : [];
+});
 const currentSort = ref('date-desc');
 
 const setStatus = (message, type) => {
@@ -176,13 +183,44 @@ const handleUpdateRating = async ({ isbn, rating }) => {
     if (error.response) console.error("Backend Error Response:", error.response.data);
   }
 };
-
-onMounted(() => {
+onMounted(async() => {
+  const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
+  const response = await axios.post(backendApiUrl, {
+    action: 'get_book_allowed_statuses'
+  });
+  allowedUserStatuses.value = Array.isArray(response.data.data) ? response.data.data : [];
   fetchLibrary();
 });
+
+// Manejar actualización de estados de usuario
+const handleUpdateStatuses = async ({ isbn, statuses }) => {
+  setStatus("", "");
+  try {
+    const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
+    const response = await axios.post(backendApiUrl, {
+      action: 'update_book_user_statuses',
+      isbn: isbn,
+      statuses: statuses
+    });
+    if (response.data && response.data.status === 'success') {
+      setStatus(response.data.message || "Estados actualizados correctamente.", "success");
+      const bookIndex = books.value.findIndex(b => b.isbn === isbn);
+      if (bookIndex !== -1) {
+        books.value[bookIndex].userStatuses = [...statuses];
+      }
+    } else {
+      setStatus(response.data.message || "No se pudieron actualizar los estados.", "error");
+    }
+  } catch (error) {
+    console.error("Error actualizando estados:", error);
+    setStatus("Error conectando con el backend para actualizar estados.", "error");
+    if (error.response) console.error("Backend Error Response:", error.response.data);
+  }
+};
+
 </script>
 
-<style scoped>
+<style>
 .library-container {
   display: flex;
   flex-direction: column;

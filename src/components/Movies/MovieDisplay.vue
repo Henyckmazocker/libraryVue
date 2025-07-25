@@ -12,24 +12,14 @@
       <!-- Status Selector -->
       <div class="status-selector-container">
         <p class="status-selector-title"><strong>Status:</strong> (selecciona uno o más)</p>
-        <vue-multiselect
+        <MultiSelect
           v-model="selectedUserStatuses"
           :options="normalizedAllowedUserStatuses"
-          :multiple="true"
-          :close-on-select="false"
-          :clear-on-select="false"
+          :filter="true"
+          :display="'chip'"
           placeholder="Selecciona estados"
-          class="status-vue-multiselect"
-        >
-          <template #option="{ option }">
-            {{ option.charAt(0).toUpperCase() + option.slice(1) }}
-          </template>
-          <template #tag="{ option }">
-            <span class="multiselect__tag">
-              <span>{{ option.charAt(0).toUpperCase() + option.slice(1) }}</span>
-            </span>
-          </template>
-        </vue-multiselect>
+          style="width: 100%; max-width: 20rem;"
+        />
       </div>
 
       <div class="actions-container">
@@ -47,7 +37,7 @@
 
 <script setup>
 import { ref, defineProps, computed } from 'vue';
-import VueMultiselect from 'vue-multiselect';
+import MultiSelect from 'primevue/multiselect';
 
 const props = defineProps({
   movie: { type: Object, required: true },
@@ -99,7 +89,7 @@ const onSaveMovie = async () => {
 };
 </script>
 
-<style scoped>
+<style>
 .movie-result {
   display: flex;
   gap: 24px;
@@ -144,60 +134,6 @@ const onSaveMovie = async () => {
   font-size: 0.95rem;
   color: #ccc;
   margin-bottom: 8px;
-}
-.status-vue-multiselect .multiselect__tags {
-  background-color: #2c2c2c;
-  border: 1px solid #555;
-  border-radius: 5px;
-  padding-top: 7px;
-}
-.status-vue-multiselect .multiselect__input,
-.status-vue-multiselect .multiselect__single {
-  background-color: #2c2c2c;
-  color: #eee;
-}
-.status-vue-multiselect .multiselect__content-wrapper {
-  background-color: #2c2c2c;
-  border: 1px solid #555;
-  border-top: none;
-  border-radius: 0 0 5px 5px;
-}
-.status-vue-multiselect .multiselect__option {
-  color: #eee;
-  background-color: #2c2c2c;
-}
-.status-vue-multiselect .multiselect__option--highlight {
-  background-color: #007bff;
-  color: white;
-}
-.status-vue-multiselect .multiselect__option--selected {
-  background-color: #4a4a4a;
-  color: #eee;
-  font-weight: bold;
-}
-.status-vue-multiselect .multiselect__tag {
-  background-color: #007bff;
-  color: white;
-  margin-bottom: 2px;
-  border-radius: 4px;
-}
-.status-vue-multiselect .multiselect__tag-icon {
-  background: none;
-  border-left: 1px solid rgba(255, 255, 255, 0.5);
-}
-.status-vue-multiselect .multiselect__tag-icon:after {
- content: "×";
- color: rgba(255, 255, 255, 0.7);
- font-size: 14px;
- font-weight: bold;
-}
-.status-vue-multiselect .multiselect__tag-icon:hover {
-  background-color: #0056b3;
-}
-.status-vue-multiselect .multiselect__placeholder {
-  color: #888;
-  margin-bottom: 0;
-  padding-top: 0;
 }
 .actions-container {
   margin-top: 20px;

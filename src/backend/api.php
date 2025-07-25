@@ -34,6 +34,7 @@ use App\Application\UseCase\Books\DeleteBookUseCase;
 use App\Application\UseCase\Books\UpdateBookRatingUseCase;
 use App\Application\UseCase\Movies\AddMovieUseCase;
 use App\Application\UseCase\Movies\GetMovieAllowedStatusesUseCase;
+use App\Application\UseCase\Books\UpdateBookUserStatusesUseCase;
 use App\Application\Domain\Model\Book;
 
 header('Content-Type: application/json');
@@ -67,6 +68,7 @@ try {
     $getLibraryUseCase = new GetLibraryUseCase($bookRepository);
     $deleteBookUseCase = new DeleteBookUseCase($bookRepository);
     $updateBookRatingUseCase = new UpdateBookRatingUseCase($bookRepository);
+    $updateBookUserStatusesUseCase = new UpdateBookUserStatusesUseCase($bookRepository);
 
     // Use cases películas
     $addMovieUseCase = new App\Application\UseCase\Movies\AddMovieUseCase($movieRepository);
@@ -198,7 +200,25 @@ try {
             $response['message'] = 'Rating updated for ISBN ' . $inputData['isbn'];
             $statusCode = 200;
             break;
-        
+        case 'update_book_user_statuses':
+            if (!isset($inputData['isbn']) || !is_string($inputData['isbn'])) {
+                throw new InvalidArgumentException('ISBN is required for update_book_rating.');
+            }
+            // Statuses can't be null, or empty
+            $statuses = null;
+            if (isset($inputData['statuses'])) {
+                if (is_array($inputData['statuses']) && !empty($inputData['statuses'])) {
+                    $statuses = $inputData['statuses'];
+                } else {
+                    throw new InvalidArgumentException('Statuses must be a non-empty array.');
+                }
+            }
+
+            $updateBookUserStatusesUseCase->execute($inputData['isbn'], $statuses);
+            $response['status'] = 'success';
+            $response['message'] = 'User statuses updated for ISBN ' . $inputData['isbn'];
+            $statusCode = 200;
+            break;        
         case 'ping': // Example of a simple non-data action
             $response['status'] = 'success';
             $response['message'] = 'pong';

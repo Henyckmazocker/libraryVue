@@ -66,7 +66,7 @@ const downloadEntradas = () => {
 };
 </script>
 
-<style scoped>
+<style>
 .home-container {
   display: flex;
   flex-direction: column;

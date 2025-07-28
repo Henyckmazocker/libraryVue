@@ -35,7 +35,12 @@ use App\Application\UseCase\Books\UpdateBookRatingUseCase;
 use App\Application\UseCase\Movies\AddMovieUseCase;
 use App\Application\UseCase\Movies\GetMovieAllowedStatusesUseCase;
 use App\Application\UseCase\Books\UpdateBookUserStatusesUseCase;
+use App\Application\UseCase\GetLibraryItemsUseCase;
+use App\Application\UseCase\Books\GetBooksUseCase;
+use App\Application\UseCase\Movies\GetMoviesUseCase;
 use App\Application\Domain\Model\Book;
+use App\Application\Domain\Model\Movie;
+use App\Application\UseCase\Movies\UpdateMovieRatingUseCase;
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -61,7 +66,8 @@ $statusCode = 500;
 try {
     // Initialization
     $bookRepository = new MySqlBookRepository();
-    $movieRepository = new App\Infrastructure\Persistence\MySqlMovieRepository();
+    $movieRepository = new MySqlMovieRepository();
+
 
     // Use cases libros
     $addBookUseCase = new AddBookUseCase($bookRepository);
@@ -69,10 +75,17 @@ try {
     $deleteBookUseCase = new DeleteBookUseCase($bookRepository);
     $updateBookRatingUseCase = new UpdateBookRatingUseCase($bookRepository);
     $updateBookUserStatusesUseCase = new UpdateBookUserStatusesUseCase($bookRepository);
+    $getBooksUseCase = new GetBooksUseCase($bookRepository);
 
     // Use cases películas
-    $addMovieUseCase = new App\Application\UseCase\Movies\AddMovieUseCase($movieRepository);
-    $getMovieAllowedStatusesUseCase = new App\Application\UseCase\Movies\GetMovieAllowedStatusesUseCase($movieRepository);
+    $addMovieUseCase = new AddMovieUseCase($movieRepository);
+    $getMovieAllowedStatusesUseCase = new GetMovieAllowedStatusesUseCase($movieRepository);
+    $getMoviesUseCase = new GetMoviesUseCase($movieRepository);
+    $updateMovieUserStatusesUseCase = new App\Application\UseCase\Movies\UpdateMovieUserStatusesUseCase($movieRepository);
+    $updateMovieRatingUseCase = new UpdateMovieRatingUseCase($movieRepository);
+
+    // Use case combinado para biblioteca unificada
+    $getLibraryItemsUseCase = new GetLibraryItemsUseCase($getBooksUseCase, $getMoviesUseCase);
 
     // Decode incoming JSON data
     $inputData = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -81,6 +94,15 @@ try {
     $action = $inputData['action'] ?? $_REQUEST['action'] ?? null;
 
     switch ($action) {
+        case 'get_library_items':
+            $filters = [];
+            // Puedes añadir lógica para filtros si lo necesitas, por ejemplo desde $inputData
+            $items = $getLibraryItemsUseCase->execute($filters);
+            $response['status'] = 'success';
+            $response['message'] = 'Library items (books and movies) retrieved.';
+            $response['data'] = $items;
+            $statusCode = 200;
+            break;
         case 'save_library':
             // Obtiene la biblioteca actual y la guarda en my_library.json
             $library = $getLibraryUseCase->execute();
@@ -140,7 +162,7 @@ try {
             $response['message'] = 'Movies data retrieved.';
             $response['data'] = array_map(function($movieArr) use ($movieRepository) {
                 // Si ya es Movie, toArray, si es array, lo convertimos
-                if ($movieArr instanceof App\Application\Domain\Model\Movie) {
+                if ($movieArr instanceof Movie) {
                     return $movieArr->toArray();
                 }
                 return $movieArr;
@@ -218,7 +240,38 @@ try {
             $response['status'] = 'success';
             $response['message'] = 'User statuses updated for ISBN ' . $inputData['isbn'];
             $statusCode = 200;
-            break;        
+            break;
+        case 'update_movie_user_statuses':
+            if (!isset($inputData['isbn']) || !is_string($inputData['isbn'])) {
+                throw new InvalidArgumentException('imdbID is required for update_movie_user_statuses.');
+            }
+            $statuses = null;
+            if (isset($inputData['statuses'])) {
+                if (is_array($inputData['statuses']) && !empty($inputData['statuses'])) {
+                    $statuses = $inputData['statuses'];
+                } else {
+                    throw new InvalidArgumentException('Statuses must be a non-empty array.');
+                }
+            }
+            $updateMovieUserStatusesUseCase->execute($inputData['isbn'], $statuses);
+            $response['status'] = 'success';
+            $response['message'] = 'User statuses updated for IMDb ID ' . $inputData['isbn'];
+            $statusCode = 200;
+            break;
+        case 'update_movie_rating':
+            $id = $inputData['imdbID'] ?? $inputData['isbn'] ?? null;
+            $rating = isset($inputData['rating']) ? (float)$inputData['rating'] : null;
+            if (!$id || $rating === null) {
+                $response['status'] = 'error';
+                $response['message'] = 'imdbID o isbn y rating son requeridos para actualizar el rating de la película.';
+                $statusCode = 400;
+                break;
+            }
+            $updateMovieRatingUseCase->execute($id, $rating);
+            $response['status'] = 'success';
+            $response['message'] = 'Rating de la película actualizado correctamente.';
+            $statusCode = 200;
+            break;
         case 'ping': // Example of a simple non-data action
             $response['status'] = 'success';
             $response['message'] = 'pong';

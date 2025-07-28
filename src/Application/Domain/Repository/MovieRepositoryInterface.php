@@ -8,11 +8,36 @@ use App\Application\Domain\Model\Movie;
 
 interface MovieRepositoryInterface
 {
+        /**
+     * Actualiza el rating de una película por imdbID o isbn
+     * @param string $id Puede ser imdbID o isbn
+     * @param float $rating
+     * @return void
+     */
+    public function updateMovieRating(string $id, float $rating): void;
+    
     /**
-     * @param array $filters Optional filters (e.g., ['userStatus' => 'viewed'])
+     * Obtiene todas las películas con filtros avanzados (título, estado)
+     * @param array $filters ['title' => string|null, 'status' => string|null]
+     * @return array
+     */
+    public function findAllWithFilters(array $filters = []): array;
+
+    public function fetchAllowedStatuses(): array;
+
+    /**
+     * @param array $filters Optional filters (e.g., ['userStatus' => 'watched'])
      * @return array
      */
     public function findAll(array $filters = []): array;
+
+    public function save(Movie $movie): void;
+
+    public function deleteByIsbn(string $isbn): bool;
+
+    public function deleteById(int $id): bool;
+
+    public function deleteByName(string $title): bool;
 
     /**
      * @param string $isbn
@@ -21,28 +46,10 @@ interface MovieRepositoryInterface
     public function findById(string $isbn): ?array;
 
     /**
-     * @param array $movie
+     * Actualiza los estados de usuario de una película por imdbID
+     * @param string $imdbID
+     * @param array $statuses
      * @return void
      */
-    public function save(Movie $movie): void;
-
-    /**
-     * @param int $id
-     * @return bool
-     */
-    public function deleteById(int $id): bool;
-
-    /**
-     * @param string $title
-     * @return bool
-     */
-    public function deleteByName(string $title): bool;
-
-    /**
-     * Fetches all allowed movie statuses.
-     * @return array
-     * This method should be implemented to return an array of status names
-     * 
-     */
-    public function fetchAllowedStatuses(): array;
+    public function updateUserStatuses(string $imdbID, array $statuses): void;
 }

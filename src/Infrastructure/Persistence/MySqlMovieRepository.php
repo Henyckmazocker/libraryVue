@@ -18,6 +18,74 @@ class MySqlMovieRepository implements MovieRepositoryInterface
         $this->db = \App\Infrastructure\Database\DatabaseConnector::getConnection();
     }
 
+        /**
+     * Actualiza el rating de una película por imdbID o isbn
+     * @param string $id Puede ser imdbID o isbn
+     * @param float $rating
+     * @return void
+     */
+    public function updateMovieRating(string $id, float $rating): void
+    {
+        // Primero intentamos por imdbID, si no, por isbn
+        $sql = "UPDATE movie SET rating = :rating WHERE isbn = :id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindParam(':rating', $rating);
+        $stmt->bindParam(':id', $id);
+        $stmt->execute();
+        if ($stmt->rowCount() === 0) {
+            error_log("updateMovieRating: No se encontró película con imdbID: $id");
+        }
+    }
+
+    /**
+     * Obtiene todas las películas con filtros avanzados (título, estado)
+     * @param array $filters ['title' => string|null, 'status' => string|null]
+     * @return array
+     */
+    public function findAllWithFilters(array $filters = []): array
+    {
+        $sql = "SELECT DISTINCT m.* FROM movie m";
+        $params = [];
+        $joins = [];
+        $wheres = [];
+
+        // Filtro por estado
+        if (!empty($filters['status'])) {
+            $joins[] = "JOIN movie_has_statuses mhs ON m.isbn = mhs.movie_isbn";
+            $joins[] = "JOIN movie_statuses s ON mhs.status_id = s.id";
+            $wheres[] = "s.name = :statusName";
+            $params[':statusName'] = $filters['status'];
+        }
+
+        // Filtro por título (búsqueda parcial, case-insensitive)
+        if (!empty($filters['title'])) {
+            $wheres[] = "LOWER(m.title) LIKE :title";
+            $params[':title'] = '%' . strtolower($filters['title']) . '%';
+        }
+
+        if ($joins) {
+            $sql .= ' ' . implode(' ', $joins);
+        }
+        if ($wheres) {
+            $sql .= ' WHERE ' . implode(' AND ', $wheres);
+        }
+        $sql .= " ORDER BY m.addedTimestamp DESC";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $moviesData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $movies = [];
+        foreach ($moviesData as $data) {
+            $data['rating'] = isset($data['rating']) ? (float)$data['rating'] : null;
+            $data['addedTimestamp'] = isset($data['addedTimestamp']) ? (int)$data['addedTimestamp'] : null;
+            $userStatuses = $this->fetchMovieStatusNames($data['isbn']);
+            $data['userStatuses'] = is_array($userStatuses) ? $userStatuses : [];
+            $data['allowedStatuses'] = $this->fetchAllowedStatuses();
+            $movies[] = $data;
+        }
+        return $movies;
+    }
+
     private function getStatusId(string $statusName): ?int
     {
         $stmt = $this->db->prepare("SELECT id FROM movie_statuses WHERE name = :name");
@@ -213,5 +281,32 @@ class MySqlMovieRepository implements MovieRepositoryInterface
         $data['userStatuses'] = is_array($userStatuses) ? $userStatuses : [];
         $data['allowedStatuses'] = $this->fetchAllowedStatuses();
         return $data; // O mapear a Movie::fromArray si tienes un modelo Movie
+    }
+
+        /**
+     * Actualiza los estados de usuario de una película por imdbID
+     * @param string $imdbID
+     * @param array $statuses
+     * @return void
+     */
+    public function updateUserStatuses(string $imdbID, array $statuses): void
+    {
+        $db = $this->db;
+        // Eliminar los estados actuales
+        $deleteSql = "DELETE FROM movie_has_statuses WHERE movie_isbn = :imdbID";
+        $stmt = $db->prepare($deleteSql);
+        $stmt->bindParam(':imdbID', $imdbID);
+        $stmt->execute();
+
+        // Insertar los nuevos estados
+        $insertSql = "INSERT INTO movie_has_statuses (movie_isbn, status_id) VALUES (:imdbID, :statusId)";
+        $insertStmt = $db->prepare($insertSql);
+        foreach ($statuses as $statusName) {
+            // Obtener el ID del estado
+            $statusId = $this->getStatusId($statusName);
+            if ($statusId !== null) {
+                $insertStmt->execute([':imdbID' => $imdbID, ':statusId' => $statusId]);
+            }
+        }
     }
 }

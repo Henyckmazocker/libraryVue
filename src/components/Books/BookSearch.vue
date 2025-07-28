@@ -10,14 +10,21 @@
       <input type="text" class="isbn-input" placeholder="Buscar por nombre de libro" v-model="bookName" @keyup.enter="triggerFetchBookByName" />
       <button @click="triggerFetchBookByName" class="search-button">Buscar por nombre</button>
     </div>
-    <div v-if="foundBooks.length > 0">
-      <h3>Resultados por nombre:</h3>
-      <ul>
-        <li v-for="book in foundBooks" :key="book.key">
-          <span><strong>{{ book.title }}</strong> - {{ book.author_name ? book.author_name.join(', ') : 'Autor desconocido' }}</span>
-          <button @click="selectBookFromList(book)">Ver detalles</button>
-        </li>
-      </ul>
+    <div v-if="foundBooks.length > 0" class="search-results-container">
+      <h3 class="results-title">Resultados por nombre:</h3>
+      <div class="results-list">
+        <div v-for="book in foundBooks" :key="book.key" class="result-card">
+          <div class="result-info">
+            <div class="result-title">{{ book.title }} ({{ book.isbn }})</div>
+            <div class="result-author">{{ book.author.join(', ') }}</div>
+            <div v-if="book.publisher && book.publisher.length > 0" class="result-publishers">
+              <span class="result-pub-label">Editorial:</span>
+              <span class="result-pub-list">{{ book.publisher.join(', ') }}</span>
+            </div>
+          </div>
+          <button class="result-details-btn" @click="selectBookFromList(book)">Ver detalles</button>
+        </div>
+      </div>
     </div>
 
     <div v-if="currentBook.title">
@@ -157,12 +164,43 @@ const fetchBookInfo = async () => {
 
 const triggerFetchBookByName = async () => {
   foundBooks.value = [];
+  // Limpiar currentBook para ocultar detalles si había uno cargado
+  clearBookDetails();
   if (!bookName.value.trim()) return;
   try {
     const apiUrl = `https://openlibrary.org/search.json?title=${encodeURIComponent(bookName.value.trim())}`;
     const response = await axios.get(apiUrl);
-    const docs = response.data.docs || [];
-    foundBooks.value = docs.slice(0, 10); // Muestra los primeros 10 resultados
+    let docs = response.data.docs || [];
+    if (docs.length === 0) {
+      searchError.value = "No books found with that name.";
+      return;
+    }
+    let books = await axios.get(`https://openlibrary.org${docs[0].key}/editions.json`);
+    books = books.data.entries.slice(0, 5); // Limit to first 5 results to avoid too much load
+    books.forEach(async (edition) => {
+      let authors = [];
+      if (edition.isbn_13 && edition.isbn_13.length > 0) {
+          const apiUrl = `https://openlibrary.org/isbn/${edition.isbn_13[0]}.json`;
+          const response = await axios.get(apiUrl);
+          const data = response.data;
+          if(data.authors && data.authors.length > 0) {
+            data.authors.forEach(async (author) => {
+              if (author.key) {
+                const authorData = await axios.get(`https://openlibrary.org${author.key}.json`);
+                authors.push(authorData.data.name);
+              }
+            });
+          }
+        foundBooks.value.push({
+          isbn: edition.isbn_13[0],
+          title: data.title,
+          author: authors,
+          cover_i: edition.covers[0] ?? "",
+          publisher: data.publishers,
+          key: edition.key
+        });
+      }
+    });
     if (docs.length === 0) {
       searchError.value = "No se encontraron libros con ese nombre.";
     } else {
@@ -176,9 +214,9 @@ const triggerFetchBookByName = async () => {
 
 const selectBookFromList = (book) => {
   clearBookDetails();
-  currentBook.isbn = book.isbn && book.isbn.length > 0 ? book.isbn[0] : "";
+  currentBook.isbn = book.isbn;
   currentBook.title = book.title || "Title not found";
-  currentBook.author = book.author_name ? book.author_name.join(', ') : "Author not found";
+  currentBook.author = book.author ? book.author.join(', ') : "Author not found";
   currentBook.coverUrl = book.cover_i ? `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg` : "";
   foundBooks.value = [];
 };
@@ -326,5 +364,91 @@ onMounted(async () => {
 .add-book-message.error {
   background-color: rgba(255, 77, 79, 0.1);
   color: #ff4d4f;
+}
+/* Resultados de búsqueda por nombre (estilo tipo MovieSearch) */
+.search-results-container {
+  width: 100%;
+  margin-top: 30px;
+}
+
+.results-title {
+  color: #e0e0e0;
+  font-size: 1.2rem;
+  margin-bottom: 18px;
+  font-weight: 600;
+}
+
+.results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.result-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #23272f;
+  border: 1.5px solid #444a57;
+  border-radius: 18px;
+  padding: 18px 22px;
+  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
+  transition: border 0.2s, box-shadow 0.2s;
+}
+
+.result-card:hover {
+  border-color: #007bff;
+  box-shadow: 0 4px 16px 0 rgba(0,123,255,0.10);
+}
+
+.result-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.result-title {
+  color: #e0e0e0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.result-author {
+  color: #b0b0b0;
+  font-size: 0.98rem;
+}
+
+.result-publishers {
+  color: #b0b0b0;
+  font-size: 0.95rem;
+  margin-top: 2px;
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.result-pub-label {
+  color: #888;
+  font-weight: 500;
+}
+
+.result-pub-list {
+  color: #b0b0b0;
+}
+
+.result-details-btn {
+  padding: 8px 18px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #fff;
+  background-color: #007bff;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.result-details-btn:hover {
+  background-color: #0056b3;
 }
 </style>

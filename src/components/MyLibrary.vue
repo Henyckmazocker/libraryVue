@@ -3,22 +3,28 @@
     <h1 class="title">My Saved Books</h1>
     
     <div class="controls-container">
-      <input 
-        type="text" 
-        v-model="searchQuery" 
-        placeholder="Search by title or author..." 
-        class="search-input"
-      />
-      <select v-model="currentSort" @change="sortLibrary" class="sort-dropdown">
-        <option value="title-asc">Title (A-Z)</option>
-        <option value="title-desc">Title (Z-A)</option>
-        <option value="author-asc">Author (A-Z)</option>
-        <option value="author-desc">Author (Z-A)</option>
-        <option value="rating-desc">Rating (Highest First)</option>
-        <option value="rating-asc">Rating (Lowest First)</option>
-        <option value="date-desc">Date Added (Newest First)</option>
-        <option value="date-asc">Date Added (Oldest First)</option>
-      </select>
+      <div class="filter-checkboxes filter-checkboxes-row">
+        <label class="filter-checkbox-pill"><input type="checkbox" v-model="showBooks" /> Libros</label>
+        <label class="filter-checkbox-pill"><input type="checkbox" v-model="showMovies" /> Películas</label>
+      </div>
+      <div class="search-sort-row">
+        <input 
+          type="text" 
+          v-model="searchQuery" 
+          placeholder="Search by title or author..." 
+          class="search-input"
+        />
+        <select v-model="currentSort" @change="sortLibrary" class="sort-dropdown">
+          <option value="title-asc">Title (A-Z)</option>
+          <option value="title-desc">Title (Z-A)</option>
+          <option value="author-asc">Author (A-Z)</option>
+          <option value="author-desc">Author (Z-A)</option>
+          <option value="rating-desc">Rating (Highest First)</option>
+          <option value="rating-asc">Rating (Lowest First)</option>
+          <option value="date-desc">Date Added (Newest First)</option>
+          <option value="date-asc">Date Added (Oldest First)</option>
+        </select>
+      </div>
     </div>
 
     <div v-if="isLoading" class="loading-message">Loading library...</div>
@@ -27,21 +33,31 @@
       <span v-if="statusMessage">{{ statusMessage }}</span>
     </div>
 
-    <div v-if="!isLoading && !fetchError && displayedBooks.length === 0 && !statusMessage" class="empty-library-message">
+    <div v-if="!isLoading && !fetchError && displayedItems.length === 0 && !statusMessage" class="empty-library-message">
       Your library is currently empty. Add some books from the ISBN Finder!
     </div>
 
-    <div v-if="displayedBooks.length > 0" class="book-list">
-      <LibraryBookItem 
-        v-for="(book) in displayedBooks" 
-        :key="book.isbn" 
-        :book="book" 
-        :allowedUserStatuses="allowedUserStatusesList"
-        @delete-book="handleDeleteBook" 
-        @update-rating="handleUpdateRating" 
-        @update-statuses="handleUpdateStatuses"
-        class="book-item" 
-      />
+    <div v-if="displayedItems.length > 0" class="book-list">
+      <template v-for="item in displayedItems" :key="item.itemType + '-' + (item.isbn || item.imdbID)">
+        <LibraryBookItem
+          v-if="item.itemType === 'book'"
+          :book="item"
+          :allowedUserStatuses="allowedUserStatusesList('book')"
+          @delete-book="handleDeleteBook"
+          @update-rating="handleUpdateRating"
+          @update-statuses="handleUpdateStatuses"
+          class="book-item"
+        />
+        <LibraryMovieItem
+          v-else-if="item.itemType === 'movie'"
+          :movie="item"
+          :allowedUserStatuses="allowedUserStatusesList('movie')"
+          @delete-movie="handleDeleteBook"
+          @update-rating="handleUpdateRating"
+          @update-statuses="handleUpdateStatuses"
+          class="book-item"
+        />
+      </template>
     </div>
   </div>
 </template>
@@ -50,17 +66,22 @@
 import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
 import LibraryBookItem from './Books/LibraryBookItem.vue';
+import LibraryMovieItem from './Movies/LibraryMovieItem.vue';
 
-const books = ref([]);
+const items = ref([]);
+const showBooks = ref(true);
+const showMovies = ref(true);
 const isLoading = ref(true);
 const fetchError = ref("");
 const statusMessage = ref("");
 const overallStatus = ref("");
 const searchQuery = ref("");
-const allowedUserStatuses = ref([]);
-const allowedUserStatusesList = computed(() => {
-  return Array.isArray(allowedUserStatuses.value) ? allowedUserStatuses.value : [];
-});
+const allowedBookUserStatuses = ref([]);
+const allowedMovieUserStatuses = ref([]);
+const allowedUserStatusesList = (itemType) => {
+  if (itemType === 'movie') return allowedMovieUserStatuses.value;
+  return allowedBookUserStatuses.value;
+};
 const currentSort = ref('date-desc');
 
 const setStatus = (message, type) => {
@@ -73,106 +94,128 @@ const setStatus = (message, type) => {
 const fetchLibrary = async () => {
   isLoading.value = true;
   fetchError.value = "";
-  // statusMessage.value = ""; // Clear general status on full refresh, or let specific actions set it
-  // overallStatus.value = "";
   try {
     const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
-    const response = await axios.get(backendApiUrl + '?action=get_library');
+    const response = await axios.get(backendApiUrl + '?action=get_library_items');
     if (response.data && response.data.status === 'success') {
-      books.value = response.data.data || [];
+      items.value = response.data.data || [];
     } else {
       fetchError.value = response.data.message || "Failed to load library. Unknown error.";
-      books.value = [];
+      items.value = [];
     }
   } catch (error) {
     console.error("Error fetching library:", error);
     fetchError.value = "Error connecting to backend to fetch library.";
-    books.value = [];
+    items.value = [];
     if (error.response) console.error("Backend Error Response:", error.response.data);
   }
   isLoading.value = false;
 };
 
-const displayedBooks = computed(() => {
-  let processedBooks = [...books.value];
-
-  // Filter by search query
+const displayedItems = computed(() => {
+  let processed = [...items.value];
+  // Filtrar por tipo según los checkboxes
+  processed = processed.filter(item => {
+    if (item.itemType === 'book' && !showBooks.value) return false;
+    if (item.itemType === 'movie' && !showMovies.value) return false;
+    return true;
+  });
+  // Filtro por búsqueda
   if (searchQuery.value.trim() !== "") {
     const lowerSearchQuery = searchQuery.value.toLowerCase();
-    processedBooks = processedBooks.filter(book => 
-      (book.title && book.title.toLowerCase().includes(lowerSearchQuery)) ||
-      (book.author && book.author.toLowerCase().includes(lowerSearchQuery))
+    processed = processed.filter(item =>
+      (item.title && item.title.toLowerCase().includes(lowerSearchQuery)) ||
+      (item.author && item.author.toLowerCase().includes(lowerSearchQuery))
     );
   }
-
-  // Sort the filtered books
+  // Ordenar según selección
   switch (currentSort.value) {
     case 'title-asc':
-      processedBooks.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+      processed.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
       break;
     case 'title-desc':
-      processedBooks.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
+      processed.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
       break;
     case 'author-asc':
-      processedBooks.sort((a, b) => (a.author || '').localeCompare(b.author || ''));
+      processed.sort((a, b) => (a.author || '').localeCompare(b.author || ''));
       break;
     case 'author-desc':
-      processedBooks.sort((a, b) => (b.author || '').localeCompare(a.author || ''));
+      processed.sort((a, b) => (b.author || '').localeCompare(a.author || ''));
       break;
     case 'rating-desc':
-      processedBooks.sort((a, b) => (b.rating === null ? -1 : (a.rating === null ? 1 : b.rating - a.rating)));
+      processed.sort((a, b) => (b.rating === null ? -1 : (a.rating === null ? 1 : b.rating - a.rating)));
       break;
     case 'rating-asc':
-      processedBooks.sort((a, b) => (a.rating === null ? 1 : (b.rating === null ? -1 : a.rating - b.rating)));
+      processed.sort((a, b) => (a.rating === null ? 1 : (b.rating === null ? -1 : a.rating - b.rating)));
       break;
     case 'date-desc':
-      processedBooks.sort((a, b) => (b.addedTimestamp || 0) - (a.addedTimestamp || 0));
+      processed.sort((a, b) => (b.addedTimestamp || 0) - (a.addedTimestamp || 0));
       break;
     case 'date-asc':
-      processedBooks.sort((a, b) => (a.addedTimestamp || 0) - (b.addedTimestamp || 0));
+      processed.sort((a, b) => (a.addedTimestamp || 0) - (b.addedTimestamp || 0));
       break;
   }
-  return processedBooks;
+  return processed;
 });
 
-const handleDeleteBook = async (isbn) => {
-  if (!confirm(`Are you sure you want to delete the book with ISBN: ${isbn}?`)) {
-    return;
-  }
-  setStatus("", ""); // Clear previous messages
+const handleDeleteBook = async (payload) => {
+  // payload: { isbn, imdbID, itemType }
+  const { isbn, imdbID, itemType } = typeof payload === 'object' ? payload : { isbn: payload, itemType: 'book' };
+  let confirmMsg = itemType === 'movie'
+    ? `Are you sure you want to delete the movie with ID: ${imdbID || isbn}?`
+    : `Are you sure you want to delete the book with ISBN: ${isbn}?`;
+  if (!confirm(confirmMsg)) return;
+  setStatus("", "");
   try {
     const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
-    const response = await axios.post(backendApiUrl, { 
-      action: 'delete_book', 
-      isbn: isbn 
+    let action, idField, idValue;
+    if (itemType === 'movie') {
+      action = 'delete_movie';
+      idField = imdbID ? 'imdbID' : 'isbn';
+      idValue = imdbID || isbn;
+    } else {
+      action = 'delete_book';
+      idField = 'isbn';
+      idValue = isbn;
+    }
+    const response = await axios.post(backendApiUrl, {
+      action,
+      [idField]: idValue
     });
     if (response.data && response.data.status === 'success') {
-      setStatus(response.data.message || "Book deleted successfully.", "success");
-      books.value = books.value.filter(b => b.isbn !== isbn);
+      setStatus(response.data.message || `${itemType === 'movie' ? 'Movie' : 'Book'} deleted successfully.`, "success");
+      items.value = items.value.filter(i => (itemType === 'movie' ? i.imdbID !== idValue : i.isbn !== idValue));
     } else {
-      setStatus(response.data.message || "Failed to delete book.", "error");
+      setStatus(response.data.message || `Failed to delete ${itemType === 'movie' ? 'movie' : 'book'}.`, "error");
     }
   } catch (error) {
-    console.error("Error deleting book:", error);
-    setStatus("Error connecting to backend to delete book.", "error");
+    console.error("Error deleting item:", error);
+    setStatus("Error connecting to backend to delete item.", "error");
     if (error.response) console.error("Backend Error Response:", error.response.data);
   }
 };
 
-const handleUpdateRating = async ({ isbn, rating }) => {
-  setStatus("", ""); // Clear previous messages
+const handleUpdateRating = async ({ isbn, rating, itemType }) => {
+  setStatus("", "");
   try {
     const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
+    let action;
+    if (itemType === 'movie') {
+      action = 'update_movie_rating';
+    } else {
+      action = 'update_book_rating';
+    }
     const response = await axios.post(backendApiUrl, {
-      action: 'update_book_rating',
-      isbn: isbn,
-      rating: rating
+      action,
+      'isbn': isbn,
+      rating
     });
     if (response.data && response.data.status === 'success') {
       setStatus(response.data.message || "Rating updated successfully.", "success");
-      const bookIndex = books.value.findIndex(b => b.isbn === isbn);
-      if (bookIndex !== -1) {
-        books.value[bookIndex].rating = rating;
+      let idx;
+      idx = items.value.findIndex(i => i.isbn === isbn);
+      if (idx !== -1) {
+        items.value[idx].rating = rating;
       }
     } else {
       setStatus(response.data.message || "Failed to update rating.", "error");
@@ -185,28 +228,36 @@ const handleUpdateRating = async ({ isbn, rating }) => {
 };
 onMounted(async() => {
   const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
-  const response = await axios.post(backendApiUrl, {
-    action: 'get_book_allowed_statuses'
-  });
-  allowedUserStatuses.value = Array.isArray(response.data.data) ? response.data.data : [];
+  const [bookRes, movieRes] = await Promise.all([
+    axios.post(backendApiUrl, { action: 'get_book_allowed_statuses' }),
+    axios.post(backendApiUrl, { action: 'get_movie_allowed_statuses' })
+  ]);
+  allowedBookUserStatuses.value = Array.isArray(bookRes.data.data) ? bookRes.data.data : [];
+  allowedMovieUserStatuses.value = Array.isArray(movieRes.data.data) ? movieRes.data.data : [];
   fetchLibrary();
 });
 
 // Manejar actualización de estados de usuario
-const handleUpdateStatuses = async ({ isbn, statuses }) => {
+const handleUpdateStatuses = async ({ isbn, statuses, itemType }) => {
   setStatus("", "");
   try {
     const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
+    let action;
+    if (itemType === 'movie') {
+      action = 'update_movie_user_statuses';
+    } else {
+      action = 'update_book_user_statuses';
+    }
     const response = await axios.post(backendApiUrl, {
-      action: 'update_book_user_statuses',
-      isbn: isbn,
-      statuses: statuses
+      action,
+      'isbn': isbn,
+      statuses
     });
     if (response.data && response.data.status === 'success') {
       setStatus(response.data.message || "Estados actualizados correctamente.", "success");
-      const bookIndex = books.value.findIndex(b => b.isbn === isbn);
-      if (bookIndex !== -1) {
-        books.value[bookIndex].userStatuses = [...statuses];
+      const idx = items.value.findIndex(i => (itemType === 'movie' ? i.imdbID === isbn : i.isbn === isbn));
+      if (idx !== -1) {
+        items.value[idx].userStatuses = [...statuses];
       }
     } else {
       setStatus(response.data.message || "No se pudieron actualizar los estados.", "error");
@@ -294,7 +345,7 @@ const handleUpdateStatuses = async ({ isbn, statuses }) => {
   /* Alternatively, ensure LibraryBookItem.vue's root has these directly or expect this class */
   flex-basis: calc(25% - 20px); /* Example: 4 items per row, subtracting gap. Adjust as needed. */
   /* flex-basis: 220px; /* Fixed width approach */
-  /* max-width: 220px; /* Ensure it doesn't grow too large if only a few items */
+  max-width: 10px; /* Ensure it doesn't grow too large if only a few items */
   /* min-width: 180px; /* Minimum width before wrapping or shrinking too much */
   box-sizing: border-box; 
   /* The internal .library-book-item-container already has padding, background etc. */
@@ -328,11 +379,17 @@ const handleUpdateStatuses = async ({ isbn, statuses }) => {
 
 .controls-container {
   display: flex;
-  justify-content: space-between; /* Align search and sort */
-  align-items: center;
+  flex-direction: column;
   width: 100%;
   margin-bottom: 25px;
-  gap: 15px; /* Add some space between search and sort */
+  gap: 10px;
+}
+
+.search-sort-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
 }
 
 .search-input {
@@ -359,5 +416,54 @@ const handleUpdateStatuses = async ({ isbn, statuses }) => {
   color: #e0e0e0;
   cursor: pointer;
   min-width: 200px; /* Consistent minimum width */
+}
+
+/* Checkboxes para filtro de tipo */
+.filter-checkboxes {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 5px;
+  margin-right: 0;
+}
+
+.filter-checkboxes-row {
+  justify-content: flex-start;
+}
+
+.filter-checkbox-pill {
+  display: flex;
+  align-items: center;
+  background: #23272f;
+  border: 1.5px solid #444a57;
+  border-radius: 999px;
+  padding: 7px 18px 7px 10px;
+  font-size: 1rem;
+  color: #e0e0e0;
+  box-shadow: 0 1px 4px 0 rgba(0,0,0,0.08);
+  transition: border 0.2s, background 0.2s;
+  cursor: pointer;
+  user-select: none;
+}
+
+.filter-checkbox-pill input[type="checkbox"] {
+  accent-color: #007bff;
+  margin-right: 8px;
+  width: 18px;
+  height: 18px;
+}
+
+.filter-checkboxes label {
+  color: #e0e0e0;
+  font-size: 1rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.filter-checkboxes input[type="checkbox"] {
+  accent-color: #007bff;
+  margin-right: 5px;
+  width: 18px;
+  height: 18px;
 }
 </style> 

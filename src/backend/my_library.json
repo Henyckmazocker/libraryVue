@@ -1,24 +1,51 @@
 [
     {
-        "isbn": "8412057643",
-        "title": "La ciutat i la ciutat",
-        "author": null,
-        "coverUrl": "https:\/\/covers.openlibrary.org\/b\/id\/13934511-L.jpg",
-        "rating": null,
-        "userStatuses": [
-            "owned"
-        ],
-        "addedTimestamp": 1753457219
-    },
-    {
         "isbn": "9781405000178",
         "title": "The City & the City",
         "author": null,
         "coverUrl": "https:\/\/covers.openlibrary.org\/b\/id\/10286366-L.jpg",
-        "rating": null,
+        "rating": 4,
         "userStatuses": [
             "owned"
         ],
-        "addedTimestamp": 1753457099
+        "addedTimestamp": 1753713184
+    },
+    {
+        "isbn": "9780425256909",
+        "title": "Between Two Fires",
+        "author": "Christopher Buehlman",
+        "coverUrl": "https:\/\/covers.openlibrary.org\/b\/id\/8441116-L.jpg",
+        "rating": 3,
+        "userStatuses": [
+            "reading",
+            "want to buy"
+        ],
+        "addedTimestamp": 1753712447
+    },
+    {
+        "isbn": "9780340960196",
+        "title": "Dune",
+        "author": "Frank Herbert",
+        "coverUrl": "https:\/\/covers.openlibrary.org\/b\/id\/10358100-L.jpg",
+        "rating": 3.5,
+        "userStatuses": [
+            "reading"
+        ],
+        "addedTimestamp": 1753711960
+    },
+    {
+        "isbn": "8412057643",
+        "title": "La ciutat i la ciutat",
+        "author": null,
+        "coverUrl": "https:\/\/covers.openlibrary.org\/b\/id\/13934511-L.jpg",
+        "rating": 4.5,
+        "userStatuses": [
+            "owned",
+            "read",
+            "reading",
+            "to read",
+            "want to buy"
+        ],
+        "addedTimestamp": 1753706044
     }
 ]

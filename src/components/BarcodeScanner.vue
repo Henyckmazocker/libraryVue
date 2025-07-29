@@ -1,22 +1,35 @@
+
 <template>
   <StreamBarcodeReader
     @decode="onDecodeInternal"
     @loaded="onLoadedInternal"
+    @error="onCameraError"
     class="barcode-reader-small"
   ></StreamBarcodeReader>
 </template>
 
 <script setup>
+
 import { StreamBarcodeReader } from "vue-barcode-reader";
 import { defineEmits } from 'vue';
 
+
 const emit = defineEmits(['isbn-scanned', 'scanner-loaded']);
+
 
 const onDecodeInternal = (text) => {
   if (text) {
     emit('isbn-scanned', text);
   }
 };
+
+// Silenciar error de cámara: no mostrar nada, no emitir error
+const onCameraError = (err) => {
+  // No hacer nada, ni mostrar mensaje
+  // Si quieres debug, puedes descomentar:
+  console.warn('No se detectó cámara, escaneo deshabilitado:', err);
+};
+
 
 const onLoadedInternal = () => {
   console.log("Barcode scanner loaded and ready.");

@@ -1,16 +1,65 @@
 <template>
   <div id="nav">
-    <router-link to="/">Inicio</router-link> | 
-    <router-link to="/library">My Library</router-link>
+    <div class="nav-center">
+      <router-link to="/">Inicio</router-link> | 
+      <router-link to="/library">My Library</router-link>
+    </div>
+    <div class="nav-right">
+      <template v-if="!userPicture">
+        <div id="g_id_signin"></div>
+      </template>
+      <template v-if="userPicture">
+        <img :src="userPicture" alt="Usuario" class="user-avatar" />
+      </template>
+    </div>
   </div>
   <router-view/> <!-- Router will render components here -->
 </template>
 
 <script>
-// No script changes needed here unless HelloWorld was being imported for other reasons
+
+import { ref, onMounted } from 'vue';
+
 export default {
-  name: 'App'
-  // components: { BookSearch } // BookSearch es ahora renderizado por el router, no directamente aquí
+  name: 'App',
+  setup() {
+    const userPicture = ref(null);
+
+
+    onMounted(() => {
+      const clientId = process.env.VUE_APP_GOOGLE_CLIENT_ID;
+      if (!clientId) {
+        alert('No se ha definido GOOGLE_CLIENT_ID en las variables de entorno.');
+        return;
+      }
+      if (window.google && window.google.accounts && window.google.accounts.id) {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: handleCredentialResponse
+        });
+        window.google.accounts.id.renderButton(
+          document.getElementById('g_id_signin'),
+          { theme: 'outline', size: 'large', shape: 'circle' }
+        );
+      }
+    });
+
+    function handleCredentialResponse(response) {
+      // Decodificar el JWT para obtener la foto de perfil
+      console.log('handleCredentialResponse:', response.credential);
+      const base64Url = response.credential.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      const payload = JSON.parse(jsonPayload);
+      userPicture.value = payload.picture;
+      // Puedes guardar más datos del usuario si lo deseas
+      console.log('Usuario:', payload);
+    }
+
+    return { userPicture };
+  }
 }
 </script>
 
@@ -21,6 +70,8 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
+  /* Eliminar cualquier espacio extra arriba */
+  box-sizing: border-box;
 }
 
 #app {
@@ -32,9 +83,11 @@ html, body {
   color: #e0e0e0; /* Light default text color */
   min-height: 100%;
   /* display: flex; flex-direction: column; align-items: center; justify-content: center; */ /* Removed to allow router-view to control layout */
-  padding-top: 20px; /* Add some padding at the top */
+  /* padding-top: 20px;  Eliminado para evitar gap arriba */
   box-sizing: border-box;
 }
+
+
 
 #nav {
   padding: 15px 30px;
@@ -47,6 +100,39 @@ html, body {
   left: 0;
   right: 0;
   z-index: 1000; /* Ensure nav is above other content */
+  height: 68px;
+  position: relative;
+}
+
+
+.nav-center {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: absolute;
+  right: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+
+#nav .user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.10);
 }
 
 #nav a {

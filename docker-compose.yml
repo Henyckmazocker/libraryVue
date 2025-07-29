@@ -16,11 +16,12 @@ services:
     environment:
       - NODE_ENV=development
       - VUE_APP_API_URL=http://localhost:8888/backend/api.php
+      - VUE_APP_GOOGLE_CLIENT_ID=909299522196-mgusvnrk8t6j2odsf1lo4octc3i9t4vg.apps.googleusercontent.com
     depends_on:
       - backend
     networks:
       - library_network
-    restart: always
+    restart: unless-stopped
 
   backend:
     build:
@@ -37,11 +38,12 @@ services:
       - DB_DATABASE=library_db
       - DB_USERNAME=library_user
       - DB_PASSWORD=library_pass
+      - VUE_APP_GOOGLE_CLIENT_ID=909299522196-mgusvnrk8t6j2odsf1lo4octc3i9t4vg.apps.googleusercontent.com
     depends_on:
       - mysql
     networks:
       - library_network
-    restart: always
+    restart: unless-stopped
 
   mysql:
     image: mysql:8.0

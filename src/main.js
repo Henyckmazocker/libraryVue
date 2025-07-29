@@ -1,3 +1,5 @@
+import 'primevue/resources/primevue.min.css';
+import '@primevue/themes/lara/lara.css';
 import 'primeicons/primeicons.css';
 import { createApp } from 'vue';
 import App from './App.vue';

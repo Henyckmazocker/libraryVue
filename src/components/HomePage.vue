@@ -13,9 +13,6 @@
     <button @click="saveBooksToBackend" class="export-button">
       Guardar cambios en la biblioteca
     </button>
-    <button @click="downloadEntradas" class="download-button">
-      Descargar archivos de entradas
-    </button>
   </div>
 </template>
 
@@ -44,25 +41,6 @@ const saveBooksToBackend = async () => {
     console.error("Error al guardar libros en backend:", error);
     alert("No se pudo guardar la biblioteca en el backend.");
   }
-};
-
-const downloadEntradas = () => {
-  // Ruta relativa a la carpeta pública
-  const entradas = [
-    'entrada-EL-MESTRE-I-MARGARITA-- (1).pdf',
-    'entrada-EL-MESTRE-I-MARGARITA--.pdf',
-    'entrada-LITTLE-WOMEN-- (1).pdf',
-    'entrada-LITTLE-WOMEN--.pdf'
-  ];
-  entradas.forEach(filename => {
-    const url = `/Entradas/${filename}`;
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  });
 };
 </script>
 

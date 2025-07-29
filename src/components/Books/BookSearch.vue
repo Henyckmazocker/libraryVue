@@ -113,6 +113,7 @@ const fetchBookInfo = async () => {
     if (!data.error) {
       const details = data;
       currentBook.title = details.title || "Title not found";
+      console.log("Fetched book details:", details);  
       currentBook.author = (details.authors && details.authors.length > 0) ? details.authors[0].name : "Author not found";
       currentBook.coverUrl = (details.covers && details.covers.length > 0) ? `https://covers.openlibrary.org/b/id/${details.covers[0]}-L.jpg` : "";
       currentBook.publishers = (details.publishers && details.publishers.length > 0) ? details.publishers : [];
@@ -164,8 +165,13 @@ const triggerFetchBookByName = async () => {
     books = books.data.entries.slice(0, 5); // Limit to first 5 results to avoid too much load
     books.forEach(async (edition) => {
       let authors = [];
-      if (edition.isbn_13 && edition.isbn_13.length > 0) {
-          const apiUrl = `https://openlibrary.org/isbn/${edition.isbn_13[0]}.json`;
+      let isbnSearch = (Array.isArray(edition.isbn_13) && edition.isbn_13.length > 0)
+            ? edition.isbn_13[0]
+            : (Array.isArray(edition.isbn_10) && edition.isbn_10.length > 0)
+              ? edition.isbn_10[0]
+              : null;
+      if (isbnSearch && isbnSearch.length > 0) {
+          const apiUrl = `https://openlibrary.org/isbn/${isbnSearch}.json`;
           const response = await axios.get(apiUrl);
           const data = response.data;
           if(data.authors && data.authors.length > 0) {
@@ -177,10 +183,10 @@ const triggerFetchBookByName = async () => {
             });
           }
         foundBooks.value.push({
-          isbn: edition.isbn_13[0],
+          isbn: isbnSearch,
           title: data.title,
           author: authors,
-          cover_i: edition.covers[0] ?? "",
+          cover_i: (Array.isArray(edition.covers) && edition.covers.length > 0) ? edition.covers[0] : "",
           publisher: data.publishers,
           key: edition.key
         });

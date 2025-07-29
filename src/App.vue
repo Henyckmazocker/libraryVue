@@ -27,6 +27,7 @@ export default {
 
 
     onMounted(() => {
+      console.log(userPicture);
       const clientId = process.env.VUE_APP_GOOGLE_CLIENT_ID;
       if (!clientId) {
         alert('No se ha definido GOOGLE_CLIENT_ID en las variables de entorno.');

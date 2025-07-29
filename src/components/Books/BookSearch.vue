@@ -1,6 +1,5 @@
 <template>
   <div class="hello-container">
-    <BarcodeScanner @isbn-scanned="handleIsbnScanned" @scanner-loaded="onScannerLoaded" />
     <h1 class="title">ISBN Book Finder</h1>
     <div class="input-group">
       <input type="text" class="isbn-input" placeholder="Enter ISBN manually" v-model="decodedText" @keyup.enter="triggerFetchBookInfo" required />
@@ -50,7 +49,6 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from "vue";
 import axios from 'axios';
-import BarcodeScanner from '../BarcodeScanner.vue';
 // import StatusSelector from '../StatusSelector.vue';
 // Maneja la actualización de estados desde LibraryBookItem
 const onUpdateStatuses = ({ statuses }) => {
@@ -88,19 +86,6 @@ const clearBookDetails = () => {
   currentBook.publishers = "";
   addBookMessage.value = "";
   addBookStatus.value = "";
-};
-
-// Handler for the event from BarcodeScanner.vue
-const handleIsbnScanned = (scannedIsbn) => {
-  decodedText.value = scannedIsbn;
-  clearBookDetails();
-  searchError.value = "";
-  fetchBookInfo();
-};
-
-const onScannerLoaded = () => {
-  console.log("Scanner loaded event received in parent (HelloWorld.vue).");
-  // You can add any logic here if needed when the scanner is ready
 };
 
 // Renamed from onDecode, which was specific to the old structure

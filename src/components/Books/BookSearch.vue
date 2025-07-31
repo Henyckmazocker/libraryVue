@@ -1,6 +1,6 @@
 <template>
   <div class="hello-container">
-    <h1 class="title">ISBN Book Finder</h1>
+    <h1 class="title">Book Finder (Google Books + OpenLibrary)</h1>
     <div class="input-group">
       <input type="text" class="isbn-input" placeholder="Enter ISBN manually" v-model="decodedText" @keyup.enter="triggerFetchBookInfo" required />
       <button @click="triggerFetchBookInfo" class="search-button">Buscar por ISBN</button>
@@ -66,7 +66,8 @@ const currentBook = reactive({
   title: "",
   author: "",
   coverUrl: "",
-  publishers: ""
+  publishers: "",
+  userStatuses: []
 });
 const searchError = ref("");
 const addBookMessage = ref("");
@@ -84,6 +85,7 @@ const clearBookDetails = () => {
   currentBook.author = "";
   currentBook.coverUrl = "";
   currentBook.publishers = "";
+  currentBook.userStatuses = [];
   addBookMessage.value = "";
   addBookStatus.value = "";
 };
@@ -105,41 +107,82 @@ const fetchBookInfo = async () => {
     return;
   }
 
+  // Try Google Books API first
   try {
-    const apiUrl = `https://openlibrary.org/isbn/${isbn}.json`;
-    const response = await axios.get(apiUrl);
+    console.log("Trying Google Books API...");
+    const googleApiUrl = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`;
+    const response = await axios.get(googleApiUrl);
+    const data = response.data;
+
+    if (data.items && data.items.length > 0) {
+      const bookId = data.items[0].id;
+      console.log("Found book ID:", bookId, "- Getting full details...");
+      
+      // Get full book details using the book ID
+      const detailsResponse = await axios.get(`https://www.googleapis.com/books/v1/volumes/${bookId}`);
+      const book = detailsResponse.data.volumeInfo;
+      
+      console.log("Fetched complete book details from Google Books:", book);
+      currentBook.title = book.title || "Title not found";
+      currentBook.author = (book.authors && book.authors.length > 0) ? book.authors.join(', ') : "Author not found";
+      currentBook.coverUrl = book.imageLinks?.large?.replace('http:', 'https:') ||
+                            book.imageLinks?.medium?.replace('http:', 'https:') ||
+                            book.imageLinks?.thumbnail?.replace('http:', 'https:') || 
+                            book.imageLinks?.smallThumbnail?.replace('http:', 'https:') || "";
+      currentBook.publishers = book.publisher ? [book.publisher] : [];
+      
+      console.log("Book found with Google Books API (full details):", currentBook.title);
+      
+      // Auto-save the book when found by ISBN
+      await autoSaveBookFromISBN();
+      
+      return; // Success, no need to try fallback
+    }
+  } catch (error) {
+    console.warn("Google Books API failed, trying fallback:", error.message);
+  }
+
+  // Fallback to OpenLibrary API
+  try {
+    console.log("Trying OpenLibrary API as fallback...");
+    const openLibraryUrl = `https://openlibrary.org/isbn/${isbn}.json`;
+    const response = await axios.get(openLibraryUrl);
     const data = response.data;
 
     if (!data.error) {
       const details = data;
       currentBook.title = details.title || "Title not found";
-      console.log("Fetched book details:", details);  
+      console.log("Fetched book details from OpenLibrary:", details);  
       currentBook.author = (details.authors && details.authors.length > 0) ? details.authors[0].name : "Author not found";
       currentBook.coverUrl = (details.covers && details.covers.length > 0) ? `https://covers.openlibrary.org/b/id/${details.covers[0]}-L.jpg` : "";
       currentBook.publishers = (details.publishers && details.publishers.length > 0) ? details.publishers : [];
+      
+      // Auto-save the book when found by ISBN (fallback case)
+      await autoSaveBookFromISBN();
+      
       if (currentBook.title === "Title not found" && currentBook.author === "Author not found") {
-        searchError.value = "Book details not found for this ISBN.";
+        searchError.value = "Book details not found for this ISBN in any available database.";
       }
     } else {
-      searchError.value = "Book not found for this ISBN.";
+      searchError.value = "Book not found for this ISBN in any available database.";
     }
   } catch (error) {
-    console.error("Error fetching book information:", error);
+    console.error("Both APIs failed. Error with OpenLibrary:", error);
     if (error.response) {
       console.error("API Error Response:", error.response.data);
       if (error.response.status === 503) {
-        searchError.value = "The book information service (OpenLibrary) is temporarily unavailable (503). Please try again later.";
+        searchError.value = "Book information services are temporarily unavailable (503). Please try again later.";
       } else if (error.response.status === 404) {
-        searchError.value = "Book not found for this ISBN (404 error from API).";
+        searchError.value = "Book not found for this ISBN in any available database.";
       } else if (error.response.status === 429) {
-        searchError.value = "Too many requests to book API. Please try again later.";
+        searchError.value = "Too many requests to book APIs. Please try again later.";
       } else {
-        searchError.value = `Failed to fetch book information. API returned status ${error.response.status}.`;
+        searchError.value = `Failed to fetch book information. Last API returned status ${error.response.status}.`;
       }
     } else if (error.request) {
-      searchError.value = "No response from book API. Check your internet connection or try again later.";
+      searchError.value = "No response from book APIs. Check your internet connection or try again later.";
     } else {
-      searchError.value = "Error setting up request to book API: " + error.message;
+      searchError.value = "Error setting up request to book APIs: " + error.message;
     }
     // Clear book details on error as well, so no stale info is shown
     currentBook.title = "";
@@ -150,15 +193,72 @@ const fetchBookInfo = async () => {
 
 const triggerFetchBookByName = async () => {
   foundBooks.value = [];
-  // Limpiar currentBook para ocultar detalles si había uno cargado
   clearBookDetails();
   if (!bookName.value.trim()) return;
+  
+  // Try Google Books API first for name search
   try {
+    console.log("Searching by name with Google Books API...");
+    const googleApiUrl = `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(bookName.value.trim())}&maxResults=5`;
+    const response = await axios.get(googleApiUrl);
+    const data = response.data;
+
+    if (data.items && data.items.length > 0) {
+      // Get full details for each book
+      const booksPromises = data.items.map(async (item) => {
+        try {
+          const detailsResponse = await axios.get(`https://www.googleapis.com/books/v1/volumes/${item.id}`);
+          const book = detailsResponse.data.volumeInfo;
+          const isbn = book.industryIdentifiers?.find(id => id.type === 'ISBN_13')?.identifier ||
+                      book.industryIdentifiers?.find(id => id.type === 'ISBN_10')?.identifier ||
+                      '';
+          
+          return {
+            isbn: isbn,
+            title: book.title || 'Title not available',
+            author: book.authors || ['Author not available'],
+            cover_i: book.imageLinks?.large?.replace('http:', 'https:') ||
+                    book.imageLinks?.medium?.replace('http:', 'https:') ||
+                    book.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
+            publisher: book.publisher ? [book.publisher] : [],
+            key: item.id
+          };
+        } catch (error) {
+          console.warn(`Failed to get details for book ${item.id}:`, error.message);
+          // Fallback to basic info if detailed call fails
+          const book = item.volumeInfo;
+          const isbn = book.industryIdentifiers?.find(id => id.type === 'ISBN_13')?.identifier ||
+                      book.industryIdentifiers?.find(id => id.type === 'ISBN_10')?.identifier ||
+                      '';
+          
+          return {
+            isbn: isbn,
+            title: book.title || 'Title not available',
+            author: book.authors || ['Author not available'],
+            cover_i: book.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
+            publisher: book.publisher ? [book.publisher] : [],
+            key: item.id
+          };
+        }
+      });
+      
+      const books = await Promise.all(booksPromises);
+      foundBooks.value = books;
+      console.log(`Found ${books.length} books with Google Books API (with full details)`);
+      return; // Success with Google Books
+    }
+  } catch (error) {
+    console.warn("Google Books name search failed, trying OpenLibrary fallback:", error.message);
+  }
+
+  // Fallback to OpenLibrary search
+  try {
+    console.log("Searching by name with OpenLibrary as fallback...");
     const apiUrl = `https://openlibrary.org/search.json?title=${encodeURIComponent(bookName.value.trim())}`;
     const response = await axios.get(apiUrl);
     let docs = response.data.docs || [];
     if (docs.length === 0) {
-      searchError.value = "No books found with that name.";
+      searchError.value = "No books found with that name in any available database.";
       return;
     }
     let books = await axios.get(`https://openlibrary.org${docs[0].key}/editions.json`);
@@ -192,14 +292,81 @@ const triggerFetchBookByName = async () => {
         });
       }
     });
-    if (docs.length === 0) {
-      searchError.value = "No se encontraron libros con ese nombre.";
+    if (foundBooks.value.length === 0) {
+      searchError.value = "No books found with that name in any available database.";
     } else {
       searchError.value = "";
     }
   } catch (error) {
-    searchError.value = "Error buscando libros por nombre.";
+    console.error("Both name search APIs failed:", error);
+    searchError.value = "Error searching books by name in all available databases.";
     foundBooks.value = [];
+  }
+};
+
+const autoSaveBookFromISBN = async () => {
+  // Only auto-save if we have valid book details
+  if (!currentBook.title || currentBook.title === "Title not found") {
+    console.log("Cannot auto-save: invalid book details");
+    return;
+  }
+
+  // Check if book already exists in library
+  try {
+    const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
+    const checkResponse = await axios.post(backendApiUrl, {
+      action: 'get_library'
+    });
+    
+    const existingBooks = Array.isArray(checkResponse.data.data) ? checkResponse.data.data : [];
+    const bookExists = existingBooks.some(book => book.isbn === currentBook.isbn);
+    
+    if (bookExists) {
+      console.log("Book already exists in library, skipping auto-save");
+      addBookMessage.value = "Book already exists in your library.";
+      addBookStatus.value = "info";
+      
+      // Clear message after 3 seconds
+      setTimeout(() => {
+        addBookMessage.value = "";
+        addBookStatus.value = "";
+      }, 3000);
+      return;
+    }
+
+    // Auto-save with "owned" as default status using existing addBookToLibrary function
+    const defaultStatuses = allowedUserStatusesList.value.includes('owned') ? ['owned'] : 
+                           allowedUserStatusesList.value.length > 0 ? [allowedUserStatusesList.value[0]] : [];
+    
+    if (defaultStatuses.length === 0) {
+      console.log("Cannot auto-save: no allowed statuses available");
+      return;
+    }
+
+    console.log("Auto-saving book with default statuses:", defaultStatuses);
+    
+    // Reuse the existing addBookToLibrary function
+    await addBookToLibrary({ 
+      book: { ...currentBook }, 
+      statuses: defaultStatuses 
+    });
+    
+    // Update the message to indicate it was auto-saved
+    if (addBookStatus.value === "success") {
+      addBookMessage.value = `Book automatically saved to library with status: ${defaultStatuses.join(', ')}`;
+      
+      // Set userStatuses on currentBook to reflect that it's now saved
+      currentBook.userStatuses = [...defaultStatuses];
+      
+      // Clear message after 3 seconds
+      setTimeout(() => {
+        addBookMessage.value = "";
+        addBookStatus.value = "";
+      }, 3000);
+    }
+  } catch (error) {
+    console.error("Error during auto-save:", error);
+    // Don't show error to user for auto-save failures, just log it
   }
 };
 
@@ -208,7 +375,20 @@ const selectBookFromList = (book) => {
   currentBook.isbn = book.isbn;
   currentBook.title = book.title || "Title not found";
   currentBook.author = book.author ? book.author.join(', ') : "Author not found";
-  currentBook.coverUrl = book.cover_i ? `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg` : "";
+  
+  // Handle cover URL for both Google Books and OpenLibrary
+  if (book.cover_i) {
+    if (book.cover_i.startsWith('https://')) {
+      // Google Books URL
+      currentBook.coverUrl = book.cover_i;
+    } else {
+      // OpenLibrary ID
+      currentBook.coverUrl = `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg`;
+    }
+  } else {
+    currentBook.coverUrl = "";
+  }
+  
   foundBooks.value = [];
 };
 
@@ -350,6 +530,11 @@ onMounted(async () => {
 .add-book-message.success {
   background-color: rgba(40, 167, 69, 0.15);
   color: #28a745;
+}
+
+.add-book-message.info {
+  background-color: rgba(0, 123, 255, 0.15);
+  color: #007bff;
 }
 
 .add-book-message.error {

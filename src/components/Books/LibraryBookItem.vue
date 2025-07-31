@@ -89,12 +89,21 @@ const props = defineProps({
 
 const emit = defineEmits(['delete-book', 'update-rating', 'update-statuses', 'save-book']);
 // Estados seleccionados (editable)
-const selectedUserStatuses = ref(props.book.userStatuses ? [...props.book.userStatuses] : []);
+const getInitialStatuses = () => {
+  if (props.book.userStatuses && props.book.userStatuses.length > 0) {
+    // Si el libro ya tiene estados, usar esos
+    return [...props.book.userStatuses];
+  } else {
+    // Si es un libro nuevo, establecer "owned" como predeterminado
+    return props.allowedUserStatuses.includes('owned') ? ['owned'] : [];
+  }
+};
+const selectedUserStatuses = ref(getInitialStatuses());
 
 // Mantener sincronía solo si cambia el ISBN (nuevo libro)
 watch(() => props.book.isbn, (newIsbn, oldIsbn) => {
   if (newIsbn !== oldIsbn) {
-    selectedUserStatuses.value = props.book.userStatuses ? [...props.book.userStatuses] : [];
+    selectedUserStatuses.value = getInitialStatuses();
   }
 });
 

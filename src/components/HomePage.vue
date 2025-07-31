@@ -5,7 +5,7 @@
       Gestiona tus libros, películas, música y más desde un solo lugar.
     </p>
     <div class="home-links">
-      <router-link class="home-link" to="/books">Libros (Buscador ISBN)</router-link>
+      <router-link class="home-link" to="/books">Libros (Google Books + OpenLibrary)</router-link>
       <router-link class="home-link" to="/library">Mi Biblioteca</router-link>
       <router-link class="home-link" to="/movies">Películas (Buscador OMDb)</router-link>
       <router-link class="home-link disabled" to="#" @click.prevent>Música (próximamente)</router-link>

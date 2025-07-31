@@ -406,8 +406,31 @@ const addBookToLibrary = async (bookDetailsWithStatuses) => {
     return;
   }
 
+  // Check if book already exists in library (same logic as autoSaveBookFromISBN)
   try {
     const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
+    
+    const checkResponse = await axios.post(backendApiUrl, {
+      action: 'get_library'
+    });
+    
+    const existingBooks = Array.isArray(checkResponse.data.data) ? checkResponse.data.data : [];
+    const bookExists = existingBooks.some(existingBook => existingBook.isbn === book.isbn);
+    
+    if (bookExists) {
+      console.log("Book already exists in library, cannot add duplicate");
+      addBookMessage.value = "Book already exists in your library.";
+      addBookStatus.value = "info";
+      
+      // Clear message after 3 seconds
+      setTimeout(() => {
+        addBookMessage.value = "";
+        addBookStatus.value = "";
+      }, 3000);
+      return;
+    }
+
+    // Proceed with adding the book if it doesn't exist
     console.log("Attempting to POST to backend at:", backendApiUrl);
     console.log("Book details being sent:", book);
     console.log("User statuses being sent:", statuses);
@@ -422,6 +445,15 @@ const addBookToLibrary = async (bookDetailsWithStatuses) => {
     if (response.data && response.data.status === 'success') {
       addBookMessage.value = response.data.message || "Book added successfully!";
       addBookStatus.value = "success";
+      
+      // Set userStatuses on currentBook to reflect that it's now saved
+      currentBook.userStatuses = [...statuses];
+      
+      // Clear message after 3 seconds
+      setTimeout(() => {
+        addBookMessage.value = "";
+        addBookStatus.value = "";
+      }, 3000);
     } else {
       addBookMessage.value = response.data.message || "Failed to add book. Unknown error.";
       addBookStatus.value = "error";

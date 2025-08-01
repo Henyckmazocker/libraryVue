@@ -6,6 +6,9 @@
       <div class="filter-checkboxes filter-checkboxes-row">
         <label class="filter-checkbox-pill"><input type="checkbox" v-model="showBooks" /> Libros</label>
         <label class="filter-checkbox-pill"><input type="checkbox" v-model="showMovies" /> Películas</label>
+        <button @click="openImportModal" class="import-button">
+          📁 Importar datos
+        </button>
       </div>
       <div class="search-sort-row">
         <input 
@@ -59,6 +62,13 @@
         />
       </template>
     </div>
+
+    <!-- Import Modal Component -->
+    <ImportModal 
+      :show="showImportModal" 
+      @close="closeImportModal"
+      @import-success="handleImportSuccess"
+    />
   </div>
 </template>
 
@@ -67,6 +77,7 @@ import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
 import LibraryBookItem from './Books/LibraryBookItem.vue';
 import LibraryMovieItem from './Movies/LibraryMovieItem.vue';
+import ImportModal from './ImportModal.vue';
 
 const items = ref([]);
 const showBooks = ref(true);
@@ -83,6 +94,9 @@ const allowedUserStatusesList = (itemType) => {
   return allowedBookUserStatuses.value;
 };
 const currentSort = ref('date-desc');
+
+// Import functionality
+const showImportModal = ref(false);
 
 const setStatus = (message, type) => {
   statusMessage.value = message;
@@ -267,6 +281,31 @@ const handleUpdateStatuses = async ({ isbn, statuses, itemType }) => {
     setStatus("Error conectando con el backend para actualizar estados.", "error");
     if (error.response) console.error("Backend Error Response:", error.response.data);
   }
+};
+
+// Import functionality methods
+const openImportModal = () => {
+  showImportModal.value = true;
+};
+
+const closeImportModal = () => {
+  showImportModal.value = false;
+};
+
+const handleImportSuccess = async (importData) => {
+  // Show success message in the main library
+  setStatus(
+    `Datos importados correctamente desde ${importData.service}. Archivo: ${importData.fileName}`,
+    'success'
+  );
+  
+  // Refresh the library to show imported items
+  await fetchLibrary();
+  
+  // Clear success message after 5 seconds
+  setTimeout(() => {
+    setStatus('', '');
+  }, 5000);
 };
 
 </script>
@@ -465,5 +504,25 @@ const handleUpdateStatuses = async ({ isbn, statuses, itemType }) => {
   margin-right: 5px;
   width: 18px;
   height: 18px;
+}
+
+/* Import button */
+.import-button {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 20px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
+}
+
+.import-button:hover {
+  background: linear-gradient(135deg, #218838, #1ea080);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
 }
 </style> 

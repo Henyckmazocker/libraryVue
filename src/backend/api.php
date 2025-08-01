@@ -68,7 +68,6 @@ try {
     $bookRepository = new MySqlBookRepository();
     $movieRepository = new MySqlMovieRepository();
 
-
     // Use cases libros
     $addBookUseCase = new AddBookUseCase($bookRepository);
     $getLibraryUseCase = new GetLibraryUseCase($bookRepository);
@@ -270,6 +269,68 @@ try {
             $updateMovieRatingUseCase->execute($id, $rating);
             $response['status'] = 'success';
             $response['message'] = 'Rating de la película actualizado correctamente.';
+            $statusCode = 200;
+            break;
+        case 'import_data':
+            if (!isset($inputData['service']) || !isset($inputData['processedData'])) {
+                throw new InvalidArgumentException('Service and processedData are required for import_data action.');
+            }
+            
+            $service = $inputData['service'];
+            $processedData = $inputData['processedData'];
+            
+            // Verificar que processedData sea un array
+            if (!is_array($processedData)) {
+                throw new InvalidArgumentException('ProcessedData must be an array.');
+            }
+            
+            $importedCount = 0;
+            $skippedCount = 0;
+            $errors = [];
+            
+            // Obtener estados permitidos para películas
+            $allowedStatuses = $getMovieAllowedStatusesUseCase->execute();
+            
+            foreach ($processedData as $index => $movieData) {
+                try {
+                    // Verificar si la película ya existe
+                    $existingMovie = $movieRepository->findById($movieData['id']);
+                    if ($existingMovie) {
+                        $skippedCount++;
+                        continue; // Saltar películas que ya existen
+                    }
+                    
+                    // Preparar datos para el AddMovieUseCase
+                    $movieDataForUseCase = [
+                        'id' => $movieData['id'],
+                        'title' => $movieData['title'],
+                        'originalTitle' => $movieData['originalTitle'] ?? $movieData['title'],
+                        'director' => $movieData['director'] ?? null,
+                        'coverUrl' => $movieData['coverUrl'] ?? null,
+                        'rating' => $movieData['rating'] ?? null,
+                        'userStatuses' => $movieData['userStatuses'] ?? ['in watchlist'],
+                        'addedTimestamp' => $movieData['addedTimestamp'] ?? time(),
+                        'allowedStatuses' => $allowedStatuses
+                    ];
+                    
+                    // Usar el AddMovieUseCase para agregar la película
+                    $addMovieUseCase->execute($movieDataForUseCase);
+                    $importedCount++;
+                    
+                } catch (Exception $e) {
+                    $errors[] = "Error en película {$index} (ID: {$movieData['id']}): " . $e->getMessage();
+                    error_log("Import error for movie {$movieData['id']}: " . $e->getMessage());
+                }
+            }
+            
+            $response['status'] = 'success';
+            $response['message'] = "Importación completada desde {$service}. Importadas: {$importedCount}, Omitidas: {$skippedCount}";
+            $response['data'] = [
+                'imported' => $importedCount,
+                'skipped' => $skippedCount,
+                'total' => count($processedData),
+                'errors' => $errors
+            ];
             $statusCode = 200;
             break;
         case 'ping': // Example of a simple non-data action

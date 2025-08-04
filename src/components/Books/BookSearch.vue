@@ -3,11 +3,17 @@
     <h1 class="title">Book Finder (Google Books + OpenLibrary)</h1>
     <div class="input-group">
       <input type="text" class="isbn-input" placeholder="Enter ISBN manually" v-model="decodedText" @keyup.enter="triggerFetchBookInfo" required />
-      <button @click="triggerFetchBookInfo" class="search-button">Buscar por ISBN</button>
+      <button @click="triggerFetchBookInfo" class="search-button">
+        <i class="fas fa-search"></i>
+        <span class="button-text">ISBN</span>
+      </button>
     </div>
     <div class="input-group">
       <input type="text" class="isbn-input" placeholder="Buscar por nombre de libro" v-model="bookName" @keyup.enter="triggerFetchBookByName" />
-      <button @click="triggerFetchBookByName" class="search-button">Buscar por nombre</button>
+      <button @click="triggerFetchBookByName" class="search-button">
+        <i class="fas fa-search"></i>
+        <span class="button-text">Nombre</span>
+      </button>
     </div>
     <div v-if="foundBooks.length > 0" class="search-results-container">
       <h3 class="results-title">Resultados por nombre:</h3>
@@ -21,7 +27,9 @@
               <span class="result-pub-list">{{ book.publisher.join(', ') }}</span>
             </div>
           </div>
-          <button class="result-details-btn" @click="selectBookFromList(book)">Ver detalles</button>
+          <button class="result-details-btn" @click="selectBookFromList(book)">
+            <i class="fas fa-eye"></i>
+          </button>
         </div>
       </div>
     </div>
@@ -524,6 +532,9 @@ onMounted(async () => {
 }
 
 .search-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 15px 30px;
   font-size: 1rem;
   font-weight: 500;
@@ -534,6 +545,16 @@ onMounted(async () => {
   cursor: pointer;
   outline: none;
   transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.search-button i {
+  margin-right: 8px;
+  font-size: 1.1rem;
+}
+
+.button-text {
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .search-button:hover {

@@ -1,8 +1,8 @@
 <template>
   <div id="nav">
     <div class="nav-center">
-      <router-link to="/">Inicio</router-link> | 
-      <router-link to="/library">My Library</router-link>
+      <router-link to="/"><i class="fas fa-home"></i></router-link> | 
+      <router-link to="/library"><i class="fas fa-bookmark"></i></router-link>
     </div>
     <div class="nav-right">
       <template v-if="!userPicture">

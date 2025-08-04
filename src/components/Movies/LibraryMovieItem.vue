@@ -49,8 +49,12 @@
           >
           </MultiSelect>
         </div>
-        <button v-if="!movie.userStatuses || movie.userStatuses.length === 0" @click="onSaveMovie" class="save-button" :disabled="!movie.title || selectedUserStatuses.length === 0">Guardar película</button>
-        <button v-if="movie.userStatuses && movie.userStatuses.length > 0" @click="onDeleteMovie" class="delete-button">Delete</button>
+        <button v-if="!movie.userStatuses || movie.userStatuses.length === 0" @click="onSaveMovie" class="save-button" :disabled="!movie.title || selectedUserStatuses.length === 0">
+          <i class="fas fa-save"></i>
+        </button>
+        <button v-if="movie.userStatuses && movie.userStatuses.length > 0" @click="onDeleteMovie" class="delete-button">
+          <i class="fas fa-trash"></i>
+        </button>
       </div>
     </div>
   </div>

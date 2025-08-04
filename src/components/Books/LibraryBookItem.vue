@@ -60,8 +60,12 @@
           >
           </MultiSelect>
         </div>
-        <button v-if="!book.userStatuses || book.userStatuses.length === 0" @click="onSaveBook" class="save-button" :disabled="!book.title || selectedUserStatuses.length === 0">Guardar libro</button>
-        <button v-if="book.userStatuses && book.userStatuses.length > 0" @click="onDeleteBook" class="delete-button">Delete</button>
+        <button v-if="!book.userStatuses || book.userStatuses.length === 0" @click="onSaveBook" class="save-button" :disabled="!book.title || selectedUserStatuses.length === 0">
+          <i class="fas fa-save"></i>
+        </button>
+        <button v-if="book.userStatuses && book.userStatuses.length > 0" @click="onDeleteBook" class="delete-button">
+          <i class="fas fa-trash"></i>
+        </button>
       </div>
     </div>
   </div>

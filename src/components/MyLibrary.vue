@@ -4,10 +4,10 @@
     
     <div class="controls-container">
       <div class="filter-checkboxes filter-checkboxes-row">
-        <label class="filter-checkbox-pill"><input type="checkbox" v-model="showBooks" /> Libros</label>
-        <label class="filter-checkbox-pill"><input type="checkbox" v-model="showMovies" /> Películas</label>
+        <label class="filter-checkbox-pill"><input type="checkbox" v-model="showBooks" /> <i class="fas fa-book"></i></label>
+        <label class="filter-checkbox-pill"><input type="checkbox" v-model="showMovies" /> <i class="fas fa-film"></i></label>
         <button @click="openImportModal" class="import-button">
-          📁 Importar datos
+          <i class="fas fa-folder-open"></i>
         </button>
       </div>
       <div class="search-sort-row">
@@ -30,7 +30,9 @@
       </div>
     </div>
 
-    <div v-if="isLoading" class="loading-message">Loading library...</div>
+    <div v-if="isLoading" class="loading-message">
+      <i class="fas fa-spinner fa-spin"></i> Cargando biblioteca...
+    </div>
     <div v-if="fetchError" class="error-message">{{ fetchError }}</div>
     <div :class="['status-message', overallStatus]" aria-live="polite" style="min-height: 2.5em;">
       <span v-if="statusMessage">{{ statusMessage }}</span>

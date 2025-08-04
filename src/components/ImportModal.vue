@@ -3,8 +3,10 @@
   <div v-if="show" class="modal-overlay" @click="handleClose">
     <div class="modal-content" @click.stop>
       <div class="modal-header">
-        <h2>Importar datos desde servicios externos</h2>
-        <button @click="handleClose" class="close-button">×</button>
+        <h2><i class="fas fa-upload"></i> Importar datos</h2>
+        <button @click="handleClose" class="close-button">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
       
       <div class="modal-body">
@@ -30,7 +32,7 @@
             class="file-input"
           />
           <div v-if="selectedFile" class="file-info">
-            📄 {{ selectedFile.name }} ({{ formatFileSize(selectedFile.size) }})
+            <i class="fas fa-file"></i> {{ selectedFile.name }} ({{ formatFileSize(selectedFile.size) }})
           </div>
         </div>
 
@@ -40,13 +42,16 @@
       </div>
 
       <div class="modal-footer">
-        <button @click="handleClose" class="cancel-button">Cancelar</button>
+        <button @click="handleClose" class="cancel-button">
+          <i class="fas fa-times"></i>
+        </button>
         <button 
           @click="handleImport" 
           :disabled="!selectedService || !selectedFile || importStatus.loading"
           class="import-submit-button"
         >
-          {{ importStatus.loading ? 'Importando...' : 'Importar' }}
+          <i v-if="importStatus.loading" class="fas fa-spinner fa-spin"></i>
+          <i v-else class="fas fa-upload"></i>
         </button>
       </div>
     </div>

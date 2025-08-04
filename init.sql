@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS book_statuses (
 -- Populate allowed statuses
 -- This ensures that only valid statuses can be referenced.
 -- The Book::ALLOWED_STATUSES array should ideally be in sync with these values.
-INSERT INTO book_statuses (name) VALUES ('owned'), ('read'), ('to read'), ('reading'), ('want to buy');
+INSERT INTO book_statuses (name) VALUES ('owned'), ('read'), ('to read'), ('reading'), ('want to buy'), ('abandoned');
 
 
 -- Junction table to link books with their statuses using status IDs
@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS movie_statuses (
 -- Populate allowed statuses
 -- This ensures that only valid statuses can be referenced.
 -- The Book::ALLOWED_STATUSES array should ideally be in sync with these values.
-INSERT INTO movie_statuses (name) VALUES ('owned'), ('viewed'), ('in watchlist'), ('want to buy');
+INSERT INTO movie_statuses (name) VALUES ('owned'), ('viewed'), ('in watchlist'), ('want to buy'), ('abandoned');
 
 -- Junction table to link books with their statuses using status IDs
 CREATE TABLE IF NOT EXISTS movie_has_statuses (
@@ -124,12 +124,14 @@ CREATE TABLE IF NOT EXISTS user_books (
     user_id INT NOT NULL,
     book_isbn VARCHAR(20) NOT NULL,
     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    consumed_at TIMESTAMP NULL DEFAULT NULL,   -- Fecha cuando el usuario leyó el libro
     personal_rating DECIMAL(2,1) DEFAULT NULL, -- Rating personal del usuario (puede diferir del global)
     personal_notes TEXT DEFAULT NULL,          -- Notas personales sobre el libro
     PRIMARY KEY (user_id, book_isbn),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (book_isbn) REFERENCES books(isbn) ON DELETE CASCADE,
     INDEX idx_user_books_user_added (user_id, added_at), -- Para obtener libros de un usuario ordenados por fecha
+    INDEX idx_user_books_consumed (user_id, consumed_at), -- Para obtener libros leídos ordenados por fecha de lectura
     INDEX idx_user_books_rating (user_id, personal_rating), -- Para filtros por rating personal
     CONSTRAINT check_user_book_rating CHECK (personal_rating IS NULL OR (personal_rating >= 0.5 AND personal_rating <= 5.0 AND MOD(personal_rating * 2, 1) = 0))
 );
@@ -139,12 +141,14 @@ CREATE TABLE IF NOT EXISTS user_movies (
     user_id INT NOT NULL,
     movie_isbn VARCHAR(20) NOT NULL,
     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    consumed_at TIMESTAMP NULL DEFAULT NULL,   -- Fecha cuando el usuario vio la película
     personal_rating DECIMAL(2,1) DEFAULT NULL, -- Rating personal del usuario
     personal_notes TEXT DEFAULT NULL,          -- Notas personales sobre la película
     PRIMARY KEY (user_id, movie_isbn),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (movie_isbn) REFERENCES movie(isbn) ON DELETE CASCADE,
     INDEX idx_user_movies_user_added (user_id, added_at), -- Para obtener películas de un usuario ordenadas por fecha
+    INDEX idx_user_movies_consumed (user_id, consumed_at), -- Para obtener películas vistas ordenadas por fecha de visualización
     INDEX idx_user_movies_rating (user_id, personal_rating), -- Para filtros por rating personal
     CONSTRAINT check_user_movie_rating CHECK (personal_rating IS NULL OR (personal_rating >= 0.5 AND personal_rating <= 5.0 AND MOD(personal_rating * 2, 1) = 0))
 );
@@ -190,6 +194,61 @@ CREATE TABLE IF NOT EXISTS versions (
     version VARCHAR(50) NOT NULL UNIQUE, -- e.g., '1.0.0'
     description TEXT DEFAULT NULL,         -- Descripción de la versión
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Sistema de tags personalizados por usuario
+-- Tags personalizados para libros (cada usuario puede crear sus propios tags)
+CREATE TABLE IF NOT EXISTS user_book_tags (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,           -- Nombre del tag (ej: "favoritos", "ciencia ficción", "pendientes")
+    color VARCHAR(7) DEFAULT '#007bff',   -- Color hex para el tag (opcional)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_user_tag (user_id, name), -- Un usuario no puede tener tags duplicados
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_book_tags_user (user_id),
+    INDEX idx_user_book_tags_name (user_id, name)
+);
+
+-- Tags personalizados para películas
+CREATE TABLE IF NOT EXISTS user_movie_tags (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,           -- Nombre del tag
+    color VARCHAR(7) DEFAULT '#007bff',   -- Color hex para el tag (opcional)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_user_movie_tag (user_id, name), -- Un usuario no puede tener tags duplicados
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_movie_tags_user (user_id),
+    INDEX idx_user_movie_tags_name (user_id, name)
+);
+
+-- Relación muchos a muchos: user_books -> user_book_tags
+CREATE TABLE IF NOT EXISTS user_book_tag_assignments (
+    user_id INT NOT NULL,
+    book_isbn VARCHAR(20) NOT NULL,
+    tag_id INT NOT NULL,
+    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, book_isbn, tag_id),
+    FOREIGN KEY (user_id, book_isbn) REFERENCES user_books(user_id, book_isbn) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES user_book_tags(id) ON DELETE CASCADE,
+    INDEX idx_book_tag_assignments_tag (tag_id),           -- Para buscar todos los libros con un tag específico
+    INDEX idx_book_tag_assignments_book (user_id, book_isbn), -- Para buscar todos los tags de un libro específico
+    INDEX idx_book_tag_assignments_user (user_id)          -- Para buscar todas las asignaciones de un usuario
+);
+
+-- Relación muchos a muchos: user_movies -> user_movie_tags
+CREATE TABLE IF NOT EXISTS user_movie_tag_assignments (
+    user_id INT NOT NULL,
+    movie_isbn VARCHAR(20) NOT NULL,
+    tag_id INT NOT NULL,
+    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, movie_isbn, tag_id),
+    FOREIGN KEY (user_id, movie_isbn) REFERENCES user_movies(user_id, movie_isbn) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES user_movie_tags(id) ON DELETE CASCADE,
+    INDEX idx_movie_tag_assignments_tag (tag_id),            -- Para buscar todas las películas con un tag específico
+    INDEX idx_movie_tag_assignments_movie (user_id, movie_isbn), -- Para buscar todos los tags de una película específica
+    INDEX idx_movie_tag_assignments_user (user_id)           -- Para buscar todas las asignaciones de un usuario
 );
 
 -- You can add some initial data if you want for testing:

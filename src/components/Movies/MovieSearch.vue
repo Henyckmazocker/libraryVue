@@ -3,7 +3,9 @@
     <h1 class="title">Buscador de Películas (OMDb)</h1>
     <div class="input-group">
       <input type="text" class="movie-input" placeholder="Introduce el título o palabra clave" v-model="searchTitle" @keyup.enter="searchMovies" />
-      <button @click="searchMovies" class="search-button">Buscar</button>
+      <button @click="searchMovies" class="search-button">
+        <i class="fas fa-search"></i>
+      </button>
     </div>
     <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
     <div v-if="movies && movies.length" class="movie-list">
@@ -12,8 +14,12 @@
           <img v-if="result.Poster && result.Poster !== 'N/A'" :src="result.Poster" alt="Poster" class="movie-list-poster" />
           <div class="movie-list-info">
             <span class="movie-list-title">{{ result.Title }} ({{ result.Year }})</span>
-            <span v-if="selectedMovie && selectedMovie.imdbID === result.imdbID" class="accordion-arrow">▲</span>
-            <span v-else class="accordion-arrow">▼</span>
+            <span v-if="selectedMovie && selectedMovie.imdbID === result.imdbID" class="accordion-arrow">
+              <i class="fas fa-chevron-up"></i>
+            </span>
+            <span v-else class="accordion-arrow">
+              <i class="fas fa-chevron-down"></i>
+            </span>
           </div>
         </div>
         <transition name="accordion">

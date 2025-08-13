@@ -2,8 +2,13 @@
 node_modules
 /dist
 
+# Composer
+/vendor/
+/src/vendor/
+composer.lock
 
-# local env files
+# Environment files
+.env
 .env.local
 .env.*.local
 

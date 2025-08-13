@@ -2,14 +2,25 @@
   <div id="nav">
     <div class="nav-center">
       <router-link to="/"><i class="fas fa-home"></i></router-link> | 
-      <router-link to="/library"><i class="fas fa-bookmark"></i></router-link>
+      <router-link to="/library" v-if="authStore.isLoggedIn"><i class="fas fa-bookmark"></i></router-link>
     </div>
     <div class="nav-right">
-      <template v-if="!userPicture">
+      <template v-if="!authStore.isLoggedIn && !authStore.isLoading">
         <div id="g_id_signin"></div>
       </template>
-      <template v-if="userPicture">
-        <img :src="userPicture" alt="Usuario" class="user-avatar" />
+      <template v-if="authStore.isLoading">
+        <div class="loading-spinner">
+          <i class="fas fa-spinner fa-spin"></i>
+        </div>
+      </template>
+      <template v-if="authStore.isLoggedIn">
+        <div class="user-menu">
+          <img :src="authStore.userPicture" alt="Usuario" class="user-avatar" />
+          <span class="user-name">{{ authStore.userName }}</span>
+          <button @click="handleLogout" class="logout-btn" title="Cerrar sesión">
+            <i class="fas fa-sign-out-alt"></i>
+          </button>
+        </div>
       </template>
     </div>
   </div>
@@ -17,139 +28,191 @@
 </template>
 
 <script>
-
-import { ref, onMounted } from 'vue';
+import { onMounted } from 'vue';
+import { useAuthStore } from './store/auth.js';
 
 export default {
   name: 'App',
   setup() {
-    const userPicture = ref(null);
+    const authStore = useAuthStore();
+    const clientId = process.env.VUE_APP_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID";
 
-
-    onMounted(() => {
-      console.log(userPicture);
-      const clientId = process.env.VUE_APP_GOOGLE_CLIENT_ID;
-      if (!clientId) {
-        alert('No se ha definido GOOGLE_CLIENT_ID en las variables de entorno.');
-        return;
+    onMounted(async () => {
+      // Initialize authentication state
+      await authStore.initializeAuth();
+      
+      // Función para manejar la respuesta del token de Google
+      function handleCredentialResponse(response) {
+        console.log('Google token received, attempting login...');
+        authStore.login(response.credential);
       }
-      if (window.google && window.google.accounts && window.google.accounts.id) {
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: handleCredentialResponse
-        });
-        window.google.accounts.id.renderButton(
-          document.getElementById('g_id_signin'),
-          { theme: 'outline', size: 'large', shape: 'circle' }
-        );
+
+      // Hacer disponible globalmente para el callback de Google
+      window.handleCredentialResponse = handleCredentialResponse;
+
+      // Función para inicializar Google Sign-In
+      const initializeGoogleSignIn = () => {
+        if (window.google && window.google.accounts && window.google.accounts.id) {
+          try {
+            window.google.accounts.id.initialize({
+              client_id: clientId,
+              callback: handleCredentialResponse
+            });
+            
+            const signInButton = document.getElementById('g_id_signin');
+            if (signInButton) {
+              window.google.accounts.id.renderButton(signInButton, {
+                theme: 'outline',
+                size: 'large',
+                shape: 'circle',
+                text: 'signin_with',
+                logo_alignment: 'left'
+              });
+            }
+          } catch (error) {
+            console.error('Error inicializando Google Sign-In:', error);
+          }
+        }
+      };
+      
+      // Si Google ya está cargado, inicializar inmediatamente
+      if (window.googleSignInReady) {
+        initializeGoogleSignIn();
+      } else {
+        // Esperar al evento de carga de Google
+        window.addEventListener('googleSignInLoaded', initializeGoogleSignIn);
+        
+        // Fallback: intentar cada 200ms por si el evento no funciona
+        const fallbackInterval = setInterval(() => {
+          if (window.googleSignInReady) {
+            clearInterval(fallbackInterval);
+            initializeGoogleSignIn();
+          }
+        }, 200);
+        
+        // Limpiar el intervalo después de 10 segundos para evitar bucles infinitos
+        setTimeout(() => clearInterval(fallbackInterval), 10000);
       }
     });
 
-    function handleCredentialResponse(response) {
-      // Decodificar el JWT para obtener la foto de perfil
-      console.log('handleCredentialResponse:', response.credential);
-      const base64Url = response.credential.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join(''));
-      const payload = JSON.parse(jsonPayload);
-      userPicture.value = payload.picture;
-      // Puedes guardar más datos del usuario si lo deseas
-      console.log('Usuario:', payload);
-    }
+    const handleLogout = async () => {
+      await authStore.logout();
+      // Optionally redirect to home page
+      if (window.location.pathname !== '/') {
+        window.location.href = '/';
+      }
+    };
 
-    return { userPicture };
+    return { 
+      authStore,
+      handleLogout
+    };
   }
 }
 </script>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
-
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  /* Eliminar cualquier espacio extra arriba */
-  box-sizing: border-box;
-}
-
 #app {
-  font-family: 'Inter', sans-serif;
+  font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
-  background-color: #1a1a1a; /* Dark background */
-  color: #e0e0e0; /* Light default text color */
-  min-height: 100%;
-  /* display: flex; flex-direction: column; align-items: center; justify-content: center; */ /* Removed to allow router-view to control layout */
-  /* padding-top: 20px;  Eliminado para evitar gap arriba */
-  box-sizing: border-box;
+  color: #2c3e50;
 }
-
-
 
 #nav {
-  padding: 15px 30px;
-  background-color: #252525; /* Slightly different dark for nav */
-  margin-bottom: 30px;
-  border-radius: 0 0 15px 15px; /* Rounded bottom corners for nav bar */
-  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-  position: fixed; /* Make nav bar fixed at the top */
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000; /* Ensure nav is above other content */
-  height: 68px;
-  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30px;
+  background-color: #252525 !important;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border-bottom: 1px solid #1a252f;
 }
 
+#nav a {
+  font-weight: bold;
+  color: white;
+  text-decoration: none;
+  margin: 0 10px;
+  transition: color 0.3s ease;
+}
+
+#nav a:hover {
+  color: #f0f0f0;
+}
+
+#nav a.router-link-exact-active {
+  color: #42b983;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
 
 .nav-center {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  flex: 1;
+  text-align: center;
 }
 
 .nav-right {
   display: flex;
   align-items: center;
-  gap: 16px;
-  position: absolute;
-  right: 30px;
-  top: 50%;
-  transform: translateY(-50%);
+  gap: 10px;
 }
 
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 8px 12px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  backdrop-filter: blur(10px);
+}
 
-#nav .user-avatar {
-  width: 38px;
-  height: 38px;
+.user-avatar {
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #fff;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.10);
 }
 
-#nav a {
-  font-weight: bold;
-  color: #88aaff; /* Light blue for links */
-  text-decoration: none;
-  margin: 0 15px;
-  font-size: 1.1rem;
+.user-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #18212b;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-#nav a.router-link-exact-active {
-  color: #42b983; /* Vue green for active link */
+.logout-btn {
+  background: none;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  font-size: 14px;
 }
 
-/* Adjust padding for main content area to account for fixed nav */
-.hello-container { /* Asumiendo que BookSearch.vue usa esta clase, y MyLibrary.vue también */
-  padding-top: 80px; /* Height of nav + some space */
+.logout-btn:hover {
+  background-color: #f8f9fa;
+}
+
+.loading-spinner {
+  color: white;
+  font-size: 18px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.fa-spinner.fa-spin {
+  animation: spin 1s linear infinite;
 }
 </style>

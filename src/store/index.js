@@ -11,3 +11,6 @@ export const useCounterStore = defineStore('counter', {
     },
   },
 })
+
+// Export auth store as well
+export { useAuthStore } from './auth.js'

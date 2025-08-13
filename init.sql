@@ -10,14 +10,17 @@ CREATE TABLE IF NOT EXISTS books (
     author VARCHAR(255) DEFAULT NULL,
     coverUrl VARCHAR(1024) DEFAULT NULL,
     rating DECIMAL(2,1) DEFAULT NULL, -- e.g., 3.5 (precision 2, 1 decimal place)
+    pages INT UNSIGNED DEFAULT NULL, -- Número total de páginas del libro
     addedTimestamp INT UNSIGNED DEFAULT NULL,
-    CONSTRAINT check_book_rating CHECK (rating IS NULL OR (rating >= 0.5 AND rating <= 5.0 AND MOD(rating * 2, 1) = 0))
+    CONSTRAINT check_book_rating CHECK (rating IS NULL OR (rating >= 0.5 AND rating <= 5.0 AND MOD(rating * 2, 1) = 0)),
+    CONSTRAINT check_book_pages CHECK (pages IS NULL OR pages > 0)
 );
 
 -- Índices optimizados para books
 CREATE INDEX idx_books_title ON books(title); -- Para búsquedas por título
 CREATE INDEX idx_books_author ON books(author); -- Para búsquedas por autor
 CREATE INDEX idx_books_rating ON books(rating); -- Para filtros y ordenación por rating
+CREATE INDEX idx_books_pages ON books(pages); -- Para filtros y ordenación por número de páginas
 CREATE INDEX idx_books_added_timestamp ON books(addedTimestamp); -- Para ordenar por fecha de adición
 CREATE INDEX idx_books_title_author ON books(title, author); -- Búsquedas combinadas
 
@@ -125,6 +128,7 @@ CREATE TABLE IF NOT EXISTS user_books (
     book_isbn VARCHAR(20) NOT NULL,
     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     consumed_at TIMESTAMP NULL DEFAULT NULL,   -- Fecha cuando el usuario leyó el libro
+    current_page INT UNSIGNED DEFAULT 0,       -- Página actual en la que va el usuario (0 = no empezado)
     personal_rating DECIMAL(2,1) DEFAULT NULL, -- Rating personal del usuario (puede diferir del global)
     personal_notes TEXT DEFAULT NULL,          -- Notas personales sobre el libro
     PRIMARY KEY (user_id, book_isbn),
@@ -133,7 +137,9 @@ CREATE TABLE IF NOT EXISTS user_books (
     INDEX idx_user_books_user_added (user_id, added_at), -- Para obtener libros de un usuario ordenados por fecha
     INDEX idx_user_books_consumed (user_id, consumed_at), -- Para obtener libros leídos ordenados por fecha de lectura
     INDEX idx_user_books_rating (user_id, personal_rating), -- Para filtros por rating personal
-    CONSTRAINT check_user_book_rating CHECK (personal_rating IS NULL OR (personal_rating >= 0.5 AND personal_rating <= 5.0 AND MOD(personal_rating * 2, 1) = 0))
+    INDEX idx_user_books_progress (user_id, current_page), -- Para filtros por progreso de lectura
+    CONSTRAINT check_user_book_rating CHECK (personal_rating IS NULL OR (personal_rating >= 0.5 AND personal_rating <= 5.0 AND MOD(personal_rating * 2, 1) = 0)),
+    CONSTRAINT check_user_book_page CHECK (current_page >= 0)
 );
 
 -- Relación users -> movies (cada usuario tiene su propia biblioteca de películas)
@@ -251,12 +257,56 @@ CREATE TABLE IF NOT EXISTS user_movie_tag_assignments (
     INDEX idx_movie_tag_assignments_user (user_id)           -- Para buscar todas las asignaciones de un usuario
 );
 
--- You can add some initial data if you want for testing:
--- INSERT INTO books (isbn, title, author, rating, addedTimestamp) VALUES 
---   ('978-0321765723', 'Test Book 1: SQL', 'Author A', 4.5, UNIX_TIMESTAMP()),
---   ('978-0321765724', 'Test Book 2: More SQL', 'Author B', 3.0, UNIX_TIMESTAMP()); 
---
--- -- Example of linking books to statuses:
--- -- Assuming '978-0321765723' is book1 and 'owned' has id 1, 'read' has id 2:
--- -- INSERT INTO book_has_statuses (book_isbn, status_id) VALUES ('978-0321765723', 1);
--- -- INSERT INTO book_has_statuses (book_isbn, status_id) VALUES ('978-0321765723', 2); 
+-- Tabla de notas por página para libros
+-- Permite a los usuarios tomar múltiples notas específicas por página en cada libro
+CREATE TABLE IF NOT EXISTS user_book_notes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    book_isbn VARCHAR(20) NOT NULL,
+    page_number INT UNSIGNED NOT NULL,      -- Página específica a la que se refiere la nota
+    note_text TEXT DEFAULT NULL,                -- Contenido de la nota
+    note_type ENUM('note', 'quote', 'thought', 'question', 'summary', 'progress') DEFAULT 'progress', -- Tipo de nota
+    is_private TINYINT(1) DEFAULT 1,        -- Si la nota es privada (1) o pública (0)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (user_id, book_isbn) REFERENCES user_books(user_id, book_isbn) ON DELETE CASCADE,
+    
+    -- Índices para consultas eficientes
+    INDEX idx_user_book_notes_user_book (user_id, book_isbn),           -- Todas las notas de un libro específico del usuario
+    INDEX idx_user_book_notes_page (user_id, book_isbn, page_number),   -- Notas de una página específica
+    INDEX idx_user_book_notes_type (user_id, note_type),                -- Filtrar por tipo de nota
+    INDEX idx_user_book_notes_created (user_id, created_at),            -- Notas ordenadas por fecha de creación
+    INDEX idx_user_book_notes_updated (user_id, updated_at),            -- Notas ordenadas por última actualización
+    
+    -- Constraints
+    CONSTRAINT check_page_number CHECK (page_number > 0),               -- Las páginas deben ser positivas
+    CONSTRAINT check_note_text CHECK (CHAR_LENGTH(note_text) > 0)       -- Las notas no pueden estar vacías
+);
+
+-- Tabla de seguimiento de usuarios (follow/following system)
+-- Permite a los usuarios seguirse entre sí para ver actividades de lectura
+CREATE TABLE IF NOT EXISTS user_follows (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    follower_id INT NOT NULL,           -- Usuario que sigue (quien hace el follow)
+    followed_id INT NOT NULL,           -- Usuario que es seguido (a quien siguen)
+    followed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_active TINYINT(1) DEFAULT 1,     -- Permite "pausar" el seguimiento sin eliminarlo
+    
+    -- Un usuario no puede seguir al mismo usuario múltiples veces
+    UNIQUE KEY unique_follow (follower_id, followed_id),
+    
+    -- Foreign keys
+    FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (followed_id) REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- Índices para consultas eficientes
+    INDEX idx_user_follows_follower (follower_id),                    -- Todos los usuarios que sigue alguien
+    INDEX idx_user_follows_followed (followed_id),                    -- Todos los seguidores de alguien
+    INDEX idx_user_follows_active (follower_id, is_active),           -- Seguimientos activos de un usuario
+    INDEX idx_user_follows_recent (followed_at),                      -- Seguimientos recientes
+    INDEX idx_user_follows_mutual (follower_id, followed_id),         -- Para verificar seguimiento mutuo
+    
+    -- Constraints
+    CONSTRAINT check_not_self_follow CHECK (follower_id != followed_id) -- Un usuario no puede seguirse a sí mismo
+);

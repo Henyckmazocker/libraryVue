@@ -10,7 +10,7 @@ spl_autoload_register(function ($class) {
     $prefix = 'App\\';
     // Assumes api.php is in a directory like 'backend' 
     // and 'src' is a sibling to 'backend', containing the 'App' namespace root.
-    $base_dir = __DIR__ . '/../src/'; 
+    $base_dir = __DIR__ . '/../'; 
 
     $len = strlen($prefix);
     if (strncmp($prefix, $class, $len) !== 0) {
@@ -25,9 +25,13 @@ spl_autoload_register(function ($class) {
     }
 });
 
+// Require Composer autoloader for dependencies
+require_once __DIR__ . '/../src/vendor/autoload.php';
+
 
 use App\Infrastructure\Persistence\MySqlBookRepository;
 use App\Infrastructure\Persistence\MySqlMovieRepository;
+use App\Infrastructure\Persistence\MySqlUserRepository;
 use App\Application\UseCase\Books\AddBookUseCase;
 use App\Application\UseCase\GetLibraryUseCase;
 use App\Application\UseCase\Books\DeleteBookUseCase;
@@ -41,11 +45,15 @@ use App\Application\UseCase\Movies\GetMoviesUseCase;
 use App\Application\Domain\Model\Book;
 use App\Application\Domain\Model\Movie;
 use App\Application\UseCase\Movies\UpdateMovieRatingUseCase;
+use App\Application\UseCase\Auth\LoginUserUseCase;
+use App\Infrastructure\Session\SessionManager;
+use App\Infrastructure\Middleware\AuthMiddleware;
 
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Origin: http://localhost:8080'); // Specific origin for credentials
+header('Access-Control-Allow-Credentials: true'); // Allow cookies
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token');
 
 // Handle OPTIONS preflight request for CORS
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
@@ -64,9 +72,17 @@ $statusCode = 500;
 // $libraryFilePath = __DIR__ . '/my_library.json'; // No longer needed
 
 try {
-    // Initialization
+    // Initialize session and auth components
+    $sessionManager = new SessionManager();
+    $userRepository = new MySqlUserRepository();
+    $authMiddleware = new AuthMiddleware($sessionManager, $userRepository);
+    
+    // Initialize repositories
     $bookRepository = new MySqlBookRepository();
     $movieRepository = new MySqlMovieRepository();
+
+    // Auth use cases
+    $loginUserUseCase = new LoginUserUseCase($userRepository);
 
     // Use cases libros
     $addBookUseCase = new AddBookUseCase($bookRepository);
@@ -93,7 +109,74 @@ try {
     $action = $inputData['action'] ?? $_REQUEST['action'] ?? null;
 
     switch ($action) {
+        // ==================== AUTH ENDPOINTS ====================
+        case 'login':
+            if (!isset($inputData['google_token']) || !is_string($inputData['google_token'])) {
+                throw new InvalidArgumentException('Google token is required for login.');
+            }
+            
+            // TEMPORAL: Simple verification of Google JWT token header
+            // This will be replaced with Google Client library verification later
+            $tokenParts = explode('.', $inputData['google_token']);
+            if (count($tokenParts) !== 3) {
+                throw new InvalidArgumentException('Invalid Google token format.');
+            }
+            
+            $header = json_decode(base64_decode($tokenParts[0]), true);
+            $payload = json_decode(base64_decode($tokenParts[1]), true);
+            
+            if (!$payload || !isset($payload['sub'], $payload['email'], $payload['name'])) {
+                throw new InvalidArgumentException('Invalid Google token payload.');
+            }
+            
+            // For now, we'll accept the payload without cryptographic verification
+            // In production, you MUST verify the signature with Google's public keys
+            
+            $user = $loginUserUseCase->execute($payload);
+            $sessionManager->login($user);
+            
+            $response['status'] = 'success';
+            $response['message'] = 'Login successful.';
+            $response['data'] = [
+                'user' => $user->toArray(),
+                'csrf_token' => $authMiddleware->getCSRFToken()
+            ];
+            $statusCode = 200;
+            break;
+
+        case 'logout':
+            $sessionManager->logout();
+            $response['status'] = 'success';
+            $response['message'] = 'Logout successful.';
+            $statusCode = 200;
+            break;
+
+        case 'check_auth':
+            $authResult = $authMiddleware->requireAuth();
+            if ($authResult['status'] === 'error') {
+                $response = $authResult;
+                $statusCode = $authResult['http_code'];
+            } else {
+                $response['status'] = 'success';
+                $response['message'] = 'User is authenticated.';
+                $response['data'] = [
+                    'user' => $authResult['user'],
+                    'csrf_token' => $authMiddleware->getCSRFToken()
+                ];
+                $statusCode = 200;
+            }
+            break;
+
+        // ==================== PROTECTED ENDPOINTS ====================
         case 'get_library_items':
+            // Check authentication for protected endpoints
+            $authResult = $authMiddleware->requireAuth();
+            if ($authResult['status'] === 'error') {
+                $response = $authResult;
+                $statusCode = $authResult['http_code'];
+                break;
+            }
+            
             $filters = [];
             // Puedes añadir lógica para filtros si lo necesitas, por ejemplo desde $inputData
             $items = $getLibraryItemsUseCase->execute($filters);
@@ -126,6 +209,14 @@ try {
             $statusCode = 200;
             break;
         case 'add_book':
+            // Require authentication and CSRF token for write operations
+            $authResult = $authMiddleware->requireAuthAndCSRF($inputData['csrf_token'] ?? null);
+            if ($authResult['status'] === 'error') {
+                $response = $authResult;
+                $statusCode = $authResult['http_code'];
+                break;
+            }
+            
             if (!isset($inputData['book']) || !is_array($inputData['book'])) {
                 throw new InvalidArgumentException('Book data is required for add_book action.');
             }
@@ -137,6 +228,14 @@ try {
             break;
 
         case 'add_movie':
+            // Require authentication and CSRF token for write operations
+            $authResult = $authMiddleware->requireAuthAndCSRF($inputData['csrf_token'] ?? null);
+            if ($authResult['status'] === 'error') {
+                $response = $authResult;
+                $statusCode = $authResult['http_code'];
+                break;
+            }
+            
             if (!isset($inputData['movie']) || !is_array($inputData['movie'])) {
                 throw new InvalidArgumentException('Movie data is required for add_movie action.');
             }
@@ -148,6 +247,14 @@ try {
             break;
 
         case 'get_library':
+            // Require authentication for user's personal library
+            $authResult = $authMiddleware->requireAuth();
+            if ($authResult['status'] === 'error') {
+                $response = $authResult;
+                $statusCode = $authResult['http_code'];
+                break;
+            }
+            
             $library = $getLibraryUseCase->execute();
             $response['status'] = 'success';
             $response['message'] = 'Library data retrieved.';
@@ -156,6 +263,14 @@ try {
             break;
 
         case 'get_movies':
+            // Require authentication for user's personal movies
+            $authResult = $authMiddleware->requireAuth();
+            if ($authResult['status'] === 'error') {
+                $response = $authResult;
+                $statusCode = $authResult['http_code'];
+                break;
+            }
+            
             $movies = $movieRepository->findAll();
             $response['status'] = 'success';
             $response['message'] = 'Movies data retrieved.';
@@ -178,6 +293,14 @@ try {
             break;
 
         case 'delete_book':
+            // Require authentication and CSRF token for delete operations
+            $authResult = $authMiddleware->requireAuthAndCSRF($inputData['csrf_token'] ?? null);
+            if ($authResult['status'] === 'error') {
+                $response = $authResult;
+                $statusCode = $authResult['http_code'];
+                break;
+            }
+            
             if (!isset($inputData['isbn']) || !is_string($inputData['isbn'])) {
                 throw new InvalidArgumentException('ISBN is required for delete_book action.');
             }
@@ -188,6 +311,14 @@ try {
             break;
 
         case 'delete_movie':
+            // Require authentication and CSRF token for delete operations
+            $authResult = $authMiddleware->requireAuthAndCSRF($inputData['csrf_token'] ?? null);
+            if ($authResult['status'] === 'error') {
+                $response = $authResult;
+                $statusCode = $authResult['http_code'];
+                break;
+            }
+            
             if (!isset($inputData['id']) || !is_string($inputData['id'])) {
                 throw new InvalidArgumentException('ID is required for delete_movie action.');
             }

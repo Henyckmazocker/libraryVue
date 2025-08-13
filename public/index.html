@@ -2,7 +2,7 @@
 <html lang="">
   <head>
   <!-- Google Identity Services -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://accounts.google.com/gsi/client" async defer onload="initGoogleSignIn()"></script>
   <!-- FontAwesome for icons -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <meta charset="utf-8">
@@ -17,5 +17,16 @@
     </noscript>
     <div id="app"></div>
     <!-- built files will be auto injected -->
+    
+    <script>
+      // Global flag para indicar cuando Google Identity Services está cargado
+      window.googleSignInReady = false;
+      
+      function initGoogleSignIn() {
+        window.googleSignInReady = true;
+        // Emitir evento personalizado para notificar que Google está listo
+        window.dispatchEvent(new CustomEvent('googleSignInLoaded'));
+      }
+    </script>
   </body>
 </html>

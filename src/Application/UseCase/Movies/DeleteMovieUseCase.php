@@ -8,7 +8,7 @@ use App\Application\Domain\Repository\MovieRepositoryInterface;
 use App\Application\Domain\Repository\UserRepositoryInterface;
 use InvalidArgumentException;
 
-class UpdateMovieRatingUseCase
+class DeleteMovieUseCase
 {
     private MovieRepositoryInterface $movieRepository;
     private UserRepositoryInterface $userRepository;
@@ -22,16 +22,15 @@ class UpdateMovieRatingUseCase
     }
 
     /**
-     * @param int $userId ID of the user updating the rating
-     * @param string $movieId Movie ID (can be imdbID)
-     * @param float|null $rating The new rating (0.5-5, multiple of 0.5, or null to unrate)
-     * @return bool True if update was successful
-     * @throws InvalidArgumentException if user or movie not found, user doesn't have movie, or rating is invalid
+     * @param int $userId ID of the user removing the movie from their library
+     * @param string $movieId The ID of the movie to remove from user's library.
+     * @return bool True if removal was successful.
+     * @throws InvalidArgumentException if user or movie not found, or user doesn't have this movie.
      */
-    public function execute(int $userId, string $movieId, ?float $rating): bool
+    public function execute(int $userId, string $movieId): bool
     {
         if (empty($movieId)) {
-            throw new InvalidArgumentException('Movie ID is required to update a rating.');
+            throw new InvalidArgumentException('Movie ID is required to remove a movie.');
         }
 
         // Validate user exists
@@ -45,14 +44,7 @@ class UpdateMovieRatingUseCase
             throw new InvalidArgumentException('Movie not found in your library.');
         }
 
-        // Validate rating value
-        if ($rating !== null && ($rating < 0.5 || $rating > 5 || fmod($rating * 2, 1) !== 0.0)) {
-            throw new InvalidArgumentException('Rating must be between 0.5 and 5 in increments of 0.5, or null');
-        }
-
-        // Update the user's rating for this movie
-        $this->movieRepository->updateUserMovieRating($userId, $movieId, $rating);
-        
-        return true;
+        // Remove the movie from user's library (not from the system)
+        return $this->movieRepository->removeMovieFromUser($userId, $movieId);
     }
 }

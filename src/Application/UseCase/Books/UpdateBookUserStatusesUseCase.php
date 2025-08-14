@@ -4,45 +4,50 @@ declare(strict_types=1);
 
 namespace App\Application\UseCase\Books;
 
-use App\Application\Domain\Model\Book;
 use App\Application\Domain\Repository\BookRepositoryInterface;
+use App\Application\Domain\Repository\UserRepositoryInterface;
 use InvalidArgumentException;
 
 class UpdateBookUserStatusesUseCase
 {
     private BookRepositoryInterface $bookRepository;
+    private UserRepositoryInterface $userRepository;
 
-    public function __construct(BookRepositoryInterface $bookRepository)
-    {
+    public function __construct(
+        BookRepositoryInterface $bookRepository,
+        UserRepositoryInterface $userRepository
+    ) {
         $this->bookRepository = $bookRepository;
+        $this->userRepository = $userRepository;
     }
 
     /**
+     * @param int $userId ID of the user updating the book
      * @param string $isbn The ISBN of the book to update.
      * @param array $userStatuses The new array of user statuses.
-     * @return Book The updated book.
-     * @throws InvalidArgumentException if ISBN is empty, book not found, or statuses are invalid.
+     * @return bool True if update was successful.
+     * @throws InvalidArgumentException if user or book not found, or if user doesn't have this book
      */
-    public function execute(string $isbn, array $userStatuses): Book
+    public function execute(int $userId, string $isbn, array $userStatuses): bool
     {
         if (empty($isbn)) {
             throw new InvalidArgumentException('ISBN is required to update book statuses.');
         }
 
-        $book = $this->bookRepository->findById($isbn);
-        if (!$book) {
-            throw new InvalidArgumentException('Book with ISBN ' . $isbn . ' not found.');
+        // Validate user exists
+        $user = $this->userRepository->findById($userId);
+        if (!$user) {
+            throw new InvalidArgumentException("User with ID {$userId} not found");
         }
 
-        // The Book::setUserStatuses method will handle validation of the statuses themselves.
-        try {
-            $book->setUserStatuses($userStatuses);
-        } catch (\InvalidArgumentException $e) {
-            // Re-throw or handle more gracefully
-            throw new InvalidArgumentException('Invalid user statuses: ' . $e->getMessage());
+        // Check if user has this book in their library
+        if (!$this->userRepository->hasUserBook($userId, $isbn)) {
+            throw new InvalidArgumentException('Book not found in your library.');
         }
 
-        $this->bookRepository->save($book);
-        return $book;
+        // Update the user's statuses for this book
+        $this->bookRepository->updateUserBookStatuses((int)$userId, $isbn, $userStatuses);
+        
+        return true;
     }
 } 

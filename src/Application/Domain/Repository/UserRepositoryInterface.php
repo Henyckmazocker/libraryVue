@@ -31,4 +31,15 @@ interface UserRepositoryInterface
      * Update existing user
      */
     public function update(User $user): User;
+
+    // User library methods
+    public function getUserBooks(int $userId, array $filters = []): array;
+    
+    public function getUserMovies(int $userId, array $filters = []): array;
+    
+    public function getUserLibraryStats(int $userId): array;
+    
+    public function hasUserBook(int $userId, string $isbn): bool;
+    
+    public function hasUserMovie(int $userId, string $movieId): bool;
 }

@@ -35,19 +35,18 @@
 </template>
 
 <script setup>
-import axios from 'axios';
+import { useAuthStore } from '@/store/auth';
+
+const authStore = useAuthStore();
 
 const saveBooksToBackend = async () => {
   try {
-    const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
-    const response = await axios.post(backendApiUrl, {
-      type: 'books',
-      action: 'get_library'
+    const response = await authStore.apiCall('get_library', {
+      type: 'books'
     });
     const books = Array.isArray(response.data.data) ? response.data.data : [];
     // Ahora enviamos los libros al backend para sobrescribir el archivo
-    const saveResponse = await axios.post(backendApiUrl, {
-      action: 'save_library',
+    const saveResponse = await authStore.apiCall('save_library', {
       books
     });
     if (saveResponse.data && saveResponse.data.status === 'success') {

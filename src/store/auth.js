@@ -1,9 +1,6 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
 
-// Configure axios defaults for sessions
-axios.defaults.withCredentials = true
-
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null,

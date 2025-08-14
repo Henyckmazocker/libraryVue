@@ -76,11 +76,12 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import axios from 'axios';
+import { useAuthStore } from '@/store/auth';
 import LibraryBookItem from './Books/LibraryBookItem.vue';
 import LibraryMovieItem from './Movies/LibraryMovieItem.vue';
 import ImportModal from './ImportModal.vue';
 
+const authStore = useAuthStore();
 const items = ref([]);
 const showBooks = ref(true);
 const showMovies = ref(true);
@@ -111,10 +112,13 @@ const fetchLibrary = async () => {
   isLoading.value = true;
   fetchError.value = "";
   try {
-    const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
-    const response = await axios.get(backendApiUrl + '?action=get_library_items');
+    const response = await authStore.apiCall('get_library_items');
     if (response.data && response.data.status === 'success') {
-      items.value = response.data.data || [];
+      // El backend devuelve { books: [], movies: [] }, necesitamos combinarlos
+      const data = response.data.data || {};
+      const books = (data.books || []).map(book => ({ ...book, itemType: 'book' }));
+      const movies = (data.movies || []).map(movie => ({ ...movie, itemType: 'movie' }));
+      items.value = [...books, ...movies];
     } else {
       fetchError.value = response.data.message || "Failed to load library. Unknown error.";
       items.value = [];
@@ -129,6 +133,12 @@ const fetchLibrary = async () => {
 };
 
 const displayedItems = computed(() => {
+  // Asegurar que items.value sea un array
+  if (!Array.isArray(items.value)) {
+    console.warn('items.value is not an array:', items.value);
+    return [];
+  }
+  
   let processed = [...items.value];
   // Filtrar por tipo según los checkboxes
   processed = processed.filter(item => {
@@ -159,10 +169,18 @@ const displayedItems = computed(() => {
       processed.sort((a, b) => (b.author || '').localeCompare(a.author || ''));
       break;
     case 'rating-desc':
-      processed.sort((a, b) => (b.rating === null ? -1 : (a.rating === null ? 1 : b.rating - a.rating)));
+      processed.sort((a, b) => {
+        const aRating = a.user_rating !== null && a.user_rating !== undefined ? a.user_rating : (a.rating || 0);
+        const bRating = b.user_rating !== null && b.user_rating !== undefined ? b.user_rating : (b.rating || 0);
+        return bRating - aRating;
+      });
       break;
     case 'rating-asc':
-      processed.sort((a, b) => (a.rating === null ? 1 : (b.rating === null ? -1 : a.rating - b.rating)));
+      processed.sort((a, b) => {
+        const aRating = a.user_rating !== null && a.user_rating !== undefined ? a.user_rating : (a.rating || 0);
+        const bRating = b.user_rating !== null && b.user_rating !== undefined ? b.user_rating : (b.rating || 0);
+        return aRating - bRating;
+      });
       break;
     case 'date-desc':
       processed.sort((a, b) => (b.addedTimestamp || 0) - (a.addedTimestamp || 0));
@@ -183,7 +201,6 @@ const handleDeleteBook = async (payload) => {
   if (!confirm(confirmMsg)) return;
   setStatus("", "");
   try {
-    const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
     let action, idField, idValue;
     if (itemType === 'movie') {
       action = 'delete_movie';
@@ -194,8 +211,7 @@ const handleDeleteBook = async (payload) => {
       idField = 'isbn';
       idValue = isbn;
     }
-    const response = await axios.post(backendApiUrl, {
-      action,
+    const response = await authStore.apiCall(action, {
       [idField]: idValue
     });
     if (response.data && response.data.status === 'success') {
@@ -214,15 +230,13 @@ const handleDeleteBook = async (payload) => {
 const handleUpdateRating = async ({ isbn, rating, itemType }) => {
   setStatus("", "");
   try {
-    const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
     let action;
     if (itemType === 'movie') {
       action = 'update_movie_rating';
     } else {
       action = 'update_book_rating';
     }
-    const response = await axios.post(backendApiUrl, {
-      action,
+    const response = await authStore.apiCall(action, {
       'isbn': isbn,
       rating
     });
@@ -231,7 +245,7 @@ const handleUpdateRating = async ({ isbn, rating, itemType }) => {
       let idx;
       idx = items.value.findIndex(i => i.isbn === isbn);
       if (idx !== -1) {
-        items.value[idx].rating = rating;
+        items.value[idx].user_rating = rating;
       }
     } else {
       setStatus(response.data.message || "Failed to update rating.", "error");
@@ -243,10 +257,9 @@ const handleUpdateRating = async ({ isbn, rating, itemType }) => {
   }
 };
 onMounted(async() => {
-  const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
   const [bookRes, movieRes] = await Promise.all([
-    axios.post(backendApiUrl, { action: 'get_book_allowed_statuses' }),
-    axios.post(backendApiUrl, { action: 'get_movie_allowed_statuses' })
+    authStore.apiCall('get_book_allowed_statuses'),
+    authStore.apiCall('get_movie_allowed_statuses')
   ]);
   allowedBookUserStatuses.value = Array.isArray(bookRes.data.data) ? bookRes.data.data : [];
   allowedMovieUserStatuses.value = Array.isArray(movieRes.data.data) ? movieRes.data.data : [];
@@ -257,15 +270,13 @@ onMounted(async() => {
 const handleUpdateStatuses = async ({ isbn, statuses, itemType }) => {
   setStatus("", "");
   try {
-    const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
     let action;
     if (itemType === 'movie') {
       action = 'update_movie_user_statuses';
     } else {
       action = 'update_book_user_statuses';
     }
-    const response = await axios.post(backendApiUrl, {
-      action,
+    const response = await authStore.apiCall(action, {
       'isbn': isbn,
       statuses
     });

@@ -6,11 +6,13 @@
       </div>
       <div class="info-text">
         <h3 class="movie-title">{{ movie.title }}</h3>
-        <p v-if="movie.author" class="movie-author"><strong>author:</strong> {{ movie.author }}</p>
+        <p v-if="movie.originalTitle && movie.originalTitle !== movie.title" class="movie-original-title"><strong>Original Title:</strong> {{ movie.originalTitle }}</p>
+        <p v-if="movie.director" class="movie-director"><strong>Director:</strong> {{ movie.director }}</p>
+        <p v-if="movie.author" class="movie-author"><strong>Author:</strong> {{ movie.author }}</p>
         <p v-if="movie.year" class="movie-year"><strong>Year:</strong> {{ movie.year }}</p>
         <p class="movie-isbn"><strong>IMDb ID:</strong> {{ movie.isbn }}</p>
         <div class="rating-section">
-          <p class="current-rating">Rating: {{ movie.rating !== null ? movie.rating + '/5' : 'Not Rated' }}</p>
+          <p class="current-rating">Rating: {{ (movie.user_rating !== null && movie.user_rating !== undefined) ? movie.user_rating + '/5' : 'Not Rated' }}</p>
           <div class="stars-input">
             <div v-for="starPosition in 5" :key="'star-' + starPosition" class="star-container">
               <span
@@ -68,7 +70,7 @@ const props = defineProps({
   movie: {
     type: Object,
     required: true,
-    default: () => ({ isbn: '', title: '', author: '', coverUrl: '', rating: null })
+    default: () => ({ imdbID: '', title: '', author: '', coverUrl: '', rating: null })
   },
   allowedUserStatuses: {
     type: Array,
@@ -83,7 +85,7 @@ const props = defineProps({
 const emit = defineEmits(['delete-movie', 'update-rating', 'update-statuses', 'save-movie']);
 const selectedUserStatuses = ref(props.movie.userStatuses ? [...props.movie.userStatuses] : []);
 
-watch(() => props.movie.isbn, (newId, oldId) => {
+watch(() => props.movie.imdbID, (newId, oldId) => {
   if (newId !== oldId) {
     selectedUserStatuses.value = props.movie.userStatuses ? [...props.movie.userStatuses] : [];
   }
@@ -91,7 +93,7 @@ watch(() => props.movie.isbn, (newId, oldId) => {
 
 const onStatusesChange = () => {
   if (props.movie.userStatuses && props.movie.userStatuses.length > 0) {
-    emit('update-statuses', { isbn: props.movie.isbn, statuses: [...selectedUserStatuses.value], itemType: 'movie' });
+    emit('update-statuses', { isbn: props.movie.imdbID, statuses: [...selectedUserStatuses.value], itemType: 'movie' });
   }
 };
 
@@ -101,13 +103,13 @@ const onSaveMovie = () => {
 };
 const hoverRating = ref(0);
 const currentVisualRating = computed(() => {
-  return hoverRating.value || (props.movie.rating === null ? 0 : props.movie.rating);
+  return hoverRating.value || (props.movie.user_rating === null || props.movie.user_rating === undefined ? 0 : props.movie.user_rating);
 });
 const onDeleteMovie = () => {
-  emit('delete-movie', props.movie.isbn);
+  emit('delete-movie', { isbn: props.movie.imdbID, imdbID: props.movie.imdbID, itemType: 'movie' });
 };
 const setRating = (ratingValue) => {
-  emit('update-rating', { isbn: props.movie.isbn, rating: ratingValue, itemType: 'movie' });
+  emit('update-rating', { isbn: props.movie.imdbID, rating: ratingValue, itemType: 'movie' });
 };
 </script>
 

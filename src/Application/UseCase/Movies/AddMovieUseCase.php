@@ -6,23 +6,29 @@ namespace App\Application\UseCase\Movies;
 
 use App\Application\Domain\Model\Movie;
 use App\Application\Domain\Repository\MovieRepositoryInterface;
+use App\Application\Domain\Repository\UserRepositoryInterface;
 use InvalidArgumentException;
 
 class AddMovieUseCase
 {
     private MovieRepositoryInterface $movieRepository;
+    private UserRepositoryInterface $userRepository;
 
-    public function __construct(MovieRepositoryInterface $movieRepository)
-    {
+    public function __construct(
+        MovieRepositoryInterface $movieRepository,
+        UserRepositoryInterface $userRepository
+    ) {
         $this->movieRepository = $movieRepository;
+        $this->userRepository = $userRepository;
     }
 
     /**
      * @param array $movieData Datos crudos de la película, incluyendo userStatuses.
+     * @param int $userId ID of the user to associate the movie with
      * @return Movie La película agregada.
-     * @throws InvalidArgumentException si los datos son inválidos o la película ya existe.
+     * @throws InvalidArgumentException si los datos son inválidos o la relación usuario-película ya existe.
      */
-    public function execute(array $movieData): Movie
+    public function execute(array $movieData, int $userId): Movie
     {
         if (empty($movieData['id'])) {
             throw new InvalidArgumentException('ID is required to add a movie.');
@@ -34,28 +40,50 @@ class AddMovieUseCase
             throw new InvalidArgumentException('User statuses are required and must be an array.');
         }
 
-        if ($this->movieRepository->findById($movieData['id'])) {
-            throw new InvalidArgumentException('Movie with ID ' . $movieData['id'] . ' already exists.');
+        // Validate user exists
+        $user = $this->userRepository->findById($userId);
+        if (!$user) {
+            throw new InvalidArgumentException("User with ID {$userId} not found");
         }
 
-        try {
-            $movie = Movie::fromArray([
-                'id' => $movieData['id'],
-                'title' => $movieData['title'],
-                'originalTitle' => $movieData['originalTitle'] ?? null,
-                'director' => $movieData['director'] ?? null,
-                'coverUrl' => $movieData['coverUrl'] ?? null,
-                'rating' => isset($movieData['rating']) && is_numeric($movieData['rating']) ? (float)$movieData['rating'] : null,
-                'userStatuses' => $movieData['userStatuses'],
-                'addedTimestamp' => $movieData['addedTimestamp'] ?? time()
-            ],
-                $movieData['allowedStatuses'] ?? []
-            );
-        } catch (\InvalidArgumentException $e) {
-            throw new InvalidArgumentException('Invalid movie data: ' . $e->getMessage());
+        // Check if user already has this movie - this is the only error case
+        if ($this->userRepository->hasUserMovie($userId, $movieData['id'])) {
+            throw new InvalidArgumentException('You already have this movie in your library.');
         }
 
-        $this->movieRepository->save($movie);
+        // Check if movie exists in the system
+        $existingMovie = $this->movieRepository->findById($movieData['id']);
+        
+        if (!$existingMovie) {
+            // Movie doesn't exist, create it first
+            try {
+                $movie = Movie::fromArray([
+                    'id' => $movieData['id'],
+                    'title' => $movieData['title'],
+                    'originalTitle' => $movieData['originalTitle'] ?? null,
+                    'director' => $movieData['director'] ?? null,
+                    'coverUrl' => $movieData['coverUrl'] ?? null,
+                    'rating' => isset($movieData['rating']) && is_numeric($movieData['rating']) ? (float)$movieData['rating'] : null,
+                    'description' => $movieData['description'] ?? null,
+                    'userStatuses' => $movieData['userStatuses'],
+                    'addedTimestamp' => $movieData['addedTimestamp'] ?? time()
+                ],
+                    $movieData['allowedStatuses'] ?? []
+                );
+            } catch (\InvalidArgumentException $e) {
+                throw new InvalidArgumentException('Invalid movie data: ' . $e->getMessage());
+            }
+            
+            // Save the movie to the system
+            $this->movieRepository->save($movie);
+        } else {
+            // Movie exists, we need to convert the array to Movie object
+            $movie = Movie::fromArray($existingMovie, $movieData['allowedStatuses'] ?? []);
+        }
+
+        // Add the movie to user's library with their specific statuses
+        $this->movieRepository->addMovieToUser((int)$userId, $movieData['id'], $movieData['userStatuses']);
+        
         return $movie;
     }
 }

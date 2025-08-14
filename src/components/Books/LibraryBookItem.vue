@@ -14,9 +14,10 @@
           <strong>Editorial:</strong> {{ book.publisher }}
         </p>
         <p class="book-isbn"><strong>ISBN:</strong> {{ book.isbn }}</p>
+        <p v-if="book.publicationDate" class="book-publication-date"><strong>Publication Date:</strong> {{ book.publicationDate }}</p>
         
         <div class="rating-section">
-          <p class="current-rating">Rating: {{ book.rating !== null ? book.rating + '/5' : 'Not Rated' }}</p>
+          <p class="current-rating">Rating: {{ (book.user_rating !== null && book.user_rating !== undefined) ? book.user_rating + '/5' : 'Not Rated' }}</p>
           <div class="stars-input">
             <!-- Loop through 5 star positions -->
             <div v-for="starPosition in 5" :key="'star-' + starPosition" class="star-container">
@@ -130,12 +131,12 @@ const hoverRating = ref(0); // For hover effect on stars
 
 const currentVisualRating = computed(() => {
   // If hoverRating is active (not 0), it takes precedence.
-  // Otherwise, use the book's rating, defaulting to 0 if null (not rated).
-  return hoverRating.value || (props.book.rating === null ? 0 : props.book.rating);
+  // Otherwise, use the book's user rating, defaulting to 0 if null (not rated).
+  return hoverRating.value || (props.book.user_rating === null || props.book.user_rating === undefined ? 0 : props.book.user_rating);
 });
 
 const onDeleteBook = () => {
-  emit('delete-book', props.book.isbn);
+  emit('delete-book', { isbn: props.book.isbn, itemType: 'book' });
 };
 
 const setRating = (ratingValue) => {

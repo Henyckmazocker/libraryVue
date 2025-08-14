@@ -37,6 +37,7 @@ use App\Application\UseCase\GetLibraryUseCase;
 use App\Application\UseCase\Books\DeleteBookUseCase;
 use App\Application\UseCase\Books\UpdateBookRatingUseCase;
 use App\Application\UseCase\Movies\AddMovieUseCase;
+use App\Application\UseCase\Movies\DeleteMovieUseCase;
 use App\Application\UseCase\Movies\GetMovieAllowedStatusesUseCase;
 use App\Application\UseCase\Books\UpdateBookUserStatusesUseCase;
 use App\Application\UseCase\GetLibraryItemsUseCase;
@@ -85,19 +86,20 @@ try {
     $loginUserUseCase = new LoginUserUseCase($userRepository);
 
     // Use cases libros
-    $addBookUseCase = new AddBookUseCase($bookRepository);
+    $addBookUseCase = new AddBookUseCase($bookRepository, $userRepository);
     $getLibraryUseCase = new GetLibraryUseCase($bookRepository);
-    $deleteBookUseCase = new DeleteBookUseCase($bookRepository);
-    $updateBookRatingUseCase = new UpdateBookRatingUseCase($bookRepository);
-    $updateBookUserStatusesUseCase = new UpdateBookUserStatusesUseCase($bookRepository);
-    $getBooksUseCase = new GetBooksUseCase($bookRepository);
+    $deleteBookUseCase = new DeleteBookUseCase($bookRepository, $userRepository);
+    $updateBookRatingUseCase = new UpdateBookRatingUseCase($bookRepository, $userRepository);
+    $updateBookUserStatusesUseCase = new UpdateBookUserStatusesUseCase($bookRepository, $userRepository);
+    $getBooksUseCase = new GetBooksUseCase($bookRepository, $userRepository);
 
     // Use cases películas
-    $addMovieUseCase = new AddMovieUseCase($movieRepository);
+    $addMovieUseCase = new AddMovieUseCase($movieRepository, $userRepository);
+    $deleteMovieUseCase = new DeleteMovieUseCase($movieRepository, $userRepository);
     $getMovieAllowedStatusesUseCase = new GetMovieAllowedStatusesUseCase($movieRepository);
-    $getMoviesUseCase = new GetMoviesUseCase($movieRepository);
-    $updateMovieUserStatusesUseCase = new App\Application\UseCase\Movies\UpdateMovieUserStatusesUseCase($movieRepository);
-    $updateMovieRatingUseCase = new UpdateMovieRatingUseCase($movieRepository);
+    $getMoviesUseCase = new GetMoviesUseCase($movieRepository, $userRepository);
+    $updateMovieUserStatusesUseCase = new App\Application\UseCase\Movies\UpdateMovieUserStatusesUseCase($movieRepository, $userRepository);
+    $updateMovieRatingUseCase = new UpdateMovieRatingUseCase($movieRepository, $userRepository);
 
     // Use case combinado para biblioteca unificada
     $getLibraryItemsUseCase = new GetLibraryItemsUseCase($getBooksUseCase, $getMoviesUseCase);
@@ -177,12 +179,20 @@ try {
                 break;
             }
             
+            $userId = $authResult['user']['id'];
             $filters = [];
-            // Puedes añadir lógica para filtros si lo necesitas, por ejemplo desde $inputData
-            $items = $getLibraryItemsUseCase->execute($filters);
+            // You can add filter logic from $inputData if needed
+            
+            // Get books and movies for this specific user
+            $books = $getBooksUseCase->execute($userId, $filters);
+            $movies = $getMoviesUseCase->execute($userId, $filters);
+            
             $response['status'] = 'success';
             $response['message'] = 'Library items (books and movies) retrieved.';
-            $response['data'] = $items;
+            $response['data'] = [
+                'books' => $books,
+                'movies' => $movies
+            ];
             $statusCode = 200;
             break;
         case 'save_library':
@@ -217,10 +227,12 @@ try {
                 break;
             }
             
+            $userId = $authResult['user']['id'];
+            
             if (!isset($inputData['book']) || !is_array($inputData['book'])) {
                 throw new InvalidArgumentException('Book data is required for add_book action.');
             }
-            $addedBook = $addBookUseCase->execute($inputData['book']);
+            $addedBook = $addBookUseCase->execute($inputData['book'], $userId);
             $response['status'] = 'success';
             $response['message'] = 'Book added: ' . $addedBook->getTitle();
             $response['data'] = $addedBook->toArray();
@@ -236,10 +248,12 @@ try {
                 break;
             }
             
+            $userId = $authResult['user']['id'];
+            
             if (!isset($inputData['movie']) || !is_array($inputData['movie'])) {
                 throw new InvalidArgumentException('Movie data is required for add_movie action.');
             }
-            $addedMovie = $addMovieUseCase->execute($inputData['movie']);
+            $addedMovie = $addMovieUseCase->execute($inputData['movie'], $userId);
             $response['status'] = 'success';
             $response['message'] = 'Movie added: ' . $addedMovie->getTitle();
             $response['data'] = $addedMovie->toArray();
@@ -255,10 +269,11 @@ try {
                 break;
             }
             
-            $library = $getLibraryUseCase->execute();
+            $userId = $authResult['user']['id'];
+            $books = $getBooksUseCase->execute($userId);
             $response['status'] = 'success';
             $response['message'] = 'Library data retrieved.';
-            $response['data'] = array_map(fn(Book $book) => $book->toArray(), $library);
+            $response['data'] = $books;
             $statusCode = 200;
             break;
 
@@ -271,16 +286,11 @@ try {
                 break;
             }
             
-            $movies = $movieRepository->findAll();
+            $userId = $authResult['user']['id'];
+            $movies = $getMoviesUseCase->execute($userId);
             $response['status'] = 'success';
             $response['message'] = 'Movies data retrieved.';
-            $response['data'] = array_map(function($movieArr) use ($movieRepository) {
-                // Si ya es Movie, toArray, si es array, lo convertimos
-                if ($movieArr instanceof Movie) {
-                    return $movieArr->toArray();
-                }
-                return $movieArr;
-            }, $movies);
+            $response['data'] = $movies;
             $statusCode = 200;
             break;
 
@@ -301,12 +311,14 @@ try {
                 break;
             }
             
+            $userId = $authResult['user']['id'];
+            
             if (!isset($inputData['isbn']) || !is_string($inputData['isbn'])) {
                 throw new InvalidArgumentException('ISBN is required for delete_book action.');
             }
-            $deleteBookUseCase->execute($inputData['isbn']);
+            $deleteBookUseCase->execute($userId, $inputData['isbn']);
             $response['status'] = 'success';
-            $response['message'] = 'Book deleted: ' . $inputData['isbn'];
+            $response['message'] = 'Book removed from your library: ' . $inputData['isbn'];
             $statusCode = 200;
             break;
 
@@ -319,16 +331,29 @@ try {
                 break;
             }
             
-            if (!isset($inputData['id']) || !is_string($inputData['id'])) {
+            $userId = $authResult['user']['id'];
+            $movieId = $inputData['imdbID'] ?? $inputData['isbn'] ?? $inputData['id'] ?? null;
+
+            if (!isset($movieId) || !is_string($movieId)) {
                 throw new InvalidArgumentException('ID is required for delete_movie action.');
             }
-            $movieRepository->deleteById($inputData['id']);
+            $deleteMovieUseCase->execute($userId, $movieId);
             $response['status'] = 'success';
-            $response['message'] = 'Movie deleted: ' . $inputData['id'];
+            $response['message'] = 'Movie removed from your library: ' . $movieId;
             $statusCode = 200;
             break;
 
         case 'update_book_rating':
+            // Require authentication and CSRF token for update operations
+            $authResult = $authMiddleware->requireAuthAndCSRF($inputData['csrf_token'] ?? null);
+            if ($authResult['status'] === 'error') {
+                $response = $authResult;
+                $statusCode = $authResult['http_code'];
+                break;
+            }
+            
+            $userId = $authResult['user']['id'];
+            
             if (!isset($inputData['isbn']) || !is_string($inputData['isbn'])) {
                 throw new InvalidArgumentException('ISBN is required for update_book_rating.');
             }
@@ -347,14 +372,24 @@ try {
                 }
             }
             
-            $updateBookRatingUseCase->execute($inputData['isbn'], $rating);
+            $updateBookRatingUseCase->execute($userId, $inputData['isbn'], $rating);
             $response['status'] = 'success';
             $response['message'] = 'Rating updated for ISBN ' . $inputData['isbn'];
             $statusCode = 200;
             break;
         case 'update_book_user_statuses':
+            // Require authentication and CSRF token for update operations
+            $authResult = $authMiddleware->requireAuthAndCSRF($inputData['csrf_token'] ?? null);
+            if ($authResult['status'] === 'error') {
+                $response = $authResult;
+                $statusCode = $authResult['http_code'];
+                break;
+            }
+            
+            $userId = $authResult['user']['id'];
+            
             if (!isset($inputData['isbn']) || !is_string($inputData['isbn'])) {
-                throw new InvalidArgumentException('ISBN is required for update_book_rating.');
+                throw new InvalidArgumentException('ISBN is required for update_book_user_statuses.');
             }
             // Statuses can't be null, or empty
             $statuses = null;
@@ -366,14 +401,24 @@ try {
                 }
             }
 
-            $updateBookUserStatusesUseCase->execute($inputData['isbn'], $statuses);
+            $updateBookUserStatusesUseCase->execute($userId, $inputData['isbn'], $statuses);
             $response['status'] = 'success';
             $response['message'] = 'User statuses updated for ISBN ' . $inputData['isbn'];
             $statusCode = 200;
             break;
         case 'update_movie_user_statuses':
-            if (!isset($inputData['isbn']) || !is_string($inputData['isbn'])) {
-                throw new InvalidArgumentException('imdbID is required for update_movie_user_statuses.');
+            // Require authentication and CSRF token for update operations
+            $authResult = $authMiddleware->requireAuthAndCSRF($inputData['csrf_token'] ?? null);
+            if ($authResult['status'] === 'error') {
+                $response = $authResult;
+                $statusCode = $authResult['http_code'];
+                break;
+            }
+            $userId = $authResult['user']['id'];
+            $movieId = $inputData['imdbID'] ?? $inputData['isbn'] ?? $inputData['id'] ?? null;
+
+            if (!isset($movieId) || !is_string($movieId)) {
+                throw new InvalidArgumentException('movieId is required for update_movie_user_statuses.');
             }
             $statuses = null;
             if (isset($inputData['statuses'])) {
@@ -383,26 +428,58 @@ try {
                     throw new InvalidArgumentException('Statuses must be a non-empty array.');
                 }
             }
-            $updateMovieUserStatusesUseCase->execute($inputData['isbn'], $statuses);
+            $updateMovieUserStatusesUseCase->execute($userId, $movieId, $statuses);
             $response['status'] = 'success';
-            $response['message'] = 'User statuses updated for IMDb ID ' . $inputData['isbn'];
+            $response['message'] = 'User statuses updated for Movie ID ' . $movieId;
             $statusCode = 200;
             break;
         case 'update_movie_rating':
-            $id = $inputData['imdbID'] ?? $inputData['isbn'] ?? null;
+            // Require authentication and CSRF token for update operations
+            $authResult = $authMiddleware->requireAuthAndCSRF($inputData['csrf_token'] ?? null);
+            if ($authResult['status'] === 'error') {
+                $response = $authResult;
+                $statusCode = $authResult['http_code'];
+                break;
+            }
+            
+            $userId = $authResult['user']['id'];
+            
+            // Temporary debug logs
+            error_log("DEBUG - Update movie rating inputData: " . json_encode($inputData));
+            
+            $movieId = $inputData['imdbID'] ?? $inputData['isbn'] ?? $inputData['id'] ?? null;
             $rating = isset($inputData['rating']) ? (float)$inputData['rating'] : null;
-            if (!$id || $rating === null) {
+            
+            error_log("DEBUG - Extracted movieId: " . ($movieId ?? 'NULL') . ", rating: " . ($rating ?? 'NULL'));
+            
+            if (!$movieId) {
                 $response['status'] = 'error';
-                $response['message'] = 'imdbID o isbn y rating son requeridos para actualizar el rating de la película.';
+                $response['message'] = 'movieId is required to update movie rating.';
                 $statusCode = 400;
                 break;
             }
-            $updateMovieRatingUseCase->execute($id, $rating);
+            
+            // Allow null rating for unrating
+            if ($rating === 0) {
+                $rating = null;
+            }
+            
+            $updateMovieRatingUseCase->execute($userId, $movieId, $rating);
             $response['status'] = 'success';
-            $response['message'] = 'Rating de la película actualizado correctamente.';
+            $response['message'] = 'Movie rating updated successfully.';
             $statusCode = 200;
             break;
         case 'import_data':
+            // Require authentication and CSRF token for import operations
+            $authResult = $authMiddleware->requireAuthAndCSRF($inputData['csrf_token'] ?? null);
+            if ($authResult['status'] === 'error') {
+                $response = $authResult;
+                $statusCode = $authResult['http_code'];
+                break;
+            }
+            
+            $userId = $authResult['user']['id'];
+            
             if (!isset($inputData['service']) || !isset($inputData['processedData'])) {
                 throw new InvalidArgumentException('Service and processedData are required for import_data action.');
             }
@@ -419,43 +496,74 @@ try {
             $skippedCount = 0;
             $errors = [];
             
-            // Obtener estados permitidos para películas
-            $allowedStatuses = $getMovieAllowedStatusesUseCase->execute();
-            
-            foreach ($processedData as $index => $movieData) {
+            foreach ($processedData as $index => $itemData) {
                 try {
-                    // Verificar si la película ya existe
-                    $existingMovie = $movieRepository->findById($movieData['id']);
-                    if ($existingMovie) {
-                        $skippedCount++;
-                        continue; // Saltar películas que ya existen
+                    // Determinar el tipo de elemento basado en los campos presentes
+                    $isMovie = isset($itemData['id']) && !isset($itemData['isbn']);
+                    $isBook = isset($itemData['isbn']);
+                    
+                    if ($isMovie) {
+                        // Procesar como película
+                        if ($userRepository->hasUserMovie($userId, $itemData['id'])) {
+                            $skippedCount++;
+                            continue; // Skip movies user already has
+                        }
+                        
+                        $allowedStatuses = $getMovieAllowedStatusesUseCase->execute();
+                        $movieDataForUseCase = [
+                            'id' => $itemData['id'],
+                            'title' => $itemData['title'],
+                            'originalTitle' => $itemData['originalTitle'] ?? $itemData['title'],
+                            'director' => $itemData['director'] ?? null,
+                            'coverUrl' => $itemData['coverUrl'] ?? null,
+                            'rating' => $itemData['rating'] ?? null,
+                            'userStatuses' => $itemData['userStatuses'] ?? ['in watchlist'],
+                            'addedTimestamp' => $itemData['addedTimestamp'] ?? time(),
+                            'allowedStatuses' => $allowedStatuses
+                        ];
+                        
+                        $addMovieUseCase->execute($movieDataForUseCase, $userId);
+                        $importedCount++;
+                        
+                    } else if ($isBook) {
+                        // Procesar como libro
+                        if ($userRepository->hasUserBook($userId, $itemData['isbn'])) {
+                            $skippedCount++;
+                            continue; // Skip books user already has
+                        }
+                        
+                        $allowedStatuses = $bookRepository->fetchAllowedStatuses();
+                        $bookDataForUseCase = [
+                            'isbn' => $itemData['isbn'],
+                            'title' => $itemData['title'],
+                            'author' => $itemData['author'] ?? null,
+                            'publisher' => $itemData['publisher'] ?? null,
+                            'publicationDate' => $itemData['publicationDate'] ?? null,
+                            'coverUrl' => $itemData['coverUrl'] ?? null,
+                            'rating' => $itemData['rating'] ?? null,
+                            'pages' => $itemData['pages'] ?? null,
+                            'description' => $itemData['description'] ?? null,
+                            'userStatuses' => $itemData['userStatuses'] ?? ['owned'],
+                            'addedTimestamp' => $itemData['addedTimestamp'] ?? time(),
+                            'allowedStatuses' => $allowedStatuses
+                        ];
+                        
+                        $addBookUseCase->execute($bookDataForUseCase, $userId);
+                        $importedCount++;
+                        
+                    } else {
+                        $errors[] = "Error en elemento {$index}: No se pudo determinar si es libro o película";
                     }
                     
-                    // Preparar datos para el AddMovieUseCase
-                    $movieDataForUseCase = [
-                        'id' => $movieData['id'],
-                        'title' => $movieData['title'],
-                        'originalTitle' => $movieData['originalTitle'] ?? $movieData['title'],
-                        'director' => $movieData['director'] ?? null,
-                        'coverUrl' => $movieData['coverUrl'] ?? null,
-                        'rating' => $movieData['rating'] ?? null,
-                        'userStatuses' => $movieData['userStatuses'] ?? ['in watchlist'],
-                        'addedTimestamp' => $movieData['addedTimestamp'] ?? time(),
-                        'allowedStatuses' => $allowedStatuses
-                    ];
-                    
-                    // Usar el AddMovieUseCase para agregar la película
-                    $addMovieUseCase->execute($movieDataForUseCase);
-                    $importedCount++;
-                    
                 } catch (Exception $e) {
-                    $errors[] = "Error en película {$index} (ID: {$movieData['id']}): " . $e->getMessage();
-                    error_log("Import error for movie {$movieData['id']}: " . $e->getMessage());
+                    $itemId = $itemData['id'] ?? $itemData['isbn'] ?? 'unknown';
+                    $errors[] = "Error en elemento {$index} (ID: {$itemId}): " . $e->getMessage();
+                    error_log("Import error for item {$itemId}: " . $e->getMessage());
                 }
             }
             
             $response['status'] = 'success';
-            $response['message'] = "Importación completada desde {$service}. Importadas: {$importedCount}, Omitidas: {$skippedCount}";
+            $response['message'] = "Importación completada desde {$service}. Elementos importados: {$importedCount}, Omitidos: {$skippedCount}";
             $response['data'] = [
                 'imported' => $importedCount,
                 'skipped' => $skippedCount,
@@ -481,13 +589,7 @@ try {
             }
     }
 
-    // Default response if no action is matched by the switch (if you have one)
-    // For this test, we might not even reach a switch if MySqlBookRepository fails
-    if (!isset($response['status']) || $response['status'] !== 'success'){
-        $response['status'] = 'info';
-        $response['message'] = 'API script executed, but no specific action was processed successfully (or MySqlBookRepository loaded correctly, and debug exit was removed).';
-        $statusCode = 200;
-    }    
+    // No need for additional response override logic here
 
 } catch (InvalidArgumentException $e) {
     $response['status'] = 'error';

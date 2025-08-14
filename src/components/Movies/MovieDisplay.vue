@@ -58,13 +58,13 @@ const normalizedAllowedUserStatuses = computed(() => {
 console.log('MovieDisplay allowedUserStatuses:', props.allowedUserStatuses);
 console.log('MovieDisplay normalizedAllowedUserStatuses:', normalizedAllowedUserStatuses.value);
 
-import axios from 'axios';
+import { useAuthStore } from '@/store/auth';
+
+const authStore = useAuthStore();
 
 const onSaveMovie = async () => {
-  const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
   try {
     const payload = {
-      action: 'add_movie',
       movie: {
         id: props.movie.imdbID,
         title: props.movie.Title,
@@ -72,11 +72,12 @@ const onSaveMovie = async () => {
         director: props.movie.Director,
         coverUrl: props.movie.Poster,
         rating: null, // No guardar la nota de OMDb como rating en la base de datos
+        description: props.movie.Plot || "",
         userStatuses: selectedUserStatuses.value,
         addedTimestamp: Date.now()
       }
     };
-    const response = await axios.post(backendApiUrl, payload);
+    const response = await authStore.apiCall('add_movie', payload);
     if (response.data && response.data.status === 'success') {
       alert('Película guardada correctamente en tu colección.');
     } else {

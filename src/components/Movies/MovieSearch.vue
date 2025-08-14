@@ -35,8 +35,10 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
+import { useAuthStore } from '@/store/auth';
 import MovieDisplay from './MovieDisplay.vue';
 
+const authStore = useAuthStore();
 const searchTitle = ref("");
 const movies = ref([]);
 const selectedMovie = ref(null);
@@ -89,10 +91,7 @@ const toggleMovie = async (imdbID) => {
 };
 
 onMounted(async () => {
-  const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
-  const response = await axios.get(backendApiUrl, {
-    params: { action: 'get_movie_allowed_statuses' }
-  });
+  const response = await authStore.apiCall('get_movie_allowed_statuses');
   // Asegura que solo se pase el array de statuses
   allowedMovieStatuses.value = Array.isArray(response.data.data) ? response.data.data : [];
   console.log('Allowed movie statuses response:', allowedMovieStatuses.value);

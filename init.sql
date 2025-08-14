@@ -8,9 +8,12 @@ CREATE TABLE IF NOT EXISTS books (
     isbn VARCHAR(20) PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     author VARCHAR(255) DEFAULT NULL,
+    publisher VARCHAR(255) DEFAULT NULL, -- Editorial o casa publicadora
+    publication_date DATE DEFAULT NULL,  -- Fecha de publicación
     coverUrl VARCHAR(1024) DEFAULT NULL,
     rating DECIMAL(2,1) DEFAULT NULL, -- e.g., 3.5 (precision 2, 1 decimal place)
     pages INT UNSIGNED DEFAULT NULL, -- Número total de páginas del libro
+    description TEXT DEFAULT NULL,   -- Descripción o sinopsis del libro
     addedTimestamp INT UNSIGNED DEFAULT NULL,
     CONSTRAINT check_book_rating CHECK (rating IS NULL OR (rating >= 0.5 AND rating <= 5.0 AND MOD(rating * 2, 1) = 0)),
     CONSTRAINT check_book_pages CHECK (pages IS NULL OR pages > 0)
@@ -19,10 +22,13 @@ CREATE TABLE IF NOT EXISTS books (
 -- Índices optimizados para books
 CREATE INDEX idx_books_title ON books(title); -- Para búsquedas por título
 CREATE INDEX idx_books_author ON books(author); -- Para búsquedas por autor
+CREATE INDEX idx_books_publisher ON books(publisher); -- Para búsquedas por editorial
+CREATE INDEX idx_books_publication_date ON books(publication_date); -- Para filtros por fecha de publicación
 CREATE INDEX idx_books_rating ON books(rating); -- Para filtros y ordenación por rating
 CREATE INDEX idx_books_pages ON books(pages); -- Para filtros y ordenación por número de páginas
 CREATE INDEX idx_books_added_timestamp ON books(addedTimestamp); -- Para ordenar por fecha de adición
 CREATE INDEX idx_books_title_author ON books(title, author); -- Búsquedas combinadas
+CREATE INDEX idx_books_title_publisher ON books(title, publisher); -- Búsquedas combinadas título-editorial
 
 -- Table for allowed status types
 CREATE TABLE IF NOT EXISTS book_statuses (
@@ -59,19 +65,25 @@ CREATE INDEX idx_book_has_statuses_isbn_status ON book_has_statuses(book_isbn, s
 CREATE TABLE IF NOT EXISTS movie (
     isbn VARCHAR(20) PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
-    author VARCHAR(255) DEFAULT NULL,
+    original_title VARCHAR(255) DEFAULT NULL, -- Título original de la película
+    director VARCHAR(255) DEFAULT NULL,       -- Director (equivalente a author en books)
+    author VARCHAR(255) DEFAULT NULL,         -- Mantenemos para compatibilidad
     coverUrl VARCHAR(1024) DEFAULT NULL,
     rating DECIMAL(2,1) DEFAULT NULL, -- e.g., 3.5 (precision 2, 1 decimal place)
+    description TEXT DEFAULT NULL,   -- Sinopsis de la película
     addedTimestamp INT UNSIGNED DEFAULT NULL,
     CONSTRAINT check_movie_rating CHECK (rating IS NULL OR (rating >= 0.5 AND rating <= 5.0 AND MOD(rating * 2, 1) = 0))
 );
 
 -- Índices optimizados para movies
 CREATE INDEX idx_movies_title ON movie(title); -- Para búsquedas por título
-CREATE INDEX idx_movies_author ON movie(author); -- Para búsquedas por director
+CREATE INDEX idx_movies_original_title ON movie(original_title); -- Para búsquedas por título original
+CREATE INDEX idx_movies_director ON movie(director); -- Para búsquedas por director
+CREATE INDEX idx_movies_author ON movie(author); -- Para búsquedas por director (compatibilidad)
 CREATE INDEX idx_movies_rating ON movie(rating); -- Para filtros y ordenación por rating
 CREATE INDEX idx_movies_added_timestamp ON movie(addedTimestamp); -- Para ordenar por fecha de adición
-CREATE INDEX idx_movies_title_author ON movie(title, author); -- Búsquedas combinadas título-director
+CREATE INDEX idx_movies_title_director ON movie(title, director); -- Búsquedas combinadas título-director
+CREATE INDEX idx_movies_title_author ON movie(title, author); -- Búsquedas combinadas título-director (compatibilidad)
 
 -- Table for allowed status types
 CREATE TABLE IF NOT EXISTS movie_statuses (

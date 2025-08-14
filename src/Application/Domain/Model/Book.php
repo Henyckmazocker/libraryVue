@@ -9,8 +9,13 @@ class Book
     private string $isbn;
     private string $title;
     private ?string $author;
+    private ?string $publisher;
+    private ?string $publicationDate;
     private ?string $coverUrl;
-    private ?float $rating; // Nullable float for rating
+    private ?float $rating; // Nullable float for rating (general rating)
+    private ?float $userRating; // Nullable float for user's personal rating
+    private ?int $pages;
+    private ?string $description;
     private ?int $addedTimestamp;
     private array $userStatuses;
 
@@ -18,8 +23,13 @@ class Book
         string $isbn,
         string $title,
         ?string $author,
+        ?string $publisher,
+        ?string $publicationDate,
         ?string $coverUrl,
         ?float $rating,
+        ?float $userRating,
+        ?int $pages,
+        ?string $description,
         array $userStatuses,
         array $allowedStatuses,
         ?int $addedTimestamp = null
@@ -37,6 +47,15 @@ class Book
         if ($rating !== null && floor($rating * 2) != $rating * 2) {
             throw new \InvalidArgumentException('Rating must be a multiple of 0.5.');
         }
+        if ($userRating !== null && ($userRating < 0.5 || $userRating > 5)) {
+            throw new \InvalidArgumentException('User rating must be between 0.5 and 5, or null.');
+        }
+        if ($userRating !== null && floor($userRating * 2) != $userRating * 2) {
+            throw new \InvalidArgumentException('User rating must be a multiple of 0.5.');
+        }
+        if ($pages !== null && $pages <= 0) {
+            throw new \InvalidArgumentException('Pages must be a positive integer, or null.');
+        }
         // Permitir userStatuses vacío (mostrar en la vista, no lanzar excepción)
         if (!is_array($userStatuses)) {
             $userStatuses = [];
@@ -50,8 +69,13 @@ class Book
         $this->isbn = $isbn;
         $this->title = $title;
         $this->author = $author;
+        $this->publisher = $publisher;
+        $this->publicationDate = $publicationDate;
         $this->coverUrl = $coverUrl;
         $this->rating = $rating;
+        $this->userRating = $userRating;
+        $this->pages = $pages;
+        $this->description = $description;
         $this->userStatuses = array_unique($userStatuses);
         $this->addedTimestamp = $addedTimestamp ?? time();
     }
@@ -71,6 +95,16 @@ class Book
         return $this->author;
     }
 
+    public function getPublisher(): ?string
+    {
+        return $this->publisher;
+    }
+
+    public function getPublicationDate(): ?string
+    {
+        return $this->publicationDate;
+    }
+
     public function getCoverUrl(): ?string
     {
         return $this->coverUrl;
@@ -79,6 +113,11 @@ class Book
     public function getRating(): ?float
     {
         return $this->rating;
+    }
+
+    public function getUserRating(): ?float
+    {
+        return $this->userRating;
     }
 
     public function setRating(?float $rating): void
@@ -90,6 +129,40 @@ class Book
             throw new \InvalidArgumentException('Rating must be a multiple of 0.5.');
         }
         $this->rating = $rating;
+    }
+
+    public function setUserRating(?float $userRating): void
+    {
+        if ($userRating !== null && ($userRating < 0.5 || $userRating > 5)) {
+            throw new \InvalidArgumentException('User rating must be between 0.5 and 5, or null.');
+        }
+        if ($userRating !== null && floor($userRating * 2) != $userRating * 2) {
+            throw new \InvalidArgumentException('User rating must be a multiple of 0.5.');
+        }
+        $this->userRating = $userRating;
+    }
+
+    public function getPages(): ?int
+    {
+        return $this->pages;
+    }
+
+    public function setPages(?int $pages): void
+    {
+        if ($pages !== null && $pages <= 0) {
+            throw new \InvalidArgumentException('Pages must be a positive integer, or null.');
+        }
+        $this->pages = $pages;
+    }
+
+    public function getDescription(): ?string
+    {
+        return $this->description;
+    }
+
+    public function setDescription(?string $description): void
+    {
+        $this->description = $description;
     }
 
     public function getUserStatuses(): array
@@ -125,8 +198,13 @@ class Book
             'isbn' => $this->isbn,
             'title' => $this->title,
             'author' => $this->author,
+            'publisher' => $this->publisher,
+            'publicationDate' => $this->publicationDate,
             'coverUrl' => $this->coverUrl,
             'rating' => $this->rating,
+            'user_rating' => $this->userRating,
+            'pages' => $this->pages,
+            'description' => $this->description,
             'userStatuses' => $this->userStatuses,
             'addedTimestamp' => $this->addedTimestamp,
         ];
@@ -156,8 +234,13 @@ class Book
             $data['isbn'] ?? '',
             $data['title'] ?? '',
             $data['author'] ?? null,
+            $data['publisher'] ?? null,
+            $data['publicationDate'] ?? null,
             $data['coverUrl'] ?? null,
             isset($data['rating']) ? (float)$data['rating'] : null,
+            isset($data['user_rating']) ? (float)$data['user_rating'] : null,
+            isset($data['pages']) ? (int)$data['pages'] : null,
+            is_array($data['description'] ?? null) ? implode(' ', $data['description']) : ($data['description'] ?? null),
             $data['userStatuses'],
             $allowedStatuses,
             isset($data['addedTimestamp']) ? (int)$data['addedTimestamp'] : null

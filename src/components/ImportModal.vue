@@ -61,6 +61,9 @@
 <script setup>
 import { ref, watch, defineProps, defineEmits } from 'vue';
 import axios from 'axios';
+import { useAuthStore } from '@/store/auth';
+
+const authStore = useAuthStore();
 
 // Props
 const props = defineProps({
@@ -150,17 +153,11 @@ const handleImport = async () => {
 
         // Llamar inmediatamente al endpoint de importación
         const requestData = {
-          action: 'import_data',
           service: selectedService.value,
           processedData: processedData
         };
 
-        const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
-        const response = await axios.post(backendApiUrl, requestData, {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
+        const response = await authStore.apiCall('import_data', requestData);
 
         // Manejar la respuesta inmediatamente
         if (response.data && response.data.status === 'success') {
@@ -220,22 +217,17 @@ const handleImport = async () => {
     // Send processed data to backend (solo para otros servicios, Palomitacas se maneja en el switch)
     if (selectedService.value !== 'palomitacas') {
       const requestData = {
-        action: 'import_data',
         service: selectedService.value,
         processedData: processedData
       };
 
-      const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
-      const response = await axios.post(backendApiUrl, requestData, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await authStore.apiCall('import_data', requestData);
 
       if (response.data && response.data.status === 'success') {
         const importData = response.data.data;
-        const successMsg = `${importData.imported} películas importadas correctamente de ${selectedService.value}`;
-        const detailMsg = importData.skipped > 0 ? ` (${importData.skipped} omitidas por duplicado)` : '';
+        const elementType = selectedService.value === 'goodreads' ? 'libros' : (selectedService.value === 'letterboxd' ? 'películas' : 'elementos');
+        const successMsg = `${importData.imported} ${elementType} importados correctamente de ${selectedService.value}`;
+        const detailMsg = importData.skipped > 0 ? ` (${importData.skipped} omitidos por duplicado)` : '';
         
         importStatus.value = {
           message: successMsg + detailMsg,
@@ -410,19 +402,160 @@ const mapPalomitacasStatus = (estadoCode) => {
 };
 
 // Placeholder functions for other services
-const processLetterboxdFile = async (file) => { // eslint-disable-line no-unused-vars
-  // TODO: Implement Letterboxd CSV processing
-  throw new Error('Importación de Letterboxd no implementada aún');
+const processLetterboxdFile = async (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const csvData = e.target.result;
+        const lines = csvData.split('\n');
+        const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+        
+        const processedMovies = [];
+        
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+          
+          const values = line.split(',').map(v => v.replace(/"/g, '').trim());
+          const movie = {};
+          
+          headers.forEach((header, index) => {
+            movie[header] = values[index] || '';
+          });
+          
+          // Mapear campos de Letterboxd a nuestro formato
+          const processedMovie = {
+            id: movie['Letterboxd URI'] || `letterboxd_${Date.now()}_${i}`,
+            title: movie['Name'] || '',
+            originalTitle: movie['Name'] || '',
+            director: movie['Director'] || '',
+            rating: movie['Rating'] && movie['Rating'] !== '' ? parseFloat(movie['Rating']) : null,
+            user_rating: movie['Rating'] && movie['Rating'] !== '' ? parseFloat(movie['Rating']) : null,
+            userStatuses: movie['Watched Date'] ? ['watched'] : ['in watchlist'],
+            addedTimestamp: movie['Watched Date'] ? new Date(movie['Watched Date']).getTime() : Date.now()
+          };
+          
+          if (processedMovie.title) {
+            processedMovies.push(processedMovie);
+          }
+        }
+        
+        if (processedMovies.length === 0) {
+          throw new Error('No se encontraron películas válidas en el archivo CSV');
+        }
+        
+        resolve(processedMovies);
+      } catch (error) {
+        reject(new Error(`Error al procesar archivo de Letterboxd: ${error.message}`));
+      }
+    };
+    
+    reader.onerror = () => {
+      reject(new Error('Error al leer el archivo'));
+    };
+    
+    reader.readAsText(file);
+  });
 };
 
-const processGoodreadsFile = async (file) => { // eslint-disable-line no-unused-vars
-  // TODO: Implement Goodreads CSV processing
-  throw new Error('Importación de Goodreads no implementada aún');
+const processGoodreadsFile = async (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const csvData = e.target.result;
+        const lines = csvData.split('\n');
+        const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+        
+        const processedBooks = [];
+        
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+          
+          const values = line.split(',').map(v => v.replace(/"/g, '').trim());
+          const book = {};
+          
+          headers.forEach((header, index) => {
+            book[header] = values[index] || '';
+          });
+          
+          // Mapear campos de Goodreads a nuestro formato
+          const processedBook = {
+            isbn: book['ISBN13'] || book['ISBN'] || `goodreads_${book['Book Id']}`,
+            title: book['Title'] || '',
+            author: book['Author'] || '',
+            publisher: book['Publisher'] || '',
+            publicationDate: book['Year Published'] || book['Original Publication Year'] || '',
+            pages: book['Number of Pages'] ? parseInt(book['Number of Pages']) : null,
+            rating: book['My Rating'] && book['My Rating'] !== '0' ? parseFloat(book['My Rating']) : null,
+            user_rating: book['My Rating'] && book['My Rating'] !== '0' ? parseFloat(book['My Rating']) : null,
+            userStatuses: book['Exclusive Shelf'] ? [book['Exclusive Shelf']] : ['owned'],
+            addedTimestamp: book['Date Added'] ? new Date(book['Date Added']).getTime() : Date.now()
+          };
+          
+          if (processedBook.title) {
+            processedBooks.push(processedBook);
+          }
+        }
+        
+        if (processedBooks.length === 0) {
+          throw new Error('No se encontraron libros válidos en el archivo CSV');
+        }
+        
+        resolve(processedBooks);
+      } catch (error) {
+        reject(new Error(`Error al procesar archivo de Goodreads: ${error.message}`));
+      }
+    };
+    
+    reader.onerror = () => {
+      reject(new Error('Error al leer el archivo'));
+    };
+    
+    reader.readAsText(file);
+  });
 };
 
-const processSerializedFile = async (file) => { // eslint-disable-line no-unused-vars
-  // TODO: Implement Serialized processing
-  throw new Error('Importación de Serialized no implementada aún');
+const processSerializedFile = async (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const jsonData = JSON.parse(e.target.result);
+        
+        // Verificar si es un array o un objeto con libros/películas
+        let processedData = [];
+        
+        if (Array.isArray(jsonData)) {
+          processedData = jsonData;
+        } else if (jsonData.books && Array.isArray(jsonData.books)) {
+          processedData = [...processedData, ...jsonData.books];
+        } else if (jsonData.movies && Array.isArray(jsonData.movies)) {
+          processedData = [...processedData, ...jsonData.movies];
+        } else if (jsonData.data && Array.isArray(jsonData.data)) {
+          processedData = jsonData.data;
+        } else {
+          throw new Error('Formato de archivo serializado no reconocido');
+        }
+        
+        if (processedData.length === 0) {
+          throw new Error('No se encontraron elementos para importar');
+        }
+        
+        resolve(processedData);
+      } catch (error) {
+        reject(new Error(`Error al procesar archivo serializado: ${error.message}`));
+      }
+    };
+    
+    reader.onerror = () => {
+      reject(new Error('Error al leer el archivo'));
+    };
+    
+    reader.readAsText(file);
+  });
 };
 
 // Watch for show prop changes to reset form when modal opens

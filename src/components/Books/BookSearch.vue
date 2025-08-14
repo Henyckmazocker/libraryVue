@@ -57,6 +57,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from "vue";
 import axios from 'axios';
+import { useAuthStore } from '@/store/auth';
 // import StatusSelector from '../StatusSelector.vue';
 // Maneja la actualización de estados desde LibraryBookItem
 const onUpdateStatuses = ({ statuses }) => {
@@ -65,16 +66,24 @@ const onUpdateStatuses = ({ statuses }) => {
 import LibraryBookItem from './LibraryBookItem.vue';
 // Maneja la actualización de rating desde LibraryBookItem
 const onUpdateRating = ({ rating }) => {
-  currentBook.rating = rating;
+  currentBook.user_rating = rating;
 };
+
+const authStore = useAuthStore();
 
 const decodedText = ref("");
 const currentBook = reactive({
   isbn: "",
   title: "",
   author: "",
+  publisher: "",
+  publicationDate: "",
   coverUrl: "",
+  pages: null,
+  description: "",
   publishers: "",
+  rating: null,
+  user_rating: null,
   userStatuses: []
 });
 const searchError = ref("");
@@ -91,8 +100,14 @@ const clearBookDetails = () => {
   currentBook.isbn = "";
   currentBook.title = "";
   currentBook.author = "";
+  currentBook.publisher = "";
+  currentBook.publicationDate = "";
   currentBook.coverUrl = "";
+  currentBook.pages = null;
+  currentBook.description = "";
   currentBook.publishers = "";
+  currentBook.rating = null;
+  currentBook.user_rating = null;
   currentBook.userStatuses = [];
   addBookMessage.value = "";
   addBookStatus.value = "";
@@ -133,10 +148,14 @@ const fetchBookInfo = async () => {
       console.log("Fetched complete book details from Google Books:", book);
       currentBook.title = book.title || "Title not found";
       currentBook.author = (book.authors && book.authors.length > 0) ? book.authors.join(', ') : "Author not found";
+      currentBook.publisher = book.publisher || "";
+      currentBook.publicationDate = book.publishedDate || "";
       currentBook.coverUrl = book.imageLinks?.large?.replace('http:', 'https:') ||
                             book.imageLinks?.medium?.replace('http:', 'https:') ||
                             book.imageLinks?.thumbnail?.replace('http:', 'https:') || 
                             book.imageLinks?.smallThumbnail?.replace('http:', 'https:') || "";
+      currentBook.pages = book.pageCount || null;
+      currentBook.description = book.description || "";
       currentBook.publishers = book.publisher ? [book.publisher] : [];
       
       console.log("Book found with Google Books API (full details):", currentBook.title);
@@ -162,7 +181,11 @@ const fetchBookInfo = async () => {
       currentBook.title = details.title || "Title not found";
       console.log("Fetched book details from OpenLibrary:", details);  
       currentBook.author = (details.authors && details.authors.length > 0) ? details.authors[0].name : "Author not found";
+      currentBook.publisher = (details.publishers && details.publishers.length > 0) ? details.publishers[0] : "";
+      currentBook.publicationDate = details.publish_date || "";
       currentBook.coverUrl = (details.covers && details.covers.length > 0) ? `https://covers.openlibrary.org/b/id/${details.covers[0]}-L.jpg` : "";
+      currentBook.pages = details.number_of_pages || null;
+      currentBook.description = details.description || "";
       currentBook.publishers = (details.publishers && details.publishers.length > 0) ? details.publishers : [];
       
       // Auto-save the book when found by ISBN (fallback case)
@@ -321,10 +344,7 @@ const autoSaveBookFromISBN = async () => {
 
   // Check if book already exists in library
   try {
-    const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
-    const checkResponse = await axios.post(backendApiUrl, {
-      action: 'get_library'
-    });
+    const checkResponse = await authStore.apiCall('get_library');
     
     const existingBooks = Array.isArray(checkResponse.data.data) ? checkResponse.data.data : [];
     const bookExists = existingBooks.some(book => book.isbn === currentBook.isbn);
@@ -416,11 +436,7 @@ const addBookToLibrary = async (bookDetailsWithStatuses) => {
 
   // Check if book already exists in library (same logic as autoSaveBookFromISBN)
   try {
-    const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
-    
-    const checkResponse = await axios.post(backendApiUrl, {
-      action: 'get_library'
-    });
+    const checkResponse = await authStore.apiCall('get_library');
     
     const existingBooks = Array.isArray(checkResponse.data.data) ? checkResponse.data.data : [];
     const bookExists = existingBooks.some(existingBook => existingBook.isbn === book.isbn);
@@ -439,11 +455,11 @@ const addBookToLibrary = async (bookDetailsWithStatuses) => {
     }
 
     // Proceed with adding the book if it doesn't exist
-    console.log("Attempting to POST to backend at:", backendApiUrl);
     console.log("Book details being sent:", book);
     console.log("User statuses being sent:", statuses);
-    const response = await axios.post(backendApiUrl, {
-      action: 'add_book',
+    
+    // Use authStore.apiCall for CSRF token handling
+    const response = await authStore.apiCall('add_book', {
       book: { 
         ...book,
         userStatuses: statuses,
@@ -476,10 +492,7 @@ const addBookToLibrary = async (bookDetailsWithStatuses) => {
 
 // Load allowed user statuses from backend on component mount
 onMounted(async () => {
-  const backendApiUrl = process.env.VUE_APP_API_URL || '/backend/api.php';
-  const response = await axios.post(backendApiUrl, {
-    action: 'get_book_allowed_statuses'
-  });
+  const response = await authStore.apiCall('get_book_allowed_statuses');
   allowedUserStatuses.value = Array.isArray(response.data.data) ? response.data.data : [];
 });
 </script>

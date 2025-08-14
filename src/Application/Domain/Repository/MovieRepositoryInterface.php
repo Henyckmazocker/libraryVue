@@ -52,4 +52,17 @@ interface MovieRepositoryInterface
      * @return void
      */
     public function updateUserStatuses(string $imdbID, array $statuses): void;
+
+    // User-related methods
+    public function addMovieToUser(int $userId, string $movieId, array $statuses = []): void;
+    
+    public function removeMovieFromUser(int $userId, string $movieId): bool;
+    
+    public function findMoviesByUser(int $userId, array $filters = []): array;
+    
+    public function updateUserMovieStatuses(int $userId, string $movieId, array $statuses, bool $manageTransaction = true): void;
+    
+    public function updateUserMovieRating(int $userId, string $movieId, ?float $rating): void;
+    
+    public function getUserMovieStatuses(int $userId, string $movieId): array;
 }

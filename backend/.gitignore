@@ -1,0 +1,49 @@
+# Dependencies
+/vendor/
+/node_modules/
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.production
+.env.staging
+.env.testing
+
+# Log files
+/storage/logs/*.log
+/storage/logs/*.log.*
+
+# Cache files
+/storage/cache/*
+!/storage/cache/.gitkeep
+
+# Session files
+/storage/sessions/*
+!/storage/sessions/.gitkeep
+
+# Upload files
+/storage/uploads/*
+!/storage/uploads/.gitkeep
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Composer files
+composer.phar
+/vendor/
+
+# Test coverage
+/coverage/

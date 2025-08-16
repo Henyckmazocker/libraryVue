@@ -1,0 +1,21 @@
+{
+  "name": "library-vue/backend",
+  "description": "Backend PHP para Library Vue con autenticación Google OAuth",
+  "type": "project",
+  "require": {
+    "php": ">=7.4",
+    "firebase/php-jwt": "^6.0",
+    "monolog/monolog": "^2.10"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "src/"
+    }
+  },
+  "config": {
+    "vendor-dir": "vendor",
+    "optimize-autoloader": true,
+    "process-timeout": 600,
+    "preferred-install": "dist"
+  }
+}

@@ -5,7 +5,7 @@ namespace App\Infrastructure\Persistence;
 
 use App\Domain\Model\User;
 use App\Domain\Repository\UserRepositoryInterface;
-use App\Infrastructure\Database\DatabaseConnector;
+use Monolog\Logger;
 use PDO;
 use PDOException;
 use RuntimeException;
@@ -13,10 +13,28 @@ use RuntimeException;
 class MySqlUserRepository implements UserRepositoryInterface
 {
     private PDO $db;
+    private ?Logger $logger;
 
-    public function __construct()
+    public function __construct(PDO $pdo, ?Logger $logger = null)
     {
-        $this->db = DatabaseConnector::getConnection();
+        $this->db = $pdo;
+        $this->logger = $logger;
+    }
+
+    private function logError(string $message, \Exception $e, array $context = []): void
+    {
+        if ($this->logger) {
+            $this->logger->error($message, [
+                'exception' => [
+                    'class' => get_class($e),
+                    'message' => $e->getMessage(),
+                    'code' => $e->getCode(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                ],
+                'context' => $context
+            ]);
+        }
     }
 
     public function findByGoogleId(string $googleId): ?User
@@ -35,8 +53,8 @@ class MySqlUserRepository implements UserRepositoryInterface
 
             return $this->hydrateUser($userData);
         } catch (PDOException $e) {
-            error_log("Error finding user by Google ID: " . $e->getMessage());
-            throw new RuntimeException("Failed to find user by Google ID");
+            $this->logError('Failed to find user by Google ID', $e, ['google_id' => $googleId]);
+            throw new RuntimeException("Failed to find user by Google ID: " . $e->getMessage());
         }
     }
 
@@ -56,8 +74,8 @@ class MySqlUserRepository implements UserRepositoryInterface
 
             return $this->hydrateUser($userData);
         } catch (PDOException $e) {
-            error_log("Error finding user by ID: " . $e->getMessage());
-            throw new RuntimeException("Failed to find user by ID");
+            $this->logError('Failed to find user by ID', $e, ['user_id' => $id]);
+            throw new RuntimeException("Failed to find user by ID: " . $e->getMessage());
         }
     }
 
@@ -77,8 +95,8 @@ class MySqlUserRepository implements UserRepositoryInterface
 
             return $this->hydrateUser($userData);
         } catch (PDOException $e) {
-            error_log("Error finding user by email: " . $e->getMessage());
-            throw new RuntimeException("Failed to find user by email");
+            $this->logError('Failed to find user by email', $e, ['email' => $email]);
+            throw new RuntimeException("Failed to find user by email: " . $e->getMessage());
         }
     }
 
@@ -107,8 +125,11 @@ class MySqlUserRepository implements UserRepositoryInterface
             // Return user with new ID
             return $this->findById($userId);
         } catch (PDOException $e) {
-            error_log("Error saving user: " . $e->getMessage());
-            throw new RuntimeException("Failed to save user");
+            $this->logError('Failed to save user', $e, [
+                'user_email' => $user->getEmail(),
+                'user_google_id' => $user->getGoogleId()
+            ]);
+            throw new RuntimeException("Failed to save user: " . $e->getMessage());
         }
     }
 
@@ -139,8 +160,11 @@ class MySqlUserRepository implements UserRepositoryInterface
 
             return $user;
         } catch (PDOException $e) {
-            error_log("Error updating user: " . $e->getMessage());
-            throw new RuntimeException("Failed to update user");
+            $this->logError('Failed to update user', $e, [
+                'user_id' => $user->getId(),
+                'user_email' => $user->getEmail()
+            ]);
+            throw new RuntimeException("Failed to update user: " . $e->getMessage());
         }
     }
 
@@ -209,7 +233,10 @@ class MySqlUserRepository implements UserRepositoryInterface
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         } catch (PDOException $e) {
-            error_log("DB Error getting user books (MySqlUserRepository): " . $e->getMessage());
+            $this->logError('Could not get user books', $e, [
+                'user_id' => $userId,
+                'filters' => $filters
+            ]);
             throw new RuntimeException("Could not get user books. DB Error: " . $e->getMessage(), 0, $e);
         }
     }
@@ -251,7 +278,10 @@ class MySqlUserRepository implements UserRepositoryInterface
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         } catch (PDOException $e) {
-            error_log("DB Error getting user movies (MySqlUserRepository): " . $e->getMessage());
+            $this->logError('Could not get user movies', $e, [
+                'user_id' => $userId,
+                'filters' => $filters
+            ]);
             throw new RuntimeException("Could not get user movies. DB Error: " . $e->getMessage(), 0, $e);
         }
     }
@@ -307,7 +337,7 @@ class MySqlUserRepository implements UserRepositoryInterface
             return $stats;
 
         } catch (PDOException $e) {
-            error_log("DB Error getting user library stats (MySqlUserRepository): " . $e->getMessage());
+            $this->logError('Could not get user library stats', $e, ['user_id' => $userId]);
             throw new RuntimeException("Could not get user library stats. DB Error: " . $e->getMessage(), 0, $e);
         }
     }
@@ -324,7 +354,10 @@ class MySqlUserRepository implements UserRepositoryInterface
             return $stmt->fetchColumn() > 0;
 
         } catch (PDOException $e) {
-            error_log("DB Error checking user book (MySqlUserRepository): " . $e->getMessage());
+            $this->logError('Could not check user book', $e, [
+                'user_id' => $userId,
+                'isbn' => $isbn
+            ]);
             throw new RuntimeException("Could not check user book. DB Error: " . $e->getMessage(), 0, $e);
         }
     }
@@ -332,22 +365,19 @@ class MySqlUserRepository implements UserRepositoryInterface
     public function hasUserMovie(int $userId, string $movieId): bool
     {
         try {
-            error_log("HasUserMovie: userId=$userId, movieId=$movieId");
-            
             $sql = "SELECT COUNT(*) FROM user_movies WHERE user_id = :userId AND movie_isbn = :movieId";
             $stmt = $this->db->prepare($sql);
             $stmt->bindParam(':userId', $userId);
             $stmt->bindParam(':movieId', $movieId);
             $stmt->execute();
             
-            $count = $stmt->fetchColumn();
-            $hasMovie = $count > 0;
-            error_log("HasUserMovie: count=$count, hasMovie=" . ($hasMovie ? 'true' : 'false'));
-            
-            return $hasMovie;
+            return $stmt->fetchColumn() > 0;
 
         } catch (PDOException $e) {
-            error_log("DB Error checking user movie (MySqlUserRepository): " . $e->getMessage());
+            $this->logError('Could not check user movie', $e, [
+                'user_id' => $userId,
+                'movie_id' => $movieId
+            ]);
             throw new RuntimeException("Could not check user movie. DB Error: " . $e->getMessage(), 0, $e);
         }
     }

@@ -8,91 +8,119 @@ use PDOException;
 use RuntimeException;
 
 /**
- * Singleton Database Connector using configuration system
+ * Database Connector service for dependency injection
  */
 class DatabaseConnector
 {
-    private static ?PDO $pdoInstance = null;
+    private ?PDO $pdoInstance = null;
+    private array $config;
 
-    // Private constructor to prevent direct instantiation.
-    private function __construct() {}
-
-    // Prevent cloning.
-    private function __clone() {}
-
-    // Prevent unserialization.
-    public function __wakeup() {
-        throw new RuntimeException("Cannot unserialize a singleton.");
+    public function __construct()
+    {
+        $this->config = [
+            'host' => $_ENV['DB_HOST'] ?? 'mysql',
+            'port' => $_ENV['DB_PORT'] ?? '3306',
+            'database' => $_ENV['DB_DATABASE'] ?? 'library_db',
+            'username' => $_ENV['DB_USERNAME'] ?? 'library_user',
+            'password' => $_ENV['DB_PASSWORD'] ?? 'library_pass',
+            'charset' => 'utf8mb4'
+        ];
     }
 
     /**
-     * Get database connection using environment variables directly
+     * Get database connection
      */
-    public static function getConnection(): PDO
+    public function getConnection(): PDO
     {
-        if (self::$pdoInstance === null) {
-            // Usar variables de entorno directamente como funcionaba antes
-            $host = $_ENV['DB_HOST'] ?? 'mysql';
-            $port = $_ENV['DB_PORT'] ?? '3306';
-            $db   = $_ENV['DB_DATABASE'] ?? 'library_db';
-            $user = $_ENV['DB_USERNAME'] ?? 'library_user';
-            $pass = $_ENV['DB_PASSWORD'] ?? 'library_pass';
-            $charset = 'utf8mb4';
-
-            $dsn = "mysql:host={$host};port={$port};dbname={$db};charset={$charset}";
-            $options = [
-                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES   => false,
-            ];
-
-            try {
-                self::$pdoInstance = new PDO($dsn, $user, $pass, $options);
-                
-                // Log conexión exitosa
-                if (function_exists('logger')) {
-                    try {
-                        logger('database')->info('Database connection established', [
-                            'host' => $host,
-                            'port' => $port,
-                            'database' => $db,
-                            'charset' => $charset
-                        ]);
-                    } catch (\Throwable $e) {
-                        error_log("Logging error in DatabaseConnector: " . $e->getMessage());
-                    }
-                }
-                
-            } catch (PDOException $e) {
-                // Log error de conexión
-                if (function_exists('logger')) {
-                    try {
-                        logger('database')->error('Database connection failed', [
-                            'host' => $host,
-                            'port' => $port,
-                            'database' => $db,
-                            'error' => $e->getMessage(),
-                            'code' => $e->getCode()
-                        ]);
-                    } catch (\Throwable $logError) {
-                        error_log("Logging error in DatabaseConnector: " . $logError->getMessage());
-                    }
-                }
-                
-                error_log("Database Connection Error: " . $e->getMessage());
-                throw new RuntimeException(
-                    "Database connection failed. Check server logs. Details: " . $e->getMessage()
-                );
-            }
+        if ($this->pdoInstance === null) {
+            $this->connect();
         }
-        return self::$pdoInstance;
+        return $this->pdoInstance;
+    }
+
+    /**
+     * Establish database connection
+     */
+    private function connect(): void
+    {
+        $dsn = sprintf(
+            "mysql:host=%s;port=%s;dbname=%s;charset=%s",
+            $this->config['host'],
+            $this->config['port'],
+            $this->config['database'],
+            $this->config['charset']
+        );
+
+        $options = [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
+        ];
+
+        try {
+            $this->pdoInstance = new PDO(
+                $dsn, 
+                $this->config['username'], 
+                $this->config['password'], 
+                $options
+            );
+            
+            // Log conexión exitosa
+            if (function_exists('logger')) {
+                try {
+                    logger('database')->info('Database connection established', [
+                        'host' => $this->config['host'],
+                        'port' => $this->config['port'],
+                        'database' => $this->config['database'],
+                        'charset' => $this->config['charset']
+                    ]);
+                } catch (\Throwable $e) {
+                    error_log("Logging error in DatabaseConnector: " . $e->getMessage());
+                }
+            }
+            
+        } catch (PDOException $e) {
+            // Log error de conexión
+            if (function_exists('logger')) {
+                try {
+                    logger('database')->error('Database connection failed', [
+                        'host' => $this->config['host'],
+                        'port' => $this->config['port'],
+                        'database' => $this->config['database'],
+                        'error' => $e->getMessage(),
+                        'code' => $e->getCode()
+                    ]);
+                } catch (\Throwable $logError) {
+                    error_log("Logging error in DatabaseConnector: " . $logError->getMessage());
+                }
+            }
+            
+            error_log("Database Connection Error: " . $e->getMessage());
+            throw new RuntimeException(
+                "Database connection failed. Check server logs. Details: " . $e->getMessage()
+            );
+        }
     }
 
     /**
      * Reset connection (útil para testing)
      */
-    public static function resetConnection(): void
+    public function resetConnection(): void
     {
-        self::$pdoInstance = null;
+        $this->pdoInstance = null;
+    }
+
+    /**
+     * Get configuration for debugging purposes
+     */
+    public function getConfig(): array
+    {
+        // Return config without sensitive data
+        return [
+            'host' => $this->config['host'],
+            'port' => $this->config['port'],
+            'database' => $this->config['database'],
+            'charset' => $this->config['charset']
+        ];
     }
 } 

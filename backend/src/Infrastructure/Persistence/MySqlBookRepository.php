@@ -5,18 +5,36 @@ namespace App\Infrastructure\Persistence;
 
 use App\Domain\Model\Book;
 use App\Domain\Repository\BookRepositoryInterface;
-use App\Infrastructure\Database\DatabaseConnector; // To get the PDO instance
 use PDO;
 use PDOException;
 use RuntimeException;
+use Monolog\Logger;
 
 class MySqlBookRepository implements BookRepositoryInterface
 {
     private PDO $db;
+    private ?Logger $logger;
 
-    public function __construct()
+    public function __construct(PDO $pdo, ?Logger $logger = null)
     {
-        $this->db = DatabaseConnector::getConnection();
+        $this->db = $pdo;
+        $this->logger = $logger;
+    }
+
+    private function logError(string $message, \Exception $e, array $context = []): void
+    {
+        if ($this->logger) {
+            $this->logger->error($message, [
+                'exception' => [
+                    'class' => get_class($e),
+                    'message' => $e->getMessage(),
+                    'code' => $e->getCode(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                ],
+                'context' => $context
+            ]);
+        }
     }
 
     private function getStatusId(string $statusName): ?int
@@ -65,7 +83,7 @@ class MySqlBookRepository implements BookRepositoryInterface
             }
             $statusId = $this->getStatusId($statusName);
             if ($statusId === null) {
-                error_log("findAll: Status name '{$statusName}' not found in book_statuses table.");
+                // Status not found - return empty array gracefully
                 return []; // No books can match a non-existent status ID
             }
             $sql .= " JOIN book_has_statuses bhs ON b.isbn = bhs.book_isbn";
@@ -235,11 +253,17 @@ class MySqlBookRepository implements BookRepositoryInterface
             $this->db->commit();
         } catch (PDOException $e) {
             $this->db->rollBack();
-            error_log("DB Save Error (MySqlBookRepository): " . $e->getMessage() . " Book data: " . json_encode($book->toArray()));
+            $this->logError('DB Save Error', $e, [
+                'book_data' => $book->toArray(),
+                'operation' => 'save_book'
+            ]);
             throw new RuntimeException("Could not save book and/or its book_statuses. DB Error: " . $e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             $this->db->rollBack();
-            error_log("Generic Error during save (MySqlBookRepository): " . $e->getMessage() . " Book data: " . json_encode($book->toArray()));
+            $this->logError('Generic Error during save', $e, [
+                'book_data' => $book->toArray(),
+                'operation' => 'save_book'
+            ]);
             throw new RuntimeException("An unexpected error occurred while saving book and book_statuses: " . $e->getMessage(), 0, $e);
         }
     }

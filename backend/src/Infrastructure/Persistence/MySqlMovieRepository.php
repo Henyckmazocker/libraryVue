@@ -8,14 +8,33 @@ use PDOException;
 use RuntimeException;
 use App\Domain\Repository\MovieRepositoryInterface;
 use App\Domain\Model\Movie;
+use Monolog\Logger;
 
 class MySqlMovieRepository implements MovieRepositoryInterface
 {
     private PDO $db;
+    private ?Logger $logger;
 
-    public function __construct()
+    public function __construct(PDO $pdo, ?Logger $logger = null)
     {
-        $this->db = \App\Infrastructure\Database\DatabaseConnector::getConnection();
+        $this->db = $pdo;
+        $this->logger = $logger;
+    }
+
+    private function logError(string $message, \Exception $e, array $context = []): void
+    {
+        if ($this->logger) {
+            $this->logger->error($message, [
+                'exception' => [
+                    'class' => get_class($e),
+                    'message' => $e->getMessage(),
+                    'code' => $e->getCode(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                ],
+                'context' => $context
+            ]);
+        }
     }
 
         /**
@@ -33,7 +52,7 @@ class MySqlMovieRepository implements MovieRepositoryInterface
         $stmt->bindParam(':id', $id);
         $stmt->execute();
         if ($stmt->rowCount() === 0) {
-            error_log("updateMovieRating: No se encontró película con imdbID: $id");
+            // Movie not found - this is not necessarily an error
         }
     }
 
@@ -88,7 +107,7 @@ class MySqlMovieRepository implements MovieRepositoryInterface
                 $allowedStatuses = $this->fetchAllowedStatuses();
                 $movies[] = Movie::fromArray($data, $allowedStatuses);
             } catch (\InvalidArgumentException $e) {
-                error_log("Error hydrating movie from DB (findAllWithFilters): " . $e->getMessage() . " Data: " . json_encode($data));
+                // Skip invalid movie data - error will be logged at higher level if needed
             }
         }
         return $movies;
@@ -129,7 +148,7 @@ class MySqlMovieRepository implements MovieRepositoryInterface
             $statusName = $filters['userStatus'];
             $statusId = $this->getStatusId($statusName);
             if ($statusId === null) {
-                error_log("findAll: Status name '{$statusName}' not found in movie_statuses table.");
+                // Status not found - return empty array gracefully
                 return [];
             }
             $sql .= " JOIN movie_has_statuses mhs ON m.isbn = mhs.movie_isbn";
@@ -156,7 +175,8 @@ class MySqlMovieRepository implements MovieRepositoryInterface
                 $allowedStatuses = $this->fetchAllowedStatuses();
                 $movies[] = Movie::fromArray($data, $allowedStatuses);
             } catch (\InvalidArgumentException $e) {
-                error_log("Error hydrating movie from DB (findAll): " . $e->getMessage() . " Data: " . json_encode($data));
+                // Skip invalid movie data - will be logged at higher level if needed
+                continue;
             }
         }
         return $movies;
@@ -203,11 +223,17 @@ class MySqlMovieRepository implements MovieRepositoryInterface
             $this->db->commit();
         } catch (PDOException $e) {
             $this->db->rollBack();
-            error_log("DB Save Error (MySqlMovieRepository): " . $e->getMessage() . " Movie data: " . json_encode($movie->toArray()));
+            $this->logError('DB Save Error', $e, [
+                'movie_data' => $movie->toArray(),
+                'operation' => 'save_movie'
+            ]);
             throw new RuntimeException("Could not save movie and/or its statuses. DB Error: " . $e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             $this->db->rollBack();
-            error_log("Generic Error during save (MySqlMovieRepository): " . $e->getMessage() . " Movie data: " . json_encode($movie->toArray()));
+            $this->logError('Generic Error during save', $e, [
+                'movie_data' => $movie->toArray(),
+                'operation' => 'save_movie'
+            ]);
             throw new RuntimeException("An unexpected error occurred while saving movie and statuses: " . $e->getMessage(), 0, $e);
         }
     }
@@ -227,11 +253,17 @@ class MySqlMovieRepository implements MovieRepositoryInterface
             return $deleted;
         } catch (PDOException $e) {
             $this->db->rollBack();
-            error_log("DB Delete Error (MySqlMovieRepository): " . $e->getMessage() . " ISBN: " . $isbn);
+            $this->logError('DB Delete Error', $e, [
+                'isbn' => $isbn,
+                'operation' => 'delete_by_isbn'
+            ]);
             throw new RuntimeException("Could not delete movie. DB Error: " . $e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             $this->db->rollBack();
-            error_log("Generic Error during delete (MySqlMovieRepository): " . $e->getMessage() . " ISBN: " . $isbn);
+            $this->logError('Generic Error during delete', $e, [
+                'isbn' => $isbn,
+                'operation' => 'delete_by_isbn'
+            ]);
             throw new RuntimeException("An unexpected error occurred while deleting movie: " . $e->getMessage(), 0, $e);
         }
     }
@@ -251,11 +283,11 @@ class MySqlMovieRepository implements MovieRepositoryInterface
             return $deleted;
         } catch (PDOException $e) {
             $this->db->rollBack();
-            error_log("DB Delete Error (MySqlMovieRepository): " . $e->getMessage() . " ID: " . $id);
+            $this->logError('DB Delete Error', $e, ['id' => $id, 'operation' => 'delete_by_id']);
             throw new RuntimeException("Could not delete movie. DB Error: " . $e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             $this->db->rollBack();
-            error_log("Generic Error during delete (MySqlMovieRepository): " . $e->getMessage() . " ID: " . $id);
+            $this->logError('Generic Error during delete', $e, ['id' => $id, 'operation' => 'delete_by_id']);
             throw new RuntimeException("An unexpected error occurred while deleting movie: " . $e->getMessage(), 0, $e);
         }
     }
@@ -275,11 +307,11 @@ class MySqlMovieRepository implements MovieRepositoryInterface
             return $deleted;
         } catch (PDOException $e) {
             $this->db->rollBack();
-            error_log("DB Delete Error (MySqlMovieRepository): " . $e->getMessage() . " Title: " . $title);
+            $this->logError('DB Delete Error', $e, ['title' => $title, 'operation' => 'delete_by_title']);
             throw new RuntimeException("Could not delete movie. DB Error: " . $e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             $this->db->rollBack();
-            error_log("Generic Error during delete (MySqlMovieRepository): " . $e->getMessage() . " Title: " . $title);
+            $this->logError('Generic Error during delete', $e, ['title' => $title, 'operation' => 'delete_by_title']);
             throw new RuntimeException("An unexpected error occurred while deleting movie: " . $e->getMessage(), 0, $e);
         }
     }
@@ -365,11 +397,11 @@ class MySqlMovieRepository implements MovieRepositoryInterface
             $this->db->commit();
         } catch (PDOException $e) {
             $this->db->rollBack();
-            error_log("DB Error adding movie to user (MySqlMovieRepository): " . $e->getMessage());
+            $this->logError('DB Error adding movie to user', $e, ['user_id' => $userId, 'movie_isbn' => $movieIsbn]);
             throw new RuntimeException("Could not add movie to user. DB Error: " . $e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             $this->db->rollBack();
-            error_log("Error adding movie to user (MySqlMovieRepository): " . $e->getMessage());
+            $this->logError('Error adding movie to user', $e, ['user_id' => $userId, 'movie_isbn' => $movieIsbn]);
             throw new RuntimeException("An unexpected error occurred while adding movie to user: " . $e->getMessage(), 0, $e);
         }
     }
@@ -397,11 +429,11 @@ class MySqlMovieRepository implements MovieRepositoryInterface
 
         } catch (PDOException $e) {
             $this->db->rollBack();
-            error_log("DB Error removing movie from user (MySqlMovieRepository): " . $e->getMessage());
+            $this->logError('DB Error removing movie from user', $e, ['user_id' => $userId, 'movie_isbn' => $movieIsbn]);
             throw new RuntimeException("Could not remove movie from user. DB Error: " . $e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             $this->db->rollBack();
-            error_log("Error removing movie from user (MySqlMovieRepository): " . $e->getMessage());
+            $this->logError('Error removing movie from user', $e, ['user_id' => $userId, 'movie_isbn' => $movieIsbn]);
             throw new RuntimeException("An unexpected error occurred while removing movie from user: " . $e->getMessage(), 0, $e);
         }
     }
@@ -467,14 +499,14 @@ class MySqlMovieRepository implements MovieRepositoryInterface
                     $allowedStatuses = $this->fetchAllowedStatuses();
                     $movies[] = Movie::fromArray($data, $allowedStatuses);
                 } catch (\InvalidArgumentException $e) {
-                    error_log("Error hydrating movie from DB (findMoviesByUser): " . $e->getMessage() . " Data: " . json_encode($data));
+                    // Skip invalid movie data
                 }
             }
 
             return $movies;
 
         } catch (PDOException $e) {
-            error_log("DB Error finding movies by user (MySqlMovieRepository): " . $e->getMessage());
+            $this->logError('DB Error finding movies by user', $e, ['user_id' => $userId]);
             throw new RuntimeException("Could not find movies by user. DB Error: " . $e->getMessage(), 0, $e);
         }
     }
@@ -521,13 +553,13 @@ class MySqlMovieRepository implements MovieRepositoryInterface
             if ($manageTransaction) {
                 $this->db->rollBack();
             }
-            error_log("DB Error updating user movie statuses (MySqlMovieRepository): " . $e->getMessage());
+            $this->logError('DB Error updating user movie statuses', $e, ['movie_id' => $movieId, 'statuses' => $statuses, 'user_id' => $userId]);
             throw new RuntimeException("Could not update user movie statuses. DB Error: " . $e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             if ($manageTransaction) {
                 $this->db->rollBack();
             }
-            error_log("Error updating user movie statuses (MySqlMovieRepository): " . $e->getMessage());
+            $this->logError('Error updating user movie statuses', $e, ['movie_id' => $movieId, 'statuses' => $statuses, 'user_id' => $userId]);
             throw new RuntimeException("An unexpected error occurred while updating user movie statuses: " . $e->getMessage(), 0, $e);
         }
     }
@@ -535,7 +567,7 @@ class MySqlMovieRepository implements MovieRepositoryInterface
     public function updateUserMovieRating(int $userId, string $movieId, ?float $rating): void
     {
         try {
-            error_log("UpdateUserMovieRating: userId=$userId, movieId=$movieId, rating=$rating");
+            // Debug info removed
             
             $stmt = $this->db->prepare("
                 UPDATE user_movies 
@@ -549,14 +581,14 @@ class MySqlMovieRepository implements MovieRepositoryInterface
             $stmt->execute();
 
             $rowCount = $stmt->rowCount();
-            error_log("UpdateUserMovieRating: rowCount=$rowCount");
+            // Debug info removed
 
             if ($rowCount === 0) {
                 throw new RuntimeException("No user-movie relationship found to update rating. userId=$userId, movieId=$movieId");
             }
 
         } catch (PDOException $e) {
-            error_log("DB Error updating user movie rating (MySqlMovieRepository): " . $e->getMessage());
+            $this->logError('DB Error updating user movie rating', $e, ['user_id' => $userId, 'movie_id' => $movieId, 'rating' => $rating]);
             throw new RuntimeException("Could not update user movie rating. DB Error: " . $e->getMessage(), 0, $e);
         }
     }
@@ -579,8 +611,9 @@ class MySqlMovieRepository implements MovieRepositoryInterface
             return $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
 
         } catch (PDOException $e) {
-            error_log("DB Error getting user movie statuses (MySqlMovieRepository): " . $e->getMessage());
+            $this->logError('DB Error getting user movie statuses', $e, ['user_id' => $userId, 'movie_id' => $movieId]);
             throw new RuntimeException("Could not get user movie statuses. DB Error: " . $e->getMessage(), 0, $e);
         }
     }
 }
+

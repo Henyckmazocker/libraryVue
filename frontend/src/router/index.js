@@ -24,6 +24,12 @@ const routes = [
     path: '/library',
     name: 'MyLibrary',
     component: () => import('../components/MyLibrary.vue')
+  },
+  {
+    path: '/libraryx',
+    name: 'LibraryX',
+    component: () => import('../components/LibraryX.vue'),
+    meta: { requiresAuth: true }
   }
 ];
 

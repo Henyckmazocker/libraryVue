@@ -10,6 +10,7 @@ use App\Controllers\AuthController;
 use App\Controllers\BookController;
 use App\Controllers\MovieController;
 use App\Controllers\LibraryController;
+use App\Controllers\LibraryXController;
 
 /**
  * Application Service - Main entry point for dependency injection
@@ -99,10 +100,24 @@ class ApplicationService
     }
 
     /**
+     * Get LibraryX Controller
+     */
+    public function getLibraryXController(): LibraryXController
+    {
+        return $this->container->get(LibraryXController::class);
+    }
+
+    /**
      * Handle HTTP request and route to appropriate controller
      */
     public function handleRequest(): void
     {
+        // Handle OPTIONS requests immediately for CORS preflight
+        if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
+            http_response_code(200);
+            exit();
+        }
+        
         $requestUri = $_SERVER['REQUEST_URI'] ?? '';
         $requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         
@@ -140,6 +155,10 @@ class ApplicationService
             elseif (str_starts_with($action, 'get_library_items') || str_starts_with($action, 'import_') || 
                     $action === 'ping') {
                 $controller = $this->getLibraryController();
+                $controller->handleRequest($requestMethod, $requestUri);
+            } 
+            elseif (str_starts_with($action, 'libraryx_')) {
+                $controller = $this->getLibraryXController();
                 $controller->handleRequest($requestMethod, $requestUri);
             } 
             else {

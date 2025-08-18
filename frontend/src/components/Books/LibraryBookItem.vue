@@ -16,57 +16,33 @@
         <p class="book-isbn"><strong>ISBN:</strong> {{ book.isbn }}</p>
         <p v-if="book.publicationDate" class="book-publication-date"><strong>Publication Date:</strong> {{ book.publicationDate }}</p>
         
-        <div class="rating-section">
-          <p class="current-rating">Rating: {{ (book.user_rating !== null && book.user_rating !== undefined) ? book.user_rating + '/5' : 'Not Rated' }}</p>
-          <div class="stars-input">
-            <!-- Loop through 5 star positions -->
-            <div v-for="starPosition in 5" :key="'star-' + starPosition" class="star-container">
-              <!-- Left half of the star -->
-              <span
-                class="star-half left-half"
-                @click="setRating(starPosition - 0.5)"
-                @mouseover="hoverRating = starPosition - 0.5"
-                @mouseleave="hoverRating = 0"
-                :class="{ 
-                  'filled': (currentVisualRating >= starPosition - 0.5),
-                  'hovered': (hoverRating >= starPosition - 0.5) && (hoverRating < starPosition)
-                }"
-              >★</span>
-              <!-- Right half of the star -->
-              <span
-                class="star-half right-half"
-                @click="setRating(starPosition)"
-                @mouseover="hoverRating = starPosition"
-                @mouseleave="hoverRating = 0"
-                :class="{
-                  'filled': (currentVisualRating >= starPosition),
-                  'hovered': (hoverRating >= starPosition)
-                }"
-              >★</span>
-            </div>
-          </div>
-        </div>
+        <!-- Rating Component -->
+        <RatingComponent
+          :rating="book.user_rating"
+          :editable="editable"
+          @rating-changed="onRatingChange"
+        />
         
-        <!-- Multiselect editable de estados -->
-        <div class="status-selector-container" v-if="allowedUserStatuses && allowedUserStatuses.length > 0" style="overflow:visible;">
-          <p class="status-selector-title"><strong>Status:</strong> (selecciona uno o más)</p>
-          <MultiSelect
-            v-model="selectedUserStatuses"
-            :options="allowedUserStatuses"
-            :filter="true"
-            :display="'chip'"
-            placeholder="Selecciona estados"
-            style="width: 100%; max-width: 20rem;"
-            @change="onStatusesChange"
-          >
-          </MultiSelect>
-        </div>
-        <button v-if="!book.userStatuses || book.userStatuses.length === 0" @click="onSaveBook" class="save-button" :disabled="!book.title || selectedUserStatuses.length === 0">
-          <i class="fas fa-save"></i>
-        </button>
-        <button v-if="book.userStatuses && book.userStatuses.length > 0" @click="onDeleteBook" class="delete-button">
-          <i class="fas fa-trash"></i>
-        </button>
+        <!-- Status Selector Component -->
+        <StatusSelector
+          v-model="selectedUserStatuses"
+          :allowed-statuses="allowedUserStatuses"
+          :multiple="true"
+          label="Status"
+          subtitle="(selecciona uno o más)"
+          @status-changed="onStatusesChange"
+        />
+        
+        <!-- Book Actions Component -->
+        <BookActions
+          :item="book"
+          :is-new="!book.userStatuses || book.userStatuses.length === 0"
+          :can-save="canSave"
+          :can-delete="canDelete"
+          :show-update-button="false"
+          @save="onSaveBook"
+          @delete="onDeleteBook"
+        />
       </div>
     </div>
   </div>
@@ -74,7 +50,9 @@
 
 <script setup>
 import { defineProps, defineEmits, ref, computed, watch } from 'vue';
-import MultiSelect from 'primevue/multiselect';
+import RatingComponent from '@/components/common/RatingComponent.vue';
+import StatusSelector from '@/components/common/StatusSelector.vue';
+import BookActions from '@/components/Books/BookActions.vue';
 import Logger from '@/utils/logger';
 
 const props = defineProps({
@@ -94,6 +72,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['delete-book', 'update-rating', 'update-statuses', 'save-book']);
+
 // Estados seleccionados (editable)
 const getInitialStatuses = () => {
   if (props.book.userStatuses && props.book.userStatuses.length > 0) {
@@ -104,7 +83,49 @@ const getInitialStatuses = () => {
     return props.allowedUserStatuses.includes('owned') ? ['owned'] : [];
   }
 };
+
 const selectedUserStatuses = ref(getInitialStatuses());
+
+// Computed properties
+const canSave = computed(() => {
+  return props.book.title && selectedUserStatuses.value.length > 0;
+});
+
+const canDelete = computed(() => {
+  return props.book.userStatuses && props.book.userStatuses.length > 0;
+});
+
+// Methods
+const onRatingChange = (rating) => {
+  Logger.debug('Rating changed to:', rating);
+  emit('update-rating', { isbn: props.book.isbn, rating });
+};
+
+const onStatusesChange = (statuses) => {
+  selectedUserStatuses.value = statuses;
+  Logger.debug('Statuses changed to:', statuses);
+  
+  // Si el libro ya está guardado (tiene userStatuses), emitir inmediatamente
+  if (props.book.userStatuses && props.book.userStatuses.length > 0) {
+    emit('update-statuses', { isbn: props.book.isbn, statuses: [...selectedUserStatuses.value] });
+  }
+  // Si no está guardado, no emitir nada (esperar a guardar)
+};
+
+const onSaveBook = () => {
+  if (canSave.value) {
+    Logger.debug('Saving book with statuses:', selectedUserStatuses.value);
+    emit('save-book', { 
+      book: { ...props.book, userStatuses: [...selectedUserStatuses.value] }, 
+      statuses: [...selectedUserStatuses.value] 
+    });
+  }
+};
+
+const onDeleteBook = () => {
+  Logger.debug('Deleting book:', props.book.isbn);
+  emit('delete-book', { isbn: props.book.isbn, itemType: 'book' });
+};
 
 // Mantener sincronía solo si cambia el ISBN (nuevo libro)
 watch(() => props.book.isbn, (newIsbn, oldIsbn) => {
@@ -112,40 +133,6 @@ watch(() => props.book.isbn, (newIsbn, oldIsbn) => {
     selectedUserStatuses.value = getInitialStatuses();
   }
 });
-
-// Emitir evento cuando cambian los estados
-const onStatusesChange = () => {
-  // Si el libro ya está guardado (tiene userStatuses), emitir inmediatamente
-  Logger.debug('onStatusesChange:', props.book.userStatuses);
-  if (props.book.userStatuses && props.book.userStatuses.length > 0) {
-    emit('update-statuses', { isbn: props.book.isbn, statuses: [...selectedUserStatuses.value] });
-  }
-  // Si no está guardado, no emitir nada (esperar a guardar)
-};
-
-// Guardar libro (emitir evento con datos)
-const onSaveBook = () => {
-  if (!props.book.title || selectedUserStatuses.value.length === 0) return;
-  emit('save-book', { book: { ...props.book, userStatuses: [...selectedUserStatuses.value] }, statuses: [...selectedUserStatuses.value] });
-};
-const hoverRating = ref(0); // For hover effect on stars
-
-const currentVisualRating = computed(() => {
-  // If hoverRating is active (not 0), it takes precedence.
-  // Otherwise, use the book's user rating, defaulting to 0 if null (not rated).
-  return hoverRating.value || (props.book.user_rating === null || props.book.user_rating === undefined ? 0 : props.book.user_rating);
-});
-
-const onDeleteBook = () => {
-  emit('delete-book', { isbn: props.book.isbn, itemType: 'book' });
-};
-
-const setRating = (ratingValue) => {
-  // The comment about not supporting unrating by clicking the same star is noted.
-  // We will always emit the new rating value, which can now be a 0.5 increment.
-  emit('update-rating', { isbn: props.book.isbn, rating: ratingValue });
-};
-
 </script>
 
 <style>

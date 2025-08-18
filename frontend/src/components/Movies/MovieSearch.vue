@@ -2,14 +2,14 @@
   <div class="movie-search-container">
     <h1 class="title">Buscador de Películas (OMDb)</h1>
     <div class="input-group">
-      <input type="text" class="movie-input" placeholder="Introduce el título o palabra clave" v-model="searchTitle" @keyup.enter="searchMovies" />
+      <input type="text" class="movie-input" placeholder="Introduce el título o palabra clave" v-model="movieSearch.query.value" @keyup.enter="searchMovies" />
       <button @click="searchMovies" class="search-button">
         <i class="fas fa-search"></i>
       </button>
     </div>
-    <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
-    <div v-if="movies && movies.length" class="movie-list">
-      <div v-for="result in movies" :key="result.imdbID" class="movie-list-item-wrapper">
+    <div v-if="errorMessage || movieSearch.error.value" class="error-message">{{ errorMessage || movieSearch.error.value }}</div>
+    <div v-if="movieSearch.results.value && movieSearch.results.value.length" class="movie-list">
+      <div v-for="result in movieSearch.results.value" :key="result.imdbID" class="movie-list-item-wrapper">
         <div class="movie-list-item" :class="{ expanded: selectedMovie && selectedMovie.imdbID === result.imdbID }" @click="toggleMovie(result.imdbID)">
           <img v-if="result.Poster && result.Poster !== 'N/A'" :src="result.Poster" alt="Poster" class="movie-list-poster" />
           <div class="movie-list-info">
@@ -35,39 +35,53 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
-import { useAuthStore } from '@/store/auth';
+import { useMovies } from '@/composables/useMovies';
+import { useSearch } from '@/composables/useSearch';
 import MovieDisplay from './MovieDisplay.vue';
 import Logger from '@/utils/logger';
 
-const authStore = useAuthStore();
-const searchTitle = ref("");
-const movies = ref([]);
+// Composables
+const moviesComposable = useMovies();
+
+// Configurar búsqueda con debouncing
+const movieSearch = useSearch({
+  debounceDelay: 500,
+  minQueryLength: 2
+});
+
+// Estados locales
 const selectedMovie = ref(null);
 const errorMessage = ref("");
-const allowedMovieStatuses = ref([]);
+
+// Estados computados
 const allowedMovieStatusesList = computed(() => {
-  return Array.isArray(allowedMovieStatuses.value) ? allowedMovieStatuses.value : [];
+  return Array.isArray(moviesComposable.allowedStatuses.value) ? moviesComposable.allowedStatuses.value : [];
 });
 
 const searchMovies = async () => {
   errorMessage.value = "";
-  movies.value = [];
   selectedMovie.value = null;
-  if (!searchTitle.value.trim()) {
+  
+  if (!movieSearch.query.value.trim()) {
     errorMessage.value = "Introduce un título o palabra clave para buscar.";
     return;
   }
+  
   try {
     const apiKey = 'f03583fd';
-    const url = `https://www.omdbapi.com/?apikey=${apiKey}&s=${encodeURIComponent(searchTitle.value)}`;
+    const url = `https://www.omdbapi.com/?apikey=${apiKey}&s=${encodeURIComponent(movieSearch.query.value)}`;
     const response = await axios.get(url);
+    
     if (response.data && response.data.Response === 'True') {
-      movies.value = response.data.Search;
+      movieSearch.results.value = response.data.Search;
+      movieSearch.error.value = '';
     } else {
       errorMessage.value = response.data.Error || 'No se encontraron resultados.';
+      movieSearch.results.value = [];
     }
   } catch (e) {
     errorMessage.value = 'Error al buscar las películas.';
+    movieSearch.results.value = [];
   }
 };
 
@@ -77,10 +91,12 @@ const toggleMovie = async (imdbID) => {
     return;
   }
   selectedMovie.value = null;
+  
   try {
     const apiKey = 'f03583fd';
     const url = `https://www.omdbapi.com/?apikey=${apiKey}&i=${imdbID}`;
     const response = await axios.get(url);
+    
     if (response.data && response.data.Response === 'True') {
       selectedMovie.value = response.data;
     } else {
@@ -92,10 +108,8 @@ const toggleMovie = async (imdbID) => {
 };
 
 onMounted(async () => {
-  const response = await authStore.apiCall('get_movie_allowed_statuses');
-  // Asegura que solo se pase el array de statuses
-  allowedMovieStatuses.value = Array.isArray(response.data.data) ? response.data.data : [];
-  Logger.debug('Allowed movie statuses response:', allowedMovieStatuses.value);
+  await moviesComposable.fetchAllowedStatuses();
+  Logger.debug('Allowed movie statuses:', allowedMovieStatusesList.value);
 });
 </script>
 

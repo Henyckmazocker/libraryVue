@@ -48,6 +48,7 @@
           v-if="item.itemType === 'book'"
           :book="item"
           :allowedUserStatuses="allowedUserStatusesList('book')"
+          :editable="true"
           @delete-book="handleDeleteBook"
           @update-rating="handleUpdateRating"
           @update-statuses="handleUpdateStatuses"
@@ -57,6 +58,7 @@
           v-else-if="item.itemType === 'movie'"
           :movie="item"
           :allowedUserStatuses="allowedUserStatusesList('movie')"
+          :editable="true"
           @delete-movie="handleDeleteBook"
           @update-rating="handleUpdateRating"
           @update-statuses="handleUpdateStatuses"
@@ -76,31 +78,51 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { useAuthStore } from '@/store/auth';
+import { useBooks } from '@/composables/useBooks';
+import { useMovies } from '@/composables/useMovies';
+import { useSearch } from '@/composables/useSearch';
 import Logger from '@/utils/logger';
 import LibraryBookItem from './Books/LibraryBookItem.vue';
 import LibraryMovieItem from './Movies/LibraryMovieItem.vue';
 import ImportModal from './ImportModal.vue';
 
-const authStore = useAuthStore();
-const items = ref([]);
+// Composables
+const booksComposable = useBooks();
+const moviesComposable = useMovies();
+
+// Configurar búsqueda con debouncing
+const searchSystem = useSearch({
+  debounceDelay: 300,
+  minQueryLength: 2
+});
+
+// Estados locales del componente
 const showBooks = ref(true);
 const showMovies = ref(true);
-const isLoading = ref(true);
 const fetchError = ref("");
 const statusMessage = ref("");
 const overallStatus = ref("");
-const searchQuery = ref("");
-const allowedBookUserStatuses = ref([]);
-const allowedMovieUserStatuses = ref([]);
+const currentSort = ref('date-desc');
+const showImportModal = ref(false);
+
+// Estados computados combinados
+const isLoading = computed(() => 
+  booksComposable.isLoading.value || moviesComposable.isLoading.value
+);
+
+const items = computed(() => {
+  const books = booksComposable.books.value.map(book => ({ ...book, itemType: 'book' }));
+  const movies = moviesComposable.movies.value.map(movie => ({ ...movie, itemType: 'movie' }));
+  return [...books, ...movies];
+});
+
+const allowedBookUserStatuses = computed(() => booksComposable.allowedStatuses.value);
+const allowedMovieUserStatuses = computed(() => moviesComposable.allowedStatuses.value);
+
 const allowedUserStatusesList = (itemType) => {
   if (itemType === 'movie') return allowedMovieUserStatuses.value;
   return allowedBookUserStatuses.value;
 };
-const currentSort = ref('date-desc');
-
-// Import functionality
-const showImportModal = ref(false);
 
 const setStatus = (message, type) => {
   statusMessage.value = message;
@@ -110,51 +132,47 @@ const setStatus = (message, type) => {
 };
 
 const fetchLibrary = async () => {
-  isLoading.value = true;
   fetchError.value = "";
   try {
-    const response = await authStore.apiCall('get_library_items');
-    if (response.data && response.data.status === 'success') {
-      // El backend devuelve { books: [], movies: [] }, necesitamos combinarlos
-      const data = response.data.data || {};
-      const books = (data.books || []).map(book => ({ ...book, itemType: 'book' }));
-      const movies = (data.movies || []).map(movie => ({ ...movie, itemType: 'movie' }));
-      items.value = [...books, ...movies];
-    } else {
-      fetchError.value = response.data.message || "Failed to load library. Unknown error.";
-      items.value = [];
+    // Cargar libros y películas en paralelo usando los composables
+    await Promise.all([
+      booksComposable.fetchBooks(),
+      moviesComposable.fetchMovies(),
+      booksComposable.fetchAllowedStatuses(),
+      moviesComposable.fetchAllowedStatuses()
+    ]);
+
+    // Verificar errores de los composables
+    if (booksComposable.error.value || moviesComposable.error.value) {
+      const errors = [booksComposable.error.value, moviesComposable.error.value].filter(Boolean);
+      fetchError.value = errors.join('; ');
     }
   } catch (error) {
     Logger.error("Error fetching library:", error);
     fetchError.value = "Error connecting to backend to fetch library.";
-    items.value = [];
-    if (error.response) Logger.error("Backend Error Response:", error.response.data);
   }
-  isLoading.value = false;
 };
 
 const displayedItems = computed(() => {
-  // Asegurar que items.value sea un array
-  if (!Array.isArray(items.value)) {
-    Logger.warn('items.value is not an array:', items.value);
-    return [];
-  }
-  
   let processed = [...items.value];
+  
   // Filtrar por tipo según los checkboxes
   processed = processed.filter(item => {
     if (item.itemType === 'book' && !showBooks.value) return false;
     if (item.itemType === 'movie' && !showMovies.value) return false;
     return true;
   });
-  // Filtro por búsqueda
-  if (searchQuery.value.trim() !== "") {
-    const lowerSearchQuery = searchQuery.value.toLowerCase();
+  
+  // Filtrar por búsqueda si hay query
+  if (searchSystem.query.value.trim() !== "") {
+    const lowerSearchQuery = searchSystem.query.value.toLowerCase();
     processed = processed.filter(item =>
       (item.title && item.title.toLowerCase().includes(lowerSearchQuery)) ||
-      (item.author && item.author.toLowerCase().includes(lowerSearchQuery))
+      (item.author && item.author.toLowerCase().includes(lowerSearchQuery)) ||
+      (item.director && item.director.toLowerCase().includes(lowerSearchQuery))
     );
   }
+  
   // Ordenar según selección
   switch (currentSort.value) {
     case 'title-asc':
@@ -164,10 +182,10 @@ const displayedItems = computed(() => {
       processed.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
       break;
     case 'author-asc':
-      processed.sort((a, b) => (a.author || '').localeCompare(b.author || ''));
+      processed.sort((a, b) => (a.author || a.director || '').localeCompare(b.author || b.director || ''));
       break;
     case 'author-desc':
-      processed.sort((a, b) => (b.author || '').localeCompare(a.author || ''));
+      processed.sort((a, b) => (b.author || b.director || '').localeCompare(a.author || a.director || ''));
       break;
     case 'rating-desc':
       processed.sort((a, b) => {
@@ -200,100 +218,71 @@ const handleDeleteBook = async (payload) => {
     ? `Are you sure you want to delete the movie with ID: ${imdbID || isbn}?`
     : `Are you sure you want to delete the book with ISBN: ${isbn}?`;
   if (!confirm(confirmMsg)) return;
+  
   setStatus("", "");
+  
   try {
-    let action, idField, idValue;
+    let result;
     if (itemType === 'movie') {
-      action = 'delete_movie';
-      idField = imdbID ? 'imdbID' : 'isbn';
-      idValue = imdbID || isbn;
+      const tmdbId = imdbID || isbn; // Usar el ID apropiado
+      result = await moviesComposable.deleteMovie(tmdbId);
     } else {
-      action = 'delete_book';
-      idField = 'isbn';
-      idValue = isbn;
+      result = await booksComposable.deleteBook(isbn);
     }
-    const response = await authStore.apiCall(action, {
-      [idField]: idValue
-    });
-    if (response.data && response.data.status === 'success') {
-      setStatus(response.data.message || `${itemType === 'movie' ? 'Movie' : 'Book'} deleted successfully.`, "success");
-      items.value = items.value.filter(i => (itemType === 'movie' ? i.imdbID !== idValue : i.isbn !== idValue));
+    
+    if (result.success) {
+      setStatus(`${itemType === 'movie' ? 'Movie' : 'Book'} deleted successfully.`, "success");
     } else {
-      setStatus(response.data.message || `Failed to delete ${itemType === 'movie' ? 'movie' : 'book'}.`, "error");
+      setStatus(result.message || `Failed to delete ${itemType === 'movie' ? 'movie' : 'book'}.`, "error");
     }
   } catch (error) {
     Logger.error("Error deleting item:", error);
     setStatus("Error connecting to backend to delete item.", "error");
-    if (error.response) Logger.error("Backend Error Response:", error.response.data);
   }
 };
 
 const handleUpdateRating = async ({ isbn, rating, itemType }) => {
   setStatus("", "");
+  
   try {
-    let action;
+    let result;
     if (itemType === 'movie') {
-      action = 'update_movie_rating';
+      result = await moviesComposable.updateMovieRating(isbn, rating);
     } else {
-      action = 'update_book_rating';
+      result = await booksComposable.updateBookRating(isbn, rating);
     }
-    const response = await authStore.apiCall(action, {
-      'isbn': isbn,
-      rating
-    });
-    if (response.data && response.data.status === 'success') {
-      setStatus(response.data.message || "Rating updated successfully.", "success");
-      let idx;
-      idx = items.value.findIndex(i => i.isbn === isbn);
-      if (idx !== -1) {
-        items.value[idx].user_rating = rating;
-      }
+    
+    if (result.success) {
+      setStatus("Rating updated successfully.", "success");
     } else {
-      setStatus(response.data.message || "Failed to update rating.", "error");
+      setStatus(result.message || "Failed to update rating.", "error");
     }
   } catch (error) {
     Logger.error("Error updating rating:", error);
     setStatus("Error connecting to backend to update rating.", "error");
-    if (error.response) Logger.error("Backend Error Response:", error.response.data);
   }
 };
-onMounted(async() => {
-  const [bookRes, movieRes] = await Promise.all([
-    authStore.apiCall('get_book_allowed_statuses'),
-    authStore.apiCall('get_movie_allowed_statuses')
-  ]);
-  allowedBookUserStatuses.value = Array.isArray(bookRes.data.data) ? bookRes.data.data : [];
-  allowedMovieUserStatuses.value = Array.isArray(movieRes.data.data) ? movieRes.data.data : [];
-  fetchLibrary();
-});
 
 // Manejar actualización de estados de usuario
 const handleUpdateStatuses = async ({ isbn, statuses, itemType }) => {
   setStatus("", "");
+  
   try {
-    let action;
+    let result;
     if (itemType === 'movie') {
-      action = 'update_movie_user_statuses';
+      result = await moviesComposable.updateMovieStatuses(isbn, statuses);
     } else {
-      action = 'update_book_user_statuses';
+      result = await booksComposable.updateBookStatuses(isbn, statuses);
     }
-    const response = await authStore.apiCall(action, {
-      'isbn': isbn,
-      statuses
-    });
-    if (response.data && response.data.status === 'success') {
-      setStatus(response.data.message || "Estados actualizados correctamente.", "success");
-      const idx = items.value.findIndex(i => (itemType === 'movie' ? i.imdbID === isbn : i.isbn === isbn));
-      if (idx !== -1) {
-        items.value[idx].userStatuses = [...statuses];
-      }
+    
+    if (result.success) {
+      setStatus("Estados actualizados correctamente.", "success");
     } else {
-      setStatus(response.data.message || "No se pudieron actualizar los estados.", "error");
+      setStatus(result.message || "No se pudieron actualizar los estados.", "error");
     }
   } catch (error) {
     Logger.error("Error actualizando estados:", error);
     setStatus("Error conectando con el backend para actualizar estados.", "error");
-    if (error.response) Logger.error("Backend Error Response:", error.response.data);
   }
 };
 
@@ -321,6 +310,14 @@ const handleImportSuccess = async (importData) => {
     setStatus('', '');
   }, 5000);
 };
+
+// Montar componente
+onMounted(async () => {
+  await fetchLibrary();
+});
+
+// Exponer searchQuery para el template
+const searchQuery = searchSystem.query;
 
 </script>
 

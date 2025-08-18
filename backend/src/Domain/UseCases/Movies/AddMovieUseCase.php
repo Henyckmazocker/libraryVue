@@ -84,6 +84,14 @@ class AddMovieUseCase
         // Add the movie to user's library with their specific statuses
         $this->movieRepository->addMovieToUser((int)$userId, $movieData['id'], $movieData['userStatuses']);
         
+        // Update user's personal rating if provided
+        if (isset($movieData['rating']) && is_numeric($movieData['rating'])) {
+            $personalRating = (float)$movieData['rating'];
+            if ($personalRating >= 0 && $personalRating <= 5) {
+                $this->movieRepository->updateUserMovieRating((int)$userId, $movieData['id'], $personalRating);
+            }
+        }
+        
         return $movie;
     }
 }

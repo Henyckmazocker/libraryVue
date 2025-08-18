@@ -2,26 +2,31 @@
   <div id="nav">
     <div class="nav-center">
       <router-link to="/"><i class="fas fa-home"></i></router-link> | 
-      <router-link to="/library" v-if="authStore.isLoggedIn"><i class="fas fa-bookmark"></i></router-link>
+      <router-link to="/library" v-if="isLoggedIn"><i class="fas fa-bookmark"></i></router-link>
     </div>
     <div class="nav-right">
-      <template v-if="!authStore.isLoggedIn && !authStore.isLoading">
+      <template v-if="!isLoggedIn && !isLoading">
         <div id="g_id_signin"></div>
       </template>
-      <template v-if="authStore.isLoading">
+      <template v-if="isLoading">
         <div class="loading-spinner">
           <i class="fas fa-spinner fa-spin"></i>
         </div>
       </template>
-      <template v-if="authStore.isLoggedIn">
+      <template v-if="isLoggedIn">
         <div class="user-menu">
-          <img :src="authStore.userPicture" alt="Usuario" class="user-avatar" />
-          <span class="user-name">{{ authStore.userName }}</span>
+          <img :src="user?.picture" alt="Usuario" class="user-avatar" />
+          <span class="user-name">{{ user?.name }}</span>
           <button @click="handleLogout" class="logout-btn" title="Cerrar sesión">
             <i class="fas fa-sign-out-alt"></i>
           </button>
         </div>
       </template>
+      
+      <!-- Mostrar errores si los hay -->
+      <div v-if="error || googleError" class="error-message">
+        {{ error || googleError }}
+      </div>
     </div>
   </div>
   <router-view/> <!-- Router will render components here -->
@@ -29,105 +34,126 @@
 
 <script>
 import { onMounted, watch } from 'vue';
-import { useAuthStore } from './store/auth.js';
+import { useAuth, useGoogleAuth } from '@/composables';
 import Logger from '@/utils/logger';
 
 export default {
   name: 'App',
   setup() {
-    const authStore = useAuthStore();
-    const clientId = process.env.VUE_APP_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID";
+    // Usar composables en lugar del store directamente
+    const {
+      user,
+      isAuthenticated,
+      isLoggedIn,
+      isLoading,
+      error,
+      initializeAuth,
+      logout,
+      clearError
+    } = useAuth();
+
+    const {
+      isGoogleReady,
+      renderGoogleButton,
+      googleError,
+      clearGoogleError
+    } = useGoogleAuth();
 
     // Watch auth state changes for debugging
-    watch(() => authStore.isAuthenticated, (newVal, oldVal) => {
-      Logger.auth('Auth state changed:', oldVal, '->', newVal, 'User:', authStore.user?.name || 'null');
+    watch(isAuthenticated, (newVal, oldVal) => {
+      Logger.auth('Auth state changed:', oldVal, '->', newVal, 'User:', user.value?.name || 'null');
     });
 
-    watch(() => authStore.isLoggedIn, (newVal, oldVal) => {
+    watch(isLoggedIn, (newVal, oldVal) => {
+      Logger.auth('IsLoggedIn changed:', oldVal, '->', newVal);
+    });
+
+    // Watch auth state changes for debugging
+    watch(isAuthenticated, (newVal, oldVal) => {
+      Logger.auth('Auth state changed:', oldVal, '->', newVal, 'User:', user.value?.name || 'null');
+    });
+
+    watch(isLoggedIn, (newVal, oldVal) => {
       Logger.auth('IsLoggedIn changed:', oldVal, '->', newVal);
     });
 
     onMounted(async () => {
-      // Initialize authentication state only if user is not already logged in
-      if (!authStore.isAuthenticated) {
-        await authStore.initializeAuth();
-      }
-      
-      // Función para manejar la respuesta del token de Google
-      async function handleCredentialResponse(response) {
-        Logger.auth('Google token received, attempting login...');
-        try {
-          const result = await authStore.login(response.credential);
-          if (result.success) {
-            Logger.auth('Login successful, user authenticated');
-            // Force UI update
-            await authStore.$patch({ isAuthenticated: true });
-          } else {
-            Logger.error('Login failed:', result.message);
-          }
-        } catch (error) {
-          Logger.error('Login error:', error);
-        }
-      }
-
-      // Hacer disponible globalmente para el callback de Google
-      window.handleCredentialResponse = handleCredentialResponse;
-
-      // Función para inicializar Google Sign-In
-      const initializeGoogleSignIn = () => {
-        if (window.google && window.google.accounts && window.google.accounts.id) {
-          try {
-            window.google.accounts.id.initialize({
-              client_id: clientId,
-              callback: handleCredentialResponse
+      try {
+        // Inicializar autenticación usando el composable
+        await initializeAuth();
+        
+        // Una vez que la autenticación esté inicializada, configurar Google
+        // El useGoogleAuth se encarga automáticamente de la inicialización
+        if (isGoogleReady.value) {
+          const signInButton = document.getElementById('g_id_signin');
+          if (signInButton) {
+            renderGoogleButton('g_id_signin', {
+              theme: 'outline',
+              size: 'large',
+              shape: 'circle',
+              text: 'signin_with',
+              logo_alignment: 'left'
             });
-            
-            const signInButton = document.getElementById('g_id_signin');
-            if (signInButton) {
-              window.google.accounts.id.renderButton(signInButton, {
-                theme: 'outline',
-                size: 'large',
-                shape: 'circle',
-                text: 'signin_with',
-                logo_alignment: 'left'
-              });
-            }
-          } catch (error) {
-            Logger.error('Error inicializando Google Sign-In:', error);
           }
         }
-      };
-      
-      // Si Google ya está cargado, inicializar inmediatamente
-      if (window.googleSignInReady) {
-        initializeGoogleSignIn();
-      } else {
-        // Esperar al evento de carga de Google
-        window.addEventListener('googleSignInLoaded', initializeGoogleSignIn);
-        
-        // Fallback: intentar cada 200ms por si el evento no funciona
-        const fallbackInterval = setInterval(() => {
-          if (window.googleSignInReady) {
-            clearInterval(fallbackInterval);
-            initializeGoogleSignIn();
-          }
-        }, 200);
-        
-        // Limpiar el intervalo después de 10 segundos para evitar bucles infinitos
-        setTimeout(() => clearInterval(fallbackInterval), 10000);
+      } catch (error) {
+        Logger.error('[App] Failed to initialize:', error);
+      }
+    });
+
+    // Watch para renderizar el botón cuando Google esté listo
+    watch(isGoogleReady, (ready) => {
+      if (ready) {
+        const signInButton = document.getElementById('g_id_signin');
+        if (signInButton) {
+          renderGoogleButton('g_id_signin', {
+            theme: 'outline',
+            size: 'large',
+            shape: 'circle',
+            text: 'signin_with',
+            logo_alignment: 'left'
+          });
+        }
+      }
+    });
+
+    // Watch para errores y limpiarlos
+    watch([error, googleError], ([authError, gError]) => {
+      if (authError || gError) {
+        Logger.error('[App] Authentication error:', authError || gError);
+        // Limpiar errores después de un tiempo
+        setTimeout(() => {
+          clearError();
+          clearGoogleError();
+        }, 5000);
       }
     });
 
     const handleLogout = async () => {
-      await authStore.logout(true); // manual logout
-      // Optionally redirect to home page
-      if (window.location.pathname !== '/') {
-        window.location.href = '/';
+      try {
+        await logout();
+        // Redirigir a home después del logout
+        if (window.location.pathname !== '/') {
+          window.location.href = '/';
+        }
+      } catch (error) {
+        Logger.error('[App] Logout error:', error);
       }
     };
 
     return { 
-      authStore,
+      // Estados de autenticación
+      user,
+      isAuthenticated,
+      isLoggedIn,
+      isLoading,
+      error,
+      
+      // Estados de Google
+      isGoogleReady,
+      googleError,
+      
+      // Métodos
       handleLogout
     };
   }
@@ -228,6 +254,18 @@ export default {
 .loading-spinner {
   color: white;
   font-size: 18px;
+}
+
+.error-message {
+  color: #dc3545;
+  background-color: rgba(220, 53, 69, 0.1);
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-left: 10px;
+  font-size: 12px;
+  max-width: 200px;
+  word-wrap: break-word;
 }
 
 @keyframes spin {

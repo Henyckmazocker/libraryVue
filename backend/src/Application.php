@@ -6,6 +6,8 @@ namespace App;
 use App\Infrastructure\Persistence\MySqlBookRepository;
 use App\Infrastructure\Persistence\MySqlMovieRepository;
 use App\Infrastructure\Persistence\MySqlUserRepository;
+use App\Infrastructure\Database\DatabaseConnector;
+use App\Infrastructure\Logging\LoggerFactory;
 use App\Domain\UseCases\Books\AddBookUseCase;
 use App\Domain\UseCases\Books\GetBooksUseCase;
 use App\Domain\UseCases\Books\GetAllBooksUseCase;
@@ -27,6 +29,7 @@ use App\Controllers\AuthController;
 use App\Controllers\BookController;
 use App\Controllers\MovieController;
 use App\Controllers\LibraryController;
+use App\Controllers\LibraryXController;
 use App\Router\ActionRouter;
 use InvalidArgumentException;
 use RuntimeException;
@@ -83,15 +86,19 @@ class Application
     
     private function initializeDependencies(): void
     {
+        // Initialize database connection
+        $databaseConnector = new DatabaseConnector();
+        $pdo = $databaseConnector->getConnection();
+        
         // Initialize session and auth components
         $this->sessionManager = new SessionManager();
-        $databaseLogger = function_exists('logger') ? logger('database') : null;
-        $this->userRepository = new MySqlUserRepository($databaseLogger);
+        $databaseLogger = LoggerFactory::createDatabaseLogger();
+        $this->userRepository = new MySqlUserRepository($pdo, $databaseLogger);
         $this->authMiddleware = new AuthMiddleware($this->sessionManager, $this->userRepository);
         
         // Initialize repositories
-        $this->bookRepository = new MySqlBookRepository($databaseLogger);
-        $this->movieRepository = new MySqlMovieRepository($databaseLogger);
+        $this->bookRepository = new MySqlBookRepository($pdo, $databaseLogger);
+        $this->movieRepository = new MySqlMovieRepository($pdo, $databaseLogger);
     }
     
     private function setupRouter(): void
@@ -159,12 +166,16 @@ class Application
             $this->authMiddleware
         );
         
+        // LibraryX controller
+        $libraryXController = new LibraryXController();
+        
         // Create and configure router
         $this->router = new ActionRouter(
             $authController,
             $bookController,
             $movieController,
             $libraryController,
+            $libraryXController,
             $this->authMiddleware
         );
     }

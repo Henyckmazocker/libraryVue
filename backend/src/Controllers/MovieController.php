@@ -115,8 +115,9 @@ class MovieController extends BaseController implements Contracts\MovieControlle
                 $authResult = $this->authMiddleware->requireAuth();
                 if ($authResult['status'] === 'error') {
                     http_response_code(401);
+                    header('Content-Type: application/json');
                     echo json_encode($authResult);
-                    return;
+                    exit();
                 }
                 
                 // Check CSRF for modifying actions
@@ -125,8 +126,9 @@ class MovieController extends BaseController implements Contracts\MovieControlle
                     $csrfResult = $this->authMiddleware->requireAuthAndCSRF($inputData['csrf_token'] ?? null);
                     if ($csrfResult['status'] === 'error') {
                         http_response_code(403);
+                        header('Content-Type: application/json');
                         echo json_encode($csrfResult);
-                        return;
+                        exit();
                     }
                     $authResult = $csrfResult;
                 }
@@ -144,14 +146,18 @@ class MovieController extends BaseController implements Contracts\MovieControlle
             
             $statusCode = $response['status'] === 'success' ? 200 : 400;
             http_response_code($statusCode);
+            header('Content-Type: application/json');
             echo json_encode($response, JSON_PRETTY_PRINT);
-            
+            exit();
+
         } catch (\Throwable $e) {
             http_response_code(500);
+            header('Content-Type: application/json');
             echo json_encode([
                 'status' => 'error',
                 'message' => 'Internal server error: ' . $e->getMessage()
             ], JSON_PRETTY_PRINT);
+            exit();
         }
     }
 }

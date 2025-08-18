@@ -863,6 +863,25 @@ router.beforeEach(async (to, from, next) => {
 export default router
 ```
 
+## 📖 Documentation Index
+
+### Core Documentation
+- **[Composables Guide](./composables.md)** - Detailed documentation for all Vue 3 composables
+- **[Component Library](./components.md)** - Reusable components documentation  
+- **[Router Configuration](./routing.md)** - Vue Router setup and navigation guards
+- **[State Management](./state-management.md)** - Pinia stores and reactive state patterns
+
+### Development Guides
+- **[API Integration](./api.md)** - HTTP client setup and API communication
+- **[Styling Guide](./styling.md)** - CSS/SCSS patterns and design system
+- **[Testing Strategy](./testing.md)** - Unit tests, integration tests, and E2E testing
+- **[Performance Optimization](./performance.md)** - Best practices for performance
+
+### Deployment & Operations
+- **[Build Process](./build.md)** - Production builds and optimization strategies
+- **[Environment Configuration](./environment.md)** - Environment variables and configuration
+- **[Docker Setup](./docker.md)** - Containerization for development and production
+
 ---
 
 *Documentación actualizada: 18 de Agosto de 2025*

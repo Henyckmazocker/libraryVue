@@ -191,6 +191,28 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 - API documentation
 - Performance optimizations
 
+## 📖 Documentación
+
+La documentación completa del proyecto se encuentra centralizada en la carpeta `/docs`:
+
+### 📚 Documentación por Módulo
+- **[Backend Documentation](./docs/backend/)** - API, arquitectura y configuración del servidor
+- **[Frontend Documentation](./docs/frontend/)** - Componentes, composables y estructura del cliente
+- **[Database Documentation](./docs/database/)** - Esquemas, migraciones y estructura de datos
+- **[Deployment Documentation](./docs/deployment/)** - Guías de despliegue y configuración
+
+### 🔧 Documentación Técnica
+- **[API Reference](./docs/api/)** - Endpoints, autenticación y ejemplos de uso
+- **[Architecture Overview](./docs/architecture/)** - Diseño del sistema y patrones utilizados
+- **[Development Guide](./docs/development/)** - Configuración del entorno de desarrollo
+- **[Testing Guide](./docs/testing/)** - Estrategias de testing y ejecución de pruebas
+
+### 📋 Guías Específicas
+- **[Authentication System](./docs/auth/)** - Google OAuth y gestión de sesiones
+- **[Logging System](./docs/logging/)** - Configuración y uso del sistema de logs
+- **[Import/Export Features](./docs/import-export/)** - Funcionalidades de importación y exportación
+- **[Performance Optimization](./docs/performance/)** - Optimizaciones y mejores prácticas
+
 ---
 
 *Proyecto creado con ❤️ para gestionar bibliotecas personales*

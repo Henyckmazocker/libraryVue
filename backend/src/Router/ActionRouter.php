@@ -5,6 +5,7 @@ use App\Controllers\AuthController;
 use App\Controllers\BookController;
 use App\Controllers\MovieController;
 use App\Controllers\LibraryController;
+use App\Controllers\LibraryXController;
 use App\Infrastructure\Middleware\AuthMiddleware;
 
 class ActionRouter
@@ -13,6 +14,7 @@ class ActionRouter
     private BookController $bookController;
     private MovieController $movieController;
     private LibraryController $libraryController;
+    private LibraryXController $libraryXController;
     private AuthMiddleware $authMiddleware;
 
     public function __construct(
@@ -20,12 +22,14 @@ class ActionRouter
         BookController $bookController,
         MovieController $movieController,
         LibraryController $libraryController,
+        LibraryXController $libraryXController,
         AuthMiddleware $authMiddleware
     ) {
         $this->authController = $authController;
         $this->bookController = $bookController;
         $this->movieController = $movieController;
         $this->libraryController = $libraryController;
+        $this->libraryXController = $libraryXController;
         $this->authMiddleware = $authMiddleware;
     }
 
@@ -125,6 +129,17 @@ class ActionRouter
                     
                 case 'ping':
                     return $this->libraryController->ping();
+
+                // LIBRARYX
+                case 'libraryx_get_urls':
+                    $authResult = $this->authMiddleware->requireAuth();
+                    if ($authResult['status'] === 'error') return $authResult;
+                    return $this->libraryXController->getUrls($authResult['user']);
+                    
+                case 'libraryx_update_urls':
+                    $authResult = $this->authMiddleware->requireAuthAndCSRF($inputData['csrf_token'] ?? null);
+                    if ($authResult['status'] === 'error') return $authResult;
+                    return $this->libraryXController->updateUrls($inputData, $authResult['user']);
 
                 default:
                     if (isset($inputData['message']) && $action === null) {

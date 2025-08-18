@@ -86,6 +86,14 @@ class AddBookUseCase
         // Add the book to user's library with their specific statuses
         $this->bookRepository->addBookToUser((int)$userId, $bookData['isbn'], $bookData['userStatuses']);
         
+        // Update user's personal rating if provided
+        if (isset($bookData['rating']) && is_numeric($bookData['rating'])) {
+            $personalRating = (float)$bookData['rating'];
+            if ($personalRating >= 0 && $personalRating <= 5) {
+                $this->bookRepository->updateUserBookRating((int)$userId, $bookData['isbn'], $personalRating);
+            }
+        }
+        
         return $book;
     }
 }

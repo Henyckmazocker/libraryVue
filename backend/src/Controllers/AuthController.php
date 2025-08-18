@@ -151,14 +151,18 @@ class AuthController extends BaseController implements Contracts\AuthControllerI
             
             $statusCode = $response['status'] === 'success' ? 200 : 400;
             http_response_code($statusCode);
+            header('Content-Type: application/json');
             echo json_encode($response, JSON_PRETTY_PRINT);
+            exit(); // Asegurar que la respuesta termine aquí
             
         } catch (\Throwable $e) {
             http_response_code(500);
+            header('Content-Type: application/json');
             echo json_encode([
                 'status' => 'error',
                 'message' => 'Internal server error: ' . $e->getMessage()
             ], JSON_PRETTY_PRINT);
+            exit(); // Asegurar que la respuesta termine aquí
         }
     }
 }

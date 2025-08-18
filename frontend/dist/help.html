@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ayuda - Mi Biblioteca Personal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .help-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+        }
+        .help-section {
+            margin: 2rem 0;
+        }
+        .step-number {
+            background: #007bff;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 1rem;
+        }
+        .feature-card {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: transform 0.2s;
+        }
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .code-block {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            margin: 1rem 0;
+        }
+        .warning-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .info-box {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="help-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1><i class="fas fa-book-open me-3"></i>Mi Biblioteca Personal</h1>
+                    <p class="lead mb-0">Guía completa de uso y mantenimiento</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <button onclick="window.close()" class="btn btn-light">
+                        <i class="fas fa-times me-2"></i>Cerrar Ayuda
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container my-5">
+        <!-- Índice -->
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card sticky-top">
+                    <div class="card-header">
+                        <h5><i class="fas fa-list me-2"></i>Índice</h5>
+                    </div>
+                    <div class="card-body">
+                        <nav class="nav flex-column">
+                            <a class="nav-link" href="#inicio">Inicio Rápido</a>
+                            <a class="nav-link" href="#funcionalidades">Funcionalidades</a>
+                            <a class="nav-link" href="#gestion-libros">Gestión de Libros</a>
+                            <a class="nav-link" href="#gestion-peliculas">Gestión de Películas</a>
+                            <a class="nav-link" href="#tags-personalizados">Tags Personalizados</a>
+                            <a class="nav-link" href="#docker-actualizacion">Actualizar Docker</a>
+                            <a class="nav-link" href="#problemas-comunes">Problemas Comunes</a>
+                            <a class="nav-link" href="#contacto">Contacto</a>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-9">
+                <!-- Inicio Rápido -->
+                <section id="inicio" class="help-section">
+                    <h2><i class="fas fa-rocket me-2"></i>Inicio Rápido</h2>
+                    <p>¡Bienvenido a tu biblioteca personal! Esta aplicación te permite organizar y gestionar tu colección de libros y películas de forma intuitiva.</p>
+                    
+                    <div class="info-box">
+                        <h6><i class="fas fa-info-circle me-2"></i>Autenticación</h6>
+                        <p class="mb-0">La aplicación utiliza <strong>Google OAuth</strong> para el login. Cada usuario tiene su biblioteca personal completamente separada.</p>
+                    </div>
+
+                    <h4>Primeros pasos:</h4>
+                    <ol>
+                        <li><span class="step-number">1</span>Inicia sesión con tu cuenta de Google</li>
+                        <li><span class="step-number">2</span>Explora las secciones "Libros" y "Películas"</li>
+                        <li><span class="step-number">3</span>Comienza a agregar contenido a tu biblioteca</li>
+                        <li><span class="step-number">4</span>Organiza con estados y tags personalizados</li>
+                    </ol>
+                </section>
+
+                <!-- Funcionalidades -->
+                <section id="funcionalidades" class="help-section">
+                    <h2><i class="fas fa-star me-2"></i>Funcionalidades Principales</h2>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <h5><i class="fas fa-book text-primary me-2"></i>Gestión de Libros</h5>
+                                <ul>
+                                    <li>Búsqueda por ISBN con información automática</li>
+                                    <li>Lector de códigos de barras</li>
+                                    <li>Estados: Tengo, Leído, Quiero leer, etc.</li>
+                                    <li>Calificaciones personales</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <h5><i class="fas fa-film text-danger me-2"></i>Gestión de Películas</h5>
+                                <ul>
+                                    <li>Búsqueda por título automática</li>
+                                    <li>Estados: Tengo, Visto, Lista de deseos, etc.</li>
+                                    <li>Calificaciones personales</li>
+                                    <li>Notas personales</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <h5><i class="fas fa-tags text-success me-2"></i>Tags Personalizados</h5>
+                                <ul>
+                                    <li>Crea tus propios tags</li>
+                                    <li>Colores personalizables</li>
+                                    <li>Organización por categorías</li>
+                                    <li>Filtrado avanzado</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <h5><i class="fas fa-chart-bar text-info me-2"></i>Estadísticas</h5>
+                                <ul>
+                                    <li>Fecha de consumo (lectura/visualización)</li>
+                                    <li>Historial de actividad</li>
+                                    <li>Calificaciones promedio</li>
+                                    <li>Progreso de lectura/visualización</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Gestión de Libros -->
+                <section id="gestion-libros" class="help-section">
+                    <h2><i class="fas fa-book me-2"></i>Gestión de Libros</h2>
+                    
+                    <h4>Agregar un Libro:</h4>
+                    <ol>
+                        <li>Ve a la sección "Libros"</li>
+                        <li>Haz clic en "Agregar Libro"</li>
+                        <li>Escanea el código de barras o introduce el ISBN manualmente</li>
+                        <li>La información se cargará automáticamente</li>
+                        <li>Asigna estados, calificación y tags según prefieras</li>
+                    </ol>
+
+                    <h4>Estados Disponibles:</h4>
+                    <ul>
+                        <li><strong>Tengo:</strong> Libro que posees físicamente</li>
+                        <li><strong>Leído:</strong> Libro que ya has terminado de leer</li>
+                        <li><strong>Quiero leer:</strong> En tu lista de pendientes</li>
+                        <li><strong>Leyendo:</strong> Libro que estás leyendo actualmente</li>
+                        <li><strong>Quiero comprar:</strong> En tu lista de deseos</li>
+                        <li><strong>Abandonado:</strong> Libro que decidiste no terminar</li>
+                    </ul>
+                </section>
+
+                <!-- Gestión de Películas -->
+                <section id="gestion-peliculas" class="help-section">
+                    <h2><i class="fas fa-film me-2"></i>Gestión de Películas</h2>
+                    
+                    <h4>Agregar una Película:</h4>
+                    <ol>
+                        <li>Ve a la sección "Películas"</li>
+                        <li>Haz clic en "Agregar Película"</li>
+                        <li>Busca por título</li>
+                        <li>Selecciona la película correcta de los resultados</li>
+                        <li>Configura estados, calificación y tags</li>
+                    </ol>
+
+                    <h4>Estados Disponibles:</h4>
+                    <ul>
+                        <li><strong>Tengo:</strong> Película que posees (DVD, Blu-ray, digital)</li>
+                        <li><strong>Visto:</strong> Película que ya has visto</li>
+                        <li><strong>En lista de reproducción:</strong> Películas por ver</li>
+                        <li><strong>Quiero comprar:</strong> En tu lista de deseos</li>
+                        <li><strong>Abandonado:</strong> Película que no terminaste</li>
+                    </ul>
+                </section>
+
+                <!-- Tags Personalizados -->
+                <section id="tags-personalizados" class="help-section">
+                    <h2><i class="fas fa-tags me-2"></i>Tags Personalizados</h2>
+                    
+                    <p>Los tags te permiten crear tu propio sistema de organización más allá de los estados predefinidos.</p>
+
+                    <h4>Ejemplos de Tags Útiles:</h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Para Libros:</h6>
+                            <ul>
+                                <li>Favoritos</li>
+                                <li>Ciencia Ficción</li>
+                                <li>Biografías</li>
+                                <li>Para regalar</li>
+                                <li>Recomendados por amigos</li>
+                                <li>Libros de trabajo</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Para Películas:</h6>
+                            <ul>
+                                <li>Favoritas</li>
+                                <li>Terror</li>
+                                <li>Comedias</li>
+                                <li>Noche de películas</li>
+                                <li>Clásicos</li>
+                                <li>Ver con familia</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="info-box">
+                        <h6><i class="fas fa-lightbulb me-2"></i>Consejo</h6>
+                        <p class="mb-0">Puedes asignar múltiples tags a cada libro o película. Usa colores para categorizar visualmente (ej: azul para géneros, verde para favoritos).</p>
+                    </div>
+                </section>
+
+                <!-- Docker Actualización -->
+                <section id="docker-actualizacion" class="help-section">
+                    <h2><i class="fab fa-docker me-2"></i>Actualizar la Aplicación</h2>
+                    
+                    <div class="warning-box">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Importante</h6>
+                        <p class="mb-0">Cuando descargues actualizaciones de la aplicación, es necesario reiniciar Docker para que los cambios se apliquen correctamente.</p>
+                    </div>
+
+                    <h4>Proceso de Actualización:</h4>
+                    <ol>
+                        <li><span class="step-number">1</span>Descarga las actualizaciones del código (Git pull o descarga)</li>
+                        <li><span class="step-number">2</span>Abre una terminal/línea de comandos</li>
+                        <li><span class="step-number">3</span>Navega al directorio de la aplicación</li>
+                        <li><span class="step-number">4</span>Ejecuta los siguientes comandos:</li>
+                    </ol>
+
+                    <div class="code-block">
+                        <strong>Windows (PowerShell/CMD):</strong><br>
+                        <code>
+                            cd "ruta\a\tu\proyecto\libraryVue"<br>
+                            docker-compose down -v<br>
+                            docker-compose up --build -d
+                        </code>
+                    </div>
+
+                    <div class="code-block">
+                        <strong>Linux/Mac (Terminal):</strong><br>
+                        <code>
+                            cd /ruta/a/tu/proyecto/libraryVue<br>
+                            docker-compose down -v<br>
+                            docker-compose up --build -d
+                        </code>
+                    </div>
+
+                    <h4>Explicación de los comandos:</h4>
+                    <ul>
+                        <li><strong>docker-compose down -v:</strong> Detiene y elimina contenedores y volúmenes</li>
+                        <li><strong>docker-compose up --build -d:</strong> Reconstruye y levanta los contenedores en segundo plano</li>
+                    </ul>
+
+                    <div class="info-box">
+                        <h6><i class="fas fa-clock me-2"></i>Tiempo estimado</h6>
+                        <p class="mb-0">El proceso completo toma entre 2-5 minutos. La aplicación estará disponible nuevamente en <strong>http://localhost:8080</strong></p>
+                    </div>
+                </section>
+
+                <!-- Problemas Comunes -->
+                <section id="problemas-comunes" class="help-section">
+                    <h2><i class="fas fa-tools me-2"></i>Problemas Comunes</h2>
+                    
+                    <div class="accordion" id="problemasAccordion">
+                        <div class="accordion-item">
+                            <h3 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#problema1">
+                                    La aplicación no carga después de actualizar
+                                </button>
+                            </h3>
+                            <div id="problema1" class="accordion-collapse collapse" data-bs-parent="#problemasAccordion">
+                                <div class="accordion-body">
+                                    <strong>Solución:</strong> Asegúrate de haber ejecutado correctamente los comandos de Docker:
+                                    <div class="code-block">
+                                        docker-compose down -v<br>
+                                        docker-compose up --build -d
+                                    </div>
+                                    Si persiste el problema, verifica que Docker esté funcionando: <code>docker --version</code>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h3 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#problema2">
+                                    Error de login con Google
+                                </button>
+                            </h3>
+                            <div id="problema2" class="accordion-collapse collapse" data-bs-parent="#problemasAccordion">
+                                <div class="accordion-body">
+                                    <strong>Posibles causas:</strong>
+                                    <ul>
+                                        <li>Problemas de conectividad a internet</li>
+                                        <li>Cookies/cache del navegador</li>
+                                        <li>Configuración de Google OAuth</li>
+                                    </ul>
+                                    <strong>Solución:</strong> Limpia el cache del navegador e intenta nuevamente.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h3 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#problema3">
+                                    El lector de códigos de barras no funciona
+                                </button>
+                            </h3>
+                            <div id="problema3" class="accordion-collapse collapse" data-bs-parent="#problemasAccordion">
+                                <div class="accordion-body">
+                                    <strong>Requisitos:</strong>
+                                    <ul>
+                                        <li>El navegador debe tener permisos de cámara</li>
+                                        <li>Buena iluminación para el código de barras</li>
+                                        <li>Navegador moderno (Chrome, Firefox, Safari)</li>
+                                    </ul>
+                                    <strong>Alternativa:</strong> Siempre puedes introducir el ISBN manualmente.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Contacto -->
+                <section id="contacto" class="help-section">
+                    <h2><i class="fas fa-envelope me-2"></i>Contacto y Soporte</h2>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5><i class="fab fa-github me-2"></i>Código Fuente</h5>
+                                    <p>El proyecto es de código abierto. Puedes ver el código, reportar bugs o contribuir.</p>
+                                    <a href="https://github.com/Henyckmazocker/libraryVue" class="btn btn-outline-dark" target="_blank">
+                                        <i class="fab fa-github me-2"></i>Ver en GitHub
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5><i class="fas fa-bug me-2"></i>Reportar Problemas</h5>
+                                    <p>Si encuentras algún bug o tienes sugerencias de mejora, no dudes en reportarlo.</p>
+                                    <a href="https://github.com/Henyckmazocker/libraryVue/issues" class="btn btn-outline-danger" target="_blank">
+                                        <i class="fas fa-bug me-2"></i>Reportar Issue
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-light text-center py-4 mt-5">
+        <div class="container">
+            <p class="mb-0">
+                <i class="fas fa-heart text-danger me-2"></i>
+                Hecho con amor para organizar tu biblioteca personal
+            </p>
+            <small class="text-muted">Versión 2.0 - Sistema de usuarios y tags personalizados</small>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Smooth scrolling for internal links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Highlight current section in nav
+        window.addEventListener('scroll', function() {
+            const sections = document.querySelectorAll('section[id]');
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - 100;
+                if (window.pageYOffset >= sectionTop) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

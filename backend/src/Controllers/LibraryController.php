@@ -181,24 +181,26 @@ class LibraryController extends BaseController implements Contracts\LibraryContr
             
             // Handle authentication for actions that require it
             $authResult = null;
-            $authRequiredActions = ['get_library_items', 'import_books', 'import_movies'];
+            $authRequiredActions = ['get_library_items', 'import_books', 'import_movies', 'import_data'];
             
             if (in_array($action, $authRequiredActions)) {
                 $authResult = $this->authMiddleware->requireAuth();
                 if ($authResult['status'] === 'error') {
                     http_response_code(401);
+                    header('Content-Type: application/json');
                     echo json_encode($authResult);
-                    return;
+                    exit();
                 }
                 
                 // Check CSRF for modifying actions
-                $csrfRequiredActions = ['import_books', 'import_movies'];
+                $csrfRequiredActions = ['import_books', 'import_movies', 'import_data'];
                 if (in_array($action, $csrfRequiredActions)) {
                     $csrfResult = $this->authMiddleware->requireAuthAndCSRF($inputData['csrf_token'] ?? null);
                     if ($csrfResult['status'] === 'error') {
                         http_response_code(403);
+                        header('Content-Type: application/json');
                         echo json_encode($csrfResult);
-                        return;
+                        exit();
                     }
                     $authResult = $csrfResult;
                 }
@@ -208,20 +210,25 @@ class LibraryController extends BaseController implements Contracts\LibraryContr
                 'get_library_items' => $this->getLibraryItems($authResult['user']['id']),
                 'import_books' => $this->importBooks($inputData['books'] ?? [], $authResult['user']['id']),
                 'import_movies' => $this->importMovies($inputData['movies'] ?? [], $authResult['user']['id']),
+                'import_data' => $this->importData($inputData['processedData'] ?? [], $authResult['user']['id']),
                 'ping' => $this->ping(),
                 default => $this->errorResponse('Invalid library action: ' . $action)
             };
             
             $statusCode = $response['status'] === 'success' ? 200 : 400;
             http_response_code($statusCode);
+            header('Content-Type: application/json');
             echo json_encode($response, JSON_PRETTY_PRINT);
-            
+            exit();
+
         } catch (\Throwable $e) {
             http_response_code(500);
+            header('Content-Type: application/json');
             echo json_encode([
                 'status' => 'error',
                 'message' => 'Internal server error: ' . $e->getMessage()
             ], JSON_PRETTY_PRINT);
+            exit(); // Asegurar que la respuesta termine aquí
         }
     }
 }

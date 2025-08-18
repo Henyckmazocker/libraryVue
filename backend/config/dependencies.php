@@ -13,6 +13,7 @@ use App\Infrastructure\Logging\LoggingService;
 use App\Domain\Repository\UserRepositoryInterface;
 use App\Domain\Repository\BookRepositoryInterface;
 use App\Domain\Repository\MovieRepositoryInterface;
+use App\Controllers\LibraryXController;
 
 return [
     // Database Connection (lazy loading)
@@ -127,5 +128,8 @@ return [
         ->constructorParameter('getMovieAllowedStatusesUseCase', DI\get(App\Domain\UseCases\Movies\GetMovieAllowedStatusesUseCase::class))
         ->constructorParameter('bookRepository', DI\get(BookRepositoryInterface::class))
         ->constructorParameter('userRepository', DI\get(UserRepositoryInterface::class))
+        ->constructorParameter('authMiddleware', DI\get(AuthMiddleware::class)),
+
+    App\Controllers\LibraryXController::class => DI\autowire()
         ->constructorParameter('authMiddleware', DI\get(AuthMiddleware::class)),
 ];

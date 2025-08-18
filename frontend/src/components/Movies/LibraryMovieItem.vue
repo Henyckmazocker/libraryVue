@@ -11,52 +11,34 @@
         <p v-if="movie.author" class="movie-author"><strong>Author:</strong> {{ movie.author }}</p>
         <p v-if="movie.year" class="movie-year"><strong>Year:</strong> {{ movie.year }}</p>
         <p class="movie-isbn"><strong>IMDb ID:</strong> {{ movie.isbn }}</p>
-        <div class="rating-section">
-          <p class="current-rating">Rating: {{ (movie.user_rating !== null && movie.user_rating !== undefined) ? movie.user_rating + '/5' : 'Not Rated' }}</p>
-          <div class="stars-input">
-            <div v-for="starPosition in 5" :key="'star-' + starPosition" class="star-container">
-              <span
-                class="star-half left-half"
-                @click="setRating(starPosition - 0.5)"
-                @mouseover="hoverRating = starPosition - 0.5"
-                @mouseleave="hoverRating = 0"
-                :class="{ 
-                  'filled': (currentVisualRating >= starPosition - 0.5),
-                  'hovered': (hoverRating >= starPosition - 0.5) && (hoverRating < starPosition)
-                }"
-              >★</span>
-              <span
-                class="star-half right-half"
-                @click="setRating(starPosition)"
-                @mouseover="hoverRating = starPosition"
-                @mouseleave="hoverRating = 0"
-                :class="{
-                  'filled': (currentVisualRating >= starPosition),
-                  'hovered': (hoverRating >= starPosition)
-                }"
-              >★</span>
-            </div>
-          </div>
-        </div>
-        <div class="status-selector-container" v-if="allowedUserStatuses && allowedUserStatuses.length > 0" style="overflow:visible;">
-          <p class="status-selector-title"><strong>Status:</strong> (selecciona uno o más)</p>
-          <MultiSelect
-            v-model="selectedUserStatuses"
-            :options="allowedUserStatuses"
-            :filter="true"
-            :display="'chip'"
-            placeholder="Selecciona estados"
-            style="width: 100%; max-width: 20rem;"
-            @change="onStatusesChange"
-          >
-          </MultiSelect>
-        </div>
-        <button v-if="!movie.userStatuses || movie.userStatuses.length === 0" @click="onSaveMovie" class="save-button" :disabled="!movie.title || selectedUserStatuses.length === 0">
-          <i class="fas fa-save"></i>
-        </button>
-        <button v-if="movie.userStatuses && movie.userStatuses.length > 0" @click="onDeleteMovie" class="delete-button">
-          <i class="fas fa-trash"></i>
-        </button>
+        
+        <!-- Rating Component -->
+        <RatingComponent
+          :rating="movie.user_rating"
+          :editable="editable"
+          @rating-changed="onRatingChange"
+        />
+        
+        <!-- Status Selector Component -->
+        <StatusSelector
+          v-model="selectedUserStatuses"
+          :allowed-statuses="allowedUserStatuses"
+          :multiple="true"
+          label="Status"
+          subtitle="(selecciona uno o más)"
+          @status-changed="onStatusesChange"
+        />
+        
+        <!-- Movie Actions Component -->
+        <MovieActions
+          :item="movie"
+          :is-new="!movie.userStatuses || movie.userStatuses.length === 0"
+          :can-save="canSave"
+          :can-delete="canDelete"
+          :show-update-button="false"
+          @save="onSaveMovie"
+          @delete="onDeleteMovie"
+        />
       </div>
     </div>
   </div>
@@ -64,7 +46,10 @@
 
 <script setup>
 import { defineProps, defineEmits, ref, computed, watch } from 'vue';
-import MultiSelect from 'primevue/multiselect';
+import RatingComponent from '@/components/common/RatingComponent.vue';
+import StatusSelector from '@/components/common/StatusSelector.vue';
+import MovieActions from '@/components/Movies/MovieActions.vue';
+import Logger from '@/utils/logger';
 
 const props = defineProps({
   movie: {
@@ -83,34 +68,67 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['delete-movie', 'update-rating', 'update-statuses', 'save-movie']);
-const selectedUserStatuses = ref(props.movie.userStatuses ? [...props.movie.userStatuses] : []);
 
-watch(() => props.movie.imdbID, (newId, oldId) => {
-  if (newId !== oldId) {
-    selectedUserStatuses.value = props.movie.userStatuses ? [...props.movie.userStatuses] : [];
+// Estados seleccionados (editable)
+const getInitialStatuses = () => {
+  if (props.movie.userStatuses && props.movie.userStatuses.length > 0) {
+    // Si la película ya tiene estados, usar esos
+    return [...props.movie.userStatuses];
+  } else {
+    // Si es una película nueva, establecer "owned" como predeterminado
+    return props.allowedUserStatuses.includes('owned') ? ['owned'] : [];
   }
+};
+
+const selectedUserStatuses = ref(getInitialStatuses());
+
+// Computed properties
+const canSave = computed(() => {
+  return props.movie.title && selectedUserStatuses.value.length > 0;
 });
 
-const onStatusesChange = () => {
+const canDelete = computed(() => {
+  return props.movie.userStatuses && props.movie.userStatuses.length > 0;
+});
+
+// Methods
+const onRatingChange = (rating) => {
+  Logger.debug('Rating changed to:', rating);
+  emit('update-rating', { isbn: props.movie.imdbID, rating, itemType: 'movie' });
+};
+
+const onStatusesChange = (statuses) => {
+  selectedUserStatuses.value = statuses;
+  Logger.debug('Statuses changed to:', statuses);
+  
+  // Si la película ya está guardada (tiene userStatuses), emitir inmediatamente
   if (props.movie.userStatuses && props.movie.userStatuses.length > 0) {
     emit('update-statuses', { isbn: props.movie.imdbID, statuses: [...selectedUserStatuses.value], itemType: 'movie' });
   }
+  // Si no está guardada, no emitir nada (esperar a guardar)
 };
 
 const onSaveMovie = () => {
-  if (!props.movie.title || selectedUserStatuses.value.length === 0) return;
-  emit('save-movie', { movie: { ...props.movie, userStatuses: [...selectedUserStatuses.value] }, statuses: [...selectedUserStatuses.value] });
+  if (canSave.value) {
+    Logger.debug('Saving movie with statuses:', selectedUserStatuses.value);
+    emit('save-movie', { 
+      movie: { ...props.movie, userStatuses: [...selectedUserStatuses.value] }, 
+      statuses: [...selectedUserStatuses.value] 
+    });
+  }
 };
-const hoverRating = ref(0);
-const currentVisualRating = computed(() => {
-  return hoverRating.value || (props.movie.user_rating === null || props.movie.user_rating === undefined ? 0 : props.movie.user_rating);
-});
+
 const onDeleteMovie = () => {
+  Logger.debug('Deleting movie:', props.movie.imdbID);
   emit('delete-movie', { isbn: props.movie.imdbID, imdbID: props.movie.imdbID, itemType: 'movie' });
 };
-const setRating = (ratingValue) => {
-  emit('update-rating', { isbn: props.movie.imdbID, rating: ratingValue, itemType: 'movie' });
-};
+
+// Mantener sincronía solo si cambia el IMDb ID (nueva película)
+watch(() => props.movie.imdbID, (newId, oldId) => {
+  if (newId !== oldId) {
+    selectedUserStatuses.value = getInitialStatuses();
+  }
+});
 </script>
 
 <style>
@@ -169,99 +187,5 @@ const setRating = (ratingValue) => {
   font-weight: 500;
   color: #888;
   margin-right: 6px;
-}
-.rating-section {
-  margin-top: 10px;
-  margin-bottom: 10px;
-}
-.current-rating {
-  font-size: 0.9em;
-  color: #ccc;
-  margin-bottom: 5px;
-}
-.stars-input {
-  display: flex;
-}
-.star-container {
-  position: relative;
-  display: inline-block;
-  width: 1em;
-  height: 1em;
-  font-size: 1.8em;
-  line-height: 1;
-  margin-right: 3px;
-}
-.star-half {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  line-height: 1;
-  text-align: center;
-  color: #555;
-  transition: color 0.2s ease-in-out;
-  cursor: pointer;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-.star-half.left-half {
-  clip-path: polygon(0% 0%, 50% 0%, 50% 100%, 0% 100%);
-}
-.star-half.right-half {
-  clip-path: polygon(50% 0%, 100% 0%, 100% 100%, 50% 100%);
-}
-.star-half.filled {
-  color: #f5c518;
-}
-.star-half.hovered {
-  color: #f5b508;
-}
-.save-button {
-  background-color: #007bff;
-  border-color: #007bff;
-  color: #fff;
-  padding: 8px 15px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  border-radius: 20px;
-  cursor: pointer;
-  outline: none;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
-  margin-top: 15px;
-  align-self: flex-start;
-  position: relative;
-  z-index: 1;
-}
-.save-button:hover {
-  background-color: #0056b3;
-  border-color: #0056b3;
-}
-.save-button:disabled {
-  background-color: #555;
-  border-color: #444;
-  color: #888;
-  cursor: not-allowed;
-}
-.delete-button {
-  padding: 8px 15px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: #ffffff;
-  background-color: #dc3545;
-  border: 1px solid #dc3545;
-  border-radius: 20px;
-  cursor: pointer;
-  outline: none;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
-  margin-top: 15px;
-  align-self: flex-start;
-}
-.delete-button:hover {
-  background-color: #c82333;
-  border-color: #bd2130;
-}
-.p-multiselect-panel {
-  z-index: 1002 !important;
 }
 </style>

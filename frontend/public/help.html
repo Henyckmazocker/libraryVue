@@ -95,6 +95,7 @@
                             <a class="nav-link" href="#gestion-libros">Gestión de Libros</a>
                             <a class="nav-link" href="#gestion-peliculas">Gestión de Películas</a>
                             <a class="nav-link" href="#tags-personalizados">Tags Personalizados</a>
+                            <a class="nav-link" href="#documentacion-tecnica">Documentación Técnica</a>
                             <a class="nav-link" href="#docker-actualizacion">Actualizar Docker</a>
                             <a class="nav-link" href="#problemas-comunes">Problemas Comunes</a>
                             <a class="nav-link" href="#contacto">Contacto</a>
@@ -257,6 +258,57 @@
                     <div class="info-box">
                         <h6><i class="fas fa-lightbulb me-2"></i>Consejo</h6>
                         <p class="mb-0">Puedes asignar múltiples tags a cada libro o película. Usa colores para categorizar visualmente (ej: azul para géneros, verde para favoritos).</p>
+                    </div>
+                </section>
+
+                <!-- Documentación Técnica -->
+                <section id="documentacion-tecnica" class="help-section">
+                    <h2><i class="fas fa-code me-2"></i>Documentación Técnica</h2>
+                    
+                    <p>Si eres desarrollador o quieres entender mejor cómo funciona la aplicación, tenemos documentación técnica detallada disponible.</p>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-cogs me-2"></i>Arquitectura Backend</h5>
+                            <ul>
+                                <li><a href="javascript:void(0)" onclick="window.open('/docs/architecture/backend.html', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')">Arquitectura general del backend</a></li>
+                                <li><a href="javascript:void(0)" onclick="window.open('/docs/api/README.html', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')">Documentación de la API</a></li>
+                                <li><a href="javascript:void(0)" onclick="window.open('/docs/api/auth.html', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')">Endpoints de autenticación</a></li>
+                                <li><a href="javascript:void(0)" onclick="window.open('/docs/api/books.html', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')">Endpoints de libros</a></li>
+                                <li><a href="javascript:void(0)" onclick="window.open('/docs/api/movies.html', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')">Endpoints de películas</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5><i class="fab fa-vuejs me-2"></i>Frontend Vue.js</h5>
+                            <ul>
+                                <li><a href="javascript:void(0)" onclick="window.open('/docs/frontend/README.html', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')">Documentación del frontend</a></li>
+                                <li><a href="javascript:void(0)" onclick="window.open('/docs/frontend/composables.html', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')">Guía de composables</a></li>
+                                <li><a href="javascript:void(0)" onclick="window.open('/docs/development/README.html', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')">Guía de desarrollo</a></li>
+                                <li><a href="javascript:void(0)" onclick="window.open('/docs/testing/README.html', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')">Documentación de pruebas</a></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h5><i class="fas fa-rocket me-2"></i>Despliegue y Configuración</h5>
+                            <ul>
+                                <li><a href="javascript:void(0)" onclick="window.open('/docs/deployment/README.html', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')">Guía de despliegue</a></li>
+                                <li><a href="javascript:void(0)" onclick="window.open('/docs/LOGGING_SYSTEM.html', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')">Sistema de logging</a></li>
+                                <li><a href="javascript:void(0)" onclick="window.open('/docs/ANÁLISIS_MEJORAS_PROYECTO.html', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')">Análisis de mejoras del proyecto</a></li>
+                                <li><a href="javascript:void(0)" onclick="window.open('/docs/AUDITORIA_BACKEND_COMPLETADO.html', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')">Auditoría del backend</a></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="info-box mt-3">
+                        <h6><i class="fas fa-info-circle me-2"></i>Nota para Desarrolladores</h6>
+                        <p class="mb-0">La documentación técnica está centralizada en la carpeta <code>/docs</code> del proyecto. Incluye arquitectura, APIs, guías de desarrollo y mejores prácticas implementadas.</p>
+                    </div>
+
+                    <div class="warning-box mt-3">
+                        <h6><i class="fas fa-code-branch me-2"></i>Repositorio</h6>
+                        <p class="mb-0">Para acceso completo al código fuente y documentación actualizada, consulta el repositorio del proyecto. La documentación se mantiene sincronizada con las últimas implementaciones.</p>
                     </div>
                 </section>
 

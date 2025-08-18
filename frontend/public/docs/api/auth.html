@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication API - Mi Biblioteca Personal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css" rel="stylesheet">
+    <style>
+        .help-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+        }
+        .help-section {
+            margin: 2rem 0;
+        }
+        .feature-card {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: transform 0.2s;
+        }
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .code-block {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+        .warning-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .info-box {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .success-box {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .breadcrumb {
+            background-color: transparent;
+            margin-bottom: 1rem;
+        }
+        pre {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 1rem;
+            overflow-x: auto;
+        }
+        .toc-sticky {
+            position: sticky;
+            top: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="help-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="fas fa-shield-alt me-3"></i>Authentication API</h1>
+                    <p class="lead mb-0">Endpoints de autenticación y gestión de usuarios</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button onclick="window.history.back()" class="btn btn-light me-2">
+                        <i class="fas fa-arrow-left me-2"></i>Volver
+                    </button>
+                    <button onclick="window.close()" class="btn btn-light">
+                        <i class="fas fa-times me-2"></i>Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container my-5">
+        
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="../../frontend/public/help.html">Documentación</a></li>
+                <li class="breadcrumb-item"><a href="../README.html">Docs</a></li><li class="breadcrumb-item"><a href="../api/README.html">Api</a></li><li class="breadcrumb-item active" aria-current="page">Authentication API</li>
+            </ol>
+        </nav>
+
+        <div class="row">
+            
+        <div class="col-md-3">
+            <div class="card toc-sticky">
+                <div class="card-header">
+                    <h5><i class="fas fa-list me-2"></i>Navegación</h5>
+                </div>
+                <div class="card-body">
+                    <nav class="nav flex-column">
+                        <a class="nav-link" href="../README.html">📚 Documentación Principal</a>
+                        <a class="nav-link" href="../frontend/README.html">🖥️ Frontend</a>
+                        <a class="nav-link" href="../api/README.html">🔌 API</a>
+                        <a class="nav-link" href="../architecture/backend.html">🏗️ Arquitectura</a>
+                    </nav>
+                </div>
+            </div>
+        </div>
+            
+            <div class="col-md-9">
+                <h2>Authentication API</h2>
+
+<h3>Overview</h3>
+
+Endpoints para gestión de autenticación, incluyendo login tradicional y Google OAuth.
+
+<h3>Endpoints</h3>
+
+<h4>Login</h4>
+
+<strong>POST</strong> <code>/api/auth/login</code>
+
+Autentica un usuario con email y contraseña.
+
+#### Request Body
+
+``<code>json
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+</code>`<code>
+
+#### Response
+
+</code>`<code>json
+{
+  "success": true,
+  "data": {
+    "user": {
+      "id": 1,
+      "email": "user@example.com",
+      "name": "John Doe",
+      "created_at": "2025-01-15T10:30:00Z"
+    },
+    "session_id": "sess_abc123def456"
+  },
+  "message": "Login exitoso"
+}
+</code>`<code>
+
+#### Error Responses
+
+</code>`<code>json
+{
+  "success": false,
+  "error": "Credenciales inválidas",
+  "code": "INVALID_CREDENTIALS"
+}
+</code>`<code>
+
+<h4>Google OAuth Login</h4>
+
+<strong>POST</strong> </code>/api/auth/google<code>
+
+Autentica usando Google OAuth token.
+
+#### Request Body
+
+</code>`<code>json
+{
+  "google_token": "google_oauth_token_here"
+}
+</code>`<code>
+
+#### Response
+
+</code>`<code>json
+{
+  "success": true,
+  "data": {
+    "user": {
+      "id": 2,
+      "email": "user@gmail.com",
+      "name": "Jane Smith",
+      "google_id": "123456789",
+      "avatar": "https://lh3.googleusercontent.com/...",
+      "created_at": "2025-01-15T10:30:00Z"
+    },
+    "session_id": "sess_xyz789abc123"
+  },
+  "message": "Login con Google exitoso"
+}
+</code>`<code>
+
+<h4>Logout</h4>
+
+<strong>POST</strong> </code>/api/auth/logout<code>
+
+Cierra la sesión del usuario actual.
+
+#### Request
+
+No requiere body. Utiliza la sesión activa.
+
+#### Response
+
+</code>`<code>json
+{
+  "success": true,
+  "message": "Logout exitoso"
+}
+</code>`<code>
+
+<h4>Check Session</h4>
+
+<strong>GET</strong> </code>/api/auth/check<code>
+
+Verifica si el usuario está autenticado.
+
+#### Response (Authenticated)
+
+</code>`<code>json
+{
+  "success": true,
+  "data": {
+    "authenticated": true,
+    "user": {
+      "id": 1,
+      "email": "user@example.com",
+      "name": "John Doe"
+    }
+  }
+}
+</code>`<code>
+
+#### Response (Not Authenticated)
+
+</code>`<code>json
+{
+  "success": true,
+  "data": {
+    "authenticated": false,
+    "user": null
+  }
+}
+</code>`<code>
+
+<h3>Authentication Flow</h3>
+
+<h4>Traditional Login Flow</h4><ul><li>User submits email/password</li><li>Server validates credentials</li><li>Server creates session</li><li>Server returns user data and session info</li><li>Client stores session for subsequent requests</li>
+
+<h4>Google OAuth Flow</h4><li>Client initiates Google OAuth on frontend</li><li>Google returns OAuth token</li><li>Client sends token to </code>/api/auth/google<code></li><li>Server validates token with Google</li><li>Server creates/updates user record</li><li>Server creates session</li><li>Server returns user data and session info</li>
+
+<h3>Session Management</h3><li>Sessions are stored server-side</li><li>Session cookies are HTTP-only and secure</li><li>Session timeout: 24 hours of inactivity</li><li>Sessions are automatically cleaned up</li>
+
+<h3>Security Features</h3><li>Password hashing with bcrypt</li><li>CSRF protection</li><li>Rate limiting on login attempts</li><li>Session token validation</li><li>Google OAuth token verification</li></ul>
+
+<h3>Error Codes</h3>
+
+| Code | Description |
+|------|-------------|
+| </code>INVALID_CREDENTIALS<code> | Email/password combination invalid |
+| </code>GOOGLE_TOKEN_INVALID<code> | Google OAuth token is invalid |
+| </code>USER_NOT_FOUND<code> | User account doesn't exist |
+| </code>ACCOUNT_LOCKED<code> | Too many failed login attempts |
+| </code>SESSION_EXPIRED<code> | User session has expired |
+| </code>ALREADY_AUTHENTICATED` | User is already logged in |
+
+---
+
+<em>Última actualización: 18 de Agosto de 2025</em>
+</p>
+                
+                <div class="text-muted mt-5">
+                    <small><i class="fas fa-calendar-alt me-2"></i>Última actualización: 18 de agosto de 2025</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script>
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -9,16 +9,16 @@
       </button>
     </div>
     <div class="input-group">
-      <input type="text" class="isbn-input" placeholder="Buscar por nombre de libro" v-model="bookName" @keyup.enter="triggerFetchBookByName" />
+      <input type="text" class="isbn-input" placeholder="Buscar por nombre de libro" v-model="nameSearch.query.value" @keyup.enter="triggerFetchBookByName" />
       <button @click="triggerFetchBookByName" class="search-button">
         <i class="fas fa-search"></i>
         <span class="button-text">Nombre</span>
       </button>
     </div>
-    <div v-if="foundBooks.length > 0" class="search-results-container">
+    <div v-if="nameSearch.results.value.length > 0" class="search-results-container">
       <h3 class="results-title">Resultados por nombre:</h3>
       <div class="results-list">
-        <div v-for="book in foundBooks" :key="book.key" class="result-card">
+        <div v-for="book in nameSearch.results.value" :key="book.key" class="result-card">
           <div class="result-info">
             <div class="result-title">{{ book.title }} ({{ book.isbn }})</div>
             <div class="result-author">{{ book.author.join(', ') }}</div>
@@ -45,8 +45,8 @@
       />
     </div>
 
-    <div v-if="searchError" class="error-message">
-      <p>{{ searchError }}</p>
+    <div v-if="nameSearch.error.value || isbnSearchError" class="error-message">
+      <p>{{ nameSearch.error.value || isbnSearchError }}</p>
     </div>
     <div v-if="addBookMessage" :class="['add-book-message', addBookStatus]">
       <p>{{ addBookMessage }}</p>
@@ -57,22 +57,23 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from "vue";
 import axios from 'axios';
-import { useAuthStore } from '@/store/auth';
+import { useBooks } from '@/composables/useBooks';
+import { useSearch } from '@/composables/useSearch';
 import LibraryBookItem from './LibraryBookItem.vue';
 import Logger from '@/utils/logger';
 
-const authStore = useAuthStore();
+// Composables
+const booksComposable = useBooks();
 
-// Maneja la actualización de estados desde LibraryBookItem
-const onUpdateStatuses = ({ statuses }) => {
-  currentBook.userStatuses = [...statuses];
-};
+// Configurar búsqueda para búsqueda por nombre (solo para estado, no para auto-búsqueda)
+const nameSearch = useSearch({
+  debounceDelay: 500,
+  minQueryLength: 3
+});
 
-// Maneja la actualización de rating desde LibraryBookItem
-const onUpdateRating = ({ rating }) => {
-  currentBook.user_rating = rating;
-};
+// No configurar función de búsqueda automática ya que usamos función manual triggerFetchBookByName
 
+// Estados locales del componente
 const decodedText = ref("");
 const currentBook = reactive({
   isbn: "",
@@ -88,15 +89,24 @@ const currentBook = reactive({
   user_rating: null,
   userStatuses: []
 });
-const searchError = ref("");
+const isbnSearchError = ref("");
 const addBookMessage = ref("");
 const addBookStatus = ref(""); // 'success' or 'error'
-const allowedUserStatuses = ref([]);
-const allowedUserStatusesList = computed(() => {
-  return Array.isArray(allowedUserStatuses.value) ? allowedUserStatuses.value : [];
-});
-const bookName = ref("");
-const foundBooks = ref([]);
+
+// Estados computados
+const allowedUserStatusesList = computed(() => 
+  Array.isArray(booksComposable.allowedStatuses.value) ? booksComposable.allowedStatuses.value : []
+);
+
+// Maneja la actualización de estados desde LibraryBookItem
+const onUpdateStatuses = ({ statuses }) => {
+  currentBook.userStatuses = [...statuses];
+};
+
+// Maneja la actualización de rating desde LibraryBookItem
+const onUpdateRating = ({ rating }) => {
+  currentBook.user_rating = rating;
+};
 
 const clearBookDetails = () => {
   currentBook.isbn = "";
@@ -118,7 +128,7 @@ const clearBookDetails = () => {
 // Renamed from onDecode, which was specific to the old structure
 const triggerFetchBookInfo = () => {
   clearBookDetails();
-  searchError.value = "";
+  isbnSearchError.value = "";
   fetchBookInfo();
 }
 
@@ -128,7 +138,7 @@ const fetchBookInfo = async () => {
   currentBook.isbn = isbn;
 
   if (!isbn) {
-    searchError.value = "Please enter or scan an ISBN.";
+    isbnSearchError.value = "Please enter or scan an ISBN.";
     return;
   }
 
@@ -194,28 +204,28 @@ const fetchBookInfo = async () => {
       await autoSaveBookFromISBN();
       
       if (currentBook.title === "Title not found" && currentBook.author === "Author not found") {
-        searchError.value = "Book details not found for this ISBN in any available database.";
+        isbnSearchError.value = "Book details not found for this ISBN in any available database.";
       }
     } else {
-      searchError.value = "Book not found for this ISBN in any available database.";
+      isbnSearchError.value = "Book not found for this ISBN in any available database.";
     }
   } catch (error) {
     Logger.error("Both APIs failed. Error with OpenLibrary:", error);
     if (error.response) {
       Logger.error("API Error Response:", error.response.data);
       if (error.response.status === 503) {
-        searchError.value = "Book information services are temporarily unavailable (503). Please try again later.";
+        isbnSearchError.value = "Book information services are temporarily unavailable (503). Please try again later.";
       } else if (error.response.status === 404) {
-        searchError.value = "Book not found for this ISBN in any available database.";
+        isbnSearchError.value = "Book not found for this ISBN in any available database.";
       } else if (error.response.status === 429) {
-        searchError.value = "Too many requests to book APIs. Please try again later.";
+        isbnSearchError.value = "Too many requests to book APIs. Please try again later.";
       } else {
-        searchError.value = `Failed to fetch book information. Last API returned status ${error.response.status}.`;
+        isbnSearchError.value = `Failed to fetch book information. Last API returned status ${error.response.status}.`;
       }
     } else if (error.request) {
-      searchError.value = "No response from book APIs. Check your internet connection or try again later.";
+      isbnSearchError.value = "No response from book APIs. Check your internet connection or try again later.";
     } else {
-      searchError.value = "Error setting up request to book APIs: " + error.message;
+      isbnSearchError.value = "Error setting up request to book APIs: " + error.message;
     }
     // Clear book details on error as well, so no stale info is shown
     currentBook.title = "";
@@ -225,14 +235,22 @@ const fetchBookInfo = async () => {
 };
 
 const triggerFetchBookByName = async () => {
-  foundBooks.value = [];
+  // Clear current book details when starting a new search
   clearBookDetails();
-  if (!bookName.value.trim()) return;
   
-  // Try Google Books API first for name search
+  if (!nameSearch.query.value.trim()) {
+    nameSearch.error.value = "Introduce un título o palabra clave para buscar.";
+    return;
+  }
+  
+  // Clear previous results and errors
+  nameSearch.results.value = [];
+  nameSearch.error.value = "";
+  
   try {
+    // Try Google Books API first for name search
     Logger.debug("Searching by name with Google Books API...");
-    const googleApiUrl = `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(bookName.value.trim())}&maxResults=5`;
+    const googleApiUrl = `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(nameSearch.query.value.trim())}&maxResults=5`;
     const response = await axios.get(googleApiUrl);
     const data = response.data;
 
@@ -276,7 +294,7 @@ const triggerFetchBookByName = async () => {
       });
       
       const books = await Promise.all(booksPromises);
-      foundBooks.value = books;
+      nameSearch.results.value = books;
       Logger.debug(`Found ${books.length} books with Google Books API (with full details)`);
       return; // Success with Google Books
     }
@@ -287,53 +305,91 @@ const triggerFetchBookByName = async () => {
   // Fallback to OpenLibrary search
   try {
     Logger.debug("Searching by name with OpenLibrary as fallback...");
-    const apiUrl = `https://openlibrary.org/search.json?title=${encodeURIComponent(bookName.value.trim())}`;
+    const apiUrl = `https://openlibrary.org/search.json?title=${encodeURIComponent(nameSearch.query.value.trim())}`;
     const response = await axios.get(apiUrl);
     let docs = response.data.docs || [];
     if (docs.length === 0) {
-      searchError.value = "No books found with that name in any available database.";
+      nameSearch.error.value = "No books found with that name in any available database.";
       return;
     }
-    let books = await axios.get(`https://openlibrary.org${docs[0].key}/editions.json`);
-    books = books.data.entries.slice(0, 5); // Limit to first 5 results to avoid too much load
-    books.forEach(async (edition) => {
-      let authors = [];
-      let isbnSearch = (Array.isArray(edition.isbn_13) && edition.isbn_13.length > 0)
-            ? edition.isbn_13[0]
-            : (Array.isArray(edition.isbn_10) && edition.isbn_10.length > 0)
-              ? edition.isbn_10[0]
-              : null;
-      if (isbnSearch && isbnSearch.length > 0) {
-          const apiUrl = `https://openlibrary.org/isbn/${isbnSearch}.json`;
-          const response = await axios.get(apiUrl);
-          const data = response.data;
-          if(data.authors && data.authors.length > 0) {
-            data.authors.forEach(async (author) => {
-              if (author.key) {
-                const authorData = await axios.get(`https://openlibrary.org${author.key}.json`);
-                authors.push(authorData.data.name);
+    
+    // Limit to first 5 results to avoid too much load
+    docs = docs.slice(0, 5);
+    const books = [];
+    
+    for (const doc of docs) {
+      try {
+        // Get detailed info for each book
+        let authors = [];
+        let isbnSearch = (Array.isArray(doc.isbn) && doc.isbn.length > 0)
+              ? doc.isbn[0]
+              : '';
+        
+        if (isbnSearch && isbnSearch.length > 0) {
+          try {
+            const apiUrl = `https://openlibrary.org/isbn/${isbnSearch}.json`;
+            const response = await axios.get(apiUrl);
+            const data = response.data;
+            
+            if(data.authors && data.authors.length > 0) {
+              for (const author of data.authors) {
+                if (author.key) {
+                  try {
+                    const authorData = await axios.get(`https://openlibrary.org${author.key}.json`);
+                    authors.push(authorData.data.name);
+                  } catch (e) {
+                    Logger.warn(`Failed to get author data for ${author.key}`);
+                  }
+                }
               }
+            }
+            
+            books.push({
+              isbn: isbnSearch,
+              title: data.title || doc.title,
+              author: authors.length > 0 ? authors : [doc.author_name?.[0] || 'Author not available'],
+              cover_i: (Array.isArray(doc.cover_i) && doc.cover_i.length > 0) ? doc.cover_i[0] : "",
+              publisher: data.publishers || (doc.publisher ? [doc.publisher[0]] : []),
+              key: doc.key || `ol-${Date.now()}-${Math.random()}`
+            });
+          } catch (error) {
+            Logger.warn(`Failed to get ISBN details for ${isbnSearch}:`, error.message);
+            // Add basic info without detailed lookup
+            books.push({
+              isbn: isbnSearch,
+              title: doc.title,
+              author: doc.author_name || ['Author not available'],
+              cover_i: (Array.isArray(doc.cover_i) && doc.cover_i.length > 0) ? doc.cover_i[0] : "",
+              publisher: doc.publisher ? [doc.publisher[0]] : [],
+              key: doc.key || `ol-${Date.now()}-${Math.random()}`
             });
           }
-        foundBooks.value.push({
-          isbn: isbnSearch,
-          title: data.title,
-          author: authors,
-          cover_i: (Array.isArray(edition.covers) && edition.covers.length > 0) ? edition.covers[0] : "",
-          publisher: data.publishers,
-          key: edition.key
-        });
+        } else {
+          // No ISBN found, use basic doc info
+          books.push({
+            isbn: '',
+            title: doc.title,
+            author: doc.author_name || ['Author not available'],
+            cover_i: (Array.isArray(doc.cover_i) && doc.cover_i.length > 0) ? doc.cover_i[0] : "",
+            publisher: doc.publisher ? [doc.publisher[0]] : [],
+            key: doc.key || `ol-${Date.now()}-${Math.random()}`
+          });
+        }
+      } catch (error) {
+        Logger.warn(`Failed to process OpenLibrary doc:`, error.message);
       }
-    });
-    if (foundBooks.value.length === 0) {
-      searchError.value = "No books found with that name in any available database.";
+    }
+    
+    nameSearch.results.value = books;
+    if (books.length === 0) {
+      nameSearch.error.value = "No books found with that name in any available database.";
     } else {
-      searchError.value = "";
+      Logger.debug(`Found ${books.length} books with OpenLibrary fallback`);
     }
   } catch (error) {
     Logger.error("Both name search APIs failed:", error);
-    searchError.value = "Error searching books by name in all available databases.";
-    foundBooks.value = [];
+    nameSearch.error.value = "Error searching books by name in all available databases.";
+    nameSearch.results.value = [];
   }
 };
 
@@ -344,35 +400,40 @@ const autoSaveBookFromISBN = async () => {
     return;
   }
 
-  // Check if book already exists in library
-  try {
-    const checkResponse = await authStore.apiCall('get_library');
+  // Check if book already exists in library using composable
+  const existingBook = booksComposable.findBookByISBN(currentBook.isbn);
+  
+  if (existingBook) {
+    Logger.debug("Book already exists in library, skipping auto-save");
+    addBookMessage.value = "Book already exists in your library.";
+    addBookStatus.value = "info";
     
-    const existingBooks = Array.isArray(checkResponse.data.data) ? checkResponse.data.data : [];
-    const bookExists = existingBooks.some(book => book.isbn === currentBook.isbn);
-    
-    if (bookExists) {
-      Logger.debug("Book already exists in library, skipping auto-save");
-      addBookMessage.value = "Book already exists in your library.";
-      addBookStatus.value = "info";
-      
-      // Clear message after 3 seconds
-      setTimeout(() => {
-        addBookMessage.value = "";
-        addBookStatus.value = "";
-      }, 3000);
-      return;
-    }
+    // Clear message after 3 seconds
+    setTimeout(() => {
+      addBookMessage.value = "";
+      addBookStatus.value = "";
+    }, 3000);
+    return;
+  }
 
-    // Auto-save with "owned" as default status using existing addBookToLibrary function
-    const defaultStatuses = allowedUserStatusesList.value.includes('owned') ? ['owned'] : 
+  // Ensure allowed statuses are loaded before attempting auto-save
+  Logger.debug("Current allowed statuses:", allowedUserStatusesList.value);
+  if (allowedUserStatusesList.value.length === 0) {
+    Logger.debug("No allowed statuses available, fetching them first...");
+    await booksComposable.fetchAllowedStatuses();
+    Logger.debug("After fetching, allowed statuses:", allowedUserStatusesList.value);
+  }
+
+  // Auto-save with "owned" as default status using existing addBookToLibrary function
+  const defaultStatuses = allowedUserStatusesList.value.includes('owned') ? ['owned'] : 
                            allowedUserStatusesList.value.length > 0 ? [allowedUserStatusesList.value[0]] : [];
     
-    if (defaultStatuses.length === 0) {
-      Logger.debug("Cannot auto-save: no allowed statuses available");
-      return;
-    }
+  if (defaultStatuses.length === 0) {
+    Logger.debug("Cannot auto-save: no allowed statuses available even after fetching");
+    return;
+  }
 
+  try {
     Logger.debug("Auto-saving book with default statuses:", defaultStatuses);
     
     // Reuse the existing addBookToLibrary function
@@ -419,7 +480,8 @@ const selectBookFromList = (book) => {
     currentBook.coverUrl = "";
   }
   
-  foundBooks.value = [];
+  // Clear search results after selection
+  nameSearch.clearResults();
 };
 
 const addBookToLibrary = async (bookDetailsWithStatuses) => {
@@ -436,66 +498,70 @@ const addBookToLibrary = async (bookDetailsWithStatuses) => {
     return;
   }
 
-  // Check if book already exists in library (same logic as autoSaveBookFromISBN)
-  try {
-    const checkResponse = await authStore.apiCall('get_library');
-    
-    const existingBooks = Array.isArray(checkResponse.data.data) ? checkResponse.data.data : [];
-    const bookExists = existingBooks.some(existingBook => existingBook.isbn === book.isbn);
-    
-    if (bookExists) {
-      Logger.debug("Book already exists in library, cannot add duplicate");
-      addBookMessage.value = "Book already exists in your library.";
-      addBookStatus.value = "info";
-      
-      // Clear message after 3 seconds
-      setTimeout(() => {
-        addBookMessage.value = "";
-        addBookStatus.value = "";
-      }, 3000);
-      return;
-    }
+  // Ensure allowed statuses are loaded
+  if (allowedUserStatusesList.value.length === 0) {
+    Logger.debug("Allowed statuses not loaded, fetching them first...");
+    await booksComposable.fetchAllowedStatuses();
+  }
 
-    // Proceed with adding the book if it doesn't exist
-    Logger.debug("Book details being sent:", book);
-    Logger.debug("User statuses being sent:", statuses);
-    
-    // Use authStore.apiCall for CSRF token handling
-    const response = await authStore.apiCall('add_book', {
-      book: { 
-        ...book,
-        userStatuses: statuses,
-        allowedStatuses: allowedUserStatusesList.value // Include allowed statuses for validation
-      }
-    });
-    if (response.data && response.data.status === 'success') {
-      addBookMessage.value = response.data.message || "Book added successfully!";
-      addBookStatus.value = "success";
-      
-      // Set userStatuses on currentBook to reflect that it's now saved
-      currentBook.userStatuses = [...statuses];
-      
-      // Clear message after 3 seconds
-      setTimeout(() => {
-        addBookMessage.value = "";
-        addBookStatus.value = "";
-      }, 3000);
-    } else {
-      addBookMessage.value = response.data.message || "Failed to add book. Unknown error.";
-      addBookStatus.value = "error";
-    }
-  } catch (error) {
-    Logger.error("Error adding book to library:", error);
-    addBookMessage.value = "Error connecting to backend to add book.";
+  // Validate that the statuses being sent are allowed
+  const invalidStatuses = statuses.filter(status => !allowedUserStatusesList.value.includes(status));
+  if (invalidStatuses.length > 0) {
+    Logger.error("Invalid statuses detected:", invalidStatuses);
+    Logger.error("Allowed statuses:", allowedUserStatusesList.value);
+    addBookMessage.value = `Invalid status(es): ${invalidStatuses.join(', ')}. Allowed: ${allowedUserStatusesList.value.join(', ')}`;
     addBookStatus.value = "error";
-    if (error.response) Logger.error("Backend Error Response:", error.response.data);
+    return;
+  }
+
+  // Check if book already exists in library
+  const existingBook = booksComposable.findBookByISBN(book.isbn);
+  if (existingBook) {
+    Logger.debug("Book already exists in library, cannot add duplicate");
+    addBookMessage.value = "Book already exists in your library.";
+    addBookStatus.value = "info";
+    
+    // Clear message after 3 seconds
+    setTimeout(() => {
+      addBookMessage.value = "";
+      addBookStatus.value = "";
+    }, 3000);
+    return;
+  }
+
+  // Use the books composable to add the book
+  Logger.debug("Book details being sent:", book);
+  Logger.debug("User statuses being sent:", statuses);
+  
+  const result = await booksComposable.addBook(book, statuses);
+  
+  if (result.success) {
+    addBookMessage.value = "Book added successfully!";
+    addBookStatus.value = "success";
+    
+    // Set userStatuses on currentBook to reflect that it's now saved
+    currentBook.userStatuses = [...statuses];
+    
+    // Clear message after 3 seconds
+    setTimeout(() => {
+      addBookMessage.value = "";
+      addBookStatus.value = "";
+    }, 3000);
+  } else {
+    addBookMessage.value = result.message || "Failed to add book. Unknown error.";
+    addBookStatus.value = "error";
   }
 };
 
 // Load allowed user statuses from backend on component mount
 onMounted(async () => {
-  const response = await authStore.apiCall('get_book_allowed_statuses');
-  allowedUserStatuses.value = Array.isArray(response.data.data) ? response.data.data : [];
+  try {
+    Logger.debug("BookSearch component mounted, fetching allowed statuses...");
+    await booksComposable.fetchAllowedStatuses();
+    Logger.debug("Allowed statuses loaded in BookSearch:", allowedUserStatusesList.value);
+  } catch (error) {
+    Logger.error("Error loading allowed statuses on mount:", error);
+  }
 });
 </script>
 

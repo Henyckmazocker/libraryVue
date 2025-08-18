@@ -36,9 +36,11 @@
 
 <script setup>
 import { useAuthStore } from '@/store/auth';
+// import { useAuth } from '@/composables'; // Por ahora mantener authStore.apiCall
 import Logger from '@/utils/logger';
 
 const authStore = useAuthStore();
+// const { authenticatedApiCall } = useAuth(); // Por ahora mantener authStore.apiCall
 
 const saveBooksToBackend = async () => {
   try {

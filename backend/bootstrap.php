@@ -53,6 +53,11 @@ if (file_exists(__DIR__ . '/config/helpers.php')) {
     require_once __DIR__ . '/config/helpers.php';
 }
 
+// Import logging functions
+if (file_exists(__DIR__ . '/src/Infrastructure/Logging/functions.php')) {
+    require_once __DIR__ . '/src/Infrastructure/Logging/functions.php';
+}
+
 // Initialize logging if available
 if (file_exists(__DIR__ . '/config/logging.php')) {
     require_once __DIR__ . '/config/logging.php';

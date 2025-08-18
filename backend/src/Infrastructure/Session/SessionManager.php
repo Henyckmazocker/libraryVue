@@ -26,8 +26,12 @@ class SessionManager
                 // Don't require HTTPS in development
                 $isProduction = ($_ENV['APP_ENV'] ?? 'development') === 'production';
                 ini_set('session.cookie_secure', $isProduction ? '1' : '0');
-                // Use Lax instead of Strict for cross-origin requests in development
+                // Use Lax samesite for development (allows some cross-origin)
                 ini_set('session.cookie_samesite', $isProduction ? 'Strict' : 'Lax');
+                // Force cookie domain to be empty for localhost
+                ini_set('session.cookie_domain', '');
+                // Set cookie path to root
+                ini_set('session.cookie_path', '/');
                 ini_set('session.use_strict_mode', '1');
                 ini_set('session.gc_maxlifetime', (string)self::SESSION_TIMEOUT);
                 
@@ -55,6 +59,12 @@ class SessionManager
                 
                 // Update last activity
                 $_SESSION['last_activity'] = time();
+                
+                // Debug: Log cookie and header information
+                $sessionId = session_id();
+                $headers = headers_list();
+                $cookieParams = session_get_cookie_params();
+                error_log("Session Debug - ID: {$sessionId}, Cookie Params: " . json_encode($cookieParams) . ", Headers: " . json_encode($headers));
             }
         }
     }
@@ -93,9 +103,21 @@ class SessionManager
 
     public function isLoggedIn(): bool
     {
-        return isset($_SESSION[self::USER_KEY]) && 
-               !empty($_SESSION[self::USER_KEY]) && 
-               !$this->isSessionExpired();
+        $hasUserKey = isset($_SESSION[self::USER_KEY]);
+        $userDataNotEmpty = !empty($_SESSION[self::USER_KEY]);
+        $sessionNotExpired = !$this->isSessionExpired();
+        
+        // Log for debugging
+        logger('auth')->info('Session status check', [
+            'session_id' => session_id(),
+            'has_user_key' => $hasUserKey,
+            'user_data_not_empty' => $userDataNotEmpty,
+            'session_not_expired' => $sessionNotExpired,
+            'session_data' => $_SESSION ?? [],
+            'cookie_data' => $_COOKIE ?? []
+        ]);
+        
+        return $hasUserKey && $userDataNotEmpty && $sessionNotExpired;
     }
 
     public function getCurrentUser(): ?array

@@ -10,34 +10,44 @@
       <p><strong>Valoración:</strong> {{ movie.imdbRating }}/10</p>
 
       <!-- Status Selector -->
-      <div class="status-selector-container">
-        <p class="status-selector-title"><strong>Status:</strong> (selecciona uno o más)</p>
-        <MultiSelect
-          v-model="selectedUserStatuses"
-          :options="normalizedAllowedUserStatuses"
-          :filter="true"
-          :display="'chip'"
-          placeholder="Selecciona estados"
-          style="width: 100%; max-width: 20rem;"
+      <StatusSelector
+        v-model="selectedUserStatuses"
+        :allowed-statuses="normalizedAllowedUserStatuses"
+        :multiple="true"
+        label="Status"
+        subtitle="(selecciona uno o más)"
+      />
+
+      <!-- Rating Component -->
+      <div class="rating-section">
+        <label class="rating-label">Tu calificación:</label>
+        <RatingComponent
+          :rating="currentMovie.user_rating || 0"
+          :editable="true"
+          @rating-changed="onUpdateRating"
         />
       </div>
 
-      <div class="actions-container">
-        <button 
-          @click="onSaveMovie" 
-          class="add-button"
-          :disabled="selectedUserStatuses.length === 0"
-        >
-          Guardar en mi colección
-        </button>
-      </div>
+      <!-- Movie Actions -->
+      <MovieActions
+        :item="movie"
+        :is-new="true"
+        :can-save="selectedUserStatuses.length > 0"
+        :show-update-button="false"
+        :show-delete-button="false"
+        save-button-text="Guardar en mi colección"
+        @save="onSaveMovie"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, defineProps, computed } from 'vue';
-import MultiSelect from 'primevue/multiselect';
+import { useMovies } from '@/composables/useMovies';
+import StatusSelector from '@/components/common/StatusSelector.vue';
+import MovieActions from '@/components/Movies/MovieActions.vue';
+import RatingComponent from '@/components/common/RatingComponent.vue';
 import Logger from '@/utils/logger';
 
 const props = defineProps({
@@ -47,7 +57,17 @@ const props = defineProps({
     default: () => []
   }
 });
+
+// Composables
+const moviesComposable = useMovies();
+
 const selectedUserStatuses = ref([]);
+
+// Create a reactive copy of the movie to track user rating
+const currentMovie = ref({
+  ...props.movie,
+  user_rating: 0
+});
 
 // Normaliza la prop para asegurar que vue-multiselect siempre reciba un array plano de strings
 const normalizedAllowedUserStatuses = computed(() => {
@@ -59,30 +79,32 @@ const normalizedAllowedUserStatuses = computed(() => {
 Logger.debug('MovieDisplay allowedUserStatuses:', props.allowedUserStatuses);
 Logger.debug('MovieDisplay normalizedAllowedUserStatuses:', normalizedAllowedUserStatuses.value);
 
-import { useAuthStore } from '@/store/auth';
-
-const authStore = useAuthStore();
+// Handle rating updates
+const onUpdateRating = (newRating) => {
+  Logger.debug('Updating movie rating:', newRating);
+  currentMovie.value.user_rating = newRating;
+};
 
 const onSaveMovie = async () => {
   try {
-    const payload = {
-      movie: {
-        id: props.movie.imdbID,
-        title: props.movie.Title,
-        originalTitle: props.movie.Title,
-        director: props.movie.Director,
-        coverUrl: props.movie.Poster,
-        rating: null, // No guardar la nota de OMDb como rating en la base de datos
-        description: props.movie.Plot || "",
-        userStatuses: selectedUserStatuses.value,
-        addedTimestamp: Date.now()
-      }
+    const movieData = {
+      tmdbId: currentMovie.value.imdbID, // Usar tmdbId como espera el composable
+      title: currentMovie.value.Title,
+      originalTitle: currentMovie.value.Title,
+      director: currentMovie.value.Director,
+      posterUrl: currentMovie.value.Poster, // Usar posterUrl como espera el composable
+      synopsis: currentMovie.value.Plot || "", // Usar synopsis como espera el composable
+      releaseDate: currentMovie.value.Year || "", // Agregar año de lanzamiento
+      genre: currentMovie.value.Genre || "", // Agregar género
+      duration: 0, // No tenemos duración en OMDb, usar 0
+      user_rating: currentMovie.value.user_rating // Include user rating
     };
-    const response = await authStore.apiCall('add_movie', payload);
-    if (response.data && response.data.status === 'success') {
+
+    const success = await moviesComposable.addMovie(movieData, selectedUserStatuses.value);
+    if (success) {
       alert('Película guardada correctamente en tu colección.');
     } else {
-      alert(response.data.message || 'Error al guardar la película.');
+      alert('Error al guardar la película.');
     }
   } catch (error) {
     Logger.error('Error al guardar película:', error);
@@ -128,41 +150,19 @@ const onSaveMovie = async () => {
   color: #88aaff;
   text-decoration: underline;
 }
-.status-selector-container {
-  margin-top: 15px;
-  margin-bottom: 15px;
+
+.rating-section {
+  margin: 16px 0;
+  padding: 12px 0;
+  border-top: 1px solid #444;
+  border-bottom: 1px solid #444;
 }
-.status-selector-title {
-  font-size: 0.95rem;
-  color: #ccc;
+
+.rating-label {
+  display: block;
+  font-weight: bold;
   margin-bottom: 8px;
-}
-.actions-container {
-  margin-top: 20px;
-  display: flex;
-  gap: 10px;
-}
-.add-button {
-  padding: 10px 20px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #ffffff;
-  border-radius: 20px;
-  cursor: pointer;
-  outline: none;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
-  border: 1px solid transparent;
-  background-color: #28a745;
-  border-color: #28a745;
-}
-.add-button:hover {
-  background-color: #218838;
-  border-color: #1e7e34;
-}
-.add-button:disabled {
-  background-color: #555;
-  border-color: #444;
-  color: #888;
-  cursor: not-allowed;
+  color: #e0e0e0;
+  font-size: 1rem;
 }
 </style>

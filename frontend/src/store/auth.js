@@ -147,7 +147,7 @@ export const useAuthStore = defineStore('auth', {
         headers: {
           'Content-Type': 'application/json'
         },
-        timeout: 10000 // 10 segundos timeout
+        timeout: 30000 // 30 segundos timeout para dar más tiempo a Google OAuth
       }
 
       // Add JWT token to headers if available

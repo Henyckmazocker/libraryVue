@@ -1,6 +1,5 @@
 <template>
   <div class="rating-section">
-    <p class="current-rating">{{ label }}: {{ displayRating }}</p>
     <div v-if="editable" class="stars-input">
       <div v-for="starPosition in 5" :key="'star-' + starPosition" class="star-wrapper">
         <!-- Single button that detects left/right hover -->
@@ -28,7 +27,7 @@
 </template>
 
 <script setup>
-import { ref, computed, defineProps, defineEmits, watch } from 'vue';
+import { ref, defineProps, defineEmits, watch } from 'vue';
 
 // Props
 const props = defineProps({
@@ -58,13 +57,6 @@ const emit = defineEmits(['update:rating', 'rating-changed']);
 // Reactive data
 const hoverRating = ref(0);
 const currentRating = ref(props.rating);
-
-// Computed
-const displayRating = computed(() => {
-  return (currentRating.value !== null && currentRating.value !== undefined) 
-    ? `${currentRating.value}/5` 
-    : 'Not Rated';
-});
 
 // Methods
 const setRating = (rating) => {

@@ -4,6 +4,7 @@
 export { useAuth } from './useAuth';
 export { useGoogleAuth } from './useGoogleAuth';
 export { usePermissions } from './usePermissions';
+export { useSidebarMenu } from './useSidebarMenu';
 
 // Importar composables para el composable combinado
 import { useAuth } from './useAuth';

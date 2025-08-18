@@ -325,21 +325,20 @@ const searchQuery = searchSystem.query;
 .library-container {
   display: flex;
   flex-direction: column;
-  /* align-items: center; /* Removed to allow full width for book-list */
-  padding: 20px; /* Adjusted padding */
-  padding-top: 100px; 
+  padding: 5px 15px; /* Reducido padding lateral de 10px a 15px */
+  padding-top: 20px; /* Reducido de 100px a 20px para estar más pegado arriba */
   width: 100%;
-  max-width: 1200px; /* Wider for grid view */
+  max-width: 1600px; /* Aumentado de 1400px a 1600px para aprovechar más espacio */
   margin: auto;
   box-sizing: border-box;
 }
 
 .title {
-  font-size: 2.5rem;
-  font-weight: 700;
+  font-size: 1.8rem; /* Reducido de 2.5rem */
+  font-weight: 600; /* Reducido de 700 */
   color: #e0e0e0;
-  margin-bottom: 30px;
-  text-align: center; /* Center title if container is not aligning items center */
+  margin-bottom: 15px; /* Reducido de 30px */
+  text-align: center;
 }
 
 .loading-message,
@@ -379,51 +378,65 @@ const searchQuery = searchSystem.query;
 
 .book-list {
   display: flex;
-  flex-wrap: wrap; /* Allow items to wrap to the next line */
-  justify-content: flex-start; /* Start items from the left */
-  gap: 20px; /* Space between items (rows and columns) */
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 12px; /* Reducido de 20px */
   width: 100%;
-  padding: 0; /* Remove padding if items have their own */
+  padding: 0;
 }
 
-/* Class applied to LibraryBookItem component instances */
-/* Styles here will affect the root element of LibraryBookItem.vue */
-/* LibraryBookItem.vue already defines its own width: 100% and background/padding */
-/* For a grid, we need to control its basis/max-width here. */
+/* Optimizar para mostrar más items por fila */
 :deep(.book-item) { 
-  /* Using :deep to target the root element of LibraryBookItem if it's scoped */
-  /* Alternatively, ensure LibraryBookItem.vue's root has these directly or expect this class */
-  flex-basis: calc(25% - 20px); /* Example: 4 items per row, subtracting gap. Adjust as needed. */
-  /* flex-basis: 220px; /* Fixed width approach */
-  max-width: 10px; /* Ensure it doesn't grow too large if only a few items */
-  /* min-width: 180px; /* Minimum width before wrapping or shrinking too much */
+  flex-basis: calc(20% - 12px); /* 5 items por fila en pantallas grandes */
+  max-width: calc(20% - 12px);
+  min-width: 180px; /* Mínimo para que se vea bien */
   box-sizing: border-box; 
-  /* The internal .library-book-item-container already has padding, background etc. */
-  /* We let LibraryBookItem style itself, this class here mostly for layout within the flex grid */
 }
 
-/* Responsive adjustments for the grid */
+/* Responsive adjustments para optimizar espacio */
+@media (max-width: 1400px) {
+  :deep(.book-item) {
+    flex-basis: calc(25% - 12px); /* 4 items por fila */
+    max-width: calc(25% - 12px);
+  }
+}
+
 @media (max-width: 1200px) {
   :deep(.book-item) {
-    flex-basis: calc(33.333% - 20px); /* 3 items per row */
+    flex-basis: calc(33.333% - 12px); /* 3 items por fila */
+    max-width: calc(33.333% - 12px);
   }
 }
 
 @media (max-width: 768px) {
-  .controls-container {
-    justify-content: center; /* Center dropdown on smaller screens */
+  .library-container {
+    padding: 5px 8px; /* Reducido padding lateral también en móvil */
+    padding-top: 15px;
   }
+  
+  .controls-container {
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+  
   :deep(.book-item) {
-    flex-basis: calc(50% - 15px); /* 2 items per row, slightly smaller gap consideration */
+    flex-basis: calc(50% - 10px); /* 2 items por fila */
+    max-width: calc(50% - 10px);
+  }
+  
+  .book-list {
+    gap: 10px;
   }
 }
 
 @media (max-width: 480px) {
   :deep(.book-item) {
-    flex-basis: 100%; /* 1 item per row */
+    flex-basis: 100%; /* 1 item por fila */
+    max-width: 100%;
   }
+  
   .book-list {
-    gap: 15px; /* Adjust gap for single column */
+    gap: 8px;
   }
 }
 
@@ -431,8 +444,8 @@ const searchQuery = searchSystem.query;
   display: flex;
   flex-direction: column;
   width: 100%;
-  margin-bottom: 25px;
-  gap: 10px;
+  margin-bottom: 15px; /* Reducido de 25px */
+  gap: 8px; /* Reducido de 10px */
 }
 
 .search-sort-row {

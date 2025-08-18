@@ -13,7 +13,6 @@
         <p v-else-if="book.publisher" class="book-publisher">
           <strong>Editorial:</strong> {{ book.publisher }}
         </p>
-        <p class="book-isbn"><strong>ISBN:</strong> {{ book.isbn }}</p>
         <p v-if="book.publicationDate" class="book-publication-date"><strong>Publication Date:</strong> {{ book.publicationDate }}</p>
         
         <!-- Rating Component -->
@@ -165,11 +164,10 @@ watch(() => props.book.isbn, (newIsbn, oldIsbn) => {
 }
 
 .library-book-item-container {
-  padding: 20px;
+  padding: 12px; /* Reducido de 20px */
   background-color: #2c2c2c;
-  border-radius: 15px; /* Slightly less rounded than main display */
-  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
-  /* width: 100%;  Eliminado para que el grid controle el ancho */
+  border-radius: 12px; /* Reducido de 15px */
+  box-shadow: 0 3px 8px rgba(0,0,0,0.25); /* Sombra más sutil */
   width: auto;
   height: 100%;
   display: flex;
@@ -179,13 +177,33 @@ watch(() => props.book.isbn, (newIsbn, oldIsbn) => {
 @media (max-width: 480px) {
   .library-book-item-container {
     width: 100%;
+    padding: 10px; /* Reducido para móvil */
+  }
+  
+  .book-details {
+    gap: 10px; /* Reducido para móvil */
+  }
+  
+  .cover-image {
+    width: 70px; /* Aún más pequeño en móvil */
+  }
+  
+  .book-title {
+    font-size: 1rem; /* Reducido para móvil */
+  }
+  
+  .book-author,
+  .book-publisher,
+  .book-isbn,
+  .book-publication-date {
+    font-size: 0.8rem; /* Aún más pequeño en móvil */
   }
 }
 
 .book-details {
   display: flex;
   align-items: flex-start;
-  gap: 20px;
+  gap: 12px; /* Reducido de 20px */
 }
 
 .cover-image-container {
@@ -193,9 +211,9 @@ watch(() => props.book.isbn, (newIsbn, oldIsbn) => {
 }
 
 .cover-image {
-  width: 100px; /* Consistent with previous library list */
+  width: 80px; /* Reducido de 100px */
   height: auto;
-  border-radius: 8px;
+  border-radius: 6px; /* Reducido de 8px */
   border: 1px solid #444;
 }
 
@@ -207,20 +225,23 @@ watch(() => props.book.isbn, (newIsbn, oldIsbn) => {
 }
 
 .book-title {
-  font-size: 1.3rem; /* Slightly smaller for list items */
+  font-size: 1.1rem; /* Reducido de 1.3rem */
   color: #e0e0e0;
   margin-top: 0;
-  margin-bottom: 8px;
+  margin-bottom: 6px; /* Reducido de 8px */
+  line-height: 1.3; /* Mejor espaciado de líneas */
 }
 
 
 .book-author,
 .book-publisher,
-.book-isbn {
-  font-size: 0.95rem; /* Slightly smaller */
+.book-isbn,
+.book-publication-date {
+  font-size: 0.85rem; /* Reducido de 0.95rem */
   color: #bbb;
   margin-top: 0;
-  margin-bottom: 4px;
+  margin-bottom: 3px; /* Reducido de 4px */
+  line-height: 1.2; /* Mejor espaciado */
 }
 
 .book-author strong,

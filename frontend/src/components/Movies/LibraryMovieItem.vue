@@ -134,55 +134,91 @@ watch(() => props.movie.imdbID, (newId, oldId) => {
 <style>
 /* Igual que .library-book-item-container para altura y aspecto uniforme */
 .library-movie-item-container {
-  padding: 20px;
+  padding: 12px; /* Reducido de 20px */
   background-color: #2c2c2c;
-  border-radius: 15px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+  border-radius: 12px; /* Reducido de 15px */
+  box-shadow: 0 3px 8px rgba(0,0,0,0.25); /* Sombra más sutil */
   width: auto;
   height: 100%;
   display: flex;
   flex-direction: column;
 }
+
 @media (max-width: 480px) {
   .library-movie-item-container {
     width: 100%;
+    padding: 10px; /* Reducido para móvil */
+  }
+  
+  .movie-details {
+    gap: 10px; /* Reducido para móvil */
+  }
+  
+  .cover-image {
+    width: 70px; /* Aún más pequeño en móvil */
+  }
+  
+  .movie-title {
+    font-size: 1rem; /* Reducido para móvil */
+  }
+  
+  .movie-author,
+  .movie-original-title,
+  .movie-director,
+  .movie-year,
+  .movie-isbn {
+    font-size: 0.8rem; /* Aún más pequeño en móvil */
   }
 }
+
 .movie-details {
   display: flex;
   align-items: flex-start;
-  gap: 20px;
+  gap: 12px; /* Reducido de 20px */
 }
+
 .cover-image-container {
   flex-shrink: 0;
 }
+
 .cover-image {
-  width: 100px;
+  width: 80px; /* Reducido de 100px */
   height: auto;
-  border-radius: 8px;
+  border-radius: 6px; /* Reducido de 8px */
   border: 1px solid #444;
 }
+
 .info-text {
   text-align: left;
   flex-grow: 1;
   display: flex;
   flex-direction: column;
 }
+
 .movie-title {
-  font-size: 1.3rem;
+  font-size: 1.1rem; /* Reducido de 1.3rem */
   color: #e0e0e0;
   margin-top: 0;
-  margin-bottom: 8px;
+  margin-bottom: 6px; /* Reducido de 8px */
+  line-height: 1.3; /* Mejor espaciado de líneas */
 }
+
 .movie-author,
+.movie-original-title,
+.movie-director,
 .movie-year,
 .movie-isbn {
-  font-size: 0.95rem;
+  font-size: 0.85rem; /* Reducido de 0.95rem */
   color: #bbb;
   margin-top: 0;
-  margin-bottom: 4px;
+  margin-bottom: 3px; /* Reducido de 4px */
+  line-height: 1.2; /* Mejor espaciado */
 }
+
 .movie-author strong,
+.movie-original-title strong,
+.movie-director strong,
+.movie-year strong,
 .movie-isbn strong {
   font-weight: 500;
   color: #888;

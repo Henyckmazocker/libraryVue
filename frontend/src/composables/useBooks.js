@@ -138,12 +138,20 @@ export function useBooks() {
         await fetchAllowedStatuses();
       }
       
+      // Normalizar publisher - manejar tanto publishers (array) como publisher (string)
+      let publisherValue = '';
+      if (book.publishers && Array.isArray(book.publishers) && book.publishers.length > 0) {
+        publisherValue = book.publishers.join(', ');
+      } else if (book.publisher) {
+        publisherValue = book.publisher;
+      }
+      
       const bookData = {
         isbn: book.isbn,
         title: book.title,
         author: book.author || '',
         coverUrl: book.coverUrl || '',
-        publisher: book.publisher || '',
+        publisher: publisherValue,
         publicationDate: book.publicationDate || '',
         description: book.description || '',
         userStatuses: statuses,

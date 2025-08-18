@@ -1,0 +1,61 @@
+{
+  "menu": [
+    {
+      "title": "Principal",
+      "items": [
+        {
+          "name": "Biblioteca",
+          "path": "/library",
+          "icon": "fas fa-bookmark",
+          "description": "Tu biblioteca personal"
+        }
+      ]
+    },
+    {
+      "title": "Libros",
+      "items": [
+        {
+          "name": "Buscar Libros",
+          "path": "/books",
+          "icon": "fas fa-search",
+          "description": "Buscar nuevos libros"
+        },
+        {
+          "name": "Mis Libros",
+          "path": "/library?filter=books",
+          "icon": "fas fa-book",
+          "description": "Libros en tu biblioteca"
+        }
+      ]
+    },
+    {
+      "title": "Películas",
+      "items": [
+        {
+          "name": "Buscar Películas",
+          "path": "/movies",
+          "icon": "fas fa-search",
+          "description": "Buscar nuevas películas"
+        },
+        {
+          "name": "Mis Películas",
+          "path": "/library?filter=movies",
+          "icon": "fas fa-film",
+          "description": "Películas en tu biblioteca"
+        }
+      ]
+    },
+    {
+      "title": "Próximamente",
+      "items": [
+        {
+          "name": "Música",
+          "path": "#",
+          "icon": "fas fa-music",
+          "description": "Próximamente disponible",
+          "disabled": true
+        }
+      ]
+    }
+  ]
+}

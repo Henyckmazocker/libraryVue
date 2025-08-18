@@ -467,6 +467,17 @@ const selectBookFromList = (book) => {
   currentBook.title = book.title || "Title not found";
   currentBook.author = book.author ? book.author.join(', ') : "Author not found";
   
+  // Handle publisher - normalize from array or string
+  if (book.publisher) {
+    if (Array.isArray(book.publisher)) {
+      currentBook.publisher = book.publisher.join(', ');
+    } else {
+      currentBook.publisher = book.publisher;
+    }
+  } else {
+    currentBook.publisher = "";
+  }
+  
   // Handle cover URL for both Google Books and OpenLibrary
   if (book.cover_i) {
     if (book.cover_i.startsWith('https://')) {

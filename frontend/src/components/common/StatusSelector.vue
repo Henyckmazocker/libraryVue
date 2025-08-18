@@ -1,8 +1,5 @@
 <template>
   <div class="status-selector-container" v-if="allowedStatuses && allowedStatuses.length > 0">
-    <p class="status-selector-title">
-      <strong>{{ label }}:</strong> {{ subtitle }}
-    </p>
     
     <!-- Multi-select mode -->
     <MultiSelect

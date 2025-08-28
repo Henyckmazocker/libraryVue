@@ -1,66 +1,80 @@
 <template>
-  <div class="movie-actions-container">
-    <!-- Save button (for new movies) -->
-    <button 
-      v-if="showSaveButton && isNew" 
-      @click="onSave" 
-      class="save-button" 
-      :disabled="!canSave || loading"
-    >
-      <i class="fas fa-save"></i>
-      <span v-if="!loading">{{ saveButtonText }}</span>
-      <span v-else>Guardando...</span>
-    </button>
+<div class="movie-actions">
+  <!-- Save button for new movies -->
+  <button 
+    v-if="showSaveButton"
+    @click="onSave"
+    class="action-button save-button" 
+    :disabled="!canSave"
+    :title="saveButtonTitle"
+  >
+    <i class="fas fa-save"></i>
+    <span v-if="showLabels">{{ saveButtonLabel }}</span>
+  </button>
+  <!-- Botón de editar que abre el popup -->
+  <button v-if="showEditButton" @click="openEditPopup" class="action-button edit-popup-button" :title="'Editar libro'">
+    <i class="fas fa-pencil-alt"></i>
+    <span v-if="showLabels">Editar</span>
+  </button>
+  <EditMoviePopup
+    v-if="showEditPopup"
+    :item="item"
+    :allowed-statuses="allowedStatuses"
+    @close="closeEditPopup"
+  />
+  <!-- Update button for existing movies -->
+  <button 
+    v-if="showUpdateButton"
+    @click="handleUpdate" 
+    class="action-button update-button"
+    :disabled="!canUpdate"
+    :title="updateButtonTitle"
+  >
+    <i class="fas fa-edit"></i>
+    <span v-if="showLabels">{{ updateButtonLabel }}</span>
+  </button>
 
-    <!-- Update button (for existing movies) -->
-    <button 
-      v-if="showUpdateButton && !isNew" 
-      @click="onUpdate" 
-      class="update-button" 
-      :disabled="loading"
-    >
-      <i class="fas fa-edit"></i>
-      <span v-if="!loading">{{ updateButtonText }}</span>
-      <span v-else>Actualizando...</span>
-    </button>
+  <!-- Delete button -->
+  <button 
+    v-if="showDeleteButton"
+    @click="onDelete" 
+    class="action-button delete-button"
+    :title="deleteButtonTitle"
+  >
+    <i class="fas fa-trash"></i>
+    <span v-if="showLabels">{{ deleteButtonLabel }}</span>
+  </button>
 
-    <!-- Delete button (for existing movies) -->
-    <button 
-      v-if="showDeleteButton && !isNew" 
-      @click="onDelete" 
-      class="delete-button" 
-      :disabled="loading"
-    >
-      <i class="fas fa-trash"></i>
-      <span v-if="!loading">{{ deleteButtonText }}</span>
-      <span v-else>Eliminando...</span>
-    </button>
+  <!-- Custom actions -->
+  <button
+    v-for="action in customActions"
+    :key="action.key"
+    @click="handleCustomAction(action)"
+    class="action-button custom-button"
+    :class="action.class"
+    :disabled="action.disabled"
+    :title="action.title"
+  >
+    <i :class="action.icon"></i>
+    <span v-if="showLabels && action.label">{{ action.label }}</span>
+  </button>
 
-    <!-- Custom actions slot -->
-    <div v-if="$slots.customActions" class="custom-actions">
-      <slot name="customActions"></slot>
-    </div>
+  <!-- Loading state -->
+  <div v-if="loading" class="action-loading">
+    <i class="fas fa-spinner fa-spin"></i>
+    <span v-if="showLabels">{{ loadingText }}</span>
   </div>
+</div>
 </template>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue';
+import { defineProps, defineEmits, ref } from 'vue';
+import EditMoviePopup from './EditMoviePopup.vue';
 
 const props = defineProps({
-  // Item data
   item: {
     type: Object,
     required: true
-  },
-  
-  // States
-  isNew: {
-    type: Boolean,
-    default: false
-  },
-  canSave: {
-    type: Boolean,
-    default: true
   },
   canDelete: {
     type: Boolean,
@@ -70,8 +84,6 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  
-  // Button visibility
   showSaveButton: {
     type: Boolean,
     default: true
@@ -84,156 +96,221 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
-  
-  // Button texts
-  saveButtonText: {
-    type: String,
-    default: 'Guardar'
-  },
-  updateButtonText: {
-    type: String,
-    default: 'Actualizar'
+  showEditButton: {
+    type: Boolean,
+    default: true
   },
   deleteButtonText: {
     type: String,
     default: 'Eliminar'
+  },
+  isNew: {
+    type: Boolean,
+    default: true
+  },
+  canSave: {
+    type: Boolean,
+    default: true
+  },
+  canUpdate: {
+    type: Boolean,
+    default: true
+  },
+  allowedStatuses: {
+    type: Array,
+    default: () => []
   }
 });
 
-const emit = defineEmits(['save', 'update', 'delete']);
+const emit = defineEmits(['delete', 'save', 'close']);
 
-// Methods
-const onSave = () => {
-  emit('save', props.item);
+// Estado y métodos para el popup de edición
+const showEditPopup = ref(false);
+const openEditPopup = () => {
+  showEditPopup.value = true;
 };
-
-const onUpdate = () => {
-  emit('update', props.item);
+const closeEditPopup = (updatedMovie) => {
+  showEditPopup.value = false;
+  if (updatedMovie) {
+    emit('close', updatedMovie);
+  }
 };
 
 const onDelete = () => {
   emit('delete', props.item);
 };
+
+const onSave = () => {
+  emit('save', props.item);
+};
 </script>
 
 <style scoped>
-.movie-actions-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 15px;
-  align-items: center;
-}
-
-/* Base button styles */
-.save-button,
-.update-button,
-.delete-button {
+/* Botón azul para guardar */
+.save-button {
+  background: none;
+  color: #fff;
   padding: 8px 15px;
   font-size: 0.85rem;
   font-weight: 500;
   border-radius: 20px;
   cursor: pointer;
-  border: none;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 120px;
-  justify-content: center;
+  outline: none;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+  margin-top: 15px;
+  align-self: flex-start;
+  position: relative;
+  z-index: 1;
 }
-
-.save-button:disabled,
-.update-button:disabled,
-.delete-button:disabled {
-  opacity: 0.6;
+.save-button:disabled {
+  color: #888;
   cursor: not-allowed;
 }
 
-/* Save button - Blue gradient */
-.save-button {
-  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
-}
-
-.save-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
-  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
-  transform: translateY(-1px);
-}
-
-/* Update button - Green gradient */
-.update-button {
-  background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
-}
-
-.update-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #1e7e34 0%, #155724 100%);
-  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
-  transform: translateY(-1px);
-}
-
-/* Delete button - Red gradient */
 .delete-button {
-  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+  padding: 8px 15px; /* Adjusted padding */
+  font-size: 0.85rem; /* Adjusted font size */
+  font-weight: 500;
+  color: #ffffff;
+  background: none;
+  border: 1px solid #dc3545;
+  border-radius: 20px;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+  margin-top: 15px;
+  align-self: flex-start; /* Aligns button to the left in the flex column */
 }
 
-.delete-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #c82333 0%, #a71e2a 100%);
-  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
-  transform: translateY(-1px);
+.delete-button:disabled {
+  color: #888;
+  cursor: not-allowed;
 }
 
-/* Custom actions */
-.custom-actions {
+.edit-popup-button {
+  padding: 8px 15px; /* Adjusted padding */
+  font-size: 0.85rem; /* Adjusted font size */
+  font-weight: 500;
+  color: #ffffff;
+  background: none;
+  border-radius: 20px;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+  margin-top: 15px;
+  align-self: flex-start; /* Aligns button to the left in the flex column */
+}
+
+.edit-popup-button:disabled {
+  color: #888;
+  cursor: not-allowed;
+}
+
+
+.movie-actions {
   display: flex;
   gap: 10px;
-  flex-wrap: wrap;
+  align-items: center;
+}
+
+.movie-actions.vertical {
+  flex-direction: column;
+}
+
+.action-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: var(--button-padding);
+  font-size: var(--button-font-size);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  min-width: var(--button-min-width);
+  justify-content: center;
+}
+
+.action-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.action-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Button types */
+
+.edit-popup-button {
+  color: white;
+}
+
+.save-button {
+  color: white;
+}
+.update-button {
+  color: white;
+}
+
+.delete-button {
+  color: white;
+}
+
+.custom-button {
+  color: white;
+}
+
+/* Size variations */
+:root {
+  --button-padding: 10px 15px;
+  --button-font-size: 0.9rem;
+  --button-min-width: auto;
+}
+
+.book-actions.small {
+  --button-padding: 6px 10px;
+  --button-font-size: 0.8rem;
+}
+
+.book-actions.large {
+  --button-padding: 15px 20px;
+  --button-font-size: 1rem;
+  --button-min-width: 100px;
+}
+
+/* Loading state */
+.action-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #007bff;
+  font-size: var(--button-font-size);
+  padding: var(--button-padding);
+}
+
+/* Direction variations */
+.book-actions.vertical .action-button {
+  width: 100%;
 }
 
 /* Responsive design */
 @media (max-width: 768px) {
-  .movie-actions-container {
+  .book-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .action-button {
+    width: 100%;
     justify-content: center;
   }
   
-  .save-button,
-  .update-button,
-  .delete-button {
-    min-width: 100px;
-    font-size: 0.8rem;
-    padding: 6px 12px;
+  :root {
+    --button-padding: 12px 16px;
+    --button-font-size: 1rem;
   }
-}
-
-@media (max-width: 480px) {
-  .movie-actions-container {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .save-button,
-  .update-button,
-  .delete-button {
-    width: 100%;
-    min-width: auto;
-  }
-}
-
-/* Icon styles */
-.fas {
-  font-size: 0.9em;
-}
-
-/* Loading state */
-.save-button:disabled span,
-.update-button:disabled span,
-.delete-button:disabled span {
-  opacity: 0.8;
 }
 </style>

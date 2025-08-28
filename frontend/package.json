@@ -8,6 +8,7 @@
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
+    "@strudel/web": "latest",
     "@primevue/core": "^4.3.6",
     "@primevue/icons": "^4.3.6",
     "@primevue/themes": "^4.3.6",

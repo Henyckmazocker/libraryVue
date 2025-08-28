@@ -65,4 +65,24 @@ interface MovieRepositoryInterface
     public function updateUserMovieRating(int $userId, string $movieId, ?float $rating): void;
     
     public function getUserMovieStatuses(int $userId, string $movieId): array;
+
+    /**
+     * Edita los campos de user_movies para un usuario y película específica.
+     */
+    public function editUserMovie(int $userId, string $movieIsbn, ?float $personalRating = null, ?string $personalNotes = null, ?string $consumedAt = null): void;
+
+    /**
+     * Añade una nota a user_movie_notes para un usuario y película específica.
+     */
+    public function addUserMovieNote(int $userId, string $movieIsbn, string $noteText, string $noteType = 'note', bool $isPrivate = true): int;
+
+    /**
+     * Añade un tag personalizado para un usuario en user_movie_tags.
+     */
+    public function addUserMovieTag(int $userId, string $name, string $color = '#007bff'): int;
+
+    /**
+     * Asigna un tag a una película de usuario en user_movie_tag_assignments.
+     */
+    public function assignUserMovieTag(int $userId, string $movieIsbn, int $tagId): void;
 }

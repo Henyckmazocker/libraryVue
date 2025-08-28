@@ -18,10 +18,12 @@ use App\Domain\UseCases\Movies\AddMovieUseCase;
 use App\Domain\UseCases\Movies\DeleteMovieUseCase;
 use App\Domain\UseCases\Movies\GetMovieAllowedStatusesUseCase;
 use App\Domain\UseCases\Books\UpdateBookUserStatusesUseCase;
+use App\Domain\UseCases\Movies\EditUserMovieUseCase;
 use App\Domain\UseCases\GetLibraryItemsUseCase;
 use App\Domain\UseCases\Movies\GetMoviesUseCase;
 use App\Domain\UseCases\Movies\UpdateMovieUserStatusesUseCase;
 use App\Domain\UseCases\Movies\UpdateMovieRatingUseCase;
+use App\Domain\UseCases\Books\EditUserBookUseCase;
 use App\Domain\UseCases\Auth\LoginUserUseCase;
 use App\Infrastructure\Session\SessionManager;
 use App\Infrastructure\Middleware\AuthMiddleware;
@@ -113,7 +115,8 @@ class Application
         $deleteBookUseCase = new DeleteBookUseCase($this->bookRepository, $this->userRepository);
         $updateBookRatingUseCase = new UpdateBookRatingUseCase($this->bookRepository, $this->userRepository);
         $updateBookUserStatusesUseCase = new UpdateBookUserStatusesUseCase($this->bookRepository, $this->userRepository);
-        
+        $editUserBookUseCase = new EditUserBookUseCase($this->bookRepository);
+
         // Movie use cases
         $addMovieUseCase = new AddMovieUseCase($this->movieRepository, $this->userRepository);
         $getMoviesUseCase = new GetMoviesUseCase($this->movieRepository, $this->userRepository);
@@ -121,7 +124,8 @@ class Application
         $updateMovieRatingUseCase = new UpdateMovieRatingUseCase($this->movieRepository, $this->userRepository);
         $updateMovieUserStatusesUseCase = new UpdateMovieUserStatusesUseCase($this->movieRepository, $this->userRepository);
         $getMovieAllowedStatusesUseCase = new GetMovieAllowedStatusesUseCase($this->movieRepository);
-        
+        $editUserMovieUseCase = new EditUserMovieUseCase($this->movieRepository);
+
         // Library use cases
         $getLibraryUseCase = new GetLibraryUseCase($this->bookRepository);
         $getLibraryItemsUseCase = new GetLibraryItemsUseCase($getBooksUseCase, $getMoviesUseCase);
@@ -141,7 +145,8 @@ class Application
             $getBooksUseCase,
             $getAllBooksUseCase,
             $this->bookRepository,
-            $this->authMiddleware
+            $this->authMiddleware,
+            $editUserBookUseCase
         );
         
         $movieController = new MovieController(
@@ -151,7 +156,8 @@ class Application
             $updateMovieUserStatusesUseCase,
             $getMoviesUseCase,
             $getMovieAllowedStatusesUseCase,
-            $this->authMiddleware
+            $this->authMiddleware,
+            $editUserMovieUseCase,
         );
         
         $libraryController = new LibraryController(

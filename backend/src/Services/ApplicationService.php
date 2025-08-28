@@ -143,12 +143,14 @@ class ApplicationService
             } 
             elseif (str_starts_with($action, 'add_book') || str_starts_with($action, 'delete_book') || 
                     str_starts_with($action, 'update_book') || str_starts_with($action, 'get_book') ||
+                    str_starts_with($action, 'edit_user_book') ||
                     str_starts_with($action, 'get_library') && $action === 'get_library') {
                 $controller = $this->getBookController();
                 $controller->handleRequest($requestMethod, $requestUri);
             } 
             elseif (str_starts_with($action, 'add_movie') || str_starts_with($action, 'delete_movie') || 
-                    str_starts_with($action, 'update_movie') || str_starts_with($action, 'get_movie')) {
+                    str_starts_with($action, 'update_movie') || str_starts_with($action, 'get_movie') ||
+                    str_starts_with($action, 'edit_user_movie')) {
                 $controller = $this->getMovieController();
                 $controller->handleRequest($requestMethod, $requestUri);
             } 

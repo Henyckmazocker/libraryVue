@@ -8,9 +8,11 @@ use App\Domain\UseCases\Movies\UpdateMovieUserStatusesUseCase;
 use App\Domain\UseCases\Movies\GetMoviesUseCase;
 use App\Domain\UseCases\Movies\GetMovieAllowedStatusesUseCase;
 use App\Infrastructure\Middleware\AuthMiddleware;
+use App\Domain\UseCases\Movies\EditUserMovieUseCase;
 
 class MovieController extends BaseController implements Contracts\MovieControllerInterface
 {
+
     private AddMovieUseCase $addMovieUseCase;
     private DeleteMovieUseCase $deleteMovieUseCase;
     private UpdateMovieRatingUseCase $updateMovieRatingUseCase;
@@ -18,6 +20,7 @@ class MovieController extends BaseController implements Contracts\MovieControlle
     private GetMoviesUseCase $getMoviesUseCase;
     private GetMovieAllowedStatusesUseCase $getMovieAllowedStatusesUseCase;
     private AuthMiddleware $authMiddleware;
+    private EditUserMovieUseCase $editUserMovieUseCase;
 
     public function __construct(
         AddMovieUseCase $addMovieUseCase,
@@ -26,7 +29,8 @@ class MovieController extends BaseController implements Contracts\MovieControlle
         UpdateMovieUserStatusesUseCase $updateMovieUserStatusesUseCase,
         GetMoviesUseCase $getMoviesUseCase,
         GetMovieAllowedStatusesUseCase $getMovieAllowedStatusesUseCase,
-        AuthMiddleware $authMiddleware
+        AuthMiddleware $authMiddleware,
+        EditUserMovieUseCase $editUserMovieUseCase
     ) {
         $this->addMovieUseCase = $addMovieUseCase;
         $this->deleteMovieUseCase = $deleteMovieUseCase;
@@ -34,6 +38,7 @@ class MovieController extends BaseController implements Contracts\MovieControlle
         $this->updateMovieUserStatusesUseCase = $updateMovieUserStatusesUseCase;
         $this->getMoviesUseCase = $getMoviesUseCase;
         $this->getMovieAllowedStatusesUseCase = $getMovieAllowedStatusesUseCase;
+        $this->editUserMovieUseCase = $editUserMovieUseCase;
         $this->authMiddleware = $authMiddleware;
     }
 
@@ -99,6 +104,25 @@ class MovieController extends BaseController implements Contracts\MovieControlle
     }
 
     /**
+     * Modifica todos los aspectos de un user_movie: datos principales, tags y notas.
+     * @param string $movieIsbn
+     * @param int $userId
+     * @param array $data
+     * @param array $tags
+     * @param array $notes
+     * @return array
+     */
+    public function editUserMovie(string $movieIsbn, int $userId, array $data = [], array $tags = [], array $notes = []): array
+    {
+        if (empty($movieIsbn) || empty($userId)) {
+            throw new \InvalidArgumentException('movieIsbn y userId son requeridos para editar user_movie.');
+        }
+
+        $this->editUserMovieUseCase->execute($userId, $movieIsbn, $data, $tags, $notes);
+        return $this->successResponse('User movie actualizado correctamente.');
+    }
+
+    /**
      * Handle HTTP request for movie endpoints
      */
     public function handleRequest(string $method, string $path): void
@@ -136,11 +160,12 @@ class MovieController extends BaseController implements Contracts\MovieControlle
             
             $response = match ($action) {
                 'add_movie' => $this->addMovie($inputData['movie'] ?? [], $authResult['user']['id']),
-                'delete_movie' => $this->deleteMovie($inputData['id'] ?? 0, $authResult['user']['id']),
-                'update_movie_rating' => $this->updateMovieRating($inputData['id'] ?? 0, $inputData['rating'] ?? null, $authResult['user']['id']),
-                'update_movie_user_statuses' => $this->updateMovieUserStatuses($inputData['id'] ?? 0, $inputData['statuses'] ?? [], $authResult['user']['id']),
+                'delete_movie' => $this->deleteMovie($inputData['movieId'] ?? 0, $authResult['user']['id']),
+                'update_movie_rating' => $this->updateMovieRating($inputData['movieId'] ?? 0, $inputData['rating'] ?? null, $authResult['user']['id']),
+                'update_movie_user_statuses' => $this->updateMovieUserStatuses($inputData['movieId'] ?? 0, $inputData['statuses'] ?? [], $authResult['user']['id']),
                 'get_movie_allowed_statuses' => $this->getMovieAllowedStatuses(),
                 'get_movies' => $this->getMovies($authResult['user']['id']),
+                'edit_user_movie' => $this->editUserMovie($inputData['movieId'] ?? 0, $authResult['user']['id'], $inputData['data'] ?? [], $inputData['tags'] ?? [], $inputData['notes'] ?? []),
                 default => $this->errorResponse('Invalid movie action: ' . $action)
             };
             

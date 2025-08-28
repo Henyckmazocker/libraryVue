@@ -9,4 +9,5 @@ interface MovieControllerInterface
     public function updateMovieUserStatuses(string $movieId, array $statuses, int $userId);
     public function getMovieAllowedStatuses();
     public function getMovies(int $userId);
+    public function editUserMovie(string $movieId, int $userId, array $data = [], array $tags = [], array $notes = []): array;
 }

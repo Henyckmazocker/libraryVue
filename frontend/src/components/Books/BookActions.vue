@@ -11,7 +11,17 @@
       <i class="fas fa-save"></i>
       <span v-if="showLabels">{{ saveButtonLabel }}</span>
     </button>
-
+    <!-- Botón de editar que abre el popup -->
+    <button v-if="showEditButton" @click="openEditPopup" class="action-button edit-popup-button" :title="'Editar libro'">
+      <i class="fas fa-pencil-alt"></i>
+      <span v-if="showLabels">Editar</span>
+    </button>
+    <EditBookPopup
+      v-if="showEditPopup"
+      :item="item"
+      :allowed-statuses="allowedStatuses"
+      @close="closeEditPopup"
+    />
     <!-- Update button for existing books -->
     <button 
       v-if="showUpdateButton"
@@ -59,6 +69,8 @@
 
 <script setup>
 import { defineProps, defineEmits } from 'vue';
+import { ref } from 'vue';
+import EditBookPopup from './EditBookPopup.vue';
 
 // Props
 const props = defineProps({
@@ -68,6 +80,10 @@ const props = defineProps({
     required: true
   },
   
+  allowedStatuses: {
+    type: Array,
+    default: () => []
+  },
   // State flags
   isNew: {
     type: Boolean,
@@ -96,6 +112,10 @@ const props = defineProps({
     default: true
   },
   showDeleteButton: {
+    type: Boolean,
+    default: true
+  },
+  showEditButton: {
     type: Boolean,
     default: true
   },
@@ -164,7 +184,9 @@ const emit = defineEmits([
   'save', 
   'update', 
   'delete', 
-  'custom-action'
+  'custom-action',
+  'edit-popup',
+  'close'
 ]);
 
 // Methods
@@ -191,9 +213,80 @@ const handleCustomAction = (action) => {
     emit('custom-action', { action, item: props.item });
   }
 };
+// Estado y métodos para el popup de edición
+const showEditPopup = ref(false);
+const openEditPopup = () => {
+  showEditPopup.value = true;
+};
+const closeEditPopup = (updatedBook) => {
+  showEditPopup.value = false;
+  if (updatedBook) {
+    emit('close', updatedBook);
+  }
+};
 </script>
 
 <style scoped>
+/* Botón azul para guardar */
+.save-button {
+  background: none;
+  color: #fff;
+  padding: 8px 15px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-radius: 20px;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+  margin-top: 15px;
+  align-self: flex-start;
+  position: relative;
+  z-index: 1;
+}
+.save-button:disabled {
+  color: #888;
+  cursor: not-allowed;
+}
+
+.delete-button {
+  padding: 8px 15px; /* Adjusted padding */
+  font-size: 0.85rem; /* Adjusted font size */
+  font-weight: 500;
+  color: #ffffff;
+  background: none;
+  border: 1px solid #dc3545;
+  border-radius: 20px;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+  margin-top: 15px;
+  align-self: flex-start; /* Aligns button to the left in the flex column */
+}
+
+.delete-button:disabled {
+  color: #888;
+  cursor: not-allowed;
+}
+
+.edit-popup-button {
+  padding: 8px 15px; /* Adjusted padding */
+  font-size: 0.85rem; /* Adjusted font size */
+  font-weight: 500;
+  color: #ffffff;
+  background: none;
+  border-radius: 20px;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+  margin-top: 15px;
+  align-self: flex-start; /* Aligns button to the left in the flex column */
+}
+
+.edit-popup-button:disabled {
+  color: #888;
+  cursor: not-allowed;
+}
+
 .book-actions {
   display: flex;
   gap: 10px;
@@ -230,40 +323,24 @@ const handleCustomAction = (action) => {
 }
 
 /* Button types */
+
+.edit-popup-button {
+  color: white;
+}
+
 .save-button {
-  background: linear-gradient(135deg, #28a745, #20c997);
   color: white;
 }
-
-.save-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #20c997, #17a2b8);
-}
-
 .update-button {
-  background: linear-gradient(135deg, #007bff, #0056b3);
   color: white;
-}
-
-.update-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #0056b3, #004085);
 }
 
 .delete-button {
-  background: linear-gradient(135deg, #dc3545, #c82333);
   color: white;
-}
-
-.delete-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #c82333, #bd2130);
 }
 
 .custom-button {
-  background: linear-gradient(135deg, #6c757d, #5a6268);
   color: white;
-}
-
-.custom-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #5a6268, #495057);
 }
 
 /* Size variations */

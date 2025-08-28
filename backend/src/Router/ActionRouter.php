@@ -79,6 +79,11 @@ class ActionRouter
                     if ($authResult['status'] === 'error') return $authResult;
                     return $this->bookController->getBooks($authResult['user']['id']);
 
+                case 'edit_user_book': 
+                    $authResult = $this->authMiddleware->requireAuthAndCSRF($inputData['csrf_token'] ?? null);
+                    if ($authResult['status'] === 'error') return $authResult;
+                    return $this->bookController->editUserBook($inputData['isbn'] ?? '', $authResult['user']['id'], $inputData['data'] ?? [], $inputData['tags'] ?? [], $inputData['notes'] ?? []);
+
                 // MOVIES
                 case 'add_movie':
                     $authResult = $this->authMiddleware->requireAuthAndCSRF($inputData['csrf_token'] ?? null);

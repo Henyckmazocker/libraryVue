@@ -615,5 +615,114 @@ class MySqlMovieRepository implements MovieRepositoryInterface
             throw new RuntimeException("Could not get user movie statuses. DB Error: " . $e->getMessage(), 0, $e);
         }
     }
+    /**
+     * Añade una nota a user_movie_notes para un usuario y película específica.
+     */
+    public function addUserMovieNote(int $userId, string $movieIsbn, string $noteText, string $noteType = 'note', bool $isPrivate = true): int
+    {
+        $sql = 'INSERT INTO user_movie_notes (user_id, movie_isbn, note_text, note_type, is_private) VALUES (:userId, :movieIsbn, :noteText, :noteType, :isPrivate)';
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
+            $stmt->bindValue(':movieIsbn', $movieIsbn);
+            $stmt->bindValue(':noteText', $noteText);
+            $stmt->bindValue(':noteType', $noteType);
+            $stmt->bindValue(':isPrivate', $isPrivate ? 1 : 0, PDO::PARAM_INT);
+            $stmt->execute();
+            return (int)$this->db->lastInsertId();
+        } catch (\PDOException $e) {
+            $this->logError('DB Error añadiendo nota a user_movie_notes', $e, ['userId' => $userId, 'movieIsbn' => $movieIsbn]);
+            throw new \RuntimeException('No se pudo añadir la nota. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    /**
+     * Añade un tag personalizado para un usuario en user_movie_tags.
+     * Devuelve el id del tag creado o existente.
+     */
+    public function addUserMovieTag(int $userId, string $name, string $color = '#007bff'): int
+    {
+        $sql = 'INSERT INTO user_movie_tags (user_id, name, color) VALUES (:userId, :name, :color)';
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
+            $stmt->bindValue(':name', $name);
+            $stmt->bindValue(':color', $color);
+            $stmt->execute();
+            return (int)$this->db->lastInsertId();
+        } catch (\PDOException $e) {
+            // Si el tag ya existe, obtenemos su id
+            if ($e->getCode() === '23000') { // Duplicate entry
+                $stmt = $this->db->prepare('SELECT id FROM user_movie_tags WHERE user_id = :userId AND name = :name');
+                $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
+                $stmt->bindValue(':name', $name);
+                $stmt->execute();
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($row) return (int)$row['id'];
+            }
+            $this->logError('DB Error añadiendo tag a user_movie_tags', $e, ['userId' => $userId, 'name' => $name]);
+            throw new \RuntimeException('No se pudo añadir el tag. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    /**
+     * Asigna un tag a una película de usuario en user_movie_tag_assignments.
+     */
+    public function assignUserMovieTag(int $userId, string $movieIsbn, int $tagId): void
+    {
+        $sql = 'INSERT INTO user_movie_tag_assignments (user_id, movie_isbn, tag_id) VALUES (:userId, :movieIsbn, :tagId)';
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
+            $stmt->bindValue(':movieIsbn', $movieIsbn);
+            $stmt->bindValue(':tagId', $tagId, PDO::PARAM_INT);
+            $stmt->execute();
+        } catch (\PDOException $e) {
+            if ($e->getCode() === '23000') {
+                // Ya asignado, no hacemos nada
+                return;
+            }
+            $this->logError('DB Error asignando tag a user_movie_tag_assignments', $e, ['userId' => $userId, 'movieIsbn' => $movieIsbn, 'tagId' => $tagId]);
+            throw new \RuntimeException('No se pudo asignar el tag. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+    /**
+     * Edita los campos de user_movies para un usuario y película específica.
+     * Solo actualiza los campos que se pasan (null no modifica ese campo).
+     */
+    public function editUserMovie(int $userId, string $movieIsbn, ?float $personalRating = null, ?string $personalNotes = null, ?string $consumedAt = null): void
+    {
+        $fields = [];
+        $params = [':userId' => $userId, ':movieIsbn' => $movieIsbn];
+        if ($personalRating !== null) {
+            $fields[] = 'personal_rating = :personalRating';
+            $params[':personalRating'] = $personalRating;
+        }
+        if ($personalNotes !== null) {
+            $fields[] = 'personal_notes = :personalNotes';
+            $params[':personalNotes'] = $personalNotes;
+        }
+        if ($consumedAt !== null) {
+            $fields[] = 'consumed_at = :consumedAt';
+            $params[':consumedAt'] = $consumedAt;
+        }
+        if (empty($fields)) {
+            throw new \InvalidArgumentException('No hay campos para actualizar');
+        }
+        $sql = 'UPDATE user_movies SET ' . implode(', ', $fields) . ' WHERE user_id = :userId AND movie_isbn = :movieIsbn';
+        try {
+            $stmt = $this->db->prepare($sql);
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
+            $stmt->execute();
+            if ($stmt->rowCount() === 0) {
+                throw new \RuntimeException('No se encontró relación user-movie para editar');
+            }
+        } catch (\PDOException $e) {
+            $this->logError('DB Error editando user_movies', $e, ['userId' => $userId, 'movieIsbn' => $movieIsbn]);
+            throw new \RuntimeException('No se pudo editar user_movies. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
 }
 

@@ -128,7 +128,7 @@ export function useMovies() {
       
       const movieData = {
         id: movie.tmdbId,
-        tmdbId: movie.tmdbId,
+        movieId: movie.tmdbId,
         title: movie.title,
         originalTitle: movie.originalTitle || '',
         director: movie.director || '',
@@ -136,18 +136,11 @@ export function useMovies() {
         genre: movie.genre || '',
         duration: movie.duration || 0,
         synopsis: movie.synopsis || '',
-        posterUrl: movie.posterUrl || '',
+        coverUrl: movie.posterUrl || '',
         userStatuses: statuses,
-        // Include user rating if present
         rating: movie.user_rating || null
       };
-
-      // El backend espera los datos de la película en la propiedad 'movie'
-      const payload = {
-        movie: movieData
-      };
-
-      const response = await authenticatedApiCall('add_movie', payload);
+      const response = await authenticatedApiCall('add_movie', { movie: movieData });
 
       if (response.data.status === 'success') {
         // Agregar la película a la lista local con los datos actualizados
@@ -185,7 +178,7 @@ export function useMovies() {
       Logger.debug('[useMovies] Deleting movie:', tmdbId);
       
       const response = await authenticatedApiCall('delete_movie', {
-        tmdbId: tmdbId,
+        movieId: tmdbId,
         itemType: 'movie'
       });
 
@@ -216,7 +209,7 @@ export function useMovies() {
       Logger.debug(`[useMovies] Updating movie rating: ${tmdbId} -> ${rating}`);
       
       const response = await authenticatedApiCall('update_movie_rating', {
-        tmdbId: tmdbId,
+        movieId: tmdbId,
         rating: rating
       });
 
@@ -248,7 +241,7 @@ export function useMovies() {
       Logger.debug(`[useMovies] Updating movie statuses: ${tmdbId}`, statuses);
       
       const response = await authenticatedApiCall('update_movie_user_statuses', {
-        tmdbId: tmdbId,
+        movieId: tmdbId,
         statuses: statuses
       });
 
@@ -291,6 +284,43 @@ export function useMovies() {
       Logger.error('[useMovies] Error fetching allowed statuses:', err);
       allowedStatuses.value = [];
       return [];
+    }
+  };
+
+  /**
+   * Edita todos los aspectos de un user_movie (datos, tags, notas)
+   * @param {string} tmdbId
+   * @param {number} userId
+   * @param {object} data
+   * @param {Array} tags
+   * @param {Array} notes
+   */
+  const editUserMovie = async (tmdbId, userId, data = {}, tags = [], notes = []) => {
+    try {
+      Logger.debug('[useMovies] Editando user_movie:', { tmdbId, userId, data, tags, notes });
+      const response = await authenticatedApiCall('edit_user_movie', {
+        movieId: tmdbId,
+        userId,
+        data,
+        tags,
+        notes
+      });
+      if (response.data.status === 'success') {
+        // Actualizar datos locales si es necesario
+        const movie = movies.value.find(m => m.tmdbId === tmdbId);
+        if (movie) {
+          if (data.personalRating !== undefined) movie.user_rating = data.personalRating;
+          // Puedes actualizar más campos aquí si tu UI los soporta
+        }
+        Logger.debug('[useMovies] User movie editado correctamente');
+        return { success: true };
+      } else {
+        throw new Error(response.data.message || 'Error al editar user_movie');
+      }
+    } catch (err) {
+      error.value = err.message || 'Error al editar user_movie';
+      Logger.error('[useMovies] Error editando user_movie:', err);
+      return { success: false, message: err.message };
     }
   };
 
@@ -395,6 +425,7 @@ export function useMovies() {
     updateMovieRating,
     updateMovieStatuses,
     fetchAllowedStatuses,
+    editUserMovie,
 
     // Métodos de utilidad
     findMovieByTMDBId,

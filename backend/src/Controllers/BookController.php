@@ -9,9 +9,11 @@ use App\Domain\UseCases\Books\GetBooksUseCase;
 use App\Domain\UseCases\Books\GetAllBooksUseCase;
 use App\Domain\Repository\BookRepositoryInterface;
 use App\Infrastructure\Middleware\AuthMiddleware;
+use App\Domain\UseCases\Books\EditUserBookUseCase;
 
 class BookController extends BaseController implements Contracts\BookControllerInterface
 {
+
     private AddBookUseCase $addBookUseCase;
     private DeleteBookUseCase $deleteBookUseCase;
     private UpdateBookRatingUseCase $updateBookRatingUseCase;
@@ -20,6 +22,7 @@ class BookController extends BaseController implements Contracts\BookControllerI
     private GetAllBooksUseCase $getAllBooksUseCase;
     private BookRepositoryInterface $bookRepository;
     private AuthMiddleware $authMiddleware;
+    private EditUserBookUseCase $editUserBookUseCase;
 
     public function __construct(
         AddBookUseCase $addBookUseCase,
@@ -29,7 +32,8 @@ class BookController extends BaseController implements Contracts\BookControllerI
         GetBooksUseCase $getBooksUseCase,
         GetAllBooksUseCase $getAllBooksUseCase,
         BookRepositoryInterface $bookRepository,
-        AuthMiddleware $authMiddleware
+        AuthMiddleware $authMiddleware,
+        EditUserBookUseCase $editUserBookUseCase
     ) {
         $this->addBookUseCase = $addBookUseCase;
         $this->deleteBookUseCase = $deleteBookUseCase;
@@ -39,6 +43,7 @@ class BookController extends BaseController implements Contracts\BookControllerI
         $this->getAllBooksUseCase = $getAllBooksUseCase;
         $this->bookRepository = $bookRepository;
         $this->authMiddleware = $authMiddleware;
+        $this->editUserBookUseCase = $editUserBookUseCase;
     }
 
     public function addBook(array $bookData, int $userId): array
@@ -115,6 +120,26 @@ class BookController extends BaseController implements Contracts\BookControllerI
     }
 
     /**
+     * Modifica todos los aspectos de un user_book: datos principales, tags y notas por página.
+     * @param string $isbn
+     * @param int $userId
+     * @param array $data
+     * @param array $tags
+     * @param array $notes
+     * @return array
+     */
+    public function editUserBook(string $isbn, int $userId, array $data = [], array $tags = [], array $notes = []): array
+    {
+        // Validación básica
+        if (empty($isbn) || empty($userId)) {
+            throw new \InvalidArgumentException('ISBN y userId son requeridos para editar user_book.');
+        }
+
+        $this->editUserBookUseCase->execute($userId, $isbn, $data, $tags, $notes);
+        return $this->successResponse('User book actualizado correctamente.');
+    }
+
+    /**
      * Handle HTTP request for book endpoints
      */
     public function handleRequest(string $method, string $path): void
@@ -125,7 +150,7 @@ class BookController extends BaseController implements Contracts\BookControllerI
             
             // Handle authentication for actions that require it
             $authResult = null;
-            $authRequiredActions = ['add_book', 'delete_book', 'update_book_rating', 'update_book_user_statuses', 'get_library'];
+            $authRequiredActions = ['add_book', 'delete_book', 'update_book_rating', 'update_book_user_statuses', 'get_library', 'edit_user_book'];
             
             if (in_array($action, $authRequiredActions)) {
                 $authResult = $this->authMiddleware->requireAuth();
@@ -137,7 +162,7 @@ class BookController extends BaseController implements Contracts\BookControllerI
                 }
                 
                 // Check CSRF for modifying actions
-                $csrfRequiredActions = ['add_book', 'delete_book', 'update_book_rating', 'update_book_user_statuses'];
+                $csrfRequiredActions = ['add_book', 'delete_book', 'update_book_rating', 'update_book_user_statuses', 'edit_user_book'];
                 if (in_array($action, $csrfRequiredActions)) {
                     $csrfResult = $this->authMiddleware->requireAuthAndCSRF($inputData['csrf_token'] ?? null);
                     if ($csrfResult['status'] === 'error') {
@@ -158,6 +183,7 @@ class BookController extends BaseController implements Contracts\BookControllerI
                 'get_book_allowed_statuses' => $this->getBookAllowedStatuses(),
                 'get_books' => $this->getAllBooks(),
                 'get_library' => $this->getBooks($authResult['user']['id']),
+                'edit_user_book' => $this->editUserBook($inputData['isbn'] ?? '', $authResult['user']['id'], $inputData['data'] ?? [], $inputData['tags'] ?? [], $inputData['notes'] ?? []),
                 default => $this->errorResponse('Invalid book action: ' . $action)
             };
             

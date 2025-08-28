@@ -37,7 +37,13 @@
         :show-delete-button="false"
         save-button-text="Guardar en mi colección"
         @save="onSaveMovie"
+        @delete="onDeleteMovie"
       />
+
+      <!-- Mensajes de operación -->
+      <div v-if="movieMessage" :class="['movie-message', movieMessageStatus]" style="margin-top: 16px;">
+        <p>{{ movieMessage }}</p>
+      </div>
     </div>
   </div>
 </template>
@@ -85,7 +91,26 @@ const onUpdateRating = (newRating) => {
   currentMovie.value.user_rating = newRating;
 };
 
+const movieMessage = ref("");
+const movieMessageStatus = ref(""); // 'success' o 'error'
+
+const onDeleteMovie = async () => {
+  movieMessage.value = "";
+  movieMessageStatus.value = "";
+  try {
+    await moviesComposable.deleteMovie(currentMovie.value.imdbID);
+    movieMessage.value = 'Película eliminada correctamente de tu colección.';
+    movieMessageStatus.value = 'success';
+  } catch (error) {
+    Logger.error('Error al eliminar película:', error);
+    movieMessage.value = 'No se pudo eliminar la película del backend.';
+    movieMessageStatus.value = 'error';
+  }
+};
+
 const onSaveMovie = async () => {
+  movieMessage.value = "";
+  movieMessageStatus.value = "";
   try {
     const movieData = {
       tmdbId: currentMovie.value.imdbID, // Usar tmdbId como espera el composable
@@ -100,20 +125,42 @@ const onSaveMovie = async () => {
       user_rating: currentMovie.value.user_rating // Include user rating
     };
 
-    const success = await moviesComposable.addMovie(movieData, selectedUserStatuses.value);
-    if (success) {
-      alert('Película guardada correctamente en tu colección.');
+    const result = await moviesComposable.addMovie(movieData, selectedUserStatuses.value);
+    if (result && result.success) {
+      movieMessage.value = 'Película guardada correctamente en tu colección.';
+      movieMessageStatus.value = 'success';
     } else {
-      alert('Error al guardar la película.');
+      movieMessage.value = result && result.message ? result.message : 'Error al guardar la película.';
+      movieMessageStatus.value = 'error';
     }
   } catch (error) {
     Logger.error('Error al guardar película:', error);
-    alert('No se pudo guardar la película en el backend.');
+    movieMessage.value = 'No se pudo guardar la película en el backend.';
+    movieMessageStatus.value = 'error';
   }
 };
 </script>
 
 <style>
+/* Mensajes de operación para MovieDisplay */
+.movie-message {
+  padding: 10px 16px;
+  border-radius: 8px;
+  margin-top: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: left;
+}
+.movie-message.success {
+  background: #1e7e34;
+  color: #fff;
+  border: 1px solid #155724;
+}
+.movie-message.error {
+  background: #721c24;
+  color: #fff;
+  border: 1px solid #f5c6cb;
+}
 .movie-result {
   display: flex;
   gap: 24px;

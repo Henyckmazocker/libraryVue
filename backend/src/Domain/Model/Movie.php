@@ -48,14 +48,14 @@ class Movie
 
     public static function fromArray(array $data, array $allowedStatuses = []): self
     {
-        if (empty($data['id']) || empty($data['title'])) {
+        if ((empty($data['id']) && empty($data['isbn'])) || empty($data['title'])) {
             throw new InvalidArgumentException('ID and title are required for a movie.');
         }
         if (empty($data['userStatuses']) || !is_array($data['userStatuses'])) {
             throw new InvalidArgumentException('User statuses are required and must be an array.');
         }
         return new self(
-            $data['id'],
+            empty($data['id']) ? $data['isbn'] : $data['id'],
             $data['title'],
             $data['originalTitle'] ?? null,
             $data['director'] ?? null,

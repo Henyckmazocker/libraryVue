@@ -9,4 +9,6 @@ interface BookControllerInterface
     public function updateBookUserStatuses(string $isbn, array $statuses, int $userId);
     public function getBookAllowedStatuses();
     public function getBooks(int $userId);
+    public function getAllBooks();
+    public function editUserBook(string $isbn, int $userId, array $data, array $tags = [], array $notes = []);
 }

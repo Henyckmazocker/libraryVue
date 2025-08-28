@@ -14,7 +14,7 @@
         
         <!-- Rating Component -->
         <RatingComponent
-          :rating="movie.user_rating"
+          :rating="rating"
           :editable="editable"
           @rating-changed="onRatingChange"
         />
@@ -36,8 +36,11 @@
           :can-save="canSave"
           :can-delete="canDelete"
           :show-update-button="false"
+          :show-edit-button="true"
           @save="onSaveMovie"
           @delete="onDeleteMovie"
+          :allowed-statuses="allowedUserStatuses"
+          @close="handleMovieEditClose"
         />
       </div>
     </div>
@@ -81,6 +84,7 @@ const getInitialStatuses = () => {
 };
 
 const selectedUserStatuses = ref(getInitialStatuses());
+const rating = ref(props.movie.user_rating);
 
 // Computed properties
 const canSave = computed(() => {
@@ -121,6 +125,16 @@ const onSaveMovie = () => {
 const onDeleteMovie = () => {
   Logger.debug('Deleting movie:', props.movie.imdbID);
   emit('delete-movie', { isbn: props.movie.imdbID, imdbID: props.movie.imdbID, itemType: 'movie' });
+};
+
+
+
+const handleMovieEditClose = (updatedMovie) => {
+  const id = updatedMovie?.imdbID || updatedMovie?.tmdbId;
+  if (id) {
+      selectedUserStatuses.value = updatedMovie.userStatuses;
+      rating.value = updatedMovie.user_rating;
+  }
 };
 
 // Mantener sincronía solo si cambia el IMDb ID (nueva película)

@@ -232,6 +232,14 @@ const handleDeleteBook = async (payload) => {
     
     if (result.success) {
       setStatus(`${itemType === 'movie' ? 'Movie' : 'Book'} deleted successfully.`, "success");
+      // Eliminar del array local
+      if (itemType === 'movie') {
+        const idx = moviesComposable.movies.value.findIndex(m => m.imdbID === (imdbID || isbn));
+        if (idx !== -1) moviesComposable.movies.value.splice(idx, 1);
+      } else {
+        const idx = booksComposable.books.value.findIndex(b => b.isbn === isbn);
+        if (idx !== -1) booksComposable.books.value.splice(idx, 1);
+      }
     } else {
       setStatus(result.message || `Failed to delete ${itemType === 'movie' ? 'movie' : 'book'}.`, "error");
     }

@@ -41,4 +41,12 @@ interface BookRepositoryInterface
     public function updateUserBookRating(int $userId, string $isbn, ?float $rating): void;
     
     public function getUserBookStatuses(int $userId, string $isbn): array;
+
+    public function editUserBook(int $userId, string $isbn, ?int $currentPage = null, ?float $personalRating = null, ?string $personalNotes = null, ?string $consumedAt = null): void;
+
+    public function addUserBookNote(int $userId, string $isbn, int $pageNumber, string $noteText, string $noteType = 'note', bool $isPrivate = true): int;
+
+    public function addUserBookTag(int $userId, string $name, string $color = '#007bff'): int;
+
+    public function assignUserBookTag(int $userId, string $isbn, int $tagId): void;
 }

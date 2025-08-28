@@ -17,7 +17,7 @@
         
         <!-- Rating Component -->
         <RatingComponent
-          :rating="book.user_rating"
+          :rating="rating"
           :editable="editable"
           @rating-changed="onRatingChange"
         />
@@ -38,9 +38,12 @@
           :is-new="!book.userStatuses || book.userStatuses.length === 0"
           :can-save="canSave"
           :can-delete="canDelete"
+          :show-edit-button="true"
           :show-update-button="false"
           @save="onSaveBook"
           @delete="onDeleteBook"
+          :allowed-statuses="allowedUserStatuses"
+          @close="handleBookEditClose"
         />
       </div>
     </div>
@@ -84,6 +87,7 @@ const getInitialStatuses = () => {
 };
 
 const selectedUserStatuses = ref(getInitialStatuses());
+const rating = ref(props.book.user_rating);
 
 // Computed properties
 const canSave = computed(() => {
@@ -121,6 +125,15 @@ const onSaveBook = () => {
   }
 };
 
+// Actualiza el objeto local al recibir el emit 'close' desde BookActions o MovieActions
+const handleBookEditClose = (updatedBook) => {
+  console.log("Libro editado:", updatedBook);
+  if (updatedBook && updatedBook.isbn) {
+    selectedUserStatuses.value = updatedBook.userStatuses;
+    rating.value = updatedBook.user_rating;
+  }
+};
+
 const onDeleteBook = () => {
   Logger.debug('Deleting book:', props.book.isbn);
   emit('delete-book', { isbn: props.book.isbn, itemType: 'book' });
@@ -135,33 +148,7 @@ watch(() => props.book.isbn, (newIsbn, oldIsbn) => {
 </script>
 
 <style>
-/* Botón azul para guardar */
-.save-button {
-  background-color: #007bff;
-  border-color: #007bff;
-  color: #fff;
-  padding: 8px 15px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  border-radius: 20px;
-  cursor: pointer;
-  outline: none;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
-  margin-top: 15px;
-  align-self: flex-start;
-  position: relative;
-  z-index: 1;
-}
-.save-button:hover {
-  background-color: #0056b3;
-  border-color: #0056b3;
-}
-.save-button:disabled {
-  background-color: #555;
-  border-color: #444;
-  color: #888;
-  cursor: not-allowed;
-}
+
 
 .library-book-item-container {
   padding: 12px; /* Reducido de 20px */
@@ -260,99 +247,5 @@ watch(() => props.book.isbn, (newIsbn, oldIsbn) => {
   font-size: 0.9em;
   color: #ccc;
   margin-bottom: 5px;
-}
-
-.stars-input {
-  display: flex;
-  /* cursor: pointer; // Moved to individual star-half elements */
-}
-
-.star-container {
-  position: relative;
-  display: inline-block; /* Each container is one star unit */
-  width: 1em;  /* Relative to its own font-size */
-  height: 1em; /* Relative to its own font-size */
-  font-size: 1.8em; /* This defines the actual size of the star symbol */
-  line-height: 1;
-  margin-right: 3px; /* Spacing between star units */
-}
-
-.star-half {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%; /* Takes full width of star-container */
-  height: 100%; /* Takes full height of star-container */
-  line-height: 1; /* Vertically centers the ★ character */
-  text-align: center; /* Horizontally centers the ★ character */
-  color: #555; /* Default empty star color for the ★ character */
-  transition: color 0.2s ease-in-out;
-  cursor: pointer;
-  -webkit-font-smoothing: antialiased; /* Optional: for better text rendering */
-  -moz-osx-font-smoothing: grayscale; /* Optional: for better text rendering */
-}
-
-.star-half.left-half {
-  clip-path: polygon(0% 0%, 50% 0%, 50% 100%, 0% 100%);
-}
-
-.star-half.right-half {
-  clip-path: polygon(50% 0%, 100% 0%, 100% 100%, 50% 100%);
-}
-
-.star-half.filled {
-  color: #f5c518; /* IMDb yellow for filled stars */
-}
-
-.star-half.hovered {
-  color: #f5b508; /* Slightly different for hover to show intent */
-}
-
-.user-statuses-section {
-  margin-top: 10px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.user-status-chip {
-  background-color: #444;
-  color: #e0e0e0;
-  padding: 6px 12px;
-  border-radius: 12px;
-  font-size: 0.85rem;
-  white-space: nowrap;
-}
-
-.user-status-none {
-  color: #888;
-  font-size: 0.85rem;
-  padding: 6px 12px;
-  border-radius: 12px;
-  background-color: #333;
-}
-
-.delete-button {
-  padding: 8px 15px; /* Adjusted padding */
-  font-size: 0.85rem; /* Adjusted font size */
-  font-weight: 500;
-  color: #ffffff;
-  background-color: #dc3545;
-  border: 1px solid #dc3545;
-  border-radius: 20px;
-  cursor: pointer;
-  outline: none;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
-  margin-top: 15px;
-  align-self: flex-start; /* Aligns button to the left in the flex column */
-}
-
-.delete-button:hover {
-  background-color: #c82333;
-  border-color: #bd2130;
-}
-/* Fix para panel de PrimeVue que queda detrás de otros elementos */
-.p-multiselect-panel {
-  z-index: 1002 !important;
 }
 </style>

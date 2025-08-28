@@ -543,4 +543,117 @@ class MySqlBookRepository implements BookRepositoryInterface
             throw new RuntimeException("Could not get user book statuses. DB Error: " . $e->getMessage(), 0, $e);
         }
     }
+    /**
+     * Edita los campos de user_books para un usuario y libro específico.
+     * Solo actualiza los campos que se pasan (null no modifica ese campo).
+     */
+    public function editUserBook(int $userId, string $isbn, ?int $currentPage = null, ?float $personalRating = null, ?string $personalNotes = null, ?string $consumedAt = null): void
+    {
+        $fields = [];
+        $params = [':userId' => $userId, ':isbn' => $isbn];
+        if ($currentPage !== null) {
+            $fields[] = 'current_page = :currentPage';
+            $params[':currentPage'] = $currentPage;
+        }
+        if ($personalRating !== null) {
+            $fields[] = 'personal_rating = :personalRating';
+            $params[':personalRating'] = $personalRating;
+        }
+        if ($personalNotes !== null) {
+            $fields[] = 'personal_notes = :personalNotes';
+            $params[':personalNotes'] = $personalNotes;
+        }
+        if ($consumedAt !== null) {
+            $fields[] = 'consumed_at = :consumedAt';
+            $params[':consumedAt'] = $consumedAt;
+        }
+        if (empty($fields)) {
+            throw new \InvalidArgumentException('No hay campos para actualizar');
+        }
+        $sql = 'UPDATE user_books SET ' . implode(', ', $fields) . ' WHERE user_id = :userId AND book_isbn = :isbn';
+        try {
+            $stmt = $this->db->prepare($sql);
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
+            $stmt->execute();
+            if ($stmt->rowCount() === 0) {
+                throw new \RuntimeException('No se encontró relación user-book para editar');
+            }
+        } catch (\PDOException $e) {
+            $this->logError('DB Error editando user_books', $e, ['userId' => $userId, 'isbn' => $isbn]);
+            throw new \RuntimeException('No se pudo editar user_books. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+    /**
+     * Añade una nota a user_book_notes para un usuario y libro específico.
+     */
+    public function addUserBookNote(int $userId, string $isbn, int $pageNumber, string $noteText, string $noteType = 'note', bool $isPrivate = true): int
+    {
+        $sql = 'INSERT INTO user_book_notes (user_id, book_isbn, page_number, note_text, note_type, is_private) VALUES (:userId, :isbn, :pageNumber, :noteText, :noteType, :isPrivate)';
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
+            $stmt->bindValue(':isbn', $isbn);
+            $stmt->bindValue(':pageNumber', $pageNumber, PDO::PARAM_INT);
+            $stmt->bindValue(':noteText', $noteText);
+            $stmt->bindValue(':noteType', $noteType);
+            $stmt->bindValue(':isPrivate', $isPrivate ? 1 : 0, PDO::PARAM_INT);
+            $stmt->execute();
+            return (int)$this->db->lastInsertId();
+        } catch (\PDOException $e) {
+            $this->logError('DB Error añadiendo nota a user_book_notes', $e, ['userId' => $userId, 'isbn' => $isbn]);
+            throw new \RuntimeException('No se pudo añadir la nota. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+    /**
+     * Añade un tag personalizado para un usuario en user_book_tags.
+     * Devuelve el id del tag creado o existente.
+     */
+    public function addUserBookTag(int $userId, string $name, string $color = '#007bff'): int
+    {
+        $sql = 'INSERT INTO user_book_tags (user_id, name, color) VALUES (:userId, :name, :color)';
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
+            $stmt->bindValue(':name', $name);
+            $stmt->bindValue(':color', $color);
+            $stmt->execute();
+            return (int)$this->db->lastInsertId();
+        } catch (\PDOException $e) {
+            // Si el tag ya existe, obtenemos su id
+            if ($e->getCode() === '23000') { // Duplicate entry
+                $stmt = $this->db->prepare('SELECT id FROM user_book_tags WHERE user_id = :userId AND name = :name');
+                $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
+                $stmt->bindValue(':name', $name);
+                $stmt->execute();
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($row) return (int)$row['id'];
+            }
+            $this->logError('DB Error añadiendo tag a user_book_tags', $e, ['userId' => $userId, 'name' => $name]);
+            throw new \RuntimeException('No se pudo añadir el tag. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    /**
+     * Asigna un tag a un libro de usuario en user_book_tag_assignments.
+     */
+    public function assignUserBookTag(int $userId, string $isbn, int $tagId): void
+    {
+        $sql = 'INSERT INTO user_book_tag_assignments (user_id, book_isbn, tag_id) VALUES (:userId, :isbn, :tagId)';
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
+            $stmt->bindValue(':isbn', $isbn);
+            $stmt->bindValue(':tagId', $tagId, PDO::PARAM_INT);
+            $stmt->execute();
+        } catch (\PDOException $e) {
+            if ($e->getCode() === '23000') {
+                // Ya asignado, no hacemos nada
+                return;
+            }
+            $this->logError('DB Error asignando tag a user_book_tag_assignments', $e, ['userId' => $userId, 'isbn' => $isbn, 'tagId' => $tagId]);
+            throw new \RuntimeException('No se pudo asignar el tag. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
 }

@@ -320,6 +320,37 @@ export function useBooks() {
     }
   };
 
+    /**
+   * Edita todos los aspectos de un user_book (datos, tags, notas)
+   * @param {string} isbn
+   * @param {number} userId
+   * @param {object} data
+   * @param {Array} tags
+   * @param {Array} notes
+   */
+  const editUserBook = async (isbn, userId, data = {}, tags = [], notes = []) => {
+    try {
+      Logger.debug('[useBooks] Editando user_book:', { isbn, userId, data, tags, notes });
+      const response = await authenticatedApiCall('edit_user_book', {
+        isbn,
+        userId,
+        data,
+        tags,
+        notes
+      });
+      if (response.data.status === 'success') {
+        Logger.debug('[useBooks] User book editado correctamente');
+        return { success: true };
+      } else {
+        throw new Error(response.data.message || 'Error al editar user_book');
+      }
+    } catch (err) {
+      error.value = err.message || 'Error al editar user_book';
+      Logger.error('[useBooks] Error editando user_book:', err);
+      return { success: false, message: err.message };
+    }
+  };
+
   /**
    * Busca un libro específico por ISBN
    * @param {string} isbn - ISBN del libro
@@ -409,6 +440,7 @@ export function useBooks() {
     fetchBooks,
     searchBooks,
     addBook,
+    editUserBook, 
     deleteBook,
     updateBookRating,
     updateBookStatuses,

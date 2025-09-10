@@ -34,7 +34,7 @@ class GetBooksUseCase
 
         // Get books for this specific user
         $books = $this->bookRepository->findBooksByUser((int)$userId, $filters);
-        
+
         // Convert to array format if needed
         return array_map(function($book) {
             return is_object($book) && method_exists($book, 'toArray') ? $book->toArray() : $book;

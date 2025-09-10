@@ -42,4 +42,12 @@ interface UserRepositoryInterface
     public function hasUserBook(int $userId, string $isbn): bool;
     
     public function hasUserMovie(int $userId, string $movieId): bool;
+
+    public function addUserMovie(
+        int $userId,
+        string $movieIsbn,
+        ?float $personalRating = null,
+        ?string $personalNotes = null,
+        ?string $consumedAt = null
+    ): void;
 }

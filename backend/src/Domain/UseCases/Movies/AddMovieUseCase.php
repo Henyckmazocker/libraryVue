@@ -66,10 +66,9 @@ class AddMovieUseCase
                     'rating' => isset($movieData['rating']) && is_numeric($movieData['rating']) ? (float)$movieData['rating'] : null,
                     'description' => $movieData['description'] ?? null,
                     'userStatuses' => $movieData['userStatuses'],
-                    'addedTimestamp' => $movieData['addedTimestamp'] ?? time()
-                ],
-                    $movieData['allowedStatuses'] ?? []
-                );
+                    'addedTimestamp' => $movieData['addedTimestamp'] ?? time(),
+                    'allowedStatuses' => $movieData['allowedStatuses'] ?? []
+                ]);
             } catch (\InvalidArgumentException $e) {
                 throw new InvalidArgumentException('Invalid movie data: ' . $e->getMessage());
             }
@@ -78,7 +77,9 @@ class AddMovieUseCase
             $this->movieRepository->save($movie);
         } else {
             // Movie exists, we need to convert the array to Movie object
-            $movie = Movie::fromArray($existingMovie, $movieData['allowedStatuses'] ?? []);
+            $movie = Movie::fromArray(array_merge($existingMovie, [
+                'allowedStatuses' => $movieData['allowedStatuses'] ?? []
+            ]));
         }
 
         // Add the movie to user's library with their specific statuses

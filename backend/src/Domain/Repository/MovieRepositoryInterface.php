@@ -57,6 +57,24 @@ interface MovieRepositoryInterface
     public function addMovieToUser(int $userId, string $movieId, array $statuses = []): void;
     
     public function removeMovieFromUser(int $userId, string $movieId): bool;
+
+    /**
+     * Obtiene los tags asignados a una película específica de un usuario.
+     * Devuelve un array de tags (id, name, color).
+     */
+    public function getMovieTags(int $userId, string $movieIsbn): array;
+
+    /**
+     * Obtiene todos los tags creados por el usuario para películas.
+     * Devuelve un array de tags (id, name, color).
+     */
+    public function getUserMovieTags(int $userId): array;
+
+    /**
+     * Obtiene las notas de una película por página para un usuario.
+     * Devuelve un array de notas (id, page_number, note_text, note_type, is_private, created_at).
+     */
+    public function getMovieNotesByPage(int $userId, string $movieIsbn): array;
     
     public function findMoviesByUser(int $userId, array $filters = []): array;
     
@@ -66,23 +84,13 @@ interface MovieRepositoryInterface
     
     public function getUserMovieStatuses(int $userId, string $movieId): array;
 
-    /**
-     * Edita los campos de user_movies para un usuario y película específica.
-     */
     public function editUserMovie(int $userId, string $movieIsbn, ?float $personalRating = null, ?string $personalNotes = null, ?string $consumedAt = null): void;
 
-    /**
-     * Añade una nota a user_movie_notes para un usuario y película específica.
-     */
     public function addUserMovieNote(int $userId, string $movieIsbn, string $noteText, string $noteType = 'note', bool $isPrivate = true): int;
 
-    /**
-     * Añade un tag personalizado para un usuario en user_movie_tags.
-     */
     public function addUserMovieTag(int $userId, string $name, string $color = '#007bff'): int;
 
-    /**
-     * Asigna un tag a una película de usuario en user_movie_tag_assignments.
-     */
     public function assignUserMovieTag(int $userId, string $movieIsbn, int $tagId): void;
+
+    public function removeAllUserMovieTags(int $userId, string $movieIsbn): void;
 }

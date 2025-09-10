@@ -127,7 +127,6 @@ const onSaveBook = () => {
 
 // Actualiza el objeto local al recibir el emit 'close' desde BookActions o MovieActions
 const handleBookEditClose = (updatedBook) => {
-  console.log("Libro editado:", updatedBook);
   if (updatedBook && updatedBook.isbn) {
     selectedUserStatuses.value = updatedBook.userStatuses;
     rating.value = updatedBook.user_rating;

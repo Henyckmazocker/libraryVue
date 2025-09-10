@@ -135,7 +135,7 @@ export const useAuthStore = defineStore('auth', {
       const protectedActions = [
         'add_book', 'delete_book', 'update_book_rating', 'update_book_user_statuses',
         'add_movie', 'delete_movie', 'update_movie_rating', 'update_movie_user_statuses',
-        'import_data', 'edit_user_book','edit_user_movie'
+        'import_data', 'edit_user_book','edit_user_movie', 'create_user_book_tag', 'create_user_movie_tag'
       ]
 
       if (this.csrfToken && protectedActions.includes(action)) {

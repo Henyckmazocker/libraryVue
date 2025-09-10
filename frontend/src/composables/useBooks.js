@@ -14,6 +14,7 @@ export function useBooks() {
   // Estados reactivos
   const books = ref([]);
   const allowedStatuses = ref([]);
+  const userTags = ref([]);
   const isLoading = ref(false);
   const error = ref(null);
   const lastSearchQuery = ref('');
@@ -167,6 +168,8 @@ export function useBooks() {
 
       const response = await authenticatedApiCall('add_book', payload);
 
+      Logger.debug('[useBooks] Backend response:', response);
+
       if (response.data.status === 'success') {
         // Agregar el libro a la lista local con los datos actualizados
         const newBook = {
@@ -180,12 +183,44 @@ export function useBooks() {
         Logger.debug('[useBooks] Book added successfully');
         return { success: true, book: newBook };
       } else {
+        Logger.error('[useBooks] Backend returned error:', response.data);
         throw new Error(response.data.message || 'Failed to add book');
       }
     } catch (err) {
-      error.value = err.message || 'Failed to add book';
+      // Manejar diferentes tipos de errores
+      let errorMessage = 'Failed to add book';
+      
+      if (err.response) {
+        // Error de respuesta HTTP del servidor
+        const status = err.response.status;
+        const data = err.response.data;
+        
+        if (status === 401) {
+          errorMessage = 'Authentication required. Please login again.';
+        } else if (status === 403) {
+          errorMessage = 'Invalid CSRF token. Please refresh the page and try again.';
+        } else if (data && data.message) {
+          errorMessage = data.message;
+        } else {
+          errorMessage = `Server error (${status})`;
+        }
+      } else if (err.request) {
+        // Error de red
+        errorMessage = 'Network error. Please check your connection.';
+      } else if (err.message) {
+        // Error general
+        errorMessage = err.message;
+      }
+      
+      error.value = errorMessage;
       Logger.error('[useBooks] Error adding book:', err);
-      return { success: false, message: err.message };
+      Logger.error('[useBooks] Full error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        config: err.config
+      });
+      return { success: false, message: errorMessage };
     } finally {
       isLoading.value = false;
     }
@@ -400,6 +435,74 @@ export function useBooks() {
   };
 
   /**
+   * Obtiene todos los tags del usuario
+   */
+  const fetchUserTags = async () => {
+    try {
+      Logger.debug('[useBooks] Obteniendo tags del usuario');
+      const response = await authenticatedApiCall('get_user_book_tags');
+
+      if (response.data.status === 'success') {
+        userTags.value = response.data.data || [];
+        Logger.debug('[useBooks] Tags obtenidos:', userTags.value);
+        return { success: true, data: userTags.value };
+      } else {
+        throw new Error(response.data.message || 'Error al obtener tags');
+      }
+    } catch (error) {
+      Logger.error('[useBooks] Error obteniendo tags:', error);
+      return { success: false, message: error.message };
+    }
+  };
+
+  /**
+   * Crea un nuevo tag para el usuario
+   */
+  const createUserTag = async (tagName, color = '#1976d2') => {
+    try {
+      Logger.debug('[useBooks] Creando nuevo tag:', { tagName, color });
+      const response = await authenticatedApiCall('create_user_book_tag', {
+        name: tagName, 
+        color
+      });
+
+      if (response.data.status === 'success') {
+        const newTag = response.data.data;
+        userTags.value.push(newTag);
+        Logger.debug('[useBooks] Tag creado:', newTag);
+        return { success: true, data: newTag };
+      } else {
+        throw new Error(response.data.message || 'Error al crear tag');
+      }
+    } catch (error) {
+      Logger.error('[useBooks] Error creando tag:', error);
+      return { success: false, message: error.message };
+    }
+  };
+
+  /**
+   * Obtiene los tags de un libro específico
+   */
+  const getBookTags = async (isbn) => {
+    try {
+      Logger.debug('[useBooks] Obteniendo tags del libro:', isbn);
+      const response = await authenticatedApiCall('get_book_tags', {
+        isbn: isbn
+      });
+
+      if (response.data.status === 'success') {
+        Logger.debug('[useBooks] Tags del libro obtenidos:', response.data.data);
+        return { success: true, data: response.data.data || [] };
+      } else {
+        throw new Error(response.data.message || 'Error al obtener tags del libro');
+      }
+    } catch (error) {
+      Logger.error('[useBooks] Error obteniendo tags del libro:', error);
+      return { success: false, message: error.message };
+    }
+  };
+
+  /**
    * Limpia los errores
    */
   const clearError = () => {
@@ -424,6 +527,7 @@ export function useBooks() {
     books,
     searchResults,
     allowedStatuses,
+    userTags,
     isLoading,
     isSearching,
     error,
@@ -445,6 +549,11 @@ export function useBooks() {
     updateBookRating,
     updateBookStatuses,
     fetchAllowedStatuses,
+
+    // Métodos de tags
+    fetchUserTags,
+    createUserTag,
+    getBookTags,
 
     // Métodos de utilidad
     findBookByISBN,

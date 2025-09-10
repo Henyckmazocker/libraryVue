@@ -135,8 +135,52 @@ class BookController extends BaseController implements Contracts\BookControllerI
             throw new \InvalidArgumentException('ISBN y userId son requeridos para editar user_book.');
         }
 
-        $this->editUserBookUseCase->execute($userId, $isbn, $data, $tags, $notes);
-        return $this->successResponse('User book actualizado correctamente.');
+        try {
+            $this->editUserBookUseCase->execute($userId, $isbn, $data, $tags, $notes);
+            return $this->successResponse('User book actualizado correctamente.');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error al editar user book: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Obtiene todos los tags del usuario
+     */
+    public function getUserBookTags(int $userId): array
+    {
+        try {
+            $tags = $this->bookRepository->getUserBookTags($userId);
+            return $this->successResponse('Tags obtenidos correctamente', $tags);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error al obtener tags: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Crea un nuevo tag para el usuario
+     */
+    public function createUserBookTag(int $userId, string $name, string $color = '#1976d2'): array
+    {
+        try {
+            $tagId = $this->bookRepository->addUserBookTag($userId, $name, $color);
+            $newTag = ['id' => $tagId, 'name' => $name, 'color' => $color];
+            return $this->successResponse('Tag creado correctamente', $newTag);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error al crear tag: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Obtiene los tags de un libro específico
+     */
+    public function getBookTags(int $userId, string $isbn): array
+    {
+        try {
+            $tags = $this->bookRepository->getBookTags($userId, $isbn);
+            return $this->successResponse('Tags del libro obtenidos correctamente', $tags);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error al obtener tags del libro: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -150,7 +194,7 @@ class BookController extends BaseController implements Contracts\BookControllerI
             
             // Handle authentication for actions that require it
             $authResult = null;
-            $authRequiredActions = ['add_book', 'delete_book', 'update_book_rating', 'update_book_user_statuses', 'get_library', 'edit_user_book'];
+            $authRequiredActions = ['add_book', 'delete_book', 'update_book_rating', 'update_book_user_statuses', 'get_library', 'edit_user_book', 'get_user_book_tags', 'create_user_book_tag', 'get_book_tags'];
             
             if (in_array($action, $authRequiredActions)) {
                 $authResult = $this->authMiddleware->requireAuth();
@@ -162,7 +206,7 @@ class BookController extends BaseController implements Contracts\BookControllerI
                 }
                 
                 // Check CSRF for modifying actions
-                $csrfRequiredActions = ['add_book', 'delete_book', 'update_book_rating', 'update_book_user_statuses', 'edit_user_book'];
+                $csrfRequiredActions = ['add_book', 'delete_book', 'update_book_rating', 'update_book_user_statuses', 'edit_user_book', 'create_user_book_tag'];
                 if (in_array($action, $csrfRequiredActions)) {
                     $csrfResult = $this->authMiddleware->requireAuthAndCSRF($inputData['csrf_token'] ?? null);
                     if ($csrfResult['status'] === 'error') {
@@ -184,6 +228,9 @@ class BookController extends BaseController implements Contracts\BookControllerI
                 'get_books' => $this->getAllBooks(),
                 'get_library' => $this->getBooks($authResult['user']['id']),
                 'edit_user_book' => $this->editUserBook($inputData['isbn'] ?? '', $authResult['user']['id'], $inputData['data'] ?? [], $inputData['tags'] ?? [], $inputData['notes'] ?? []),
+                'get_user_book_tags' => $this->getUserBookTags($authResult['user']['id']),
+                'create_user_book_tag' => $this->createUserBookTag($authResult['user']['id'], $inputData['name'] ?? '', $inputData['color'] ?? '#1976d2'),
+                'get_book_tags' => $this->getBookTags($authResult['user']['id'], $inputData['isbn'] ?? ''),
                 default => $this->errorResponse('Invalid book action: ' . $action)
             };
             
@@ -194,11 +241,16 @@ class BookController extends BaseController implements Contracts\BookControllerI
             exit(); // Asegurar que la respuesta termine aquí
             
         } catch (\Throwable $e) {
+            // Log the error for debugging
+            error_log('BookController Error: ' . $e->getMessage());
+            error_log('BookController Trace: ' . $e->getTraceAsString());
+            
             http_response_code(500);
             header('Content-Type: application/json');
             echo json_encode([
                 'status' => 'error',
-                'message' => 'Internal server error: ' . $e->getMessage()
+                'message' => 'Internal server error: ' . $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ], JSON_PRETTY_PRINT);
             exit(); // Asegurar que la respuesta termine aquí
         }

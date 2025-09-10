@@ -15,6 +15,12 @@
           label="Estado"
           subtitle="(selecciona uno o más)"
         />
+        <TagSelector
+          v-model="localTags"
+          :tags="userTags"
+          :readonly="false"
+          @add-tag="handleAddTag"
+        />
       </div>
       <button class="save-btn" @click="handleSave">Guardar</button>
     </div>
@@ -22,9 +28,10 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits } from 'vue';
+import { ref, defineProps, defineEmits, onMounted } from 'vue';
 import RatingComponent from '@/components/common/RatingComponent.vue';
 import StatusSelector from '@/components/common/StatusSelector.vue';
+import TagSelector from '@/components/common/TagSelector.vue';
 import { useMovies } from '@/composables/useMovies';
 
 const props = defineProps({
@@ -41,18 +48,43 @@ const emit = defineEmits(['close', 'save']);
 
 const localRating = ref(props.item?.user_rating ?? null);
 const localStatuses = ref(props.item?.userStatuses ? [...props.item.userStatuses] : []);
-const moviesComposable = useMovies();
+const localTags = ref(props.item?.tags ? [...props.item.tags] : []);
+
+const { editUserMovie, userTags, fetchUserTags, createUserTag, getMovieTags } = useMovies();
+
+// Cargar datos al montar el componente
+onMounted(async () => {
+  // Cargar tags del usuario
+  await fetchUserTags();
+  
+  // Cargar tags específicos de la película
+  const movieTagsResult = await getMovieTags(props.item.imdbID || props.item.tmdbId);
+  if (movieTagsResult.success) {
+    localTags.value = movieTagsResult.data.map(tag => tag.id);
+  }
+});
+
+const handleAddTag = async (tagName) => {
+  // Crear el tag en el backend
+  const result = await createUserTag(tagName);
+  if (result.success) {
+    // El tag ya fue añadido a userTags por createUserTag
+    localTags.value.push(result.data.id);
+  } else {
+    alert(result.message || 'Error al crear el tag');
+  }
+};
 
 const handleSave = async () => {
   // Llamar al composable para editar la película
-  const result = await moviesComposable.editUserMovie(
+  const result = await editUserMovie(
     props.item.imdbID || props.item.tmdbId,
     props.item.userId || props.item.user_id,
     {
       personalRating: localRating.value,
       statuses: [...localStatuses.value]
     },
-    [], // tags
+    [...localTags.value], // tags
     []  // notes
   );
   if (result && result.success) {

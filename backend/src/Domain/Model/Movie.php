@@ -19,6 +19,8 @@ class Movie
     private array $userStatuses;
     private int $addedTimestamp;
     private array $allowedStatuses;
+    private ?array $tags;
+    private ?array $allowedTags;
 
     public function __construct(
         string $id,
@@ -31,7 +33,9 @@ class Movie
         ?string $description,
         array $userStatuses,
         int $addedTimestamp,
-        array $allowedStatuses = []
+        array $allowedStatuses = [],
+        ?array $tags = null,
+        ?array $allowedTags = null
     ) {
         $this->id = $id;
         $this->title = $title;
@@ -44,9 +48,11 @@ class Movie
         $this->userStatuses = $userStatuses;
         $this->addedTimestamp = $addedTimestamp;
         $this->allowedStatuses = $allowedStatuses;
+        $this->tags = $tags;
+        $this->allowedTags = $allowedTags;
     }
 
-    public static function fromArray(array $data, array $allowedStatuses = []): self
+    public static function fromArray(array $data): self
     {
         if ((empty($data['id']) && empty($data['isbn'])) || empty($data['title'])) {
             throw new InvalidArgumentException('ID and title are required for a movie.');
@@ -65,7 +71,9 @@ class Movie
             $data['description'] ?? null,
             $data['userStatuses'],
             $data['addedTimestamp'] ?? time(),
-            $allowedStatuses
+            $data['allowedStatuses'] ?? null,
+            $data['tags'] ?? null,
+            $data['allowedTags'] ?? null
         );
     }
 
@@ -80,6 +88,11 @@ class Movie
     public function getUserStatuses(): array { return $this->userStatuses; }
     public function getAddedTimestamp(): int { return $this->addedTimestamp; }
     public function getAllowedStatuses(): array { return $this->allowedStatuses; }
+    public function getTags(): ?array { return $this->tags; }
+    public function getAllowedTags(): ?array { return $this->allowedTags; }
+
+    public function setTags(?array $tags): void { $this->tags = $tags; }
+    public function setAllowedTags(?array $allowedTags): void { $this->allowedTags = $allowedTags; }
 
     public function setTitle(string $title): void 
     { 
@@ -146,7 +159,9 @@ class Movie
             'description' => $this->description,
             'userStatuses' => $this->userStatuses,
             'addedTimestamp' => $this->addedTimestamp,
-            'allowedStatuses' => $this->allowedStatuses
+            'allowedStatuses' => $this->allowedStatuses,
+            'tags' => $this->tags,
+            'allowedTags' => $this->allowedTags
         ];
     }
 }

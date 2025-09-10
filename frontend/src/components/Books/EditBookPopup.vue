@@ -15,6 +15,12 @@
           label="Estado"
           subtitle="(selecciona uno o más)"
         />
+        <TagSelector
+          v-model="localTags"
+          :tags="userTags"
+          :readonly="false"
+          @add-tag="handleAddTag"
+        />
       </div>
       <div class="save-btn-container">
         <button class="save-btn" @click="handleSave">Guardar</button>
@@ -24,10 +30,11 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits } from 'vue';
+import { ref, defineProps, defineEmits, onMounted } from 'vue';
 import { useBooks } from '@/composables/useBooks';
 import RatingComponent from '@/components/common/RatingComponent.vue';
 import StatusSelector from '@/components/common/StatusSelector.vue';
+import TagSelector from '@/components/common/TagSelector.vue';
 
 const props = defineProps({
   item: {
@@ -43,11 +50,35 @@ const emit = defineEmits(['close', 'save']);
 
 const localRating = ref(props.item?.user_rating ?? null);
 const localStatuses = ref(props.item?.userStatuses ? [...props.item.userStatuses] : []);
+const localTags = ref(props.item?.tags ? [...props.item.tags] : []);
 
-const { editUserBook } = useBooks();
+const { editUserBook, userTags, fetchUserTags, createUserTag, getBookTags } = useBooks();
+
+// Cargar datos al montar el componente
+onMounted(async () => {
+  // Cargar tags del usuario
+  await fetchUserTags();
+  
+  // Cargar tags específicos del libro
+  const bookTagsResult = await getBookTags(props.item.isbn);
+  if (bookTagsResult.success) {
+    localTags.value = bookTagsResult.data.map(tag => tag.id);
+  }
+});
+
+const handleAddTag = async (tagName) => {
+  // Crear el tag en el backend
+  const result = await createUserTag(tagName);
+  if (result.success) {
+    // El tag ya fue añadido a userTags por createUserTag
+    localTags.value.push(result.data.id);
+  } else {
+    alert(result.message || 'Error al crear el tag');
+  }
+};
 
 const handleSave = async () => {
-  // Enviar los estados seleccionados en el array 'statuses'
+  // Enviar los estados seleccionados y tags
   const result = await editUserBook(
     props.item.isbn,
     props.item.userId || props.item.user_id,
@@ -55,7 +86,7 @@ const handleSave = async () => {
       personalRating: localRating.value,
       statuses: [...localStatuses.value]
     },
-    [], // tags
+    [...localTags.value], // tags
     []  // notes
   );
   if (result.success) {

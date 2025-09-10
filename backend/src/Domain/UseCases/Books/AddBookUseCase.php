@@ -68,10 +68,9 @@ class AddBookUseCase
                     'pages' => isset($bookData['pages']) && is_numeric($bookData['pages']) ? (int)$bookData['pages'] : null,
                     'description' => $bookData['description'] ?? null,
                     'userStatuses' => $bookData['userStatuses'], // Pass userStatuses
+                    'allowedStatuses' => $bookData['allowedStatuses'] ?? [], // Include allowedStatuses in the data
                     'addedTimestamp' => $bookData['addedTimestamp'] ?? time()
-                ],
-                    $bookData['allowedStatuses'] ?? []
-                );
+                ]);
             } catch (\InvalidArgumentException $e) {
                 throw new InvalidArgumentException('Invalid book data: ' . $e->getMessage());
             }

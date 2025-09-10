@@ -26,3 +26,9 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Backend storage files (logs, cache, sessions, uploads)
+backend/storage/logs/
+backend/storage/cache/
+backend/storage/sessions/
+backend/storage/uploads/

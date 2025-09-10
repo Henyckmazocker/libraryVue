@@ -381,4 +381,34 @@ class MySqlUserRepository implements UserRepositoryInterface
             throw new RuntimeException("Could not check user movie. DB Error: " . $e->getMessage(), 0, $e);
         }
     }
+
+    public function addUserMovie(
+        int $userId,
+        string $movieIsbn,
+        ?float $personalRating = null,
+        ?string $personalNotes = null,
+        ?string $consumedAt = null
+    ): void {
+        try {
+            $sql = "INSERT INTO user_movies (user_id, movie_isbn, personal_rating, personal_notes, consumed_at) 
+                    VALUES (:userId, :movieIsbn, :personalRating, :personalNotes, :consumedAt)";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindParam(':userId', $userId);
+            $stmt->bindParam(':movieIsbn', $movieIsbn);
+            $stmt->bindParam(':personalRating', $personalRating);
+            $stmt->bindParam(':personalNotes', $personalNotes);
+            $stmt->bindParam(':consumedAt', $consumedAt);
+            $stmt->execute();
+
+        } catch (PDOException $e) {
+            $this->logError('Could not add user movie', $e, [
+                'user_id' => $userId,
+                'movie_isbn' => $movieIsbn,
+                'personal_rating' => $personalRating,
+                'personal_notes' => $personalNotes,
+                'consumed_at' => $consumedAt
+            ]);
+            throw new RuntimeException("Could not add user movie. DB Error: " . $e->getMessage(), 0, $e);
+        }
+    }
 }

@@ -12,6 +12,7 @@ export function useMovies() {
   // Estados reactivos
   const movies = ref([]);
   const allowedStatuses = ref([]);
+  const userTags = ref([]);
   const isLoading = ref(false);
   const error = ref(null);
   const lastSearchQuery = ref('');
@@ -155,12 +156,38 @@ export function useMovies() {
         Logger.debug('[useMovies] Movie added successfully');
         return { success: true, movie: newMovie };
       } else {
+        Logger.error('[useMovies] Backend returned error:', response.data);
         throw new Error(response.data.message || 'Failed to add movie');
       }
     } catch (err) {
-      error.value = err.message || 'Failed to add movie';
+      // Manejar diferentes tipos de errores
+      let errorMessage = 'Failed to add movie';
+      
+      if (err.response) {
+        // Error de respuesta HTTP del servidor
+        const status = err.response.status;
+        const data = err.response.data;
+        
+        if (status === 401) {
+          errorMessage = 'Authentication required. Please login again.';
+        } else if (status === 403) {
+          errorMessage = 'Invalid CSRF token. Please refresh the page and try again.';
+        } else if (data && data.message) {
+          errorMessage = data.message;
+        } else {
+          errorMessage = `Server error (${status})`;
+        }
+      } else if (err.request) {
+        // Error de red
+        errorMessage = 'Network error. Please check your connection.';
+      } else if (err.message) {
+        // Error general
+        errorMessage = err.message;
+      }
+      
+      error.value = errorMessage;
       Logger.error('[useMovies] Error adding movie:', err);
-      return { success: false, message: err.message };
+      return { success: false, message: errorMessage };
     } finally {
       isLoading.value = false;
     }
@@ -388,6 +415,74 @@ export function useMovies() {
   };
 
   /**
+   * Obtiene todos los tags del usuario para películas
+   */
+  const fetchUserTags = async () => {
+    try {
+      Logger.debug('[useMovies] Obteniendo tags del usuario para películas');
+      const response = await authenticatedApiCall('get_user_movie_tags');
+
+      if (response.data.status === 'success') {
+        userTags.value = response.data.data || [];
+        Logger.debug('[useMovies] Tags obtenidos:', userTags.value);
+        return { success: true, data: userTags.value };
+      } else {
+        throw new Error(response.data.message || 'Error al obtener tags');
+      }
+    } catch (error) {
+      Logger.error('[useMovies] Error obteniendo tags:', error);
+      return { success: false, message: error.message };
+    }
+  };
+
+  /**
+   * Crea un nuevo tag para el usuario (películas)
+   */
+  const createUserTag = async (tagName, color = '#1976d2') => {
+    try {
+      Logger.debug('[useMovies] Creando nuevo tag:', { tagName, color });
+      const response = await authenticatedApiCall('create_user_movie_tag', {
+        name: tagName, 
+        color
+      });
+
+      if (response.data.status === 'success') {
+        const newTag = response.data.data;
+        userTags.value.push(newTag);
+        Logger.debug('[useMovies] Tag creado:', newTag);
+        return { success: true, data: newTag };
+      } else {
+        throw new Error(response.data.message || 'Error al crear tag');
+      }
+    } catch (error) {
+      Logger.error('[useMovies] Error creando tag:', error);
+      return { success: false, message: error.message };
+    }
+  };
+
+  /**
+   * Obtiene los tags de una película específica
+   */
+  const getMovieTags = async (movieIsbn) => {
+    try {
+      Logger.debug('[useMovies] Obteniendo tags de la película:', movieIsbn);
+      const response = await authenticatedApiCall('get_movie_tags', {
+        movieIsbn
+      });
+
+      if (response.data.status === 'success') {
+        Logger.debug('[useMovies] Tags de la película obtenidos:', response.data.data);
+        return { success: true, data: response.data.data || [] };
+      } else {
+        throw new Error(response.data.message || 'Error al obtener tags de la película');
+      }
+    } catch (error) {
+      Logger.error('[useMovies] Error obteniendo tags de la película:', error);
+      return { success: false, message: error.message };
+    }
+  };
+
+  /**
    * Reinicia todos los estados
    */
   const reset = () => {
@@ -405,6 +500,7 @@ export function useMovies() {
     movies,
     searchResults,
     allowedStatuses,
+    userTags,
     isLoading,
     isSearching,
     error,
@@ -426,6 +522,11 @@ export function useMovies() {
     updateMovieStatuses,
     fetchAllowedStatuses,
     editUserMovie,
+
+    // Métodos de tags
+    fetchUserTags,
+    createUserTag,
+    getMovieTags,
 
     // Métodos de utilidad
     findMovieByTMDBId,

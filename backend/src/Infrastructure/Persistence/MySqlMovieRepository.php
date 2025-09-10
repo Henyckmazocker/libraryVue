@@ -21,6 +21,76 @@ class MySqlMovieRepository implements MovieRepositoryInterface
         $this->logger = $logger;
     }
 
+        /**
+         * Obtiene los tags asignados a una película específica de un usuario.
+         * Devuelve un array de tags (id, name, color).
+         */
+        public function getMovieTags(int $userId, string $movieIsbn): array
+        {
+            $sql = 'SELECT t.id, t.name, t.color FROM user_movie_tag_assignments a
+                    INNER JOIN user_movie_tags t ON a.tag_id = t.id
+                    WHERE a.user_id = :userId AND a.movie_isbn = :movieIsbn';
+            try {
+                $stmt = $this->db->prepare($sql);
+                $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
+                $stmt->bindValue(':movieIsbn', $movieIsbn);
+                $stmt->execute();
+                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (\PDOException $e) {
+                $this->logError('DB Error obteniendo tags de película', $e, ['userId' => $userId, 'movieIsbn' => $movieIsbn]);
+                throw new \RuntimeException('No se pudieron obtener los tags de la película. DB Error: ' . $e->getMessage(), 0, $e);
+            }
+        }
+
+        /**
+         * Obtiene todos los tags creados por el usuario para películas.
+         * Devuelve un array de tags (id, name, color).
+         */
+        public function getUserMovieTags(int $userId): array
+        {
+            $sql = 'SELECT id, name, color FROM user_movie_tags WHERE user_id = :userId';
+            try {
+                $stmt = $this->db->prepare($sql);
+                $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
+                $stmt->execute();
+                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (\PDOException $e) {
+                $this->logError('DB Error obteniendo todos los tags de usuario para películas', $e, ['userId' => $userId]);
+                throw new \RuntimeException('No se pudieron obtener los tags del usuario para películas. DB Error: ' . $e->getMessage(), 0, $e);
+            }
+        }
+
+        /**
+         * Obtiene todos los tags permitidos para un usuario (alias de getUserMovieTags).
+         * Devuelve un array de tags (id, name, color).
+         */
+        public function getAllowedTags(int $userId, string $isbn = null): array
+        {
+            return $this->getUserMovieTags($userId);
+        }
+
+        /**
+         * Obtiene las notas de una película por página para un usuario.
+         * Devuelve un array de notas (id, page_number, note_text, note_type, is_private, created_at).
+         */
+        public function getMovieNotesByPage(int $userId, string $movieIsbn): array
+        {
+            $sql = 'SELECT id, page_number, note_text, note_type, is_private, created_at
+                    FROM user_movie_notes
+                    WHERE user_id = :userId AND movie_isbn = :movieIsbn
+                    ORDER BY page_number ASC, created_at DESC';
+            try {
+                $stmt = $this->db->prepare($sql);
+                $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
+                $stmt->bindValue(':movieIsbn', $movieIsbn);
+                $stmt->execute();
+                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (\PDOException $e) {
+                $this->logError('DB Error obteniendo notas por página de película', $e, ['userId' => $userId, 'movieIsbn' => $movieIsbn]);
+                throw new \RuntimeException('No se pudieron obtener las notas por página de la película. DB Error: ' . $e->getMessage(), 0, $e);
+            }
+        }
+
     private function logError(string $message, \Exception $e, array $context = []): void
     {
         if ($this->logger) {
@@ -104,8 +174,8 @@ class MySqlMovieRepository implements MovieRepositoryInterface
             $data['id'] = $data['isbn'];
             
             try {
-                $allowedStatuses = $this->fetchAllowedStatuses();
-                $movies[] = Movie::fromArray($data, $allowedStatuses);
+                $data['allowedStatuses'] = $this->fetchAllowedStatuses();
+                $movies[] = Movie::fromArray($data);
             } catch (\InvalidArgumentException $e) {
                 // Skip invalid movie data - error will be logged at higher level if needed
             }
@@ -172,8 +242,10 @@ class MySqlMovieRepository implements MovieRepositoryInterface
             $data['id'] = $data['isbn'];
             
             try {
-                $allowedStatuses = $this->fetchAllowedStatuses();
-                $movies[] = Movie::fromArray($data, $allowedStatuses);
+                $data['tags'] = $this->getMovieTags($userId,$data['isbn']);
+                $data['allowedTags'] = $this->getAllowedTags($userId,$data['isbn']);
+                $data['allowedStatuses'] = $this->fetchAllowedStatuses();
+                $movies[] = Movie::fromArray($data);
             } catch (\InvalidArgumentException $e) {
                 // Skip invalid movie data - will be logged at higher level if needed
                 continue;
@@ -496,8 +568,10 @@ class MySqlMovieRepository implements MovieRepositoryInterface
                 $data['id'] = $data['isbn'];
                 
                 try {
-                    $allowedStatuses = $this->fetchAllowedStatuses();
-                    $movies[] = Movie::fromArray($data, $allowedStatuses);
+                    $data['tags'] = $this->getMovieTags($userId,$data['isbn']);
+                    $data['allowedTags'] = $this->getAllowedTags($userId,$data['isbn']);
+                    $data['allowedStatuses'] = $this->fetchAllowedStatuses();
+                    $movies[] = Movie::fromArray($data);
                 } catch (\InvalidArgumentException $e) {
                     // Skip invalid movie data
                 }
@@ -686,6 +760,23 @@ class MySqlMovieRepository implements MovieRepositoryInterface
             throw new \RuntimeException('No se pudo asignar el tag. DB Error: ' . $e->getMessage(), 0, $e);
         }
     }
+
+    /**
+     * Elimina todos los tags asignados a una película de usuario.
+     */
+    public function removeAllUserMovieTags(int $userId, string $movieIsbn): void
+    {
+        $sql = 'DELETE FROM user_movie_tag_assignments WHERE user_id = :userId AND movie_isbn = :movieIsbn';
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
+            $stmt->bindValue(':movieIsbn', $movieIsbn);
+            $stmt->execute();
+        } catch (\PDOException $e) {
+            $this->logError('DB Error eliminando tags de user_movie_tag_assignments', $e, ['userId' => $userId, 'movieIsbn' => $movieIsbn]);
+            throw new \RuntimeException('No se pudieron eliminar los tags de la película. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
     /**
      * Edita los campos de user_movies para un usuario y película específica.
      * Solo actualiza los campos que se pasan (null no modifica ese campo).
@@ -716,9 +807,6 @@ class MySqlMovieRepository implements MovieRepositoryInterface
                 $stmt->bindValue($key, $value);
             }
             $stmt->execute();
-            if ($stmt->rowCount() === 0) {
-                throw new \RuntimeException('No se encontró relación user-movie para editar');
-            }
         } catch (\PDOException $e) {
             $this->logError('DB Error editando user_movies', $e, ['userId' => $userId, 'movieIsbn' => $movieIsbn]);
             throw new \RuntimeException('No se pudo editar user_movies. DB Error: ' . $e->getMessage(), 0, $e);

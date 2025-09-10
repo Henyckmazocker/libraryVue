@@ -60,8 +60,16 @@ class MySqlBookRepository implements BookRepositoryInterface
     // Hacer público el método para los UseCases
     public function fetchAllowedStatuses(): array
     {
-        $stmt = $this->db->query("SELECT name FROM book_statuses");
-        return $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+        try {
+            $stmt = $this->db->query("SELECT name FROM book_statuses");
+            $result = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+            // Asegurar que siempre retorne un array
+            return is_array($result) ? $result : [];
+        } catch (\Exception $e) {
+            error_log("Error in fetchAllowedStatuses: " . $e->getMessage());
+            // Retornar array vacío en caso de error
+            return [];
+        }
     }
 
     /**
@@ -105,8 +113,8 @@ class MySqlBookRepository implements BookRepositoryInterface
             // Si no tiene userStatuses, asignamos un array vacío
             $data['userStatuses'] = is_array($userStatuses) ? $userStatuses : [];
             try {
-                $allowedStatuses = $this->fetchAllowedStatuses();
-                $books[] = Book::fromArray($data, $allowedStatuses);
+                $data['allowedStatuses'] = $this->fetchAllowedStatuses();
+                $books[] = Book::fromArray($data);
             } catch (\InvalidArgumentException $e) {
                 error_log("Error hydrating book from DB (findAll): " . $e->getMessage() . " Data: " . json_encode($data));
             }
@@ -132,8 +140,11 @@ class MySqlBookRepository implements BookRepositoryInterface
             $data['userStatuses'] = [];
         }
         try {
-            $allowedStatuses = $this->fetchAllowedStatuses();
-            return Book::fromArray($data, $allowedStatuses);
+            // Para findById no tenemos userId, así que omitimos tags y usamos arrays vacíos
+            $data['tags'] = [];
+            $data['allowedTags'] = [];
+            $data['allowedStatuses'] = $this->fetchAllowedStatuses();
+            return Book::fromArray($data);
         } catch (\InvalidArgumentException $e) {
             error_log("Error hydrating book from DB (findById): " . $e->getMessage() . " Data: " . json_encode($data));
             throw new RuntimeException("Failed to hydrate book from DB due to inconsistent data: " . $e->getMessage(), 0, $e);
@@ -427,10 +438,21 @@ class MySqlBookRepository implements BookRepositoryInterface
                 
                 // Remove the comma-separated field since we now have the array
                 unset($data['user_statuses']);
-                
+
                 try {
+                    $data['tags'] = $this->getBookTags($userId, $data['isbn']);
+                    $data['allowedTags'] = $this->getAllowedTags($userId, $data['isbn']);
                     $allowedStatuses = $this->fetchAllowedStatuses();
-                    $books[] = Book::fromArray($data, $allowedStatuses);
+                    $data['allowedStatuses'] = $allowedStatuses;
+                    
+                    error_log("DEBUG findBooksByUser - About to create Book with data: " . json_encode([
+                        'isbn' => $data['isbn'],
+                        'allowedStatuses_type' => gettype($data['allowedStatuses']),
+                        'allowedStatuses_count' => is_array($data['allowedStatuses']) ? count($data['allowedStatuses']) : 'not_array',
+                        'allowedStatuses_content' => $data['allowedStatuses']
+                    ]));
+                    
+                    $books[] = Book::fromArray($data);
                 } catch (\InvalidArgumentException $e) {
                     error_log("Error hydrating book from DB (findBooksByUser): " . $e->getMessage() . " Data: " . json_encode($data));
                 }
@@ -571,15 +593,14 @@ class MySqlBookRepository implements BookRepositoryInterface
             throw new \InvalidArgumentException('No hay campos para actualizar');
         }
         $sql = 'UPDATE user_books SET ' . implode(', ', $fields) . ' WHERE user_id = :userId AND book_isbn = :isbn';
+        
         try {
             $stmt = $this->db->prepare($sql);
             foreach ($params as $key => $value) {
                 $stmt->bindValue($key, $value);
             }
+            
             $stmt->execute();
-            if ($stmt->rowCount() === 0) {
-                throw new \RuntimeException('No se encontró relación user-book para editar');
-            }
         } catch (\PDOException $e) {
             $this->logError('DB Error editando user_books', $e, ['userId' => $userId, 'isbn' => $isbn]);
             throw new \RuntimeException('No se pudo editar user_books. DB Error: ' . $e->getMessage(), 0, $e);
@@ -656,4 +677,91 @@ class MySqlBookRepository implements BookRepositoryInterface
             throw new \RuntimeException('No se pudo asignar el tag. DB Error: ' . $e->getMessage(), 0, $e);
         }
     }
+
+    /**
+     * Elimina todos los tags asignados a un libro de usuario.
+     */
+    public function removeAllUserBookTags(int $userId, string $isbn): void
+    {
+        $sql = 'DELETE FROM user_book_tag_assignments WHERE user_id = :userId AND book_isbn = :isbn';
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
+            $stmt->bindValue(':isbn', $isbn);
+            $stmt->execute();
+        } catch (\PDOException $e) {
+            $this->logError('DB Error eliminando tags de user_book_tag_assignments', $e, ['userId' => $userId, 'isbn' => $isbn]);
+            throw new \RuntimeException('No se pudieron eliminar los tags del libro. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+        /**
+         * Obtiene los tags asignados a un libro específico de un usuario.
+         * Devuelve un array de tags (id, name, color).
+         */
+        public function getBookTags(int $userId, string $isbn): array
+        {
+            $sql = 'SELECT t.id, t.name, t.color FROM user_book_tag_assignments a
+                    INNER JOIN user_book_tags t ON a.tag_id = t.id
+                    WHERE a.user_id = :userId AND a.book_isbn = :isbn';
+            try {
+                $stmt = $this->db->prepare($sql);
+                $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
+                $stmt->bindValue(':isbn', $isbn);
+                $stmt->execute();
+                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (\PDOException $e) {
+                $this->logError('DB Error obteniendo tags de libro', $e, ['userId' => $userId, 'isbn' => $isbn]);
+                throw new \RuntimeException('No se pudieron obtener los tags del libro. DB Error: ' . $e->getMessage(), 0, $e);
+            }
+        }
+
+        /**
+         * Obtiene todos los tags creados por el usuario.
+         * Devuelve un array de tags (id, name, color).
+         */
+        public function getUserBookTags(int $userId): array
+        {
+            $sql = 'SELECT id, name, color FROM user_book_tags WHERE user_id = :userId';
+            try {
+                $stmt = $this->db->prepare($sql);
+                $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
+                $stmt->execute();
+                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (\PDOException $e) {
+                $this->logError('DB Error obteniendo todos los tags del usuario', $e, ['userId' => $userId]);
+                throw new \RuntimeException('No se pudieron obtener los tags del usuario. DB Error: ' . $e->getMessage(), 0, $e);
+            }
+        }
+
+        /**
+         * Obtiene todos los tags permitidos para un usuario (alias de getUserBookTags).
+         * Devuelve un array de tags (id, name, color).
+         */
+        public function getAllowedTags(int $userId, string $isbn = null): array
+        {
+            return $this->getUserBookTags($userId);
+        }
+
+        /**
+         * Obtiene las notas de un libro por página para un usuario.
+         * Devuelve un array de notas (id, page_number, note_text, note_type, is_private, created_at).
+         */
+        public function getBookNotesByPage(int $userId, string $isbn): array
+        {
+            $sql = 'SELECT id, page_number, note_text, note_type, is_private, created_at
+                    FROM user_book_notes
+                    WHERE user_id = :userId AND book_isbn = :isbn
+                    ORDER BY page_number ASC, created_at DESC';
+            try {
+                $stmt = $this->db->prepare($sql);
+                $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
+                $stmt->bindValue(':isbn', $isbn);
+                $stmt->execute();
+                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (\PDOException $e) {
+                $this->logError('DB Error obteniendo notas por página', $e, ['userId' => $userId, 'isbn' => $isbn]);
+                throw new \RuntimeException('No se pudieron obtener las notas por página. DB Error: ' . $e->getMessage(), 0, $e);
+            }
+        }
 }

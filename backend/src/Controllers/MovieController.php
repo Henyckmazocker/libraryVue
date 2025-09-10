@@ -9,6 +9,7 @@ use App\Domain\UseCases\Movies\GetMoviesUseCase;
 use App\Domain\UseCases\Movies\GetMovieAllowedStatusesUseCase;
 use App\Infrastructure\Middleware\AuthMiddleware;
 use App\Domain\UseCases\Movies\EditUserMovieUseCase;
+use App\Domain\Repository\MovieRepositoryInterface;
 
 class MovieController extends BaseController implements Contracts\MovieControllerInterface
 {
@@ -21,6 +22,7 @@ class MovieController extends BaseController implements Contracts\MovieControlle
     private GetMovieAllowedStatusesUseCase $getMovieAllowedStatusesUseCase;
     private AuthMiddleware $authMiddleware;
     private EditUserMovieUseCase $editUserMovieUseCase;
+    private MovieRepositoryInterface $movieRepository;
 
     public function __construct(
         AddMovieUseCase $addMovieUseCase,
@@ -30,7 +32,8 @@ class MovieController extends BaseController implements Contracts\MovieControlle
         GetMoviesUseCase $getMoviesUseCase,
         GetMovieAllowedStatusesUseCase $getMovieAllowedStatusesUseCase,
         AuthMiddleware $authMiddleware,
-        EditUserMovieUseCase $editUserMovieUseCase
+        EditUserMovieUseCase $editUserMovieUseCase,
+        MovieRepositoryInterface $movieRepository
     ) {
         $this->addMovieUseCase = $addMovieUseCase;
         $this->deleteMovieUseCase = $deleteMovieUseCase;
@@ -40,6 +43,7 @@ class MovieController extends BaseController implements Contracts\MovieControlle
         $this->getMovieAllowedStatusesUseCase = $getMovieAllowedStatusesUseCase;
         $this->editUserMovieUseCase = $editUserMovieUseCase;
         $this->authMiddleware = $authMiddleware;
+        $this->movieRepository = $movieRepository;
     }
 
     public function addMovie(array $movieData, int $userId): array
@@ -123,6 +127,46 @@ class MovieController extends BaseController implements Contracts\MovieControlle
     }
 
     /**
+     * Obtiene todos los tags del usuario para películas
+     */
+    public function getUserMovieTags(int $userId): array
+    {
+        try {
+            $tags = $this->movieRepository->getUserMovieTags($userId);
+            return $this->successResponse('Tags obtenidos correctamente', $tags);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error al obtener tags: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Crea un nuevo tag para el usuario (películas)
+     */
+    public function createUserMovieTag(int $userId, string $name, string $color = '#1976d2'): array
+    {
+        try {
+            $tagId = $this->movieRepository->addUserMovieTag($userId, $name, $color);
+            $newTag = ['id' => $tagId, 'name' => $name, 'color' => $color];
+            return $this->successResponse('Tag creado correctamente', $newTag);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error al crear tag: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Obtiene los tags de una película específica
+     */
+    public function getMovieTags(int $userId, string $movieIsbn): array
+    {
+        try {
+            $tags = $this->movieRepository->getMovieTags($userId, $movieIsbn);
+            return $this->successResponse('Tags de la película obtenidos correctamente', $tags);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error al obtener tags de la película: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Handle HTTP request for movie endpoints
      */
     public function handleRequest(string $method, string $path): void
@@ -133,7 +177,7 @@ class MovieController extends BaseController implements Contracts\MovieControlle
             
             // Handle authentication for actions that require it
             $authResult = null;
-            $authRequiredActions = ['add_movie', 'delete_movie', 'update_movie_rating', 'update_movie_user_statuses', 'get_movies'];
+            $authRequiredActions = ['add_movie', 'delete_movie', 'update_movie_rating', 'update_movie_user_statuses', 'get_movies', 'edit_user_movie', 'get_user_movie_tags', 'create_user_movie_tag', 'get_movie_tags'];
             
             if (in_array($action, $authRequiredActions)) {
                 $authResult = $this->authMiddleware->requireAuth();
@@ -145,7 +189,7 @@ class MovieController extends BaseController implements Contracts\MovieControlle
                 }
                 
                 // Check CSRF for modifying actions
-                $csrfRequiredActions = ['add_movie', 'delete_movie', 'update_movie_rating', 'update_movie_user_statuses'];
+                $csrfRequiredActions = ['add_movie', 'delete_movie', 'update_movie_rating', 'update_movie_user_statuses', 'edit_user_movie', 'create_user_movie_tag'];
                 if (in_array($action, $csrfRequiredActions)) {
                     $csrfResult = $this->authMiddleware->requireAuthAndCSRF($inputData['csrf_token'] ?? null);
                     if ($csrfResult['status'] === 'error') {
@@ -166,6 +210,9 @@ class MovieController extends BaseController implements Contracts\MovieControlle
                 'get_movie_allowed_statuses' => $this->getMovieAllowedStatuses(),
                 'get_movies' => $this->getMovies($authResult['user']['id']),
                 'edit_user_movie' => $this->editUserMovie($inputData['movieId'] ?? 0, $authResult['user']['id'], $inputData['data'] ?? [], $inputData['tags'] ?? [], $inputData['notes'] ?? []),
+                'get_user_movie_tags' => $this->getUserMovieTags($authResult['user']['id']),
+                'create_user_movie_tag' => $this->createUserMovieTag($authResult['user']['id'], $inputData['name'] ?? '', $inputData['color'] ?? '#1976d2'),
+                'get_movie_tags' => $this->getMovieTags($authResult['user']['id'], $inputData['movieIsbn'] ?? ''),
                 default => $this->errorResponse('Invalid movie action: ' . $action)
             };
             

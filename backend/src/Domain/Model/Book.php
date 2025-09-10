@@ -18,6 +18,8 @@ class Book
     private ?string $description;
     private ?int $addedTimestamp;
     private array $userStatuses;
+    private ?array $tags;
+    private ?array $allowedTags;
 
     public function __construct(
         string $isbn,
@@ -32,7 +34,9 @@ class Book
         ?string $description,
         array $userStatuses,
         array $allowedStatuses,
-        ?int $addedTimestamp = null
+        ?int $addedTimestamp = null,
+        ?array $tags = null,
+        ?array $allowedTags = null
     ) {
         if (empty($isbn)) {
             throw new \InvalidArgumentException('ISBN cannot be empty.');
@@ -65,7 +69,7 @@ class Book
                 throw new \InvalidArgumentException("Invalid status: {$status}. Allowed statuses are: " . implode(', ', $allowedStatuses));
             }
         }
-
+        $this->tags = $tags;
         $this->isbn = $isbn;
         $this->title = $title;
         $this->author = $author;
@@ -78,6 +82,27 @@ class Book
         $this->description = $description;
         $this->userStatuses = array_unique($userStatuses);
         $this->addedTimestamp = $addedTimestamp ?? time();
+        $this->allowedTags = $allowedTags;
+    }
+
+    public function getAllowedTags(): ?array
+    {
+        return $this->allowedTags;
+    }
+
+    public function setAllowedTags(?array $allowedTags): void
+    {
+        $this->allowedTags = $allowedTags;
+    }
+
+    public function getTags(): ?array
+    {
+        return $this->tags;
+    }
+
+    public function setTags(?array $tags): void
+    {
+        $this->tags = $tags;
     }
 
     public function getIsbn(): string
@@ -207,6 +232,8 @@ class Book
             'description' => $this->description,
             'userStatuses' => $this->userStatuses,
             'addedTimestamp' => $this->addedTimestamp,
+            'tags' => $this->tags,
+            'allowedTags' => $this->allowedTags,
         ];
     }
 
@@ -218,12 +245,16 @@ class Book
      * @param array $allowedStatuses
      * @return self
      */
-    public static function fromArray(array $data, array $allowedStatuses): self
+    public static function fromArray(array $data): self
     {
         // Permitir userStatuses vacío (mostrar en la vista, no lanzar excepción)
         if (!isset($data['userStatuses']) || !is_array($data['userStatuses'])) {
             $data['userStatuses'] = [];
         }
+        
+        // Asegurar que allowedStatuses esté disponible para validación
+        $allowedStatuses = $data['allowedStatuses'] ?? [];
+        
         foreach ($data['userStatuses'] as $status) {
             if (!in_array($status, $allowedStatuses, true)) {
                 throw new \InvalidArgumentException("Invalid status in data: {$status}. Allowed statuses are: " . implode(', ', $allowedStatuses));
@@ -242,8 +273,10 @@ class Book
             isset($data['pages']) ? (int)$data['pages'] : null,
             is_array($data['description'] ?? null) ? implode(' ', $data['description']) : ($data['description'] ?? null),
             $data['userStatuses'],
-            $allowedStatuses,
-            isset($data['addedTimestamp']) ? (int)$data['addedTimestamp'] : null
+            $data['allowedStatuses'] ?? null,
+            isset($data['addedTimestamp']) ? (int)$data['addedTimestamp'] : null,
+            $data['tags'] ?? null,
+            $data['allowedTags'] ?? null
         );
     }
 }

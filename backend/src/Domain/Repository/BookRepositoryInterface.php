@@ -49,4 +49,24 @@ interface BookRepositoryInterface
     public function addUserBookTag(int $userId, string $name, string $color = '#007bff'): int;
 
     public function assignUserBookTag(int $userId, string $isbn, int $tagId): void;
+
+    public function removeAllUserBookTags(int $userId, string $isbn): void;
+
+    /**
+     * Obtiene los tags asignados a un libro específico de un usuario.
+     * Devuelve un array de tags (id, name, color).
+     */
+    public function getBookTags(int $userId, string $isbn): array;
+
+    /**
+     * Obtiene todos los tags creados por el usuario.
+     * Devuelve un array de tags (id, name, color).
+     */
+    public function getUserBookTags(int $userId): array;
+
+    /**
+     * Obtiene las notas de un libro por página para un usuario.
+     * Devuelve un array de notas (id, page_number, note_text, note_type, is_private, created_at).
+     */
+    public function getBookNotesByPage(int $userId, string $isbn): array;
 }

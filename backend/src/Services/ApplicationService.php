@@ -121,7 +121,28 @@ class ApplicationService
         $requestUri = $_SERVER['REQUEST_URI'] ?? '';
         $requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         
-        // Parse the request to extract action
+        // Handle RESTful API routes first
+        if (preg_match('#^/api/users/(\d+)/book-tags/?(\w+)?/?$#', $requestUri, $matches)) {
+            $this->handleBookTagsAPI($requestMethod, (int)$matches[1], $matches[2] ?? null);
+            return;
+        }
+        
+        if (preg_match('#^/api/users/(\d+)/books/([^/]+)/tags/?$#', $requestUri, $matches)) {
+            $this->handleBookSpecificTagsAPI($requestMethod, (int)$matches[1], $matches[2]);
+            return;
+        }
+
+        if (preg_match('#^/api/users/(\d+)/movie-tags/?(\w+)?/?$#', $requestUri, $matches)) {
+            $this->handleMovieTagsAPI($requestMethod, (int)$matches[1], $matches[2] ?? null);
+            return;
+        }
+        
+        if (preg_match('#^/api/users/(\d+)/movies/([^/]+)/tags/?$#', $requestUri, $matches)) {
+            $this->handleMovieSpecificTagsAPI($requestMethod, (int)$matches[1], $matches[2]);
+            return;
+        }
+        
+        // Parse the request to extract action (legacy support)
         $inputData = json_decode(file_get_contents('php://input'), true) ?? [];
         $action = $inputData['action'] ?? $_REQUEST['action'] ?? null;
         
@@ -144,13 +165,15 @@ class ApplicationService
             elseif (str_starts_with($action, 'add_book') || str_starts_with($action, 'delete_book') || 
                     str_starts_with($action, 'update_book') || str_starts_with($action, 'get_book') ||
                     str_starts_with($action, 'edit_user_book') ||
+                    str_starts_with($action, 'get_user_book_tags') || str_starts_with($action, 'create_user_book_tag') ||
                     str_starts_with($action, 'get_library') && $action === 'get_library') {
                 $controller = $this->getBookController();
                 $controller->handleRequest($requestMethod, $requestUri);
             } 
             elseif (str_starts_with($action, 'add_movie') || str_starts_with($action, 'delete_movie') || 
                     str_starts_with($action, 'update_movie') || str_starts_with($action, 'get_movie') ||
-                    str_starts_with($action, 'edit_user_movie')) {
+                    str_starts_with($action, 'edit_user_movie') ||
+                    str_starts_with($action, 'get_user_movie_tags') || str_starts_with($action, 'create_user_movie_tag')) {
                 $controller = $this->getMovieController();
                 $controller->handleRequest($requestMethod, $requestUri);
             } 
@@ -200,5 +223,147 @@ class ApplicationService
         error_log("Application Error: " . $e->getMessage());
         
         echo json_encode($response, JSON_PRETTY_PRINT);
+    }
+
+    /**
+     * Handle book tags API endpoints
+     */
+    private function handleBookTagsAPI(string $method, int $userId, ?string $tagId): void
+    {
+        try {
+            $controller = $this->getBookController();
+            $inputData = json_decode(file_get_contents('php://input'), true) ?? [];
+            
+            switch ($method) {
+                case 'GET':
+                    // GET /api/users/{userId}/book-tags
+                    $inputData['action'] = 'get_user_book_tags';
+                    $response = $controller->getUserBookTags($userId);
+                    break;
+                    
+                case 'POST':
+                    // POST /api/users/{userId}/book-tags
+                    $inputData['action'] = 'create_user_book_tag';
+                    $response = $controller->createUserBookTag(
+                        $userId, 
+                        $inputData['name'] ?? '', 
+                        $inputData['color'] ?? '#1976d2'
+                    );
+                    break;
+                    
+                default:
+                    http_response_code(405);
+                    echo json_encode(['error' => 'Method not allowed']);
+                    return;
+            }
+            
+            $statusCode = $response['status'] === 'success' ? 200 : 400;
+            http_response_code($statusCode);
+            header('Content-Type: application/json');
+            echo json_encode($response, JSON_PRETTY_PRINT);
+            
+        } catch (\Throwable $e) {
+            $this->handleError($e);
+        }
+    }
+
+    /**
+     * Handle book-specific tags API endpoints
+     */
+    private function handleBookSpecificTagsAPI(string $method, int $userId, string $isbn): void
+    {
+        try {
+            $controller = $this->getBookController();
+            
+            switch ($method) {
+                case 'GET':
+                    // GET /api/users/{userId}/books/{isbn}/tags
+                    $response = $controller->getBookTags($userId, $isbn);
+                    break;
+                    
+                default:
+                    http_response_code(405);
+                    echo json_encode(['error' => 'Method not allowed']);
+                    return;
+            }
+            
+            $statusCode = $response['status'] === 'success' ? 200 : 400;
+            http_response_code($statusCode);
+            header('Content-Type: application/json');
+            echo json_encode($response, JSON_PRETTY_PRINT);
+            
+        } catch (\Throwable $e) {
+            $this->handleError($e);
+        }
+    }
+
+    /**
+     * Handle movie tags API endpoints
+     */
+    private function handleMovieTagsAPI(string $method, int $userId, ?string $tagId): void
+    {
+        try {
+            $controller = $this->getMovieController();
+            $inputData = json_decode(file_get_contents('php://input'), true) ?? [];
+            
+            switch ($method) {
+                case 'GET':
+                    // GET /api/users/{userId}/movie-tags
+                    $response = $controller->getUserMovieTags($userId);
+                    break;
+                    
+                case 'POST':
+                    // POST /api/users/{userId}/movie-tags
+                    $response = $controller->createUserMovieTag(
+                        $userId, 
+                        $inputData['name'] ?? '', 
+                        $inputData['color'] ?? '#1976d2'
+                    );
+                    break;
+                    
+                default:
+                    http_response_code(405);
+                    echo json_encode(['error' => 'Method not allowed']);
+                    return;
+            }
+            
+            $statusCode = $response['status'] === 'success' ? 200 : 400;
+            http_response_code($statusCode);
+            header('Content-Type: application/json');
+            echo json_encode($response, JSON_PRETTY_PRINT);
+            
+        } catch (\Throwable $e) {
+            $this->handleError($e);
+        }
+    }
+
+    /**
+     * Handle movie-specific tags API endpoints
+     */
+    private function handleMovieSpecificTagsAPI(string $method, int $userId, string $movieIsbn): void
+    {
+        try {
+            $controller = $this->getMovieController();
+            
+            switch ($method) {
+                case 'GET':
+                    // GET /api/users/{userId}/movies/{movieIsbn}/tags
+                    $response = $controller->getMovieTags($userId, $movieIsbn);
+                    break;
+                    
+                default:
+                    http_response_code(405);
+                    echo json_encode(['error' => 'Method not allowed']);
+                    return;
+            }
+            
+            $statusCode = $response['status'] === 'success' ? 200 : 400;
+            http_response_code($statusCode);
+            header('Content-Type: application/json');
+            echo json_encode($response, JSON_PRETTY_PRINT);
+            
+        } catch (\Throwable $e) {
+            $this->handleError($e);
+        }
     }
 }

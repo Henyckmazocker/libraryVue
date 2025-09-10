@@ -1,4 +1,5 @@
 import 'primeicons/primeicons.css';
+import './assets/embed-variables.css';
 import { createApp } from 'vue';
 import App from './App.vue';
 import { createPinia } from 'pinia';

@@ -97,4 +97,24 @@ a:hover {
 .mt-2 { margin-top: 1rem; }
 .mt-3 { margin-top: 1.5rem; }
 .mt-4 { margin-top: 2rem; }
+
+/* Global z-index fix for PrimeVue dropdowns in modals */
+.p-multiselect-panel,
+.p-dropdown-panel,
+.p-overlay-mask .p-multiselect-panel,
+.p-overlay-mask .p-dropdown-panel {
+  z-index: 3000 !important;
+}
+
+/* Ensure modals have appropriate z-index base */
+.modal-overlay {
+  z-index: 2000;
+}
+
+/* Additional fix for PrimeVue overlays */
+.p-component-overlay,
+.p-multiselect-overlay,
+.p-dropdown-overlay {
+  z-index: 3000 !important;
+}
 </style>

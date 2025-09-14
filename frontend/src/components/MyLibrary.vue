@@ -34,11 +34,11 @@
       <i class="fas fa-spinner fa-spin"></i> Cargando biblioteca...
     </div>
     <div v-if="fetchError" class="error-message">{{ fetchError }}</div>
-    <div :class="['status-message', overallStatus]" aria-live="polite" style="min-height: 2.5em;">
-      <span v-if="statusMessage">{{ statusMessage }}</span>
+    <div :class="['status-message', notifications.statusType.value]" aria-live="polite" style="min-height: 2.5em;">
+      <span v-if="notifications.statusMessage.value">{{ notifications.statusMessage.value }}</span>
     </div>
 
-    <div v-if="!isLoading && !fetchError && displayedItems.length === 0 && !statusMessage" class="empty-library-message">
+    <div v-if="!isLoading && !fetchError && displayedItems.length === 0 && !notifications.statusMessage.value" class="empty-library-message">
       Your library is currently empty. Add some books from the ISBN Finder!
     </div>
 
@@ -52,6 +52,8 @@
           @delete-book="handleDeleteBook"
           @update-rating="handleUpdateRating"
           @update-statuses="handleUpdateStatuses"
+          @update-progress="handleUpdateProgress"
+          @edit-item="handleEditItem"
           class="book-item"
         />
         <LibraryMovieItem
@@ -62,10 +64,21 @@
           @delete-movie="handleDeleteBook"
           @update-rating="handleUpdateRating"
           @update-statuses="handleUpdateStatuses"
+          @edit-item="handleEditItem"
           class="book-item"
         />
       </template>
     </div>
+
+    <!-- Unified Edit Modal -->
+    <EditItemModal
+      v-if="modal.isOpen.value"
+      :item="modal.currentItem.value"
+      :item-type="modal.itemType.value"
+      :allowed-statuses="allowedUserStatusesList(modal.itemType.value)"
+      @close="modal.closeModal"
+      @saved="handleModalSaved"
+    />
 
     <!-- Import Modal Component -->
     <ImportModal 
@@ -77,18 +90,26 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, provide } from 'vue';
 import { useBooks } from '@/composables/useBooks';
 import { useMovies } from '@/composables/useMovies';
 import { useSearch } from '@/composables/useSearch';
+import { useLibraryNotifications } from '@/composables/useLibraryNotifications';
+import { useItemModal } from '@/composables/useItemModal';
 import Logger from '@/utils/logger';
 import LibraryBookItem from './Books/LibraryBookItem.vue';
 import LibraryMovieItem from './Movies/LibraryMovieItem.vue';
+import EditItemModal from './EditItemModal.vue';
 import ImportModal from './ImportModal.vue';
 
 // Composables
 const booksComposable = useBooks();
 const moviesComposable = useMovies();
+const notifications = useLibraryNotifications();
+const modal = useItemModal();
+
+// Provide notifications to child components
+provide('notifications', notifications);
 
 // Configurar búsqueda con debouncing
 const searchSystem = useSearch({
@@ -100,8 +121,6 @@ const searchSystem = useSearch({
 const showBooks = ref(true);
 const showMovies = ref(true);
 const fetchError = ref("");
-const statusMessage = ref("");
-const overallStatus = ref("");
 const currentSort = ref('date-desc');
 const showImportModal = ref(false);
 
@@ -122,13 +141,6 @@ const allowedMovieUserStatuses = computed(() => moviesComposable.allowedStatuses
 const allowedUserStatusesList = (itemType) => {
   if (itemType === 'movie') return allowedMovieUserStatuses.value;
   return allowedBookUserStatuses.value;
-};
-
-const setStatus = (message, type) => {
-  statusMessage.value = message;
-  overallStatus.value = type;
-  // Optional: clear message after some time
-  // setTimeout(() => { statusMessage.value = ""; overallStatus.value = ""; }, 5000);
 };
 
 const fetchLibrary = async () => {
@@ -219,8 +231,6 @@ const handleDeleteBook = async (payload) => {
     : `Are you sure you want to delete the book with ISBN: ${isbn}?`;
   if (!confirm(confirmMsg)) return;
   
-  setStatus("", "");
-  
   try {
     let result;
     if (itemType === 'movie') {
@@ -231,7 +241,7 @@ const handleDeleteBook = async (payload) => {
     }
     
     if (result.success) {
-      setStatus(`${itemType === 'movie' ? 'Movie' : 'Book'} deleted successfully.`, "success");
+      notifications.showSuccess(`${itemType === 'movie' ? 'Movie' : 'Book'} deleted successfully.`);
       // Eliminar del array local
       if (itemType === 'movie') {
         const idx = moviesComposable.movies.value.findIndex(m => m.imdbID === (imdbID || isbn));
@@ -241,57 +251,94 @@ const handleDeleteBook = async (payload) => {
         if (idx !== -1) booksComposable.books.value.splice(idx, 1);
       }
     } else {
-      setStatus(result.message || `Failed to delete ${itemType === 'movie' ? 'movie' : 'book'}.`, "error");
+      notifications.showError(result.message || `Failed to delete ${itemType === 'movie' ? 'movie' : 'book'}.`);
     }
   } catch (error) {
     Logger.error("Error deleting item:", error);
-    setStatus("Error connecting to backend to delete item.", "error");
+    notifications.showError("Error connecting to backend to delete item.");
   }
 };
 
 const handleUpdateRating = async ({ isbn, rating, itemType }) => {
-  setStatus("", "");
-  
   try {
     let result;
     if (itemType === 'movie') {
+      // Para películas, usar directamente el ID que viene (imdbID)
       result = await moviesComposable.updateMovieRating(isbn, rating);
     } else {
       result = await booksComposable.updateBookRating(isbn, rating);
     }
     
     if (result.success) {
-      setStatus("Rating updated successfully.", "success");
+      notifications.showSuccess("Rating updated successfully.");
     } else {
-      setStatus(result.message || "Failed to update rating.", "error");
+      notifications.showError(result.message || "Failed to update rating.");
     }
   } catch (error) {
     Logger.error("Error updating rating:", error);
-    setStatus("Error connecting to backend to update rating.", "error");
+    notifications.showError("Error connecting to backend to update rating.");
   }
 };
 
 // Manejar actualización de estados de usuario
 const handleUpdateStatuses = async ({ isbn, statuses, itemType }) => {
-  setStatus("", "");
-  
   try {
     let result;
     if (itemType === 'movie') {
+      // Para películas, usar directamente el ID que viene (imdbID)
       result = await moviesComposable.updateMovieStatuses(isbn, statuses);
     } else {
       result = await booksComposable.updateBookStatuses(isbn, statuses);
     }
     
     if (result.success) {
-      setStatus("Estados actualizados correctamente.", "success");
+      notifications.showSuccess("Estados actualizados correctamente.");
     } else {
-      setStatus(result.message || "No se pudieron actualizar los estados.", "error");
+      notifications.showError(result.message || "No se pudieron actualizar los estados.");
     }
   } catch (error) {
     Logger.error("Error actualizando estados:", error);
-    setStatus("Error conectando con el backend para actualizar estados.", "error");
+    notifications.showError("Error conectando con el backend para actualizar estados.");
   }
+};
+
+// Manejar actualización de progreso de lectura
+const handleUpdateProgress = async ({ isbn, updates }) => {
+  // No limpiar el estado para updates silenciosos como el progreso de lectura
+  try {
+    // Encontrar el libro en el array original de libros y actualizarlo inmediatamente
+    const bookIndex = booksComposable.books.value.findIndex(book => book.isbn === isbn);
+    
+    if (bookIndex !== -1) {
+      // Actualizar los campos localmente para reactividad inmediata
+      Object.keys(updates).forEach(key => {
+        booksComposable.books.value[bookIndex][key] = updates[key];
+      });
+      
+      Logger.debug('Book progress updated locally:', { isbn, updates });
+      // No mostrar mensaje de éxito para actualizaciones automáticas como currentPage
+      // ya que estas son frecuentes y podrían ser molestas para el usuario
+    } else {
+      Logger.warn('Book not found for progress update:', isbn);
+    }
+  } catch (error) {
+    Logger.error("Error updating book progress locally:", error);
+    notifications.showError("Error actualizando el progreso del libro localmente.");
+  }
+};
+
+// Manejar apertura del modal de edición
+const handleEditItem = (item, itemType) => {
+  modal.openModal(item, itemType);
+};
+
+// Manejar cierre del modal de edición
+const handleModalSaved = (updatedItem) => {
+  Logger.debug('Item saved from modal:', updatedItem);
+  
+  // El singleton useMovies/useBooks ya actualiza los datos localmente
+  // No necesitamos actualizar aquí porque ambos componentes comparten el mismo estado
+  Logger.debug('Modal saved - singleton composables already updated the data');
 };
 
 // Import functionality methods
@@ -305,18 +352,12 @@ const closeImportModal = () => {
 
 const handleImportSuccess = async (importData) => {
   // Show success message in the main library
-  setStatus(
-    `Datos importados correctamente desde ${importData.service}. Archivo: ${importData.fileName}`,
-    'success'
+  notifications.showSuccess(
+    `Datos importados correctamente desde ${importData.service}. Archivo: ${importData.fileName}`
   );
   
   // Refresh the library to show imported items
   await fetchLibrary();
-  
-  // Clear success message after 5 seconds
-  setTimeout(() => {
-    setStatus('', '');
-  }, 5000);
 };
 
 // Montar componente

@@ -3,23 +3,24 @@ import { useAuth } from './useAuth';
 import { useAuthStore } from '@/store/auth';
 import Logger from '@/utils/logger';
 
+// Estados globales compartidos (singleton)
+const books = ref([]);
+const allowedStatuses = ref([]);
+const userTags = ref([]);
+const isLoading = ref(false);
+const error = ref(null);
+const lastSearchQuery = ref('');
+const searchResults = ref([]);
+const isSearching = ref(false);
+
 /**
  * Composable para gestión de libros
  * Proporciona funcionalidades CRUD para libros y gestión de estados
+ * Implementado como singleton para compartir estado entre componentes
  */
 export function useBooks() {
   const { authenticatedApiCall } = useAuth();
   const authStore = useAuthStore();
-  
-  // Estados reactivos
-  const books = ref([]);
-  const allowedStatuses = ref([]);
-  const userTags = ref([]);
-  const isLoading = ref(false);
-  const error = ref(null);
-  const lastSearchQuery = ref('');
-  const searchResults = ref([]);
-  const isSearching = ref(false);
 
   // Estados computados
   const totalBooks = computed(() => books.value.length);
@@ -154,6 +155,7 @@ export function useBooks() {
         coverUrl: book.coverUrl || '',
         publisher: publisherValue,
         publicationDate: book.publicationDate || '',
+        pages: book.pages || null,
         description: book.description || '',
         userStatuses: statuses,
         allowedStatuses: allowedStatuses.value,
@@ -374,6 +376,17 @@ export function useBooks() {
         notes
       });
       if (response.data.status === 'success') {
+        // Actualizar el libro en el estado local
+        const bookIndex = books.value.findIndex(book => book.isbn === isbn);
+        if (bookIndex !== -1) {
+          books.value[bookIndex] = {
+            ...books.value[bookIndex],
+            user_rating: data.personalRating !== undefined ? data.personalRating : books.value[bookIndex].user_rating,
+            userStatuses: data.statuses || books.value[bookIndex].userStatuses,
+            currentPage: data.currentPage !== undefined ? data.currentPage : books.value[bookIndex].currentPage
+          };
+        }
+        
         Logger.debug('[useBooks] User book editado correctamente');
         return { success: true };
       } else {
@@ -503,6 +516,60 @@ export function useBooks() {
   };
 
   /**
+   * Actualiza el progreso de lectura de un libro (página actual)
+   */
+  const updateReadingProgress = async (isbn, currentPage) => {
+    try {
+      Logger.debug('[useBooks] Actualizando progreso de lectura:', { isbn, currentPage });
+      
+      if (!authStore.user?.id) {
+        throw new Error('Usuario no autenticado');
+      }
+
+      const response = await authenticatedApiCall('edit_user_book', {
+        isbn,
+        userId: authStore.user.id,
+        data: { 
+          currentPage: parseInt(currentPage) || 0 
+        },
+        tags: [],
+        notes: []
+      });
+
+      if (response.data.status === 'success') {
+        // Actualizar el libro en el estado local
+        const bookIndex = books.value.findIndex(book => book.isbn === isbn);
+        if (bookIndex !== -1) {
+          books.value[bookIndex] = {
+            ...books.value[bookIndex],
+            currentPage: parseInt(currentPage) || 0
+          };
+        }
+        
+        Logger.debug('[useBooks] Progreso de lectura actualizado correctamente');
+        return { success: true };
+      } else {
+        throw new Error(response.data.message || 'Error al actualizar progreso de lectura');
+      }
+    } catch (error) {
+      Logger.error('[useBooks] Error actualizando progreso de lectura:', error);
+      return { success: false, message: error.message };
+    }
+  };
+
+  /**
+   * Obtiene el progreso de lectura de un libro específico
+   */
+  const getReadingProgress = (isbn) => {
+    const book = books.value.find(book => book.isbn === isbn);
+    return {
+      currentPage: book?.currentPage || 0,
+      totalPages: book?.pages || 0,
+      progressPercentage: book?.pages ? Math.round(((book?.currentPage || 0) / book.pages) * 100) : 0
+    };
+  };
+
+  /**
    * Limpia los errores
    */
   const clearError = () => {
@@ -554,6 +621,10 @@ export function useBooks() {
     fetchUserTags,
     createUserTag,
     getBookTags,
+
+    // Métodos de progreso de lectura
+    updateReadingProgress,
+    getReadingProgress,
 
     // Métodos de utilidad
     findBookByISBN,

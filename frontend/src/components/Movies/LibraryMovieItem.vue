@@ -29,19 +29,40 @@
           @status-changed="onStatusesChange"
         />
         
-        <!-- Movie Actions Component -->
-        <MovieActions
-          :item="movie"
-          :is-new="!movie.userStatuses || movie.userStatuses.length === 0"
-          :can-save="canSave"
-          :can-delete="canDelete"
-          :show-update-button="false"
-          :show-edit-button="true"
-          @save="onSaveMovie"
-          @delete="onDeleteMovie"
-          :allowed-statuses="allowedUserStatuses"
-          @close="handleMovieEditClose"
-        />
+        <!-- Direct action buttons -->
+        <div class="movie-actions">
+          <!-- Save button for new movies -->
+          <button 
+            v-if="isNewMovie"
+            @click="onSaveMovie" 
+            class="action-button save-button" 
+            :disabled="!canSave"
+            title="Guardar película"
+          >
+            <i class="fas fa-save"></i>
+            <span>Guardar</span>
+          </button>
+          
+          <button 
+            v-if="!isNewMovie"
+            @click="onEditMovie"
+            class="action-button edit-button"
+            title="Editar película"
+          >
+            <i class="fas fa-pencil-alt"></i>
+            <span>Editar</span>
+          </button>
+          
+          <button 
+            v-if="!isNewMovie && canDelete"
+            @click="onDeleteMovie"
+            class="action-button delete-button"
+            title="Eliminar película"
+          >
+            <i class="fas fa-trash"></i>
+            <span>Eliminar</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -51,7 +72,6 @@
 import { defineProps, defineEmits, ref, computed, watch } from 'vue';
 import RatingComponent from '@/components/common/RatingComponent.vue';
 import StatusSelector from '@/components/common/StatusSelector.vue';
-import MovieActions from '@/components/Movies/MovieActions.vue';
 import Logger from '@/utils/logger';
 
 const props = defineProps({
@@ -70,7 +90,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['delete-movie', 'update-rating', 'update-statuses', 'save-movie']);
+const emit = defineEmits(['delete-movie', 'update-rating', 'update-statuses', 'save-movie', 'edit-item']);
 
 // Estados seleccionados (editable)
 const getInitialStatuses = () => {
@@ -84,63 +104,58 @@ const getInitialStatuses = () => {
 };
 
 const selectedUserStatuses = ref(getInitialStatuses());
-const rating = ref(props.movie.user_rating);
+const rating = ref(props.movie.user_rating || 0);
+
+// Capturar si es nueva al inicializar (no reactivo)
+const isNewMovie = ref(!props.movie.userStatuses || props.movie.userStatuses.length === 0);
 
 // Computed properties
-const canSave = computed(() => {
-  return props.movie.title && selectedUserStatuses.value.length > 0;
-});
-
 const canDelete = computed(() => {
   return props.movie.userStatuses && props.movie.userStatuses.length > 0;
 });
 
+const canSave = computed(() => {
+  return true; // Simplificado por ahora, igual que en LibraryBookItem
+});
+
 // Methods
-const onRatingChange = (rating) => {
-  Logger.debug('Rating changed to:', rating);
-  emit('update-rating', { isbn: props.movie.imdbID, rating, itemType: 'movie' });
+const onRatingChange = (newRating) => {
+  rating.value = newRating;
+  Logger.debug('Rating changed to:', newRating);
+  emit('update-rating', { isbn: props.movie.isbn, rating: newRating, itemType: 'movie' });
 };
 
 const onStatusesChange = (statuses) => {
   selectedUserStatuses.value = statuses;
   Logger.debug('Statuses changed to:', statuses);
-  
-  // Si la película ya está guardada (tiene userStatuses), emitir inmediatamente
-  if (props.movie.userStatuses && props.movie.userStatuses.length > 0) {
-    emit('update-statuses', { isbn: props.movie.imdbID, statuses: [...selectedUserStatuses.value], itemType: 'movie' });
-  }
-  // Si no está guardada, no emitir nada (esperar a guardar)
-};
-
-const onSaveMovie = () => {
-  if (canSave.value) {
-    Logger.debug('Saving movie with statuses:', selectedUserStatuses.value);
-    emit('save-movie', { 
-      movie: { ...props.movie, userStatuses: [...selectedUserStatuses.value] }, 
-      statuses: [...selectedUserStatuses.value] 
-    });
-  }
+  emit('update-statuses', { isbn: props.movie.isbn, statuses: statuses, itemType: 'movie' });
 };
 
 const onDeleteMovie = () => {
-  Logger.debug('Deleting movie:', props.movie.imdbID);
-  emit('delete-movie', { isbn: props.movie.imdbID, imdbID: props.movie.imdbID, itemType: 'movie' });
+  Logger.debug('Deleting movie:', props.movie.isbn);
+  emit('delete-movie', { isbn: props.movie.isbn, imdbID: props.movie.isbn, itemType: 'movie' });
 };
 
-
-
-const handleMovieEditClose = (updatedMovie) => {
-  const id = updatedMovie?.imdbID || updatedMovie?.tmdbId;
-  if (id) {
-      selectedUserStatuses.value = updatedMovie.userStatuses;
-      rating.value = updatedMovie.user_rating;
-  }
+const onSaveMovie = () => {
+  // Emitir evento para guardar la película
+  Logger.debug('Saving movie:', props.movie.isbn);
+  emit('save-movie', { movie: props.movie, statuses: selectedUserStatuses.value, itemType: 'movie' });
 };
+
+const onEditMovie = () => {
+  emit('edit-item', props.movie, 'movie');
+};
+
+watch(() => props.movie.user_rating, (newRating) => {
+  rating.value = newRating || 0;
+});
 
 // Mantener sincronía solo si cambia el IMDb ID (nueva película)
 watch(() => props.movie.imdbID, (newId, oldId) => {
   if (newId !== oldId) {
     selectedUserStatuses.value = getInitialStatuses();
+    // Nueva película con nuevo ID
+    isNewMovie.value = true;
   }
 });
 </script>
@@ -237,5 +252,78 @@ watch(() => props.movie.imdbID, (newId, oldId) => {
   font-weight: 500;
   color: #888;
   margin-right: 6px;
+}
+
+/* Action buttons styles - restored from original BookActions.vue */
+.movie-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 15px;
+}
+
+.action-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 15px;
+  font-size: 0.9rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  min-width: auto;
+  justify-content: center;
+}
+
+.action-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.action-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Button types with gradients */
+.save-button {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+}
+
+.save-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #20c997, #17a2b8);
+}
+
+.edit-button {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+}
+
+.edit-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0056b3, #004085);
+}
+
+.delete-button {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
+}
+
+.delete-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #c82333, #bd2130);
+}
+
+@media (max-width: 768px) {
+  .movie-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .action-button {
+    width: 100%;
+    justify-content: center;
+  }
 }
 </style>

@@ -2,22 +2,23 @@ import { ref, computed } from 'vue';
 import { useAuth } from './useAuth';
 import Logger from '@/utils/logger';
 
+// Estados globales compartidos (singleton)
+const movies = ref([]);
+const allowedStatuses = ref([]);
+const userTags = ref([]);
+const isLoading = ref(false);
+const error = ref(null);
+const lastSearchQuery = ref('');
+const searchResults = ref([]);
+const isSearching = ref(false);
+
 /**
  * Composable para gestión de películas
  * Proporciona funcionalidades CRUD para películas y gestión de estados
+ * Implementado como singleton para compartir estado entre componentes
  */
 export function useMovies() {
   const { authenticatedApiCall } = useAuth();
-  
-  // Estados reactivos
-  const movies = ref([]);
-  const allowedStatuses = ref([]);
-  const userTags = ref([]);
-  const isLoading = ref(false);
-  const error = ref(null);
-  const lastSearchQuery = ref('');
-  const searchResults = ref([]);
-  const isSearching = ref(false);
 
   // Estados computados
   const totalMovies = computed(() => movies.value.length);
@@ -47,12 +48,9 @@ export function useMovies() {
     error.value = null;
     
     try {
-      Logger.debug('[useMovies] Fetching user movies...');
       const response = await authenticatedApiCall('get_library_items');
       
       if (response.data.status === 'success') {
-        Logger.debug('[useMovies] Response data:', response.data);
-        
         // El backend devuelve { books: [], movies: [] }
         const data = response.data.data || {};
         const moviesArray = Array.isArray(data.movies) ? data.movies : [];
@@ -62,8 +60,6 @@ export function useMovies() {
           ...movie,
           itemType: 'movie'
         }));
-        
-        Logger.debug(`[useMovies] Fetched ${movies.value.length} movies`);
       } else {
         throw new Error(response.data.message || 'Failed to fetch movies');
       }
@@ -92,15 +88,12 @@ export function useMovies() {
     lastSearchQuery.value = query;
 
     try {
-      Logger.debug(`[useMovies] Searching movies with query: ${query}`);
-      
       const response = await authenticatedApiCall('search_movie_name', {
         name: query
       });
 
       if (response.data.status === 'success') {
         searchResults.value = response.data.data || [];
-        Logger.debug(`[useMovies] Found ${searchResults.value.length} movie results`);
         return searchResults.value;
       } else {
         throw new Error(response.data.message || 'Search failed');
@@ -117,7 +110,7 @@ export function useMovies() {
 
   /**
    * Agrega una película a la biblioteca del usuario
-   * @param {Object} movie - Datos de la película
+   * @param {Object} movie - Datos de la película (formato OMDb transformado)
    * @param {Array} statuses - Estados de la película
    */
   const addMovie = async (movie, statuses = []) => {
@@ -125,38 +118,36 @@ export function useMovies() {
     error.value = null;
 
     try {
-      Logger.debug('[useMovies] Adding movie to library:', movie.tmdbId);
-      
       const movieData = {
-        id: movie.tmdbId,
-        movieId: movie.tmdbId,
+        id: movie.isbn || movie.imdbID, // ID para el backend
+        isbn: movie.isbn || movie.imdbID, // ID principal (imdbID)
+        imdbID: movie.imdbID,
         title: movie.title,
-        originalTitle: movie.originalTitle || '',
+        originalTitle: movie.originalTitle || movie.title,
         director: movie.director || '',
-        releaseDate: movie.releaseDate || '',
+        author: movie.author || movie.director || '', // Para consistencia
+        year: movie.year || '',
         genre: movie.genre || '',
-        duration: movie.duration || 0,
-        synopsis: movie.synopsis || '',
-        coverUrl: movie.posterUrl || '',
+        plot: movie.plot || '',
+        coverUrl: movie.coverUrl || '',
         userStatuses: statuses,
-        rating: movie.user_rating || null
+        user_rating: movie.user_rating || 0,
+        itemType: 'movie'
       };
+      
       const response = await authenticatedApiCall('add_movie', { movie: movieData });
 
       if (response.data.status === 'success') {
         // Agregar la película a la lista local con los datos actualizados
         const newMovie = {
-          ...movie,
+          ...movieData,
           userStatuses: statuses,
-          user_rating: movie.user_rating || null,
-          itemType: 'movie'
+          user_rating: movie.user_rating || 0
         };
         movies.value.push(newMovie);
         
-        Logger.debug('[useMovies] Movie added successfully');
         return { success: true, movie: newMovie };
       } else {
-        Logger.error('[useMovies] Backend returned error:', response.data);
         throw new Error(response.data.message || 'Failed to add movie');
       }
     } catch (err) {
@@ -186,7 +177,6 @@ export function useMovies() {
       }
       
       error.value = errorMessage;
-      Logger.error('[useMovies] Error adding movie:', err);
       return { success: false, message: errorMessage };
     } finally {
       isLoading.value = false;
@@ -202,8 +192,6 @@ export function useMovies() {
     error.value = null;
 
     try {
-      Logger.debug('[useMovies] Deleting movie:', tmdbId);
-      
       const response = await authenticatedApiCall('delete_movie', {
         movieId: tmdbId,
         itemType: 'movie'
@@ -212,7 +200,6 @@ export function useMovies() {
       if (response.data.status === 'success') {
         // Remover la película de la lista local
         movies.value = movies.value.filter(movie => movie.tmdbId !== tmdbId);
-        Logger.debug('[useMovies] Movie deleted successfully');
         return { success: true };
       } else {
         throw new Error(response.data.message || 'Failed to delete movie');
@@ -228,25 +215,22 @@ export function useMovies() {
 
   /**
    * Actualiza la calificación de una película
-   * @param {string} tmdbId - ID de TMDB de la película
+   * @param {string} movieId - ID de la película (isbn)
    * @param {number} rating - Nueva calificación (0-5)
    */
-  const updateMovieRating = async (tmdbId, rating) => {
+  const updateMovieRating = async (movieId, rating) => {
     try {
-      Logger.debug(`[useMovies] Updating movie rating: ${tmdbId} -> ${rating}`);
-      
       const response = await authenticatedApiCall('update_movie_rating', {
-        movieId: tmdbId,
+        movieId: movieId,
         rating: rating
       });
 
       if (response.data.status === 'success') {
-        // Actualizar la calificación en la lista local
-        const movie = movies.value.find(m => m.tmdbId === tmdbId);
+        // Actualizar la calificación en la lista local - buscar por isbn
+        const movie = movies.value.find(m => m.isbn === movieId);
         if (movie) {
           movie.user_rating = rating;
         }
-        Logger.debug('[useMovies] Movie rating updated successfully');
         return { success: true };
       } else {
         throw new Error(response.data.message || 'Failed to update rating');
@@ -260,25 +244,22 @@ export function useMovies() {
 
   /**
    * Actualiza los estados de una película
-   * @param {string} tmdbId - ID de TMDB de la película
+   * @param {string} movieId - ID de la película (isbn)
    * @param {Array} statuses - Nuevos estados
    */
-  const updateMovieStatuses = async (tmdbId, statuses) => {
+  const updateMovieStatuses = async (movieId, statuses) => {
     try {
-      Logger.debug(`[useMovies] Updating movie statuses: ${tmdbId}`, statuses);
-      
       const response = await authenticatedApiCall('update_movie_user_statuses', {
-        movieId: tmdbId,
+        movieId: movieId,
         statuses: statuses
       });
 
       if (response.data.status === 'success') {
-        // Actualizar los estados en la lista local
-        const movie = movies.value.find(m => m.tmdbId === tmdbId);
+        // Actualizar los estados en la lista local - buscar por isbn
+        const movie = movies.value.find(m => m.isbn === movieId);
         if (movie) {
           movie.userStatuses = [...statuses];
         }
-        Logger.debug('[useMovies] Movie statuses updated successfully');
         return { success: true };
       } else {
         throw new Error(response.data.message || 'Failed to update statuses');
@@ -295,13 +276,10 @@ export function useMovies() {
    */
   const fetchAllowedStatuses = async () => {
     try {
-      Logger.debug('[useMovies] Fetching allowed movie statuses...');
-      
       const response = await authenticatedApiCall('get_movie_allowed_statuses');
 
       if (response.data.status === 'success') {
         allowedStatuses.value = response.data.data || [];
-        Logger.debug(`[useMovies] Fetched ${allowedStatuses.value.length} allowed statuses`);
         return allowedStatuses.value;
       } else {
         throw new Error(response.data.message || 'Failed to fetch allowed statuses');
@@ -322,24 +300,31 @@ export function useMovies() {
    * @param {Array} tags
    * @param {Array} notes
    */
-  const editUserMovie = async (tmdbId, userId, data = {}, tags = [], notes = []) => {
+  const editUserMovie = async (movieId, userId, data = {}, tags = [], notes = []) => {
     try {
-      Logger.debug('[useMovies] Editando user_movie:', { tmdbId, userId, data, tags, notes });
       const response = await authenticatedApiCall('edit_user_movie', {
-        movieId: tmdbId,
+        movieId: movieId,
         userId,
         data,
         tags,
         notes
       });
+      
       if (response.data.status === 'success') {
-        // Actualizar datos locales si es necesario
-        const movie = movies.value.find(m => m.tmdbId === tmdbId);
-        if (movie) {
-          if (data.personalRating !== undefined) movie.user_rating = data.personalRating;
-          // Puedes actualizar más campos aquí si tu UI los soporta
+        // Actualizar datos locales usando el mismo patrón que useBooks
+        const movieIndex = movies.value.findIndex(movie => movie.isbn === movieId);
+        
+        if (movieIndex !== -1) {
+          // Actualizar la película usando el patrón de useBooks (spread completo)
+          movies.value[movieIndex] = {
+            ...movies.value[movieIndex],
+            user_rating: data.personalRating !== undefined ? data.personalRating : movies.value[movieIndex].user_rating,
+            userStatuses: data.statuses || movies.value[movieIndex].userStatuses
+          };
+        } else {
+          Logger.warn('[useMovies] Movie not found for local update:', movieId);
         }
-        Logger.debug('[useMovies] User movie editado correctamente');
+        
         return { success: true };
       } else {
         throw new Error(response.data.message || 'Error al editar user_movie');
@@ -419,12 +404,10 @@ export function useMovies() {
    */
   const fetchUserTags = async () => {
     try {
-      Logger.debug('[useMovies] Obteniendo tags del usuario para películas');
       const response = await authenticatedApiCall('get_user_movie_tags');
 
       if (response.data.status === 'success') {
         userTags.value = response.data.data || [];
-        Logger.debug('[useMovies] Tags obtenidos:', userTags.value);
         return { success: true, data: userTags.value };
       } else {
         throw new Error(response.data.message || 'Error al obtener tags');
@@ -440,7 +423,6 @@ export function useMovies() {
    */
   const createUserTag = async (tagName, color = '#1976d2') => {
     try {
-      Logger.debug('[useMovies] Creando nuevo tag:', { tagName, color });
       const response = await authenticatedApiCall('create_user_movie_tag', {
         name: tagName, 
         color
@@ -449,7 +431,6 @@ export function useMovies() {
       if (response.data.status === 'success') {
         const newTag = response.data.data;
         userTags.value.push(newTag);
-        Logger.debug('[useMovies] Tag creado:', newTag);
         return { success: true, data: newTag };
       } else {
         throw new Error(response.data.message || 'Error al crear tag');
@@ -465,13 +446,11 @@ export function useMovies() {
    */
   const getMovieTags = async (movieIsbn) => {
     try {
-      Logger.debug('[useMovies] Obteniendo tags de la película:', movieIsbn);
       const response = await authenticatedApiCall('get_movie_tags', {
         movieIsbn
       });
 
       if (response.data.status === 'success') {
-        Logger.debug('[useMovies] Tags de la película obtenidos:', response.data.data);
         return { success: true, data: response.data.data || [] };
       } else {
         throw new Error(response.data.message || 'Error al obtener tags de la película');

@@ -10,6 +10,7 @@
       :display="'chip'"
       :placeholder="placeholder"
       :style="containerStyle"
+      appendTo="body"
       @change="onStatusesChange"
     />
     
@@ -20,6 +21,7 @@
       :options="allowedStatuses"
       :placeholder="placeholder"
       :style="containerStyle"
+      appendTo="body"
       @change="onStatusChange"
     />
     

@@ -17,6 +17,7 @@ class Book
     private ?int $pages;
     private ?string $description;
     private ?int $addedTimestamp;
+    private ?int $currentPage; // Página actual del usuario
     private array $userStatuses;
     private ?array $tags;
     private ?array $allowedTags;
@@ -35,6 +36,7 @@ class Book
         array $userStatuses,
         array $allowedStatuses,
         ?int $addedTimestamp = null,
+        ?int $currentPage = null,
         ?array $tags = null,
         ?array $allowedTags = null
     ) {
@@ -60,6 +62,12 @@ class Book
         if ($pages !== null && $pages <= 0) {
             throw new \InvalidArgumentException('Pages must be a positive integer, or null.');
         }
+        if ($currentPage !== null && $currentPage < 0) {
+            throw new \InvalidArgumentException('Current page must be a non-negative integer, or null.');
+        }
+        if ($currentPage !== null && $pages !== null && $currentPage > $pages) {
+            throw new \InvalidArgumentException('Current page cannot be greater than total pages.');
+        }
         // Permitir userStatuses vacío (mostrar en la vista, no lanzar excepción)
         if (!is_array($userStatuses)) {
             $userStatuses = [];
@@ -80,6 +88,7 @@ class Book
         $this->userRating = $userRating;
         $this->pages = $pages;
         $this->description = $description;
+        $this->currentPage = $currentPage ?? 0;
         $this->userStatuses = array_unique($userStatuses);
         $this->addedTimestamp = $addedTimestamp ?? time();
         $this->allowedTags = $allowedTags;
@@ -190,6 +199,22 @@ class Book
         $this->description = $description;
     }
 
+    public function getCurrentPage(): ?int
+    {
+        return $this->currentPage;
+    }
+
+    public function setCurrentPage(?int $currentPage): void
+    {
+        if ($currentPage !== null && $currentPage < 0) {
+            throw new \InvalidArgumentException('Current page must be a non-negative integer, or null.');
+        }
+        if ($currentPage !== null && $this->pages !== null && $currentPage > $this->pages) {
+            throw new \InvalidArgumentException('Current page cannot be greater than total pages.');
+        }
+        $this->currentPage = $currentPage ?? 0;
+    }
+
     public function getUserStatuses(): array
     {
         return $this->userStatuses;
@@ -230,6 +255,7 @@ class Book
             'user_rating' => $this->userRating,
             'pages' => $this->pages,
             'description' => $this->description,
+            'currentPage' => $this->currentPage,
             'userStatuses' => $this->userStatuses,
             'addedTimestamp' => $this->addedTimestamp,
             'tags' => $this->tags,
@@ -275,6 +301,7 @@ class Book
             $data['userStatuses'],
             $data['allowedStatuses'] ?? null,
             isset($data['addedTimestamp']) ? (int)$data['addedTimestamp'] : null,
+            isset($data['currentPage']) ? (int)$data['currentPage'] : null,
             $data['tags'] ?? null,
             $data['allowedTags'] ?? null
         );

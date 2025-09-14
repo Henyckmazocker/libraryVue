@@ -8,6 +8,9 @@
       </button>
     </div>
     <div v-if="errorMessage || movieSearch.error.value" class="error-message">{{ errorMessage || movieSearch.error.value }}</div>
+    <div :class="['status-message', notifications.statusType.value]" aria-live="polite" style="min-height: 2.5em;">
+      <span v-if="notifications.statusMessage.value">{{ notifications.statusMessage.value }}</span>
+    </div>
     <div v-if="movieSearch.results.value && movieSearch.results.value.length" class="movie-list">
       <div v-for="result in movieSearch.results.value" :key="result.imdbID" class="movie-list-item-wrapper">
         <div class="movie-list-item" :class="{ expanded: selectedMovie && selectedMovie.imdbID === result.imdbID }" @click="toggleMovie(result.imdbID)">
@@ -24,7 +27,20 @@
         </div>
         <transition name="accordion">
           <div v-if="selectedMovie && selectedMovie.imdbID === result.imdbID" class="movie-detail-below">
-            <MovieDisplay :movie="selectedMovie" :allowedUserStatuses="allowedMovieStatusesList" />
+            <LibraryMovieItem 
+              v-if="allowedMovieStatusesList.length > 0"
+              :movie="transformMovieData(selectedMovie)" 
+              :allowedUserStatuses="allowedMovieStatusesList" 
+              :editable="true"
+              @delete-movie="handleDeleteMovie"
+              @update-rating="handleUpdateRating"
+              @update-statuses="handleUpdateStatuses"
+              @save-movie="handleSaveMovie"
+              @edit-item="handleEditItem"
+            />
+            <div v-else class="loading-statuses">
+              Cargando estados disponibles...
+            </div>
           </div>
         </transition>
       </div>
@@ -37,11 +53,12 @@ import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
 import { useMovies } from '@/composables/useMovies';
 import { useSearch } from '@/composables/useSearch';
-import MovieDisplay from './MovieDisplay.vue';
-import Logger from '@/utils/logger';
+import { useLibraryNotifications } from '@/composables/useLibraryNotifications';
+import LibraryMovieItem from './LibraryMovieItem.vue';
 
 // Composables
 const moviesComposable = useMovies();
+const notifications = useLibraryNotifications();
 
 // Configurar búsqueda con debouncing
 const movieSearch = useSearch({
@@ -58,8 +75,66 @@ const allowedMovieStatusesList = computed(() => {
   return Array.isArray(moviesComposable.allowedStatuses.value) ? moviesComposable.allowedStatuses.value : [];
 });
 
+// Función para transformar datos de OMDb al formato esperado por LibraryMovieItem
+const transformMovieData = (omdbMovie) => {
+  if (!omdbMovie) return null;
+  
+  return {
+    isbn: omdbMovie.imdbID, // Usamos imdbID como ISBN para consistencia
+    imdbID: omdbMovie.imdbID,
+    title: omdbMovie.Title,
+    originalTitle: omdbMovie.Title,
+    director: omdbMovie.Director !== 'N/A' ? omdbMovie.Director : null,
+    author: omdbMovie.Director !== 'N/A' ? omdbMovie.Director : null, // Para consistencia
+    year: omdbMovie.Year,
+    coverUrl: omdbMovie.Poster !== 'N/A' ? omdbMovie.Poster : null,
+    user_rating: 0, // Nuevo, sin rating del usuario
+    userStatuses: [], // Nuevo, sin estados del usuario
+    itemType: 'movie',
+    // Datos adicionales de OMDb que podríamos usar
+    genre: omdbMovie.Genre,
+    plot: omdbMovie.Plot,
+    imdbRating: omdbMovie.imdbRating
+  };
+};
+
+// Manejadores de eventos para LibraryMovieItem
+const handleDeleteMovie = async () => {
+  // En búsqueda no deberíamos tener películas guardadas para eliminar
+  console.warn('Delete movie called from search - this should not happen');
+};
+
+const handleUpdateRating = async (data) => {
+  await moviesComposable.updateMovieRating(data.isbn, data.rating);
+};
+
+const handleUpdateStatuses = async (data) => {
+  await moviesComposable.updateMovieStatuses(data.isbn, data.statuses);
+};
+
+const handleSaveMovie = async (data) => {
+  try {
+    const result = await moviesComposable.addMovie(data.movie, data.statuses);
+    if (result.success) {
+      notifications.showSuccess("Película guardada correctamente en tu biblioteca");
+      // Cerrar el acordeón después de guardar exitosamente
+      selectedMovie.value = null;
+    } else {
+      notifications.showError("Error al guardar la película: " + (result.message || 'Error desconocido'));
+    }
+  } catch (error) {
+    notifications.showError("Error al guardar la película: " + (error.message || error));
+  }
+};
+
+const handleEditItem = (movie, itemType) => {
+  // Aquí podríamos abrir el modal de edición si fuera necesario
+  console.log('Edit item from search:', { movie, itemType });
+};
+
 const searchMovies = async () => {
   errorMessage.value = "";
+  notifications.clearMessage();
   selectedMovie.value = null;
   
   if (!movieSearch.query.value.trim()) {
@@ -109,7 +184,6 @@ const toggleMovie = async (imdbID) => {
 
 onMounted(async () => {
   await moviesComposable.fetchAllowedStatuses();
-  Logger.debug('Allowed movie statuses:', allowedMovieStatusesList.value);
 });
 </script>
 
@@ -159,14 +233,29 @@ onMounted(async () => {
   background-color: #0056b3;
   border-color: #0056b3;
 }
-.error-message {
-  color: #ff4d4f;
-  background: rgba(255,77,79,0.1);
+.error-message,
+.status-message {
   padding: 10px 15px;
   border-radius: 12px;
   margin-bottom: 20px;
   width: 100%;
   text-align: center;
+  box-sizing: border-box;
+}
+
+.error-message {
+  color: #ff4d4f;
+  background-color: rgba(255, 77, 79, 0.1);
+}
+
+.status-message.success {
+  color: #28a745; 
+  background-color: rgba(40, 167, 69, 0.1);
+}
+
+.status-message.error {
+  color: #dc3545; 
+  background-color: rgba(220, 53, 69, 0.1);
 }
 .movie-list {
   width: 100%;
@@ -207,18 +296,28 @@ onMounted(async () => {
   width: 100%;
   max-width: 600px;
 }
-.movie-detail-below .movie-result {
+
+/* Estilos específicos para LibraryMovieItem en contexto de búsqueda */
+.movie-detail-below .library-movie-item-container {
   margin-top: 0;
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   border-top: none;
   background: #232323;
-  display: flex;
-  gap: 24px;
   width: 100%;
   max-width: 600px;
   margin-left: 0;
   box-sizing: border-box;
+}
+
+/* Ajustar el layout para que se vea bien en el acordeón */
+.movie-detail-below .movie-details {
+  gap: 16px;
+}
+
+.movie-detail-below .cover-image {
+  width: 120px;
+  height: auto;
 }
 .movie-list-item-wrapper:not(:last-child) {
   margin-bottom: 10px;
@@ -251,5 +350,12 @@ onMounted(async () => {
 .accordion-enter-to, .accordion-leave-from {
   max-height: 600px;
   opacity: 1;
+}
+
+.loading-statuses {
+  padding: 20px;
+  text-align: center;
+  color: #888;
+  background: #232323;
 }
 </style>

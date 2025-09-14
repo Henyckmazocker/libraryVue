@@ -1,40 +1,62 @@
 <template>
-  <div class="hello-container">
+  <div class="book-search-container">
     <h1 class="title">Book Finder (Google Books + OpenLibrary)</h1>
     <div class="input-group">
-      <input type="text" class="isbn-input" placeholder="Enter ISBN manually" v-model="decodedText" @keyup.enter="triggerFetchBookInfo" required />
+      <input type="text" class="book-input" placeholder="Enter ISBN manually" v-model="decodedText" @keyup.enter="triggerFetchBookInfo" required />
       <button @click="triggerFetchBookInfo" class="search-button">
         <i class="fas fa-search"></i>
         <span class="button-text">ISBN</span>
       </button>
     </div>
     <div class="input-group">
-      <input type="text" class="isbn-input" placeholder="Buscar por nombre de libro" v-model="nameSearch.query.value" @keyup.enter="triggerFetchBookByName" />
+      <input type="text" class="book-input" placeholder="Buscar por nombre de libro" v-model="nameSearch.query.value" @keyup.enter="triggerFetchBookByName" />
       <button @click="triggerFetchBookByName" class="search-button">
         <i class="fas fa-search"></i>
         <span class="button-text">Nombre</span>
       </button>
     </div>
-    <div v-if="nameSearch.results.value.length > 0" class="search-results-container">
-      <h3 class="results-title">Resultados por nombre:</h3>
-      <div class="results-list">
-        <div v-for="book in nameSearch.results.value" :key="book.key" class="result-card">
-          <div class="result-info">
-            <div class="result-title">{{ book.title }} ({{ book.isbn }})</div>
-            <div class="result-author">{{ book.author.join(', ') }}</div>
-            <div v-if="book.publisher && book.publisher.length > 0" class="result-publishers">
-              <span class="result-pub-label">Editorial:</span>
-              <span class="result-pub-list">{{ book.publisher.join(', ') }}</span>
+    
+    <div v-if="nameSearch.error.value || isbnSearchError" class="error-message">{{ nameSearch.error.value || isbnSearchError }}</div>
+    <div :class="['status-message', notifications.statusType.value]" aria-live="polite" style="min-height: 2.5em;">
+      <span v-if="notifications.statusMessage.value">{{ notifications.statusMessage.value }}</span>
+    </div>
+
+    <!-- Lista de resultados con acordeón (igual que MovieSearch) -->
+    <div v-if="nameSearch.results.value && nameSearch.results.value.length" class="search-results-list">
+      <div v-for="result in nameSearch.results.value" :key="result.key" class="search-list-item-wrapper">
+        <div class="search-list-item" :class="{ expanded: selectedBook && selectedBook.key === result.key }" @click="toggleBook(result.key)">
+          <img v-if="result.cover_i" :src="getBookCoverUrl(result.cover_i)" alt="Portada" class="search-list-poster" />
+          <div class="search-list-info">
+            <span class="search-list-title">{{ result.title }} {{ result.isbn ? `(${result.isbn})` : '' }}</span>
+            <span v-if="selectedBook && selectedBook.key === result.key" class="accordion-arrow">
+              <i class="fas fa-chevron-up"></i>
+            </span>
+            <span v-else class="accordion-arrow">
+              <i class="fas fa-chevron-down"></i>
+            </span>
+          </div>
+        </div>
+        <transition name="accordion">
+          <div v-if="selectedBook && selectedBook.key === result.key" class="search-detail-below">
+            <LibraryBookItem 
+              v-if="allowedUserStatusesList.length > 0"
+              :book="transformBookData(selectedBook)" 
+              :allowedUserStatuses="allowedUserStatusesList" 
+              :editable="true"
+              @update-rating="onUpdateRating"
+              @update-statuses="onUpdateStatuses"
+              @save-book="addBookToLibrary"
+            />
+            <div v-else class="loading-statuses">
+              Cargando estados disponibles...
             </div>
           </div>
-          <button class="result-details-btn" @click="selectBookFromList(book)">
-            <i class="fas fa-eye"></i>
-          </button>
-        </div>
+        </transition>
       </div>
     </div>
 
-    <div v-if="currentBook.title">
+    <!-- Resultado de búsqueda por ISBN -->
+    <div v-if="currentBook.title && !isFromAccordion">
       <LibraryBookItem
         :book="currentBook"
         :allowedUserStatuses="allowedUserStatusesList"
@@ -44,13 +66,6 @@
         @save-book="addBookToLibrary"
       />
     </div>
-
-    <div v-if="nameSearch.error.value || isbnSearchError" class="error-message">
-      <p>{{ nameSearch.error.value || isbnSearchError }}</p>
-    </div>
-    <div v-if="addBookMessage" :class="['add-book-message', addBookStatus]">
-      <p>{{ addBookMessage }}</p>
-    </div>
   </div>
 </template>
 
@@ -59,11 +74,13 @@ import { ref, reactive, onMounted, computed } from "vue";
 import axios from 'axios';
 import { useBooks } from '@/composables/useBooks';
 import { useSearch } from '@/composables/useSearch';
+import { useLibraryNotifications } from '@/composables/useLibraryNotifications';
 import LibraryBookItem from './LibraryBookItem.vue';
 import Logger from '@/utils/logger';
 
 // Composables
 const booksComposable = useBooks();
+const notifications = useLibraryNotifications();
 
 // Configurar búsqueda para búsqueda por nombre (solo para estado, no para auto-búsqueda)
 const nameSearch = useSearch({
@@ -71,10 +88,10 @@ const nameSearch = useSearch({
   minQueryLength: 3
 });
 
-// No configurar función de búsqueda automática ya que usamos función manual triggerFetchBookByName
-
 // Estados locales del componente
 const decodedText = ref("");
+const selectedBook = ref(null);
+const isFromAccordion = ref(false);
 const currentBook = reactive({
   isbn: "",
   title: "",
@@ -90,13 +107,61 @@ const currentBook = reactive({
   userStatuses: []
 });
 const isbnSearchError = ref("");
-const addBookMessage = ref("");
-const addBookStatus = ref(""); // 'success' or 'error'
 
 // Estados computados
 const allowedUserStatusesList = computed(() => 
   Array.isArray(booksComposable.allowedStatuses.value) ? booksComposable.allowedStatuses.value : []
 );
+
+// Funciones del acordeón
+const toggleBook = async (bookKey) => {
+  const book = nameSearch.results.value.find(r => r.key === bookKey);
+  if (!book) return;
+  
+  if (selectedBook.value && selectedBook.value.key === bookKey) {
+    // Si ya está seleccionado, contraer
+    selectedBook.value = null;
+    isFromAccordion.value = false;
+  } else {
+    // Seleccionar nuevo libro
+    selectedBook.value = book;
+    isFromAccordion.value = true;
+    clearBookDetails(); // Limpiar el libro actual para evitar conflictos
+  }
+};
+
+// Función para obtener URL de portada
+const getBookCoverUrl = (cover_i) => {
+  if (!cover_i) return '';
+  
+  if (cover_i.startsWith('https://')) {
+    // Google Books URL
+    return cover_i;
+  } else {
+    // OpenLibrary ID
+    return `https://covers.openlibrary.org/b/id/${cover_i}-L.jpg`;
+  }
+};
+
+// Función para transformar datos del acordeón al formato esperado por LibraryBookItem
+const transformBookData = (book) => {
+  if (!book) return null;
+  
+  return {
+    isbn: book.isbn || '',
+    title: book.title || 'Title not available',
+    author: Array.isArray(book.author) ? book.author.join(', ') : (book.author || 'Author not available'),
+    publisher: Array.isArray(book.publisher) ? book.publisher.join(', ') : (book.publisher || ''),
+    publicationDate: book.publicationDate || '',
+    coverUrl: getBookCoverUrl(book.cover_i),
+    pages: book.pages || null,
+    description: book.description || '',
+    publishers: Array.isArray(book.publisher) ? book.publisher : (book.publisher ? [book.publisher] : []),
+    rating: null,
+    user_rating: null,
+    userStatuses: []
+  };
+};
 
 // Maneja la actualización de estados desde LibraryBookItem
 const onUpdateStatuses = ({ statuses }) => {
@@ -121,14 +186,14 @@ const clearBookDetails = () => {
   currentBook.rating = null;
   currentBook.user_rating = null;
   currentBook.userStatuses = [];
-  addBookMessage.value = "";
-  addBookStatus.value = "";
 };
 
 // Renamed from onDecode, which was specific to the old structure
 const triggerFetchBookInfo = () => {
   clearBookDetails();
   isbnSearchError.value = "";
+  selectedBook.value = null; // Limpiar selección del acordeón
+  isFromAccordion.value = false;
   fetchBookInfo();
 }
 
@@ -235,8 +300,10 @@ const fetchBookInfo = async () => {
 };
 
 const triggerFetchBookByName = async () => {
-  // Clear current book details when starting a new search
+  // Clear current book details and accordion state when starting a new search
   clearBookDetails();
+  selectedBook.value = null;
+  isFromAccordion.value = false;
   
   if (!nameSearch.query.value.trim()) {
     nameSearch.error.value = "Introduce un título o palabra clave para buscar.";
@@ -272,6 +339,7 @@ const triggerFetchBookByName = async () => {
                     book.imageLinks?.medium?.replace('http:', 'https:') ||
                     book.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
             publisher: book.publisher ? [book.publisher] : [],
+            pages: book.pageCount || null,
             key: item.id
           };
         } catch (error) {
@@ -288,6 +356,7 @@ const triggerFetchBookByName = async () => {
             author: book.authors || ['Author not available'],
             cover_i: book.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
             publisher: book.publisher ? [book.publisher] : [],
+            pages: book.pageCount || null,
             key: item.id
           };
         }
@@ -350,6 +419,7 @@ const triggerFetchBookByName = async () => {
               author: authors.length > 0 ? authors : [doc.author_name?.[0] || 'Author not available'],
               cover_i: (Array.isArray(doc.cover_i) && doc.cover_i.length > 0) ? doc.cover_i[0] : "",
               publisher: data.publishers || (doc.publisher ? [doc.publisher[0]] : []),
+              pages: data.number_of_pages || null,
               key: doc.key || `ol-${Date.now()}-${Math.random()}`
             });
           } catch (error) {
@@ -361,6 +431,7 @@ const triggerFetchBookByName = async () => {
               author: doc.author_name || ['Author not available'],
               cover_i: (Array.isArray(doc.cover_i) && doc.cover_i.length > 0) ? doc.cover_i[0] : "",
               publisher: doc.publisher ? [doc.publisher[0]] : [],
+              pages: null, // No detailed info available
               key: doc.key || `ol-${Date.now()}-${Math.random()}`
             });
           }
@@ -372,6 +443,7 @@ const triggerFetchBookByName = async () => {
             author: doc.author_name || ['Author not available'],
             cover_i: (Array.isArray(doc.cover_i) && doc.cover_i.length > 0) ? doc.cover_i[0] : "",
             publisher: doc.publisher ? [doc.publisher[0]] : [],
+            pages: null, // No detailed info available
             key: doc.key || `ol-${Date.now()}-${Math.random()}`
           });
         }
@@ -405,14 +477,7 @@ const autoSaveBookFromISBN = async () => {
   
   if (existingBook) {
     Logger.debug("Book already exists in library, skipping auto-save");
-    addBookMessage.value = "Book already exists in your library.";
-    addBookStatus.value = "info";
-    
-    // Clear message after 3 seconds
-    setTimeout(() => {
-      addBookMessage.value = "";
-      addBookStatus.value = "";
-    }, 3000);
+    notifications.showMessage("Book already exists in your library.", "info");
     return;
   }
 
@@ -443,17 +508,11 @@ const autoSaveBookFromISBN = async () => {
     });
     
     // Update the message to indicate it was auto-saved
-    if (addBookStatus.value === "success") {
-      addBookMessage.value = `Book automatically saved to library with status: ${defaultStatuses.join(', ')}`;
+    if (notifications.statusType.value === "success") {
+      notifications.showSuccess(`Book automatically saved to library with status: ${defaultStatuses.join(', ')}`);
       
       // Set userStatuses on currentBook to reflect that it's now saved
       currentBook.userStatuses = [...defaultStatuses];
-      
-      // Clear message after 3 seconds
-      setTimeout(() => {
-        addBookMessage.value = "";
-        addBookStatus.value = "";
-      }, 3000);
     }
   } catch (error) {
     Logger.error("Error during auto-save:", error);
@@ -461,51 +520,15 @@ const autoSaveBookFromISBN = async () => {
   }
 };
 
-const selectBookFromList = (book) => {
-  clearBookDetails();
-  currentBook.isbn = book.isbn;
-  currentBook.title = book.title || "Title not found";
-  currentBook.author = book.author ? book.author.join(', ') : "Author not found";
-  
-  // Handle publisher - normalize from array or string
-  if (book.publisher) {
-    if (Array.isArray(book.publisher)) {
-      currentBook.publisher = book.publisher.join(', ');
-    } else {
-      currentBook.publisher = book.publisher;
-    }
-  } else {
-    currentBook.publisher = "";
-  }
-  
-  // Handle cover URL for both Google Books and OpenLibrary
-  if (book.cover_i) {
-    if (book.cover_i.startsWith('https://')) {
-      // Google Books URL
-      currentBook.coverUrl = book.cover_i;
-    } else {
-      // OpenLibrary ID
-      currentBook.coverUrl = `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg`;
-    }
-  } else {
-    currentBook.coverUrl = "";
-  }
-  
-  // Clear search results after selection
-  nameSearch.clearResults();
-};
-
 const addBookToLibrary = async (bookDetailsWithStatuses) => {
   const { book, statuses } = bookDetailsWithStatuses;
 
   if (!book.title || book.title === "Title not found") {
-    addBookMessage.value = "Cannot add book: valid details not found.";
-    addBookStatus.value = "error";
+    notifications.showError("Cannot add book: valid details not found.");
     return;
   }
   if (!statuses || statuses.length === 0) {
-    addBookMessage.value = "Cannot add book: at least one user status must be selected.";
-    addBookStatus.value = "error";
+    notifications.showError("Cannot add book: at least one user status must be selected.");
     return;
   }
 
@@ -520,8 +543,7 @@ const addBookToLibrary = async (bookDetailsWithStatuses) => {
   if (invalidStatuses.length > 0) {
     Logger.error("Invalid statuses detected:", invalidStatuses);
     Logger.error("Allowed statuses:", allowedUserStatusesList.value);
-    addBookMessage.value = `Invalid status(es): ${invalidStatuses.join(', ')}. Allowed: ${allowedUserStatusesList.value.join(', ')}`;
-    addBookStatus.value = "error";
+    notifications.showError(`Invalid status(es): ${invalidStatuses.join(', ')}. Allowed: ${allowedUserStatusesList.value.join(', ')}`);
     return;
   }
 
@@ -529,14 +551,7 @@ const addBookToLibrary = async (bookDetailsWithStatuses) => {
   const existingBook = booksComposable.findBookByISBN(book.isbn);
   if (existingBook) {
     Logger.debug("Book already exists in library, cannot add duplicate");
-    addBookMessage.value = "Book already exists in your library.";
-    addBookStatus.value = "info";
-    
-    // Clear message after 3 seconds
-    setTimeout(() => {
-      addBookMessage.value = "";
-      addBookStatus.value = "";
-    }, 3000);
+    notifications.showMessage("Book already exists in your library.", "info");
     return;
   }
 
@@ -547,20 +562,14 @@ const addBookToLibrary = async (bookDetailsWithStatuses) => {
   const result = await booksComposable.addBook(book, statuses);
   
   if (result.success) {
-    addBookMessage.value = "Book added successfully!";
-    addBookStatus.value = "success";
+    notifications.showSuccess("Book added successfully!");
     
     // Set userStatuses on currentBook to reflect that it's now saved
-    currentBook.userStatuses = [...statuses];
-    
-    // Clear message after 3 seconds
-    setTimeout(() => {
-      addBookMessage.value = "";
-      addBookStatus.value = "";
-    }, 3000);
+    if (currentBook.isbn === book.isbn) {
+      currentBook.userStatuses = [...statuses];
+    }
   } else {
-    addBookMessage.value = result.message || "Failed to add book. Unknown error.";
-    addBookStatus.value = "error";
+    notifications.showError(result.message || "Failed to add book. Unknown error.");
   }
 };
 
@@ -577,8 +586,8 @@ onMounted(async () => {
 </script>
 
 <style>
-/* Styles for elements directly within BookSearch.vue */
-.hello-container {
+/* Estilos idénticos a MovieSearch */
+.book-search-container {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -590,10 +599,9 @@ onMounted(async () => {
 }
 
 .title {
-  font-size: 2.5rem;
-  font-weight: 700;
+  font-size: 2rem;
   color: #e0e0e0;
-  margin-bottom: 40px;
+  margin-bottom: 30px;
 }
 
 .input-group {
@@ -602,41 +610,37 @@ onMounted(async () => {
   margin-bottom: 30px;
 }
 
-.isbn-input {
+.book-input {
   flex-grow: 1;
-  padding: 15px 20px;
+  padding: 12px 18px;
   font-size: 1rem;
   color: #e0e0e0;
   background-color: #2c2c2c;
   border: 1px solid #444;
   border-radius: 30px 0 0 30px;
   outline: none;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.isbn-input::placeholder {
+.book-input::placeholder {
   color: #888;
 }
 
-.isbn-input:focus {
-  border-color: #007bff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
-}
-
 .search-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 15px 30px;
+  padding: 12px 24px;
   font-size: 1rem;
-  font-weight: 500;
-  color: #ffffff;
+  color: #fff;
   background-color: #007bff;
   border: 1px solid #007bff;
   border-radius: 0 30px 30px 0;
   cursor: pointer;
-  outline: none;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-button:hover {
+  background-color: #0056b3;
+  border-color: #0056b3;
 }
 
 .search-button i {
@@ -649,127 +653,181 @@ onMounted(async () => {
   font-weight: 500;
 }
 
-.search-button:hover {
-  background-color: #0056b3;
-  border-color: #0056b3;
+.error-message,
+.status-message {
+  padding: 10px 15px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  width: 100%;
+  text-align: center;
+  box-sizing: border-box;
 }
 
 .error-message {
-  margin-top: 20px;
   color: #ff4d4f;
-  font-size: 0.9rem;
   background-color: rgba(255, 77, 79, 0.1);
-  padding: 10px 15px;
-  border-radius: 15px;
-  width: 100%;
 }
 
-.add-book-message {
-  margin-top: 15px;
-  padding: 10px 15px;
-  border-radius: 15px;
-  width: 100%;
-  font-size: 0.9rem;
+.status-message.success {
+  color: #28a745; 
+  background-color: rgba(40, 167, 69, 0.1);
 }
 
-.add-book-message.success {
-  background-color: rgba(40, 167, 69, 0.15);
-  color: #28a745;
+.status-message.error {
+  color: #dc3545; 
+  background-color: rgba(220, 53, 69, 0.1);
 }
 
-.add-book-message.info {
-  background-color: rgba(0, 123, 255, 0.15);
+.status-message.info {
   color: #007bff;
+  background-color: rgba(0, 123, 255, 0.1);
 }
 
-.add-book-message.error {
-  background-color: rgba(255, 77, 79, 0.1);
-  color: #ff4d4f;
-}
-/* Resultados de búsqueda por nombre (estilo tipo MovieSearch) */
-.search-results-container {
+/* Lista de resultados de búsqueda idéntica a MovieSearch */
+.search-results-list {
   width: 100%;
-  margin-top: 30px;
-}
-
-.results-title {
-  color: #e0e0e0;
-  font-size: 1.2rem;
-  margin-bottom: 18px;
-  font-weight: 600;
-}
-
-.results-list {
+  max-width: 600px;
+  margin-top: 20px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 10px;
 }
 
-.result-card {
+.search-list-item-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.search-list-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  background: #23272f;
-  border: 1.5px solid #444a57;
-  border-radius: 18px;
-  padding: 18px 22px;
-  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
-  transition: border 0.2s, box-shadow 0.2s;
+  background: #232323;
+  border-radius: 10px;
+  padding: 10px;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  border: 1px solid transparent;
 }
 
-.result-card:hover {
-  border-color: #007bff;
-  box-shadow: 0 4px 16px 0 rgba(0,123,255,0.10);
+.search-list-poster {
+  width: 50px;
+  height: 75px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-right: 16px;
+  border: 1px solid #444;
 }
 
-.result-info {
+.search-detail-below {
+  margin-left: 0;
+  margin-top: 0;
+  padding-left: 0;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 600px;
+}
+
+/* Estilos específicos para LibraryBookItem en contexto de búsqueda */
+.search-detail-below .library-book-item-container {
+  margin-top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-top: none;
+  background: #232323;
+  width: 100%;
+  max-width: 600px;
+  margin-left: 0;
+  box-sizing: border-box;
+}
+
+/* Ajustar el layout para que se vea bien en el acordeón */
+.search-detail-below .book-details {
+  gap: 16px;
+}
+
+.search-detail-below .cover-image {
+  width: 120px;
+  height: auto;
+}
+
+.search-list-item-wrapper:not(:last-child) {
+  margin-bottom: 10px;
+}
+
+.search-list-item.expanded {
+  background: #282c34;
+  border: 1px solid #007bff;
+  box-shadow: 0 2px 8px rgba(0,123,255,0.08);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.search-list-info {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 10px;
 }
 
-.result-title {
+.search-list-title {
   color: #e0e0e0;
-  font-size: 1.1rem;
-  font-weight: 600;
-}
-
-.result-author {
-  color: #b0b0b0;
-  font-size: 0.98rem;
-}
-
-.result-publishers {
-  color: #b0b0b0;
-  font-size: 0.95rem;
-  margin-top: 2px;
-  display: flex;
-  gap: 5px;
-  flex-wrap: wrap;
-}
-
-.result-pub-label {
-  color: #888;
-  font-weight: 500;
-}
-
-.result-pub-list {
-  color: #b0b0b0;
-}
-
-.result-details-btn {
-  padding: 8px 18px;
   font-size: 1rem;
   font-weight: 500;
-  color: #fff;
-  background-color: #007bff;
-  border: none;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: background 0.2s;
 }
 
-.result-details-btn:hover {
-  background-color: #0056b3;
+.accordion-arrow {
+  font-size: 1.2rem;
+  color: #88aaff;
+  margin-left: 10px;
+  user-select: none;
+}
+
+/* Animaciones idénticas a MovieSearch */
+.accordion-enter-active, .accordion-leave-active {
+  transition: max-height 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.3s;
+}
+
+.accordion-enter-from, .accordion-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+
+.accordion-enter-to, .accordion-leave-from {
+  max-height: 600px;
+  opacity: 1;
+}
+
+.loading-statuses {
+  padding: 20px;
+  text-align: center;
+  color: #888;
+  background: #232323;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .book-search-container {
+    padding: 20px;
+    max-width: 100%;
+  }
+  
+  .title {
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+  }
+  
+  .search-list-item {
+    padding: 8px;
+  }
+  
+  .search-list-poster {
+    width: 40px;
+    height: 60px;
+    margin-right: 12px;
+  }
+  
+  .search-list-title {
+    font-size: 0.9rem;
+  }
 }
 </style>

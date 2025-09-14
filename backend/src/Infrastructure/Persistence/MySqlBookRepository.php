@@ -392,7 +392,7 @@ class MySqlBookRepository implements BookRepositoryInterface
             $userId = (int) $userId;
             
             $sql = "
-                SELECT b.*, ub.added_at as user_added_at, ub.personal_rating as user_rating,
+                SELECT b.*, ub.added_at as user_added_at, ub.personal_rating as user_rating, ub.current_page,
                        GROUP_CONCAT(bs.name SEPARATOR ', ') as user_statuses
                 FROM books b
                 INNER JOIN user_books ub ON b.isbn = ub.book_isbn
@@ -414,7 +414,7 @@ class MySqlBookRepository implements BookRepositoryInterface
                 $params[':title'] = '%' . $filters['title'] . '%';
             }
 
-            $sql .= " GROUP BY b.isbn, b.title, b.author, b.publisher, b.publication_date, b.pages, b.rating, b.coverUrl, b.description, b.addedTimestamp, ub.added_at, ub.personal_rating ORDER BY ub.added_at DESC";
+            $sql .= " GROUP BY b.isbn, b.title, b.author, b.publisher, b.publication_date, b.pages, b.rating, b.coverUrl, b.description, b.addedTimestamp, ub.added_at, ub.personal_rating, ub.current_page ORDER BY ub.added_at DESC";
 
             $stmt = $this->db->prepare($sql);
             foreach ($params as $key => $value) {
@@ -429,6 +429,7 @@ class MySqlBookRepository implements BookRepositoryInterface
                 // Convert data types properly
                 $data['rating'] = isset($data['rating']) ? (float)$data['rating'] : null;
                 $data['addedTimestamp'] = isset($data['addedTimestamp']) ? (int)$data['addedTimestamp'] : null;
+                $data['currentPage'] = isset($data['current_page']) ? (int)$data['current_page'] : 0;
                 
                 // Handle user statuses - convert comma-separated string to array
                 $userStatusesString = $data['user_statuses'] ?? '';

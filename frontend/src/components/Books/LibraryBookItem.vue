@@ -22,6 +22,15 @@
           @rating-changed="onRatingChange"
         />
         
+        <!-- Reading Progress Bar -->
+        <ReadingProgressBar
+          :current-page="currentPage"
+          :total-pages="book.pages || 0"
+          :editable="editable"
+          theme="blue"
+          @update-progress="onUpdateProgress"
+        />
+        
         <!-- Status Selector Component -->
         <StatusSelector
           v-model="selectedUserStatuses"
@@ -33,18 +42,41 @@
         />
         
         <!-- Book Actions Component -->
-        <BookActions
-          :item="book"
-          :is-new="!book.userStatuses || book.userStatuses.length === 0"
-          :can-save="canSave"
-          :can-delete="canDelete"
-          :show-edit-button="true"
-          :show-update-button="false"
-          @save="onSaveBook"
-          @delete="onDeleteBook"
-          :allowed-statuses="allowedUserStatuses"
-          @close="handleBookEditClose"
-        />
+        <div class="book-actions">
+          <!-- Save button for new books -->
+          <button 
+            v-if="isNewBook"
+            @click="onSaveBook" 
+            class="action-button save-button" 
+            :disabled="!canSave"
+            title="Guardar libro"
+          >
+            <i class="fas fa-save"></i>
+            <span>Guardar</span>
+          </button>
+          
+          <!-- Edit button -->
+          <button 
+            v-if="!isNewBook"
+            @click="onEditBook" 
+            class="action-button edit-button" 
+            title="Editar libro"
+          >
+            <i class="fas fa-pencil-alt"></i>
+            <span>Editar</span>
+          </button>
+          
+          <!-- Delete button -->
+          <button 
+            v-if="!isNewBook && canDelete"
+            @click="onDeleteBook" 
+            class="action-button delete-button" 
+            title="Eliminar libro"
+          >
+            <i class="fas fa-trash"></i>
+            <span>Eliminar</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -52,9 +84,10 @@
 
 <script setup>
 import { defineProps, defineEmits, ref, computed, watch } from 'vue';
+import ReadingProgressBar from '@/components/common/ReadingProgressBar.vue';
 import RatingComponent from '@/components/common/RatingComponent.vue';
 import StatusSelector from '@/components/common/StatusSelector.vue';
-import BookActions from '@/components/Books/BookActions.vue';
+import { useBooks } from '@/composables/useBooks';
 import Logger from '@/utils/logger';
 
 const props = defineProps({
@@ -73,64 +106,49 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['delete-book', 'update-rating', 'update-statuses', 'save-book']);
+const emit = defineEmits(['delete-book', 'update-progress', 'edit-item', 'update-rating', 'update-statuses', 'save-book']);
 
-// Estados seleccionados (editable)
-const getInitialStatuses = () => {
-  if (props.book.userStatuses && props.book.userStatuses.length > 0) {
-    // Si el libro ya tiene estados, usar esos
-    return [...props.book.userStatuses];
-  } else {
-    // Si es un libro nuevo, establecer "owned" como predeterminado
-    return props.allowedUserStatuses.includes('owned') ? ['owned'] : [];
-  }
-};
+// Composables
+const { updateReadingProgress } = useBooks();
 
-const selectedUserStatuses = ref(getInitialStatuses());
-const rating = ref(props.book.user_rating);
+// Estados seleccionados (locales para display)
+const selectedUserStatuses = ref(props.book.userStatuses || []);
+const rating = ref(props.book.user_rating || 0);
+const currentPage = ref(props.book.currentPage || 0);
 
-// Computed properties
-const canSave = computed(() => {
-  return props.book.title && selectedUserStatuses.value.length > 0;
-});
+// Capturar si es nuevo al inicializar (no reactivo)
+const isNewBook = ref(!props.book.userStatuses || props.book.userStatuses.length === 0);
 
 const canDelete = computed(() => {
   return props.book.userStatuses && props.book.userStatuses.length > 0;
 });
 
+const canSave = computed(() => {
+  return true; // Simplificado por ahora
+});
+
 // Methods
-const onRatingChange = (rating) => {
-  Logger.debug('Rating changed to:', rating);
-  emit('update-rating', { isbn: props.book.isbn, rating });
+const onRatingChange = (newRating) => {
+  rating.value = newRating;
+  Logger.debug('Rating changed:', { isbn: props.book.isbn, rating: newRating });
+  emit('update-rating', { isbn: props.book.isbn, rating: newRating, itemType: 'book' });
 };
 
-const onStatusesChange = (statuses) => {
-  selectedUserStatuses.value = statuses;
-  Logger.debug('Statuses changed to:', statuses);
-  
-  // Si el libro ya está guardado (tiene userStatuses), emitir inmediatamente
-  if (props.book.userStatuses && props.book.userStatuses.length > 0) {
-    emit('update-statuses', { isbn: props.book.isbn, statuses: [...selectedUserStatuses.value] });
-  }
-  // Si no está guardado, no emitir nada (esperar a guardar)
+const onStatusesChange = (newStatuses) => {
+  selectedUserStatuses.value = newStatuses;
+  Logger.debug('Statuses changed:', { isbn: props.book.isbn, statuses: newStatuses });
+  emit('update-statuses', { isbn: props.book.isbn, statuses: newStatuses, itemType: 'book' });
 };
 
 const onSaveBook = () => {
-  if (canSave.value) {
-    Logger.debug('Saving book with statuses:', selectedUserStatuses.value);
-    emit('save-book', { 
-      book: { ...props.book, userStatuses: [...selectedUserStatuses.value] }, 
-      statuses: [...selectedUserStatuses.value] 
-    });
-  }
+  // Emitir evento para guardar el libro
+  Logger.debug('Saving book:', props.book.isbn);
+  emit('save-book', { book: props.book, statuses: selectedUserStatuses.value, itemType: 'book' });
 };
 
-// Actualiza el objeto local al recibir el emit 'close' desde BookActions o MovieActions
-const handleBookEditClose = (updatedBook) => {
-  if (updatedBook && updatedBook.isbn) {
-    selectedUserStatuses.value = updatedBook.userStatuses;
-    rating.value = updatedBook.user_rating;
-  }
+// Methods
+const onEditBook = () => {
+  emit('edit-item', props.book, 'book');
 };
 
 const onDeleteBook = () => {
@@ -138,11 +156,33 @@ const onDeleteBook = () => {
   emit('delete-book', { isbn: props.book.isbn, itemType: 'book' });
 };
 
-// Mantener sincronía solo si cambia el ISBN (nuevo libro)
-watch(() => props.book.isbn, (newIsbn, oldIsbn) => {
-  if (newIsbn !== oldIsbn) {
-    selectedUserStatuses.value = getInitialStatuses();
+// Maneja la actualización del progreso de lectura
+const onUpdateProgress = async (currentPageValue) => {
+  try {
+    Logger.debug('Updating reading progress:', { isbn: props.book.isbn, currentPage: currentPageValue });
+    const result = await updateReadingProgress(props.book.isbn, currentPageValue);
+    currentPage.value = currentPageValue; // Actualiza el valor local
+    
+    // Emite evento para que el componente padre actualice el libro
+    emit('update-progress', { 
+      isbn: props.book.isbn, 
+      updates: { currentPage: currentPageValue } 
+    });
+    
+    if (!result.success) {
+      Logger.error('Error updating reading progress:', result.message);
+    }
+  } catch (error) {
+    Logger.error('Error updating reading progress:', error);
   }
+};
+
+watch(() => props.book.user_rating, (newRating) => {
+  rating.value = newRating || 0;
+});
+
+watch(() => props.book.currentPage, (newPage) => {
+  currentPage.value = newPage || 0;
 });
 </script>
 
@@ -246,5 +286,78 @@ watch(() => props.book.isbn, (newIsbn, oldIsbn) => {
   font-size: 0.9em;
   color: #ccc;
   margin-bottom: 5px;
+}
+
+/* Action buttons styles - restored from original BookActions.vue */
+.book-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 15px;
+}
+
+.action-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 15px;
+  font-size: 0.9rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  min-width: auto;
+  justify-content: center;
+}
+
+.action-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.action-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Button types with gradients */
+.save-button {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+}
+
+.save-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #20c997, #17a2b8);
+}
+
+.edit-button {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+}
+
+.edit-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0056b3, #004085);
+}
+
+.delete-button {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
+}
+
+.delete-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #c82333, #bd2130);
+}
+
+@media (max-width: 768px) {
+  .book-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .action-button {
+    width: 100%;
+    justify-content: center;
+  }
 }
 </style>

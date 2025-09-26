@@ -25,7 +25,6 @@
         :max="totalPages || 100"
         :value="localCurrentPage"
         @input="updateCurrentPageFromSlider"
-        @change="saveProgress"
         :disabled="saving"
         :title="`Arrastra para cambiar la página (0-${totalPages || 100})`"
       />
@@ -39,8 +38,6 @@
           type="number" 
           :value="localCurrentPage"
           @input="updateCurrentPage"
-          @blur="saveProgress"
-          @keyup.enter="saveProgress"
           :min="0" 
           :max="totalPages || 999"
           class="page-input"
@@ -55,7 +52,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, defineExpose } from 'vue';
 import { defineProps, defineEmits } from 'vue';
 
 const props = defineProps({
@@ -83,6 +80,9 @@ const emit = defineEmits(['update-progress']);
 
 const localCurrentPage = ref(props.currentPage || 0);
 const saving = ref(false);
+
+// Expose current page value for parent components
+const getCurrentPage = () => localCurrentPage.value;
 
 // Computed properties
 const progressPercentage = computed(() => {
@@ -140,6 +140,13 @@ const saveProgress = async () => {
 // Watch for external changes
 watch(() => props.currentPage, (newValue) => {
   localCurrentPage.value = newValue || 0;
+});
+
+// Expose methods and reactive values to parent
+defineExpose({
+  getCurrentPage,
+  localCurrentPage,
+  saveProgress
 });
 </script>
 

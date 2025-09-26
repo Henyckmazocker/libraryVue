@@ -167,6 +167,7 @@ class MySqlMovieRepository implements MovieRepositoryInterface
         foreach ($moviesData as $data) {
             $data['rating'] = isset($data['rating']) ? (float)$data['rating'] : null;
             $data['addedTimestamp'] = isset($data['addedTimestamp']) ? (int)$data['addedTimestamp'] : null;
+            $data['genres'] = isset($data['genres']) ? json_decode($data['genres'], true) : null;
             $userStatuses = $this->fetchMovieStatusNames($data['isbn']);
             $data['userStatuses'] = is_array($userStatuses) ? $userStatuses : [];
             
@@ -235,6 +236,7 @@ class MySqlMovieRepository implements MovieRepositoryInterface
         foreach ($moviesData as $data) {
             $data['rating'] = isset($data['rating']) ? (float)$data['rating'] : null;
             $data['addedTimestamp'] = isset($data['addedTimestamp']) ? (int)$data['addedTimestamp'] : null;
+            $data['genres'] = isset($data['genres']) ? json_decode($data['genres'], true) : null;
             $userStatuses = $this->fetchMovieStatusNames($data['isbn']);
             $data['userStatuses'] = is_array($userStatuses) ? $userStatuses : [];
             
@@ -242,8 +244,8 @@ class MySqlMovieRepository implements MovieRepositoryInterface
             $data['id'] = $data['isbn'];
             
             try {
-                $data['tags'] = $this->getMovieTags($userId,$data['isbn']);
-                $data['allowedTags'] = $this->getAllowedTags($userId,$data['isbn']);
+                $data['tags'] = []; // No user-specific tags for general listing
+                $data['allowedTags'] = []; // No user-specific allowed tags for general listing  
                 $data['allowedStatuses'] = $this->fetchAllowedStatuses();
                 $movies[] = Movie::fromArray($data);
             } catch (\InvalidArgumentException $e) {
@@ -258,11 +260,11 @@ class MySqlMovieRepository implements MovieRepositoryInterface
     {
         $this->db->beginTransaction();
         try {
-            $sqlMovie = "INSERT INTO movie (isbn, title, original_title, director, author, coverUrl, rating, description, addedTimestamp) " .
-                   "VALUES (:isbn, :title, :original_title, :director, :author, :coverUrl, :rating, :description, :addedTimestamp) " .
+            $sqlMovie = "INSERT INTO movie (isbn, title, original_title, director, author, coverUrl, rating, description, addedTimestamp, genres) " .
+                   "VALUES (:isbn, :title, :original_title, :director, :author, :coverUrl, :rating, :description, :addedTimestamp, :genres) " .
                    "ON DUPLICATE KEY UPDATE " .
                    "title = VALUES(title), original_title = VALUES(original_title), director = VALUES(director), author = VALUES(author), coverUrl = VALUES(coverUrl), " .
-                   "rating = VALUES(rating), description = VALUES(description), addedTimestamp = VALUES(addedTimestamp)";
+                   "rating = VALUES(rating), description = VALUES(description), addedTimestamp = VALUES(addedTimestamp), genres = VALUES(genres)";
             $stmtMovie = $this->db->prepare($sqlMovie);
             $stmtMovie->execute([
                 ':isbn' => $movie->getId(),
@@ -273,7 +275,8 @@ class MySqlMovieRepository implements MovieRepositoryInterface
                 ':coverUrl' => $movie->getCoverUrl(),
                 ':rating' => $movie->getRating(),
                 ':description' => $movie->getDescription(),
-                ':addedTimestamp' => time()
+                ':addedTimestamp' => time(),
+                ':genres' => $movie->getGenres() ? json_encode($movie->getGenres()) : null
             ]);
             $isbn = $movie->getId();
             $userStatusNames = $movie->getUserStatuses();
@@ -400,6 +403,10 @@ class MySqlMovieRepository implements MovieRepositoryInterface
         }
         $data['rating'] = isset($data['rating']) ? (float)$data['rating'] : null;
         $data['addedTimestamp'] = isset($data['addedTimestamp']) ? (int)$data['addedTimestamp'] : null;
+        // Handle genres - decode from JSON string if present
+        $data['genres'] = isset($data['genres']) && !empty($data['genres']) 
+            ? json_decode($data['genres'], true) 
+            : [];
         $userStatuses = $this->fetchMovieStatusNames($isbn);
         $data['userStatuses'] = is_array($userStatuses) ? $userStatuses : [];
         $data['allowedStatuses'] = $this->fetchAllowedStatuses();
@@ -554,6 +561,10 @@ class MySqlMovieRepository implements MovieRepositoryInterface
                 // Convert data types properly
                 $data['rating'] = isset($data['rating']) ? (float)$data['rating'] : null;
                 $data['addedTimestamp'] = isset($data['addedTimestamp']) ? (int)$data['addedTimestamp'] : null;
+                // Handle genres - decode from JSON string if present
+                $data['genres'] = isset($data['genres']) && !empty($data['genres']) 
+                    ? json_decode($data['genres'], true) 
+                    : [];
                 
                 // Handle user statuses - convert comma-separated string to array
                 $userStatusesString = $data['user_statuses'] ?? '';

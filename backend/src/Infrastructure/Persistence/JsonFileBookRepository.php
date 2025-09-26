@@ -116,4 +116,35 @@ class JsonFileBookRepository implements BookRepositoryInterface
             throw new RuntimeException("Failed to write to library file: {$this->filePath}");
         }
     }
+
+    // Métodos para compatibilidad con la interfaz actualizada
+    public function getCurrentPage(int $userId, string $isbn): int
+    {
+        throw new RuntimeException('Reading progress history not supported in JSON file repository');
+    }
+
+    public function getTotalPages(string $isbn): int
+    {
+        throw new RuntimeException('Reading progress history not supported in JSON file repository');
+    }
+
+    public function getLastProgressPage(int $userId, string $isbn): int
+    {
+        throw new RuntimeException('Reading progress history not supported in JSON file repository');
+    }
+
+    public function addReadingProgressHistory(int $userId, string $isbn, int $currentPage, int $previousPage): void
+    {
+        throw new RuntimeException('Reading progress history not supported in JSON file repository');
+    }
+
+    public function getReadingProgressHistory(int $userId, string $isbn): array
+    {
+        throw new RuntimeException('Reading progress history not supported in JSON file repository');
+    }
+
+    public function getMonthlyPagesReadStats(int $userId, int $months = 12): array
+    {
+        throw new RuntimeException('Monthly pages read stats not supported in JSON file repository');
+    }
 } 

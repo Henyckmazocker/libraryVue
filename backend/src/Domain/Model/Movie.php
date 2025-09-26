@@ -21,6 +21,7 @@ class Movie
     private array $allowedStatuses;
     private ?array $tags;
     private ?array $allowedTags;
+    private ?array $genres; // Géneros de la película
 
     public function __construct(
         string $id,
@@ -35,7 +36,8 @@ class Movie
         int $addedTimestamp,
         array $allowedStatuses = [],
         ?array $tags = null,
-        ?array $allowedTags = null
+        ?array $allowedTags = null,
+        ?array $genres = null
     ) {
         $this->id = $id;
         $this->title = $title;
@@ -50,6 +52,7 @@ class Movie
         $this->allowedStatuses = $allowedStatuses;
         $this->tags = $tags;
         $this->allowedTags = $allowedTags;
+        $this->genres = $genres;
     }
 
     public static function fromArray(array $data): self
@@ -73,7 +76,8 @@ class Movie
             $data['addedTimestamp'] ?? time(),
             $data['allowedStatuses'] ?? null,
             $data['tags'] ?? null,
-            $data['allowedTags'] ?? null
+            $data['allowedTags'] ?? null,
+            $data['genres'] ?? null
         );
     }
 
@@ -90,9 +94,11 @@ class Movie
     public function getAllowedStatuses(): array { return $this->allowedStatuses; }
     public function getTags(): ?array { return $this->tags; }
     public function getAllowedTags(): ?array { return $this->allowedTags; }
+    public function getGenres(): ?array { return $this->genres; }
 
     public function setTags(?array $tags): void { $this->tags = $tags; }
     public function setAllowedTags(?array $allowedTags): void { $this->allowedTags = $allowedTags; }
+    public function setGenres(?array $genres): void { $this->genres = $genres; }
 
     public function setTitle(string $title): void 
     { 
@@ -161,7 +167,8 @@ class Movie
             'addedTimestamp' => $this->addedTimestamp,
             'allowedStatuses' => $this->allowedStatuses,
             'tags' => $this->tags,
-            'allowedTags' => $this->allowedTags
+            'allowedTags' => $this->allowedTags,
+            'genres' => $this->genres
         ];
     }
 }

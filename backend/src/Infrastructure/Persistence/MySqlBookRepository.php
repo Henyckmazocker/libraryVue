@@ -37,6 +37,20 @@ class MySqlBookRepository implements BookRepositoryInterface
         }
     }
 
+    private function logInfo(string $message, array $context = []): void
+    {
+        if ($this->logger) {
+            $this->logger->info($message, ['context' => $context]);
+        }
+    }
+
+    private function logDebug(string $message, array $context = []): void
+    {
+        if ($this->logger) {
+            $this->logger->debug($message, ['context' => $context]);
+        }
+    }
+
     private function getStatusId(string $statusName): ?int
     {
         $stmt = $this->db->prepare("SELECT id FROM book_statuses WHERE name = :name");
@@ -109,6 +123,7 @@ class MySqlBookRepository implements BookRepositoryInterface
         foreach ($booksData as $data) {
             $data['rating'] = isset($data['rating']) ? (float)$data['rating'] : null;
             $data['addedTimestamp'] = isset($data['addedTimestamp']) ? (int)$data['addedTimestamp'] : null;
+            $data['genres'] = isset($data['genres']) ? json_decode($data['genres'], true) : null;
             $userStatuses = $this->fetchBookStatusNames($data['isbn']);
             // Si no tiene userStatuses, asignamos un array vacío
             $data['userStatuses'] = is_array($userStatuses) ? $userStatuses : [];
@@ -134,6 +149,7 @@ class MySqlBookRepository implements BookRepositoryInterface
         }
         $data['rating'] = isset($data['rating']) ? (float)$data['rating'] : null;
         $data['addedTimestamp'] = isset($data['addedTimestamp']) ? (int)$data['addedTimestamp'] : null;
+        $data['genres'] = isset($data['genres']) ? json_decode($data['genres'], true) : null;
         $data['userStatuses'] = $this->fetchBookStatusNames($isbn);
         // Si no tiene userStatuses, asignamos un array vacío
         if (!is_array($data['userStatuses']) || empty($data['userStatuses'])) {
@@ -209,12 +225,12 @@ class MySqlBookRepository implements BookRepositoryInterface
     {
         $this->db->beginTransaction();
         try {
-            $sqlBook = "INSERT INTO books (isbn, title, author, publisher, publication_date, coverUrl, rating, pages, description, addedTimestamp) " .
-                   "VALUES (:isbn, :title, :author, :publisher, :publication_date, :coverUrl, :rating, :pages, :description, :addedTimestamp) " .
+            $sqlBook = "INSERT INTO books (isbn, title, author, publisher, publication_date, coverUrl, rating, pages, description, addedTimestamp, genres) " .
+                   "VALUES (:isbn, :title, :author, :publisher, :publication_date, :coverUrl, :rating, :pages, :description, :addedTimestamp, :genres) " .
                    "ON DUPLICATE KEY UPDATE " .
                    "title = VALUES(title), author = VALUES(author), publisher = VALUES(publisher), " .
                    "publication_date = VALUES(publication_date), coverUrl = VALUES(coverUrl), " .
-                   "rating = VALUES(rating), pages = VALUES(pages), description = VALUES(description), addedTimestamp = VALUES(addedTimestamp)";
+                   "rating = VALUES(rating), pages = VALUES(pages), description = VALUES(description), addedTimestamp = VALUES(addedTimestamp), genres = VALUES(genres)";
             
             $stmtBook = $this->db->prepare($sqlBook);
             $stmtBook->execute([
@@ -227,7 +243,8 @@ class MySqlBookRepository implements BookRepositoryInterface
                 ':rating' => $book->getRating(),
                 ':pages' => $book->getPages(),
                 ':description' => $book->getDescription(),
-                ':addedTimestamp' => time()
+                ':addedTimestamp' => time(),
+                ':genres' => $book->getGenres() ? json_encode($book->getGenres()) : null
             ]);
 
             $isbn = $book->getIsbn();
@@ -358,29 +375,63 @@ class MySqlBookRepository implements BookRepositoryInterface
         try {
             $this->db->beginTransaction();
 
-            // Remove user-specific statuses
+            // 1. Remove reading progress history
+            $stmtProgress = $this->db->prepare("DELETE FROM reading_progress_history WHERE user_id = :userId AND book_isbn = :isbn");
+            $stmtProgress->bindParam(':userId', $userId, PDO::PARAM_INT);
+            $stmtProgress->bindParam(':isbn', $isbn);
+            $stmtProgress->execute();
+            $progressDeleted = $stmtProgress->rowCount();
+
+            // 2. Remove user book notes
+            $stmtNotes = $this->db->prepare("DELETE FROM user_book_notes WHERE user_id = :userId AND book_isbn = :isbn");
+            $stmtNotes->bindParam(':userId', $userId, PDO::PARAM_INT);
+            $stmtNotes->bindParam(':isbn', $isbn);
+            $stmtNotes->execute();
+            $notesDeleted = $stmtNotes->rowCount();
+
+            // 3. Remove user book tag assignments
+            $stmtTags = $this->db->prepare("DELETE FROM user_book_tag_assignments WHERE user_id = :userId AND book_isbn = :isbn");
+            $stmtTags->bindParam(':userId', $userId, PDO::PARAM_INT);
+            $stmtTags->bindParam(':isbn', $isbn);
+            $stmtTags->execute();
+            $tagsDeleted = $stmtTags->rowCount();
+
+            // 4. Remove user-specific statuses
             $stmtStatuses = $this->db->prepare("DELETE FROM user_book_statuses WHERE user_id = :userId AND book_isbn = :isbn");
-            $stmtStatuses->bindParam(':userId', $userId);
+            $stmtStatuses->bindParam(':userId', $userId, PDO::PARAM_INT);
             $stmtStatuses->bindParam(':isbn', $isbn);
             $stmtStatuses->execute();
+            $statusesDeleted = $stmtStatuses->rowCount();
 
-            // Remove user-book relationship
+            // 5. Remove user-book relationship (main table)
             $stmt = $this->db->prepare("DELETE FROM user_books WHERE user_id = :userId AND book_isbn = :isbn");
-            $stmt->bindParam(':userId', $userId);
+            $stmt->bindParam(':userId', $userId, PDO::PARAM_INT);
             $stmt->bindParam(':isbn', $isbn);
             $stmt->execute();
+            $userBookDeleted = $stmt->rowCount() > 0;
 
-            $deleted = $stmt->rowCount() > 0;
             $this->db->commit();
-            return $deleted;
+            
+            // Log deletion details for debugging
+            $this->logInfo('Book removed from user', [
+                'userId' => $userId,
+                'isbn' => $isbn,
+                'userBookDeleted' => $userBookDeleted,
+                'progressRecordsDeleted' => $progressDeleted,
+                'notesDeleted' => $notesDeleted,
+                'tagsDeleted' => $tagsDeleted,
+                'statusesDeleted' => $statusesDeleted
+            ]);
+            
+            return $userBookDeleted;
 
         } catch (PDOException $e) {
             $this->db->rollBack();
-            error_log("DB Error removing book from user (MySqlBookRepository): " . $e->getMessage());
+            $this->logError('DB Error removing book from user', $e, ['userId' => $userId, 'isbn' => $isbn]);
             throw new RuntimeException("Could not remove book from user. DB Error: " . $e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             $this->db->rollBack();
-            error_log("Error removing book from user (MySqlBookRepository): " . $e->getMessage());
+            $this->logError('Error removing book from user', $e, ['userId' => $userId, 'isbn' => $isbn]);
             throw new RuntimeException("An unexpected error occurred while removing book from user: " . $e->getMessage(), 0, $e);
         }
     }
@@ -430,6 +481,7 @@ class MySqlBookRepository implements BookRepositoryInterface
                 $data['rating'] = isset($data['rating']) ? (float)$data['rating'] : null;
                 $data['addedTimestamp'] = isset($data['addedTimestamp']) ? (int)$data['addedTimestamp'] : null;
                 $data['currentPage'] = isset($data['current_page']) ? (int)$data['current_page'] : 0;
+                $data['genres'] = isset($data['genres']) ? json_decode($data['genres'], true) : null;
                 
                 // Handle user statuses - convert comma-separated string to array
                 $userStatusesString = $data['user_statuses'] ?? '';
@@ -574,37 +626,119 @@ class MySqlBookRepository implements BookRepositoryInterface
     {
         $fields = [];
         $params = [':userId' => $userId, ':isbn' => $isbn];
-        if ($currentPage !== null) {
-            $fields[] = 'current_page = :currentPage';
-            $params[':currentPage'] = $currentPage;
-        }
-        if ($personalRating !== null) {
-            $fields[] = 'personal_rating = :personalRating';
-            $params[':personalRating'] = $personalRating;
-        }
-        if ($personalNotes !== null) {
-            $fields[] = 'personal_notes = :personalNotes';
-            $params[':personalNotes'] = $personalNotes;
-        }
-        if ($consumedAt !== null) {
-            $fields[] = 'consumed_at = :consumedAt';
-            $params[':consumedAt'] = $consumedAt;
-        }
-        if (empty($fields)) {
-            throw new \InvalidArgumentException('No hay campos para actualizar');
-        }
-        $sql = 'UPDATE user_books SET ' . implode(', ', $fields) . ' WHERE user_id = :userId AND book_isbn = :isbn';
+        
+        // Verificar si ya hay una transacción activa
+        $wasInTransaction = $this->db->inTransaction();
         
         try {
+            // Solo iniciar transacción si no hay una activa
+            if (!$wasInTransaction) {
+                $this->db->beginTransaction();
+            }
+            
+            // Si se está actualizando la página actual, manejar historial y consistencia
+            if ($currentPage !== null) {
+                // Obtener las páginas totales del libro para verificar si se completó
+                $totalPages = $this->getTotalPages($isbn);
+                
+                // Obtener la última página de progreso real (del historial), no la actual de user_books
+                $previousPage = $this->getLastProgressPage($userId, $isbn);
+                
+                // Solo registrar en el historial si hay un avance real
+                if ($currentPage > $previousPage) {
+                    try {
+                        $this->addReadingProgressHistory($userId, $isbn, $currentPage, $previousPage);
+                    } catch (\Exception $historyError) {
+                        // Si falla el registro del historial, abortar toda la operación
+                        if (!$wasInTransaction) {
+                            $this->db->rollBack();
+                        }
+                        $this->logError('Error registrando historial - no se actualizará currentPage', $historyError, [
+                            'userId' => $userId, 
+                            'isbn' => $isbn, 
+                            'currentPage' => $currentPage, 
+                            'previousPage' => $previousPage
+                        ]);
+                        throw new \RuntimeException('No se pudo actualizar el progreso: error en el historial de lectura. ' . $historyError->getMessage(), 0, $historyError);
+                    }
+                }
+                
+                $fields[] = 'current_page = :currentPage';
+                $params[':currentPage'] = $currentPage;
+                
+                // Si el progreso llega al 100% (currentPage >= totalPages), automáticamente marcar como "read"
+                if ($totalPages > 0 && $currentPage >= $totalPages) {
+                    try {
+                        // Verificar si el usuario ya tiene el estado "read"
+                        $currentStatuses = $this->getUserBookStatuses($userId, $isbn);
+                        if (!in_array('read', $currentStatuses)) {
+                            // Agregar estado "read" automáticamente
+                            $this->logDebug('Progreso completado al 100% - agregando estado "read" automáticamente', [
+                                'userId' => $userId, 
+                                'isbn' => $isbn, 
+                                'currentPage' => $currentPage, 
+                                'totalPages' => $totalPages
+                            ]);
+                            
+                            $newStatuses = array_unique(array_merge($currentStatuses, ['read']));
+                            $this->updateUserBookStatuses($userId, $isbn, $newStatuses, false);
+                        }
+                    } catch (\Exception $statusError) {
+                        // Log el error pero no abortar la transacción principal
+                        $this->logError('Error actualizando estado a "read" automáticamente', $statusError, [
+                            'userId' => $userId, 
+                            'isbn' => $isbn, 
+                            'currentPage' => $currentPage, 
+                            'totalPages' => $totalPages
+                        ]);
+                    }
+                }
+            }
+            
+            if ($personalRating !== null) {
+                $fields[] = 'personal_rating = :personalRating';
+                $params[':personalRating'] = $personalRating;
+            }
+            if ($personalNotes !== null) {
+                $fields[] = 'personal_notes = :personalNotes';
+                $params[':personalNotes'] = $personalNotes;
+            }
+            if ($consumedAt !== null) {
+                $fields[] = 'consumed_at = :consumedAt';
+                $params[':consumedAt'] = $consumedAt;
+            }
+            if (empty($fields)) {
+                if (!$wasInTransaction) {
+                    $this->db->rollBack();
+                }
+                throw new \InvalidArgumentException('No hay campos para actualizar');
+            }
+            
+            $sql = 'UPDATE user_books SET ' . implode(', ', $fields) . ' WHERE user_id = :userId AND book_isbn = :isbn';
+            
             $stmt = $this->db->prepare($sql);
             foreach ($params as $key => $value) {
                 $stmt->bindValue($key, $value);
             }
             
             $stmt->execute();
+            
+            // Solo confirmar transacción si la iniciamos nosotros
+            if (!$wasInTransaction) {
+                $this->db->commit();
+            }
+            
         } catch (\PDOException $e) {
+            if (!$wasInTransaction) {
+                $this->db->rollBack();
+            }
             $this->logError('DB Error editando user_books', $e, ['userId' => $userId, 'isbn' => $isbn]);
             throw new \RuntimeException('No se pudo editar user_books. DB Error: ' . $e->getMessage(), 0, $e);
+        } catch (\Exception $e) {
+            if (!$wasInTransaction) {
+                $this->db->rollBack();
+            }
+            throw $e; // Re-lanzar otras excepciones
         }
     }
     /**
@@ -765,4 +899,174 @@ class MySqlBookRepository implements BookRepositoryInterface
                 throw new \RuntimeException('No se pudieron obtener las notas por página. DB Error: ' . $e->getMessage(), 0, $e);
             }
         }
+
+    /**
+     * Obtiene la página actual de un libro para un usuario.
+     */
+    public function getCurrentPage(int $userId, string $isbn): int
+    {
+        $sql = 'SELECT current_page FROM user_books WHERE user_id = :userId AND book_isbn = :isbn';
+        
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
+            $stmt->bindValue(':isbn', $isbn);
+            $stmt->execute();
+            
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result ? (int)$result['current_page'] : 0;
+        } catch (\PDOException $e) {
+            $this->logError('DB Error obteniendo página actual', $e, ['userId' => $userId, 'isbn' => $isbn]);
+            return 0; // Valor por defecto en caso de error
+        }
+    }
+
+    /**
+     * Obtiene el número total de páginas de un libro.
+     */
+    public function getTotalPages(string $isbn): int
+    {
+        $sql = 'SELECT pages FROM books WHERE isbn = :isbn';
+        
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':isbn', $isbn);
+            $stmt->execute();
+            
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result ? (int)($result['pages'] ?? 0) : 0;
+        } catch (\PDOException $e) {
+            $this->logError('DB Error obteniendo páginas totales del libro', $e, ['isbn' => $isbn]);
+            return 0; // Valor por defecto en caso de error
+        }
+    }
+
+    /**
+     * Obtiene la página del último progreso registrado en el historial.
+     * Si no hay historial, obtiene la página actual de user_books.
+     */
+    public function getLastProgressPage(int $userId, string $isbn): int
+    {
+        // Primero intentar obtener el último progreso del historial
+        $sql = 'SELECT current_page 
+                FROM reading_progress_history 
+                WHERE user_id = :userId AND book_isbn = :isbn 
+                ORDER BY logged_at DESC 
+                LIMIT 1';
+        
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
+            $stmt->bindValue(':isbn', $isbn);
+            $stmt->execute();
+            
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($result) {
+                return (int)$result['current_page'];
+            }
+            
+            // Si no hay historial, obtener de user_books
+            return $this->getCurrentPage($userId, $isbn);
+        } catch (\PDOException $e) {
+            $this->logError('DB Error obteniendo última página de progreso', $e, ['userId' => $userId, 'isbn' => $isbn]);
+            // Fallback a getCurrentPage en caso de error
+            return $this->getCurrentPage($userId, $isbn);
+        }
+    }
+
+    /**
+     * Registra un nuevo progreso de lectura en el historial.
+     * Solo registra si currentPage > previousPage.
+     */
+    public function addReadingProgressHistory(int $userId, string $isbn, int $currentPage, int $previousPage): void
+    {
+        // Solo registrar si hay un avance real
+        if ($currentPage <= $previousPage) {
+            return;
+        }
+
+        $sql = 'INSERT INTO reading_progress_history (user_id, book_isbn, current_page, previous_page) 
+                VALUES (:userId, :isbn, :currentPage, :previousPage)';
+        
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
+            $stmt->bindValue(':isbn', $isbn);
+            $stmt->bindValue(':currentPage', $currentPage, PDO::PARAM_INT);
+            $stmt->bindValue(':previousPage', $previousPage, PDO::PARAM_INT);
+            $stmt->execute();
+        } catch (\PDOException $e) {
+            $this->logError('DB Error registrando historial de progreso', $e, [
+                'userId' => $userId, 
+                'isbn' => $isbn, 
+                'currentPage' => $currentPage, 
+                'previousPage' => $previousPage
+            ]);
+            throw new \RuntimeException('No se pudo registrar el historial de progreso. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    /**
+     * Obtiene el historial de progreso de lectura de un libro para un usuario.
+     */
+    public function getReadingProgressHistory(int $userId, string $isbn): array
+    {
+        $sql = 'SELECT id, current_page, previous_page, logged_at 
+                FROM reading_progress_history 
+                WHERE user_id = :userId AND book_isbn = :isbn 
+                ORDER BY logged_at DESC';
+        
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
+            $stmt->bindValue(':isbn', $isbn);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            $this->logError('DB Error obteniendo historial de progreso', $e, ['userId' => $userId, 'isbn' => $isbn]);
+            throw new \RuntimeException('No se pudo obtener el historial de progreso. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    /**
+     * Obtiene estadísticas de páginas leídas por mes para un usuario.
+     */
+    public function getMonthlyPagesReadStats(int $userId, int $months = 12): array
+    {
+        $sql = 'SELECT 
+                    DATE_FORMAT(logged_at, "%Y-%m") as month,
+                    SUM(current_page - previous_page) as pages_read
+                FROM reading_progress_history 
+                WHERE user_id = :userId 
+                    AND logged_at >= DATE_SUB(NOW(), INTERVAL :months MONTH)
+                GROUP BY DATE_FORMAT(logged_at, "%Y-%m")
+                ORDER BY month ASC';
+        
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
+            $stmt->bindValue(':months', $months, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Convertir a array asociativo con meses como claves
+            $monthlyStats = [];
+            foreach ($results as $row) {
+                $monthlyStats[$row['month']] = (int)$row['pages_read'];
+            }
+            
+            // Generar datos para todos los meses solicitados (incluso si son 0)
+            $monthlyData = [];
+            for ($i = $months - 1; $i >= 0; $i--) {
+                $month = date('Y-m', strtotime("-$i months"));
+                $monthlyData[$month] = $monthlyStats[$month] ?? 0;
+            }
+            
+            return $monthlyData;
+        } catch (\PDOException $e) {
+            $this->logError('DB Error obteniendo estadísticas mensuales de páginas', $e, ['userId' => $userId]);
+            throw new \RuntimeException('No se pudieron obtener las estadísticas mensuales de páginas. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
 }

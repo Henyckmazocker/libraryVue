@@ -6,6 +6,7 @@ use App\Controllers\BookController;
 use App\Controllers\MovieController;
 use App\Controllers\LibraryController;
 use App\Controllers\LibraryXController;
+use App\Controllers\StatsController;
 use App\Infrastructure\Middleware\AuthMiddleware;
 
 class ActionRouter
@@ -15,6 +16,7 @@ class ActionRouter
     private MovieController $movieController;
     private LibraryController $libraryController;
     private LibraryXController $libraryXController;
+    private StatsController $statsController;
     private AuthMiddleware $authMiddleware;
 
     public function __construct(
@@ -23,6 +25,7 @@ class ActionRouter
         MovieController $movieController,
         LibraryController $libraryController,
         LibraryXController $libraryXController,
+        StatsController $statsController,
         AuthMiddleware $authMiddleware
     ) {
         $this->authController = $authController;
@@ -30,6 +33,7 @@ class ActionRouter
         $this->movieController = $movieController;
         $this->libraryController = $libraryController;
         $this->libraryXController = $libraryXController;
+        $this->statsController = $statsController;
         $this->authMiddleware = $authMiddleware;
     }
 
@@ -145,6 +149,17 @@ class ActionRouter
                     $authResult = $this->authMiddleware->requireAuthAndCSRF($inputData['csrf_token'] ?? null);
                     if ($authResult['status'] === 'error') return $authResult;
                     return $this->libraryXController->updateUrls($inputData, $authResult['user']);
+
+                // STATISTICS
+                case 'get_book_stats':
+                    $authResult = $this->authMiddleware->requireAuth();
+                    if ($authResult['status'] === 'error') return $authResult;
+                    return $this->statsController->getBookStats($authResult['user']['id']);
+
+                case 'get_movie_stats':
+                    $authResult = $this->authMiddleware->requireAuth();
+                    if ($authResult['status'] === 'error') return $authResult;
+                    return $this->statsController->getMovieStats($authResult['user']['id']);
 
                 default:
                     if (isset($inputData['message']) && $action === null) {

@@ -32,6 +32,7 @@
               :movie="transformMovieData(selectedMovie)" 
               :allowedUserStatuses="allowedMovieStatusesList" 
               :editable="true"
+              :readonly="false"
               @delete-movie="handleDeleteMovie"
               @update-rating="handleUpdateRating"
               @update-statuses="handleUpdateStatuses"
@@ -79,7 +80,12 @@ const allowedMovieStatusesList = computed(() => {
 const transformMovieData = (omdbMovie) => {
   if (!omdbMovie) return null;
   
-  return {
+  // Procesar géneros: convertir string separado por comas a array
+  const processedGenres = omdbMovie.Genre && omdbMovie.Genre !== 'N/A' 
+    ? omdbMovie.Genre.split(', ').map(g => g.trim()) 
+    : [];
+  
+  const movieData = {
     isbn: omdbMovie.imdbID, // Usamos imdbID como ISBN para consistencia
     imdbID: omdbMovie.imdbID,
     title: omdbMovie.Title,
@@ -91,11 +97,18 @@ const transformMovieData = (omdbMovie) => {
     user_rating: 0, // Nuevo, sin rating del usuario
     userStatuses: [], // Nuevo, sin estados del usuario
     itemType: 'movie',
-    // Datos adicionales de OMDb que podríamos usar
-    genre: omdbMovie.Genre,
+    // Datos adicionales de OMDb procesados
+    genres: processedGenres, // Array de géneros procesados
     plot: omdbMovie.Plot,
     imdbRating: omdbMovie.imdbRating
   };
+  
+  // Debug: mostrar géneros extraídos
+  if (processedGenres.length > 0) {
+    console.log(`Extracted genres for "${omdbMovie.Title}":`, processedGenres);
+  }
+  
+  return movieData;
 };
 
 // Manejadores de eventos para LibraryMovieItem
@@ -174,6 +187,8 @@ const toggleMovie = async (imdbID) => {
     
     if (response.data && response.data.Response === 'True') {
       selectedMovie.value = response.data;
+      console.log(`Loaded detailed movie data for "${response.data.Title}"`);
+      console.log('Raw OMDB genre data:', response.data.Genre);
     } else {
       errorMessage.value = response.data.Error || 'No se pudo cargar la información de la película.';
     }

@@ -160,7 +160,9 @@ export function useBooks() {
         userStatuses: statuses,
         allowedStatuses: allowedStatuses.value,
         // Include user rating if present
-        rating: book.user_rating || null
+        rating: book.user_rating || null,
+        // Include genres if present
+        genres: book.genres || []
       };
 
       // El backend espera los datos del libro en la propiedad 'book'

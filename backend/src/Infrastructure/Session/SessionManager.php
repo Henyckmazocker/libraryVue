@@ -10,7 +10,7 @@ class SessionManager
     private const SESSION_NAME = 'LIBRARY_SESSION';
     private const USER_KEY = 'user_data';
     private const CSRF_KEY = 'csrf_token';
-    private const SESSION_TIMEOUT = 3600; // 1 hour in seconds
+    private const SESSION_TIMEOUT = 604800; // 7 days in seconds (development setting)
     
     public function __construct()
     {

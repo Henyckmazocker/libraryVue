@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS books (
     rating DECIMAL(2,1) DEFAULT NULL, -- e.g., 3.5 (precision 2, 1 decimal place)
     pages INT UNSIGNED DEFAULT NULL, -- Número total de páginas del libro
     description TEXT DEFAULT NULL,   -- Descripción o sinopsis del libro
+    genres JSON DEFAULT NULL,        -- Géneros del libro (array JSON)
     addedTimestamp INT UNSIGNED DEFAULT NULL,
     CONSTRAINT check_book_rating CHECK (rating IS NULL OR (rating >= 0.5 AND rating <= 5.0 AND MOD(rating * 2, 1) = 0)),
     CONSTRAINT check_book_pages CHECK (pages IS NULL OR pages > 0)
@@ -29,6 +30,8 @@ CREATE INDEX idx_books_pages ON books(pages); -- Para filtros y ordenación por 
 CREATE INDEX idx_books_added_timestamp ON books(addedTimestamp); -- Para ordenar por fecha de adición
 CREATE INDEX idx_books_title_author ON books(title, author); -- Búsquedas combinadas
 CREATE INDEX idx_books_title_publisher ON books(title, publisher); -- Búsquedas combinadas título-editorial
+-- Índice funcional para géneros JSON (MySQL 5.7+)
+-- CREATE INDEX idx_books_genres ON books((CAST(genres AS CHAR(255) ARRAY))); -- Para búsquedas por géneros
 
 -- Table for allowed status types
 CREATE TABLE IF NOT EXISTS book_statuses (
@@ -71,6 +74,7 @@ CREATE TABLE IF NOT EXISTS movie (
     coverUrl VARCHAR(1024) DEFAULT NULL,
     rating DECIMAL(2,1) DEFAULT NULL, -- e.g., 3.5 (precision 2, 1 decimal place)
     description TEXT DEFAULT NULL,   -- Sinopsis de la película
+    genres JSON DEFAULT NULL,        -- Géneros de la película (array JSON)
     addedTimestamp INT UNSIGNED DEFAULT NULL,
     CONSTRAINT check_movie_rating CHECK (rating IS NULL OR (rating >= 0.5 AND rating <= 5.0 AND MOD(rating * 2, 1) = 0))
 );
@@ -84,6 +88,8 @@ CREATE INDEX idx_movies_rating ON movie(rating); -- Para filtros y ordenación p
 CREATE INDEX idx_movies_added_timestamp ON movie(addedTimestamp); -- Para ordenar por fecha de adición
 CREATE INDEX idx_movies_title_director ON movie(title, director); -- Búsquedas combinadas título-director
 CREATE INDEX idx_movies_title_author ON movie(title, author); -- Búsquedas combinadas título-director (compatibilidad)
+-- Índice funcional para géneros JSON (MySQL 5.7+)
+-- CREATE INDEX idx_movies_genres ON movie((CAST(genres AS CHAR(255) ARRAY))); -- Para búsquedas por géneros
 
 -- Table for allowed status types
 CREATE TABLE IF NOT EXISTS movie_statuses (
@@ -321,4 +327,30 @@ CREATE TABLE IF NOT EXISTS user_follows (
     
     -- Constraints
     CONSTRAINT check_not_self_follow CHECK (follower_id != followed_id) -- Un usuario no puede seguirse a sí mismo
+);
+
+-- Tabla para historial de progreso de lectura
+-- Registra cada vez que un usuario actualiza su progreso de lectura
+CREATE TABLE IF NOT EXISTS reading_progress_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    book_isbn VARCHAR(20) NOT NULL,
+    current_page INT UNSIGNED NOT NULL,       -- Páginas leídas hasta esa fecha
+    previous_page INT UNSIGNED DEFAULT 0,     -- Páginas leídas anteriormente
+    logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Fecha y hora del registro
+    
+    -- Relaciones
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (book_isbn) REFERENCES books(isbn) ON DELETE CASCADE,
+    FOREIGN KEY (user_id, book_isbn) REFERENCES user_books(user_id, book_isbn) ON DELETE CASCADE,
+    
+    -- Índices para consultas eficientes
+    INDEX idx_progress_user_book (user_id, book_isbn),              -- Historial de un libro específico de un usuario
+    INDEX idx_progress_user_date (user_id, logged_at),             -- Progreso de un usuario por fecha
+    INDEX idx_progress_book_date (book_isbn, logged_at),           -- Progreso de un libro por fecha
+    INDEX idx_progress_recent (logged_at),                         -- Progreso reciente general
+    
+    -- Constraints
+    CONSTRAINT check_progress_pages CHECK (current_page >= 0 AND previous_page >= 0),
+    CONSTRAINT check_progress_advance CHECK (current_page > previous_page) -- Solo registrar avances
 );

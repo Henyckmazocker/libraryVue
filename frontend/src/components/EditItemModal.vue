@@ -16,11 +16,11 @@
           <!-- Reading Progress Bar (solo para libros) -->
           <ReadingProgressBar
             v-if="itemType === 'book'"
+            ref="progressBarRef"
             :current-page="item?.currentPage || 0"
             :total-pages="item?.pages || 0"
             :editable="true"
             theme="blue"
-            @update-progress="onUpdateProgress"
           />
           
           <!-- Status Selector -->
@@ -98,6 +98,7 @@ const localStatuses = ref(props.item?.userStatuses ? [...props.item.userStatuses
 const localTags = ref(props.item?.tags ? [...props.item.tags] : [])
 const localCurrentPage = ref(props.item?.currentPage ?? 0)
 const isSaving = ref(false)
+const progressBarRef = ref(null)
 
 // Get user tags based on item type
 const userTags = computed(() => {
@@ -162,27 +163,18 @@ const handleAddTag = async (tagName) => {
   }
 }
 
-// Handle progress update (books only)
-const onUpdateProgress = async (currentPage) => {
-  try {
-    localCurrentPage.value = currentPage
-    if (props.itemType === 'book') {
-      const result = await booksComposable.updateReadingProgress(props.item.isbn, currentPage)
-      if (!result.success) {
-        Logger.error('Error updating reading progress:', result.message)
-      }
-    }
-  } catch (error) {
-    Logger.error('Error updating reading progress:', error)
-  }
-}
-
 // Handle save
 const handleSave = async () => {
   isSaving.value = true
   
   try {
     const itemId = props.itemType === 'book' ? props.item.isbn : props.item.isbn
+    
+    // Get current page from ReadingProgressBar component if it exists
+    let currentPageToSave = localCurrentPage.value
+    if (props.itemType === 'book' && progressBarRef.value) {
+      currentPageToSave = progressBarRef.value.getCurrentPage()
+    }
     
     const data = {
       personalRating: localRating.value,
@@ -192,7 +184,8 @@ const handleSave = async () => {
     
     // Add currentPage for books
     if (props.itemType === 'book') {
-      data.currentPage = localCurrentPage.value
+      data.currentPage = currentPageToSave
+      localCurrentPage.value = currentPageToSave
     }
     
     Logger.debug('Saving item with data:', { itemType: props.itemType, itemId, data })

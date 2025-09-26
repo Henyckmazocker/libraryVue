@@ -26,7 +26,7 @@
         <ReadingProgressBar
           :current-page="currentPage"
           :total-pages="book.pages || 0"
-          :editable="editable"
+          :editable="!readonly"
           theme="blue"
           @update-progress="onUpdateProgress"
         />
@@ -36,8 +36,9 @@
           v-model="selectedUserStatuses"
           :allowed-statuses="allowedUserStatuses"
           :multiple="true"
+          :readonly="readonly"
           label="Status"
-          subtitle="(selecciona uno o más)"
+          :subtitle="readonly ? '(solo lectura - usa el modal para editar)' : 'Selecciona estados'"
           @status-changed="onStatusesChange"
         />
         
@@ -101,6 +102,10 @@ const props = defineProps({
     required: true
   },
   editable: {
+    type: Boolean,
+    default: false
+  },
+  readonly: {
     type: Boolean,
     default: false
   }

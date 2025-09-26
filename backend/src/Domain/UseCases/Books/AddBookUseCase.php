@@ -69,7 +69,8 @@ class AddBookUseCase
                     'description' => $bookData['description'] ?? null,
                     'userStatuses' => $bookData['userStatuses'], // Pass userStatuses
                     'allowedStatuses' => $bookData['allowedStatuses'] ?? [], // Include allowedStatuses in the data
-                    'addedTimestamp' => $bookData['addedTimestamp'] ?? time()
+                    'addedTimestamp' => $bookData['addedTimestamp'] ?? time(),
+                    'genres' => $bookData['genres'] ?? null // Add genres field
                 ]);
             } catch (\InvalidArgumentException $e) {
                 throw new InvalidArgumentException('Invalid book data: ' . $e->getMessage());

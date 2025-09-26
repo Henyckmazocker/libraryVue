@@ -1,9 +1,24 @@
 <template>
   <div class="status-selector-container" v-if="allowedStatuses && allowedStatuses.length > 0">
     
+    <!-- Readonly mode - always show badges -->
+    <div v-if="readonly" class="status-badges">
+      <span v-if="currentStatuses.length === 0" class="no-status-text">
+        Sin estados asignados
+      </span>
+      <span 
+        v-for="status in currentStatuses" 
+        :key="status" 
+        class="status-badge"
+        :class="[getStatusClass(status), { 'readonly': readonly }]"
+      >
+        {{ getStatusLabel(status) }}
+      </span>
+    </div>
+    
     <!-- Multi-select mode -->
     <MultiSelect
-      v-if="multiple"
+      v-else-if="multiple && !readonly"
       v-model="selectedStatuses"
       :options="allowedStatuses"
       :filter="true"
@@ -16,7 +31,7 @@
     
     <!-- Single-select mode -->
     <Dropdown
-      v-else
+      v-else-if="!multiple && !readonly"
       v-model="selectedStatus"
       :options="allowedStatuses"
       :placeholder="placeholder"
@@ -25,8 +40,8 @@
       @change="onStatusChange"
     />
     
-    <!-- Status badges display -->
-    <div v-if="showBadges && currentStatuses.length > 0" class="status-badges">
+    <!-- Status badges display for non-readonly -->
+    <div v-else-if="showBadges && currentStatuses.length > 0" class="status-badges">
       <span 
         v-for="status in currentStatuses" 
         :key="status" 
@@ -82,6 +97,10 @@ const props = defineProps({
   maxWidth: {
     type: String,
     default: '20rem'
+  },
+  readonly: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -234,5 +253,28 @@ watch(() => props.modelValue, (newValue) => {
   background: rgba(108, 117, 125, 0.2);
   color: #6c757d;
   border: 1px solid rgba(108, 117, 125, 0.3);
+}
+
+/* Readonly styles */
+.readonly {
+  opacity: 0.8;
+  cursor: default;
+}
+
+.readonly .status-badge {
+  border: 1px solid #e0e0e0;
+  cursor: default;
+  background-color: #f8f9fa;
+}
+
+.readonly .status-badge:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.no-status-text {
+  color: #999;
+  font-style: italic;
+  font-size: 0.875rem;
 }
 </style>

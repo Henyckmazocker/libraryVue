@@ -146,4 +146,9 @@ return [
 
     App\Controllers\LibraryXController::class => DI\autowire()
         ->constructorParameter('authMiddleware', DI\get(AuthMiddleware::class)),
+
+    App\Controllers\StatsController::class => DI\autowire()
+        ->constructorParameter('bookRepository', DI\get(BookRepositoryInterface::class))
+        ->constructorParameter('movieRepository', DI\get(MovieRepositoryInterface::class))
+        ->constructorParameter('authMiddleware', DI\get(AuthMiddleware::class)),
 ];

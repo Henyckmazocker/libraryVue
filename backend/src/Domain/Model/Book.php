@@ -21,6 +21,7 @@ class Book
     private array $userStatuses;
     private ?array $tags;
     private ?array $allowedTags;
+    private ?array $genres; // Géneros del libro
 
     public function __construct(
         string $isbn,
@@ -38,7 +39,8 @@ class Book
         ?int $addedTimestamp = null,
         ?int $currentPage = null,
         ?array $tags = null,
-        ?array $allowedTags = null
+        ?array $allowedTags = null,
+        ?array $genres = null
     ) {
         if (empty($isbn)) {
             throw new \InvalidArgumentException('ISBN cannot be empty.');
@@ -78,6 +80,7 @@ class Book
             }
         }
         $this->tags = $tags;
+        $this->genres = $genres;
         $this->isbn = $isbn;
         $this->title = $title;
         $this->author = $author;
@@ -112,6 +115,16 @@ class Book
     public function setTags(?array $tags): void
     {
         $this->tags = $tags;
+    }
+
+    public function getGenres(): ?array
+    {
+        return $this->genres;
+    }
+
+    public function setGenres(?array $genres): void
+    {
+        $this->genres = $genres;
     }
 
     public function getIsbn(): string
@@ -260,6 +273,7 @@ class Book
             'addedTimestamp' => $this->addedTimestamp,
             'tags' => $this->tags,
             'allowedTags' => $this->allowedTags,
+            'genres' => $this->genres,
         ];
     }
 
@@ -303,7 +317,8 @@ class Book
             isset($data['addedTimestamp']) ? (int)$data['addedTimestamp'] : null,
             isset($data['currentPage']) ? (int)$data['currentPage'] : null,
             $data['tags'] ?? null,
-            $data['allowedTags'] ?? null
+            $data['allowedTags'] ?? null,
+            $data['genres'] ?? null
         );
     }
 }

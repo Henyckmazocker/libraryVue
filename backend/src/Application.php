@@ -32,6 +32,7 @@ use App\Controllers\BookController;
 use App\Controllers\MovieController;
 use App\Controllers\LibraryController;
 use App\Controllers\LibraryXController;
+use App\Controllers\StatsController;
 use App\Router\ActionRouter;
 use InvalidArgumentException;
 use RuntimeException;
@@ -175,6 +176,13 @@ class Application
         // LibraryX controller
         $libraryXController = new LibraryXController();
         
+        // Stats controller
+        $statsController = new StatsController(
+            $this->bookRepository,
+            $this->movieRepository,
+            $this->authMiddleware
+        );
+        
         // Create and configure router
         $this->router = new ActionRouter(
             $authController,
@@ -182,6 +190,7 @@ class Application
             $movieController,
             $libraryController,
             $libraryXController,
+            $statsController,
             $this->authMiddleware
         );
     }

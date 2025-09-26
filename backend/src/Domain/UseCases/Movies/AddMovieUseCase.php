@@ -67,7 +67,8 @@ class AddMovieUseCase
                     'description' => $movieData['description'] ?? null,
                     'userStatuses' => $movieData['userStatuses'],
                     'addedTimestamp' => $movieData['addedTimestamp'] ?? time(),
-                    'allowedStatuses' => $movieData['allowedStatuses'] ?? []
+                    'allowedStatuses' => $movieData['allowedStatuses'] ?? [],
+                    'genres' => $movieData['genres'] ?? null // Add genres field
                 ]);
             } catch (\InvalidArgumentException $e) {
                 throw new InvalidArgumentException('Invalid movie data: ' . $e->getMessage());

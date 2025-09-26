@@ -30,6 +30,18 @@ const routes = [
     name: 'LibraryX',
     component: () => import('../components/LibraryX.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/dashboard/books',
+    name: 'BooksDashboard',
+    component: () => import('../components/Dashboard/BooksDashboard.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/dashboard/movies',
+    name: 'MoviesDashboard',
+    component: () => import('../components/Dashboard/MoviesDashboard.vue'),
+    meta: { requiresAuth: false }
   }
 ];
 

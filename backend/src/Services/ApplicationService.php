@@ -11,6 +11,7 @@ use App\Controllers\BookController;
 use App\Controllers\MovieController;
 use App\Controllers\LibraryController;
 use App\Controllers\LibraryXController;
+use App\Controllers\StatsController;
 
 /**
  * Application Service - Main entry point for dependency injection
@@ -108,6 +109,14 @@ class ApplicationService
     }
 
     /**
+     * Get Stats Controller
+     */
+    public function getStatsController(): StatsController
+    {
+        return $this->container->get(StatsController::class);
+    }
+
+    /**
      * Handle HTTP request and route to appropriate controller
      */
     public function handleRequest(): void
@@ -156,8 +165,13 @@ class ApplicationService
         }
         
         try {
+            // Route statistics actions to StatsController
+            if ($action === 'get_book_stats' || $action === 'get_movie_stats') {
+                $controller = $this->getStatsController();
+                $controller->handleRequest($requestMethod, $requestUri);
+            }
             // Route based on action prefix to appropriate controller
-            if (str_starts_with($action, 'login') || str_starts_with($action, 'logout') || 
+            elseif (str_starts_with($action, 'login') || str_starts_with($action, 'logout') || 
                 str_starts_with($action, 'check_auth') || str_starts_with($action, 'log_frontend')) {
                 $controller = $this->getAuthController();
                 $controller->handleRequest($requestMethod, $requestUri);

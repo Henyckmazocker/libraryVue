@@ -53,9 +53,9 @@ export function useSidebarMenu() {
               },
               {
                 name: "Mis Libros",
-                path: "/library?filter=books",
+                path: "/dashboard/books",
                 icon: "fas fa-book",
-                description: "Libros en tu biblioteca"
+                description: "Dashboard de tus libros"
               }
             ]
           },
@@ -70,9 +70,9 @@ export function useSidebarMenu() {
               },
               {
                 name: "Mis Películas",
-                path: "/library?filter=movies",
+                path: "/dashboard/movies",
                 icon: "fas fa-film",
-                description: "Películas en tu biblioteca"
+                description: "Dashboard de tus películas"
               }
             ]
           },

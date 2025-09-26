@@ -69,4 +69,54 @@ interface BookRepositoryInterface
      * Devuelve un array de notas (id, page_number, note_text, note_type, is_private, created_at).
      */
     public function getBookNotesByPage(int $userId, string $isbn): array;
+
+    /**
+     * Obtiene la página actual de un libro para un usuario.
+     * @param int $userId ID del usuario
+     * @param string $isbn ISBN del libro
+     * @return int Página actual (0 si no se ha empezado)
+     */
+    public function getCurrentPage(int $userId, string $isbn): int;
+
+    /**
+     * Obtiene el número total de páginas de un libro.
+     * @param string $isbn ISBN del libro
+     * @return int Número total de páginas (0 si no está definido)
+     */
+    public function getTotalPages(string $isbn): int;
+
+    /**
+     * Obtiene la página del último progreso registrado en el historial.
+     * Si no hay historial, obtiene la página actual de user_books.
+     * @param int $userId ID del usuario
+     * @param string $isbn ISBN del libro
+     * @return int Última página de progreso registrada
+     */
+    public function getLastProgressPage(int $userId, string $isbn): int;
+
+    /**
+     * Registra un nuevo progreso de lectura en el historial.
+     * Solo registra si currentPage > previousPage.
+     * @param int $userId ID del usuario
+     * @param string $isbn ISBN del libro
+     * @param int $currentPage Página actual
+     * @param int $previousPage Página anterior
+     */
+    public function addReadingProgressHistory(int $userId, string $isbn, int $currentPage, int $previousPage): void;
+
+    /**
+     * Obtiene el historial de progreso de lectura de un libro para un usuario.
+     * @param int $userId ID del usuario
+     * @param string $isbn ISBN del libro
+     * @return array Array de registros del historial [id, current_page, previous_page, logged_at]
+     */
+    public function getReadingProgressHistory(int $userId, string $isbn): array;
+
+    /**
+     * Obtiene estadísticas de páginas leídas por mes para un usuario.
+     * @param int $userId ID del usuario
+     * @param int $months Número de meses hacia atrás (por defecto 12)
+     * @return array Array con datos mensuales [año-mes => páginas_leídas]
+     */
+    public function getMonthlyPagesReadStats(int $userId, int $months = 12): array;
 }

@@ -24,8 +24,9 @@
           v-model="selectedUserStatuses"
           :allowed-statuses="allowedUserStatuses"
           :multiple="true"
+          :readonly="readonly"
           label="Status"
-          subtitle="(selecciona uno o más)"
+          :subtitle="readonly ? '(solo lectura - usa el modal para editar)' : 'Selecciona estados'"
           @status-changed="onStatusesChange"
         />
         
@@ -85,6 +86,10 @@ const props = defineProps({
     required: true
   },
   editable: {
+    type: Boolean,
+    default: false
+  },
+  readonly: {
     type: Boolean,
     default: false
   }

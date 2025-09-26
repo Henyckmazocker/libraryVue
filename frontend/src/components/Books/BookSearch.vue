@@ -40,9 +40,10 @@
           <div v-if="selectedBook && selectedBook.key === result.key" class="search-detail-below">
             <LibraryBookItem 
               v-if="allowedUserStatusesList.length > 0"
-              :book="transformBookData(selectedBook)" 
+              :book="currentBook.isbn === selectedBook.isbn?.[0] ? currentBook : transformBookData(selectedBook)" 
               :allowedUserStatuses="allowedUserStatusesList" 
               :editable="true"
+              :readonly="false"
               @update-rating="onUpdateRating"
               @update-statuses="onUpdateStatuses"
               @save-book="addBookToLibrary"
@@ -61,6 +62,7 @@
         :book="currentBook"
         :allowedUserStatuses="allowedUserStatusesList"
         :editable="true"
+        :readonly="false"
         @update-rating="onUpdateRating"
         @update-statuses="onUpdateStatuses"
         @save-book="addBookToLibrary"
@@ -101,6 +103,7 @@ const currentBook = reactive({
   coverUrl: "",
   pages: null,
   description: "",
+  genres: [], // Géneros del libro
   publishers: "",
   rating: null,
   user_rating: null,
@@ -127,6 +130,16 @@ const toggleBook = async (bookKey) => {
     selectedBook.value = book;
     isFromAccordion.value = true;
     clearBookDetails(); // Limpiar el libro actual para evitar conflictos
+    
+    // Si el libro tiene ISBN, buscar detalles completos con Google Books API para obtener géneros
+    if (book.isbn && book.isbn.length > 0) {
+      try {
+        Logger.debug("Fetching full book details with genres for selected book:", book.isbn[0]);
+        await fetchBookDetailsByISBN(book.isbn);
+      } catch (error) {
+        Logger.warn("Could not fetch full book details for selected book:", error);
+      }
+    }
   }
 };
 
@@ -159,7 +172,8 @@ const transformBookData = (book) => {
     publishers: Array.isArray(book.publisher) ? book.publisher : (book.publisher ? [book.publisher] : []),
     rating: null,
     user_rating: null,
-    userStatuses: []
+    userStatuses: [],
+    genres: book.categories || [] // Agregar géneros/categorías
   };
 };
 
@@ -182,6 +196,7 @@ const clearBookDetails = () => {
   currentBook.coverUrl = "";
   currentBook.pages = null;
   currentBook.description = "";
+  currentBook.genres = []; // Limpiar géneros
   currentBook.publishers = "";
   currentBook.rating = null;
   currentBook.user_rating = null;
@@ -196,6 +211,50 @@ const triggerFetchBookInfo = () => {
   isFromAccordion.value = false;
   fetchBookInfo();
 }
+
+// Función específica para buscar detalles por ISBN sin afectar decodedText
+const fetchBookDetailsByISBN = async (isbn) => {
+  try {
+    Logger.debug("Trying Google Books API for ISBN:", isbn);
+    const googleApiUrl = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`;
+    const response = await axios.get(googleApiUrl);
+    const data = response.data;
+
+    if (data.items && data.items.length > 0) {
+      const bookId = data.items[0].id;
+      Logger.debug("Found book ID:", bookId, "- Getting full details...");
+      
+      // Get full book details using the book ID
+      const detailsResponse = await axios.get(`https://www.googleapis.com/books/v1/volumes/${bookId}`);
+      const book = detailsResponse.data.volumeInfo;
+      
+      Logger.debug("Fetched complete book details from Google Books:", book);
+      currentBook.isbn = isbn;
+      currentBook.title = book.title || "Title not found";
+      currentBook.author = (book.authors && book.authors.length > 0) ? book.authors.join(', ') : "Author not found";
+      currentBook.publisher = book.publisher || "";
+      currentBook.publicationDate = book.publishedDate || "";
+      currentBook.coverUrl = book.imageLinks?.large?.replace('http:', 'https:') ||
+                            book.imageLinks?.medium?.replace('http:', 'https:') ||
+                            book.imageLinks?.thumbnail?.replace('http:', 'https:') || 
+                            book.imageLinks?.smallThumbnail?.replace('http:', 'https:') || "";
+      currentBook.pages = book.pageCount || null;
+      currentBook.description = book.description || "";
+      currentBook.genres = book.categories || []; // Extraer géneros/categorías
+      currentBook.publishers = book.publisher ? [book.publisher] : [];
+      
+      Logger.debug("Book found with Google Books API (full details):", currentBook.title);
+      Logger.debug("Extracted genres:", currentBook.genres);
+      
+      return true; // Success
+    }
+  } catch (error) {
+    Logger.warn("Could not fetch book details from Google Books API:", error);
+    return false;
+  }
+  
+  return false; // No book found
+};
 
 const fetchBookInfo = async () => {
   // searchError and book details are cleared by the calling functions (handleIsbnScanned or triggerFetchBookInfo)
@@ -233,9 +292,11 @@ const fetchBookInfo = async () => {
                             book.imageLinks?.smallThumbnail?.replace('http:', 'https:') || "";
       currentBook.pages = book.pageCount || null;
       currentBook.description = book.description || "";
+      currentBook.genres = book.categories || []; // Extraer géneros/categorías
       currentBook.publishers = book.publisher ? [book.publisher] : [];
       
       Logger.debug("Book found with Google Books API (full details):", currentBook.title);
+      Logger.debug("Extracted genres:", currentBook.genres);
       
       // Auto-save the book when found by ISBN
       await autoSaveBookFromISBN();
@@ -340,6 +401,7 @@ const triggerFetchBookByName = async () => {
                     book.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
             publisher: book.publisher ? [book.publisher] : [],
             pages: book.pageCount || null,
+            genres: book.categories || [], // Extraer géneros/categorías
             key: item.id
           };
         } catch (error) {
@@ -357,6 +419,7 @@ const triggerFetchBookByName = async () => {
             cover_i: book.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
             publisher: book.publisher ? [book.publisher] : [],
             pages: book.pageCount || null,
+            genres: book.categories || [], // Extraer géneros/categorías (fallback)
             key: item.id
           };
         }
@@ -555,11 +618,29 @@ const addBookToLibrary = async (bookDetailsWithStatuses) => {
     return;
   }
 
+  // If book doesn't have genres and has an ISBN, try to fetch them from Google Books API
+  // Create a copy of the book to avoid mutating the original parameter
+  let bookToSave = { ...book };
+
+  if ((!bookToSave.genres || bookToSave.genres.length === 0) && bookToSave.isbn) {
+    Logger.debug("Book has no genres, attempting to fetch from Google Books API...");
+    try {
+      await fetchBookDetailsByISBN(bookToSave.isbn);
+      // If currentBook was updated with the same ISBN, use it instead
+      if (currentBook.isbn === bookToSave.isbn && currentBook.genres && currentBook.genres.length > 0) {
+        Logger.debug("Found genres from Google Books, using currentBook:", currentBook.genres);
+        bookToSave = { ...bookToSave, genres: currentBook.genres };
+      }
+    } catch (error) {
+      Logger.warn("Could not fetch genres for book:", error);
+    }
+  }
+
   // Use the books composable to add the book
-  Logger.debug("Book details being sent:", book);
+  Logger.debug("Book details being sent:", bookToSave);
   Logger.debug("User statuses being sent:", statuses);
   
-  const result = await booksComposable.addBook(book, statuses);
+  const result = await booksComposable.addBook(bookToSave, statuses);
   
   if (result.success) {
     notifications.showSuccess("Book added successfully!");

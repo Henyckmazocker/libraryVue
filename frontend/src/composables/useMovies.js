@@ -132,7 +132,9 @@ export function useMovies() {
         coverUrl: movie.coverUrl || '',
         userStatuses: statuses,
         user_rating: movie.user_rating || 0,
-        itemType: 'movie'
+        itemType: 'movie',
+        // Include genres if present
+        genres: movie.genres || []
       };
       
       const response = await authenticatedApiCall('add_movie', { movie: movieData });

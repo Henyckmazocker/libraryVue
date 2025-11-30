@@ -166,12 +166,14 @@ watch(() => props.movie.imdbID, (newId, oldId) => {
 </script>
 
 <style>
+@import '@/assets/styles/variables.css';
+
 /* Igual que .library-book-item-container para altura y aspecto uniforme */
 .library-movie-item-container {
-  padding: 12px; /* Reducido de 20px */
-  background-color: #2c2c2c;
-  border-radius: 12px; /* Reducido de 15px */
-  box-shadow: 0 3px 8px rgba(0,0,0,0.25); /* Sombra más sutil */
+  padding: 12px;
+  background-color: var(--color-background-mute);
+  border-radius: 12px;
+  box-shadow: var(--shadow-medium);
   width: auto;
   height: 100%;
   display: flex;
@@ -294,30 +296,30 @@ watch(() => props.movie.imdbID, (newId, oldId) => {
 
 /* Button types with gradients */
 .save-button {
-  background: linear-gradient(135deg, #28a745, #20c997);
-  color: white;
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-secondary-light));
+  color: var(--color-text-dark);
 }
 
 .save-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #20c997, #17a2b8);
+  background: linear-gradient(135deg, var(--color-secondary-dark), var(--color-secondary));
 }
 
 .edit-button {
-  background: linear-gradient(135deg, #007bff, #0056b3);
-  color: white;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
+  color: var(--color-text-light);
 }
 
 .edit-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #0056b3, #004085);
+  background: linear-gradient(135deg, var(--color-primary-hover), var(--color-primary-light));
 }
 
 .delete-button {
-  background: linear-gradient(135deg, #dc3545, #c82333);
-  color: white;
+  background: linear-gradient(135deg, var(--color-tertiary), var(--color-border));
+  color: var(--color-text);
 }
 
 .delete-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #c82333, #bd2130);
+  background: linear-gradient(135deg, var(--color-border), var(--color-tertiary));
 }
 
 @media (max-width: 768px) {

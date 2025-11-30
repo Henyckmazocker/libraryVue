@@ -27,7 +27,18 @@
       :style="containerStyle"
       appendTo="body"
       @change="onStatusesChange"
-    />
+    >
+      <template #option="slotProps">
+        <div class="status-option" :class="{ 'status-session-trigger': isSessionTrigger(slotProps.option) }">
+          <span class="status-label">{{ getStatusLabel(slotProps.option) }}</span>
+          <span v-if="isSessionTrigger(slotProps.option)" 
+                class="session-indicator" 
+                :title="getSessionTooltip(slotProps.option)">
+            <i :class="getSessionIcon(slotProps.option)"></i>
+          </span>
+        </div>
+      </template>
+    </MultiSelect>
     
     <!-- Single-select mode -->
     <Dropdown
@@ -167,10 +178,36 @@ const getStatusClass = (status) => {
     'want-to-read': 'status-watchlist',
     'dropped': 'status-dropped',
     'completed': 'status-completed',
-    'on-hold': 'status-paused'
+    'on-hold': 'status-paused',
+    'paused': 'status-paused',
+    'abandoned': 'status-dropped'
   };
   
   return statusClasses[status] || 'status-default';
+};
+
+const isSessionTrigger = (status) => {
+  return ['reading', 'read', 'paused', 'abandoned'].includes(status);
+};
+
+const getSessionIcon = (status) => {
+  const icons = {
+    'reading': 'fas fa-play-circle',
+    'read': 'fas fa-check-circle',
+    'paused': 'fas fa-pause-circle',
+    'abandoned': 'fas fa-times-circle'
+  };
+  return icons[status] || '';
+};
+
+const getSessionTooltip = (status) => {
+  const tooltips = {
+    'reading': 'Iniciará una sesión de lectura automáticamente',
+    'read': 'Completará la sesión activa automáticamente',
+    'paused': 'Pausará la sesión actual automáticamente',
+    'abandoned': 'Cerrará la sesión activa automáticamente'
+  };
+  return tooltips[status] || '';
 };
 
 // Watch for external changes
@@ -276,5 +313,52 @@ watch(() => props.modelValue, (newValue) => {
   color: #999;
   font-style: italic;
   font-size: 0.875rem;
+}
+
+/* Status option with session indicator */
+.status-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  width: 100%;
+}
+
+.status-option.status-session-trigger {
+  font-weight: 500;
+}
+
+.status-label {
+  flex: 1;
+}
+
+.session-indicator {
+  margin-left: 8px;
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+.session-indicator i {
+  transition: opacity 0.2s;
+}
+
+.status-option:hover .session-indicator i {
+  opacity: 1;
+}
+
+.session-indicator .fa-play-circle {
+  color: #28a745;
+}
+
+.session-indicator .fa-check-circle {
+  color: #007bff;
+}
+
+.session-indicator .fa-pause-circle {
+  color: #ffc107;
+}
+
+.session-indicator .fa-times-circle {
+  color: #dc3545;
 }
 </style>

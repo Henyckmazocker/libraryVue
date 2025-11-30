@@ -203,6 +203,8 @@ onMounted(async () => {
 </script>
 
 <style>
+@import '@/assets/styles/variables.css';
+
 .movie-search-container {
   display: flex;
   flex-direction: column;
@@ -214,7 +216,7 @@ onMounted(async () => {
 }
 .title {
   font-size: 2rem;
-  color: #e0e0e0;
+  color: var(--color-text);
   margin-bottom: 30px;
 }
 .input-group {
@@ -226,27 +228,27 @@ onMounted(async () => {
   flex-grow: 1;
   padding: 12px 18px;
   font-size: 1rem;
-  color: #e0e0e0;
-  background-color: #2c2c2c;
-  border: 1px solid #444;
+  color: var(--color-text);
+  background-color: var(--color-background-mute);
+  border: 1px solid var(--color-border);
   border-radius: 30px 0 0 30px;
   outline: none;
 }
 .movie-input::placeholder {
-  color: #888;
+  color: var(--color-text-muted);
 }
 .search-button {
   padding: 12px 24px;
   font-size: 1rem;
-  color: #fff;
-  background-color: #007bff;
-  border: 1px solid #007bff;
+  color: var(--color-text-light);
+  background-color: var(--color-primary);
+  border: 1px solid var(--color-primary);
   border-radius: 0 30px 30px 0;
   cursor: pointer;
 }
 .search-button:hover {
-  background-color: #0056b3;
-  border-color: #0056b3;
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
 }
 .error-message,
 .status-message {
@@ -259,18 +261,18 @@ onMounted(async () => {
 }
 
 .error-message {
-  color: #ff4d4f;
-  background-color: rgba(255, 77, 79, 0.1);
+  color: var(--color-error);
+  background-color: var(--color-error-bg);
 }
 
 .status-message.success {
-  color: #28a745; 
-  background-color: rgba(40, 167, 69, 0.1);
+  color: var(--color-success);
+  background-color: var(--color-success-bg);
 }
 
 .status-message.error {
-  color: #dc3545; 
-  background-color: rgba(220, 53, 69, 0.1);
+  color: var(--color-error);
+  background-color: var(--color-error-bg);
 }
 .movie-list {
   width: 100%;
@@ -287,12 +289,12 @@ onMounted(async () => {
 .movie-list-item {
   display: flex;
   align-items: center;
-  background: #232323;
+  background: var(--color-background-soft);
   border-radius: 10px;
   padding: 10px;
   cursor: pointer;
-  transition: background 0.2s, box-shadow 0.2s;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  transition: var(--transition-fast);
+  box-shadow: var(--shadow-light);
   border: 1px solid transparent;
 }
 .movie-list-poster {
@@ -301,7 +303,7 @@ onMounted(async () => {
   object-fit: cover;
   border-radius: 4px;
   margin-right: 16px;
-  border: 1px solid #444;
+  border: 1px solid var(--color-border);
 }
 .movie-detail-below {
   margin-left: 0;
@@ -318,7 +320,7 @@ onMounted(async () => {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   border-top: none;
-  background: #232323;
+  background: var(--color-background-soft);
   width: 100%;
   max-width: 600px;
   margin-left: 0;
@@ -338,9 +340,9 @@ onMounted(async () => {
   margin-bottom: 10px;
 }
 .movie-list-item.expanded {
-  background: #282c34;
-  border: 1px solid #007bff;
-  box-shadow: 0 2px 8px rgba(0,123,255,0.08);
+  background: var(--color-background-mute);
+  border: 1px solid var(--color-primary-light);
+  box-shadow: var(--shadow-medium);
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
@@ -370,7 +372,7 @@ onMounted(async () => {
 .loading-statuses {
   padding: 20px;
   text-align: center;
-  color: #888;
-  background: #232323;
+  color: var(--color-text-secondary);
+  background: var(--color-background-soft);
 }
 </style>

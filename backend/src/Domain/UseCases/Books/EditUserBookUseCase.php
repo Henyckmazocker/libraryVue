@@ -59,6 +59,7 @@ class EditUserBookUseCase
         }
 
         // Actualizar estados del libro si se pasan
+        // SIEMPRE actualizar estados si se proporcionan, sin importar si currentPage está presente
         if (isset($data['statuses']) && is_array($data['statuses'])) {
             $this->bookRepository->updateUserBookStatuses($userId, $isbn, $data['statuses']);
         }

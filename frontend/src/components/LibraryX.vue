@@ -512,8 +512,8 @@ watch([searchQuery, selectedDomains, currentSort], () => {
   font-size: 2.5rem;
   margin-bottom: 2rem;
   text-align: center;
-  color: #e0e0e0;
-  background: linear-gradient(135deg, #007bff 0%, #20c997 100%);
+  color: var(--color-text);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -521,11 +521,11 @@ watch([searchQuery, selectedDomains, currentSort], () => {
 }
 
 .controls-container {
-  background: #23272f;
-  border: 1.5px solid #444a57;
+  background: var(--color-background-soft);
+  border: 1.5px solid var(--color-border);
   padding: 20px;
   border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  box-shadow: var(--shadow-medium);
   margin-bottom: 30px;
 }
 
@@ -539,31 +539,31 @@ watch([searchQuery, selectedDomains, currentSort], () => {
 .search-input {
   flex: 1;
   padding: 12px 16px;
-  border: 1px solid #555;
+  border: 1px solid var(--color-border);
   border-radius: 20px;
   font-size: 16px;
-  background-color: #3a3a3a;
-  color: #e0e0e0;
-  transition: border-color 0.3s ease;
+  background-color: var(--color-background-mute);
+  color: var(--color-text);
+  transition: var(--transition-fast);
   min-width: 200px;
 }
 
 .search-input::placeholder {
-  color: #888;
+  color: var(--color-text-muted);
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #007bff;
+  border-color: var(--color-secondary);
 }
 
 .sort-dropdown {
   padding: 12px 16px;
-  border: 1px solid #555;
+  border: 1px solid var(--color-border);
   border-radius: 20px;
   font-size: 16px;
-  background-color: #3a3a3a;
-  color: #e0e0e0;
+  background-color: var(--color-background-mute);
+  color: var(--color-text);
   cursor: pointer;
   min-width: 200px;
 }

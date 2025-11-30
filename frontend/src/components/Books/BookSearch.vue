@@ -66,8 +66,17 @@
         @update-rating="onUpdateRating"
         @update-statuses="onUpdateStatuses"
         @save-book="addBookToLibrary"
+        @show-session-history="handleShowSessionHistory"
       />
     </div>
+
+    <!-- Session History Modal -->
+    <SessionHistoryModal
+      :is-visible="sessionHistoryModal.isVisible"
+      :book="sessionHistoryModal.book"
+      :history="sessionHistoryModal.history"
+      @close="closeSessionHistoryModal"
+    />
   </div>
 </template>
 
@@ -78,6 +87,7 @@ import { useBooks } from '@/composables/useBooks';
 import { useSearch } from '@/composables/useSearch';
 import { useLibraryNotifications } from '@/composables/useLibraryNotifications';
 import LibraryBookItem from './LibraryBookItem.vue';
+import SessionHistoryModal from './SessionHistoryModal.vue';
 import Logger from '@/utils/logger';
 
 // Composables
@@ -94,6 +104,13 @@ const nameSearch = useSearch({
 const decodedText = ref("");
 const selectedBook = ref(null);
 const isFromAccordion = ref(false);
+
+// Estado del modal de historial de sesiones
+const sessionHistoryModal = ref({
+  isVisible: false,
+  book: {},
+  history: []
+});
 const currentBook = reactive({
   isbn: "",
   title: "",
@@ -185,6 +202,33 @@ const onUpdateStatuses = ({ statuses }) => {
 // Maneja la actualización de rating desde LibraryBookItem
 const onUpdateRating = ({ rating }) => {
   currentBook.user_rating = rating;
+};
+
+// ===================================
+// MÉTODOS DEL MODAL DE HISTORIAL DE SESIONES
+// ===================================
+
+const handleShowSessionHistory = async (data) => {
+  try {
+    Logger.debug('Showing session history for book:', data.book.title);
+    
+    sessionHistoryModal.value = {
+      isVisible: true,
+      book: data.book,
+      history: data.history || []
+    };
+  } catch (error) {
+    Logger.error('Error showing session history:', error);
+    notifications.showError('Error al cargar el historial de sesiones');
+  }
+};
+
+const closeSessionHistoryModal = () => {
+  sessionHistoryModal.value = {
+    isVisible: false,
+    book: {},
+    history: []
+  };
 };
 
 const clearBookDetails = () => {

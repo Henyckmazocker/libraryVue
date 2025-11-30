@@ -39,10 +39,18 @@ CREATE TABLE IF NOT EXISTS book_statuses (
     name VARCHAR(50) NOT NULL UNIQUE -- e.g., 'owned', 'read', 'to buy', 'reading'
 );
 
--- Populate allowed statuses
+-- Populate allowed statuses (actualizado para sesiones de lectura)
 -- This ensures that only valid statuses can be referenced.
 -- The Book::ALLOWED_STATUSES array should ideally be in sync with these values.
-INSERT INTO book_statuses (name) VALUES ('owned'), ('read'), ('to read'), ('reading'), ('want to buy'), ('abandoned');
+INSERT INTO book_statuses (name) VALUES 
+('owned'),       -- Usuario posee el libro
+('read'),        -- Libro completamente leído (al menos una vez)
+('to read'),     -- En lista de pendientes
+('reading'),     -- Leyendo actualmente (primera vez)
+('re-reading'),  -- Releyendo (no es la primera vez)
+('want to buy'), -- Quiere comprarlo
+('abandoned'),   -- Lectura abandonada
+('paused');      -- Lectura pausada temporalmente
 
 
 -- Junction table to link books with their statuses using status IDs
@@ -139,25 +147,59 @@ CREATE TABLE IF NOT EXISTS users (
     INDEX idx_users_last_login (last_login) -- Para estadísticas de actividad
 );
 
+-- Tabla para sesiones de lectura (permite relecturas)
+-- Cada sesión representa una lectura independiente del mismo libro
+CREATE TABLE IF NOT EXISTS reading_sessions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    book_isbn VARCHAR(20) NOT NULL,
+    session_number INT NOT NULL DEFAULT 1,     -- 1ª lectura, 2ª lectura, etc.
+    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP NULL,
+    status ENUM('active', 'completed', 'abandoned', 'paused') DEFAULT 'active',
+    final_page INT UNSIGNED NULL,              -- Página donde terminó esta sesión
+    session_notes TEXT NULL,                   -- Notas específicas de esta sesión
+    
+    -- Relaciones
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (book_isbn) REFERENCES books(isbn) ON DELETE CASCADE,
+    
+    -- Índices para optimización
+    UNIQUE KEY unique_user_book_session (user_id, book_isbn, session_number),
+    INDEX idx_reading_sessions_active (user_id, status),
+    INDEX idx_reading_sessions_user_book (user_id, book_isbn),
+    INDEX idx_reading_sessions_status (status),
+    INDEX idx_reading_sessions_dates (started_at, completed_at)
+);
+
 -- Tablas para bibliotecas personales por usuario
 -- Relación users -> books (cada usuario tiene su propia biblioteca de libros)
+-- Actualizada para soportar sesiones de lectura
 CREATE TABLE IF NOT EXISTS user_books (
     user_id INT NOT NULL,
     book_isbn VARCHAR(20) NOT NULL,
     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    consumed_at TIMESTAMP NULL DEFAULT NULL,   -- Fecha cuando el usuario leyó el libro
+    consumed_at TIMESTAMP NULL DEFAULT NULL,   -- Fecha cuando el usuario leyó el libro por primera vez
     current_page INT UNSIGNED DEFAULT 0,       -- Página actual en la que va el usuario (0 = no empezado)
+    active_reading_session_id INT NULL,        -- Sesión de lectura activa
     personal_rating DECIMAL(2,1) DEFAULT NULL, -- Rating personal del usuario (puede diferir del global)
     personal_notes TEXT DEFAULT NULL,          -- Notas personales sobre el libro
+    total_sessions_completed INT DEFAULT 0,    -- Número total de sesiones completadas
+    last_session_completed_at TIMESTAMP NULL,  -- Fecha de la última sesión completada
     PRIMARY KEY (user_id, book_isbn),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (book_isbn) REFERENCES books(isbn) ON DELETE CASCADE,
+    FOREIGN KEY (active_reading_session_id) REFERENCES reading_sessions(id) ON DELETE SET NULL,
     INDEX idx_user_books_user_added (user_id, added_at), -- Para obtener libros de un usuario ordenados por fecha
     INDEX idx_user_books_consumed (user_id, consumed_at), -- Para obtener libros leídos ordenados por fecha de lectura
     INDEX idx_user_books_rating (user_id, personal_rating), -- Para filtros por rating personal
     INDEX idx_user_books_progress (user_id, current_page), -- Para filtros por progreso de lectura
+    INDEX idx_user_books_active_session (active_reading_session_id), -- Para consultas de sesión activa
+    INDEX idx_user_books_sessions_count (user_id, total_sessions_completed), -- Para estadísticas de sesiones
+    INDEX idx_user_books_last_session (user_id, last_session_completed_at), -- Para consultas de actividad reciente
     CONSTRAINT check_user_book_rating CHECK (personal_rating IS NULL OR (personal_rating >= 0.5 AND personal_rating <= 5.0 AND MOD(personal_rating * 2, 1) = 0)),
-    CONSTRAINT check_user_book_page CHECK (current_page >= 0)
+    CONSTRAINT check_user_book_page CHECK (current_page >= 0),
+    CONSTRAINT check_sessions_completed CHECK (total_sessions_completed >= 0)
 );
 
 -- Relación users -> movies (cada usuario tiene su propia biblioteca de películas)
@@ -329,28 +371,58 @@ CREATE TABLE IF NOT EXISTS user_follows (
     CONSTRAINT check_not_self_follow CHECK (follower_id != followed_id) -- Un usuario no puede seguirse a sí mismo
 );
 
--- Tabla para historial de progreso de lectura
+-- Tabla para historial de progreso de lectura (actualizada para sesiones)
 -- Registra cada vez que un usuario actualiza su progreso de lectura
+-- Ahora permite progreso negativo y se vincula con sesiones
 CREATE TABLE IF NOT EXISTS reading_progress_history (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     book_isbn VARCHAR(20) NOT NULL,
+    reading_session_id INT NULL,              -- Vinculación con sesión de lectura
     current_page INT UNSIGNED NOT NULL,       -- Páginas leídas hasta esa fecha
     previous_page INT UNSIGNED DEFAULT 0,     -- Páginas leídas anteriormente
+    progress_type ENUM('advance', 'backtrack', 'restart') DEFAULT 'advance', -- Tipo de progreso
+    notes TEXT NULL,                          -- Notas opcionales sobre el progreso
     logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Fecha y hora del registro
     
     -- Relaciones
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (book_isbn) REFERENCES books(isbn) ON DELETE CASCADE,
     FOREIGN KEY (user_id, book_isbn) REFERENCES user_books(user_id, book_isbn) ON DELETE CASCADE,
+    FOREIGN KEY (reading_session_id) REFERENCES reading_sessions(id) ON DELETE CASCADE,
     
     -- Índices para consultas eficientes
     INDEX idx_progress_user_book (user_id, book_isbn),              -- Historial de un libro específico de un usuario
     INDEX idx_progress_user_date (user_id, logged_at),             -- Progreso de un usuario por fecha
     INDEX idx_progress_book_date (book_isbn, logged_at),           -- Progreso de un libro por fecha
     INDEX idx_progress_recent (logged_at),                         -- Progreso reciente general
+    INDEX idx_progress_session (reading_session_id),               -- Progreso por sesión
+    INDEX idx_progress_type (progress_type),                       -- Progreso por tipo
+    INDEX idx_progress_user_session (user_id, reading_session_id), -- Progreso de usuario por sesión
     
-    -- Constraints
+    -- Constraints actualizados para permitir progreso negativo
     CONSTRAINT check_progress_pages CHECK (current_page >= 0 AND previous_page >= 0),
-    CONSTRAINT check_progress_advance CHECK (current_page > previous_page) -- Solo registrar avances
+    CONSTRAINT check_progress_type_valid CHECK (progress_type IN ('advance', 'backtrack', 'restart'))
 );
+
+-- ============================================================================
+-- ÍNDICES ADICIONALES PARA PERFORMANCE
+-- ============================================================================
+
+-- Índices para las vistas más utilizadas
+CREATE INDEX idx_user_books_status_lookup ON user_book_statuses(user_id, book_isbn);
+CREATE INDEX idx_progress_monthly_stats ON reading_progress_history(user_id, logged_at, progress_type);
+CREATE INDEX idx_sessions_user_status ON reading_sessions(user_id, status);
+CREATE INDEX idx_books_search_full ON books(title, author, isbn);
+
+-- Índices para queries de estadísticas
+CREATE INDEX idx_user_books_completed_sessions ON user_books(user_id, total_sessions_completed);
+CREATE INDEX idx_user_books_rating_filter ON user_books(user_id, personal_rating);
+
+-- ============================================================================
+-- COMENTARIOS FINALES Y DOCUMENTACIÓN
+-- ============================================================================
+
+-- Añadir comentarios a las nuevas tablas
+ALTER TABLE reading_sessions COMMENT = 'Sesiones de lectura independientes - permite relecturas y seguimiento detallado';
+ALTER TABLE reading_progress_history COMMENT = 'Historial completo de progreso incluyendo retrocesos y reinicios por sesión';

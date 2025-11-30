@@ -78,7 +78,7 @@ interface MovieRepositoryInterface
     
     public function findMoviesByUser(int $userId, array $filters = []): array;
     
-    public function updateUserMovieStatuses(int $userId, string $movieId, array $statuses, bool $manageTransaction = true): void;
+    public function updateUserMovieStatuses(int $userId, string $movieId, array $statuses): void;
     
     public function updateUserMovieRating(int $userId, string $movieId, ?float $rating): void;
     

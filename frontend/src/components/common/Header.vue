@@ -10,6 +10,11 @@
 
     <!-- Sección derecha con autenticación -->
     <div class="app-header__right">
+      <!-- Botón de cambio de tema -->
+      <button @click="toggleTheme" class="app-header__theme-toggle" :title="isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'">
+        <i class="fas" :class="isDark ? 'fa-sun' : 'fa-moon'"></i>
+      </button>
+      
       <template v-if="!isLoggedIn && !isLoading">
         <div id="g_id_signin"></div>
       </template>
@@ -47,6 +52,7 @@ export default {
 <script setup>
 import { watch, onMounted, defineEmits } from 'vue';
 import { useAuth, useGoogleAuth } from '@/composables';
+import { useTheme } from '@/composables/useTheme';
 import Logger from '@/utils/logger';
 
 // Emits
@@ -70,6 +76,9 @@ const {
   googleError,
   clearGoogleError
 } = useGoogleAuth();
+
+// Theme composable
+const { isDark, toggleTheme } = useTheme();
 
 // Watch auth state changes for debugging
 watch(isAuthenticated, (newVal, oldVal) => {
@@ -152,14 +161,14 @@ const handleLogout = async () => {
   align-items: center;
   height: 70px;
   padding: 0 20px;
-  background: #1a1a1b;
-  border-bottom: 1px solid #343536;
+  background: var(--color-background-soft);
+  border-bottom: 1px solid var(--color-border);
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 1000;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-medium);
 }
 
 .app-header__left {
@@ -170,21 +179,21 @@ const handleLogout = async () => {
 .app-header__logo {
   display: flex;
   align-items: center;
-  color: #d7dadc;
+  color: var(--color-text);
   text-decoration: none;
   font-size: 18px;
   font-weight: 600;
-  transition: color 0.2s ease;
+  transition: var(--transition-fast);
 }
 
 .app-header__logo:hover {
-  color: #ffffff;
+  color: var(--color-text-light);
 }
 
 .app-header__logo i {
   font-size: 24px;
   margin-right: 12px;
-  color: #ff6314; /* Color naranja estilo Reddit */
+  color: var(--color-highlight);
 }
 
 .app-header__title {
@@ -198,8 +207,35 @@ const handleLogout = async () => {
   gap: 15px;
 }
 
+.app-header__theme-toggle {
+  background: var(--color-background-card);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-dark);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-fast);
+  font-size: 18px;
+  box-shadow: var(--shadow-light);
+}
+
+.app-header__theme-toggle:hover {
+  background: var(--color-secondary);
+  border-color: var(--color-secondary);
+  transform: rotate(20deg) scale(1.05);
+  box-shadow: var(--shadow-medium);
+}
+
+.app-header__theme-toggle i {
+  transition: var(--transition-fast);
+}
+
 .app-header__loading {
-  color: #d7dadc;
+  color: var(--color-text);
   font-size: 18px;
 }
 
@@ -207,10 +243,10 @@ const handleLogout = async () => {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--color-background-card);
   padding: 8px 16px;
   border-radius: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-medium);
   backdrop-filter: blur(10px);
 }
 
@@ -224,7 +260,7 @@ const handleLogout = async () => {
 .app-header__user-name {
   font-size: 14px;
   font-weight: 500;
-  color: #18212b;
+  color: var(--color-text-dark);
   max-width: 150px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -234,11 +270,11 @@ const handleLogout = async () => {
 .app-header__logout-btn {
   background: none;
   border: none;
-  color: #dc3545;
+  color: var(--color-error);
   cursor: pointer;
   padding: 6px;
   border-radius: 4px;
-  transition: background-color 0.2s;
+  transition: var(--transition-fast);
   font-size: 14px;
   display: flex;
   align-items: center;
@@ -246,13 +282,13 @@ const handleLogout = async () => {
 }
 
 .app-header__logout-btn:hover {
-  background-color: #f8f9fa;
+  background-color: var(--color-error-bg);
 }
 
 .app-header__error {
-  color: #dc3545;
-  background-color: rgba(220, 53, 69, 0.1);
-  border: 1px solid rgba(220, 53, 69, 0.3);
+  color: var(--color-error);
+  background-color: var(--color-error-bg);
+  border: 1px solid var(--color-error);
   border-radius: 6px;
   padding: 8px 12px;
   font-size: 12px;

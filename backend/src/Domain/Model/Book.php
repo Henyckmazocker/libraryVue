@@ -22,6 +22,11 @@ class Book
     private ?array $tags;
     private ?array $allowedTags;
     private ?array $genres; // Géneros del libro
+    private ?int $activeReadingSessionId;
+    private ?int $totalSessionsCompleted;
+    private ?int $currentSessionNumber;
+    private ?string $sessionStartedAt;
+    private ?string $lastSessionCompletedAt;
 
     public function __construct(
         string $isbn,
@@ -40,7 +45,12 @@ class Book
         ?int $currentPage = null,
         ?array $tags = null,
         ?array $allowedTags = null,
-        ?array $genres = null
+        ?array $genres = null,
+        ?int $activeReadingSessionId = null,
+        ?int $totalSessionsCompleted = null,
+        ?int $currentSessionNumber = null,
+        ?string $sessionStartedAt = null,
+        ?string $lastSessionCompletedAt = null
     ) {
         if (empty($isbn)) {
             throw new \InvalidArgumentException('ISBN cannot be empty.');
@@ -95,6 +105,11 @@ class Book
         $this->userStatuses = array_unique($userStatuses);
         $this->addedTimestamp = $addedTimestamp ?? time();
         $this->allowedTags = $allowedTags;
+        $this->activeReadingSessionId = $activeReadingSessionId;
+        $this->totalSessionsCompleted = $totalSessionsCompleted ?? 0;
+        $this->currentSessionNumber = $currentSessionNumber;
+        $this->sessionStartedAt = $sessionStartedAt;
+        $this->lastSessionCompletedAt = $lastSessionCompletedAt;
     }
 
     public function getAllowedTags(): ?array
@@ -274,6 +289,11 @@ class Book
             'tags' => $this->tags,
             'allowedTags' => $this->allowedTags,
             'genres' => $this->genres,
+            'active_reading_session_id' => $this->activeReadingSessionId,
+            'total_sessions_completed' => $this->totalSessionsCompleted,
+            'current_session_number' => $this->currentSessionNumber,
+            'session_started_at' => $this->sessionStartedAt,
+            'last_session_completed_at' => $this->lastSessionCompletedAt,
         ];
     }
 
@@ -318,7 +338,12 @@ class Book
             isset($data['currentPage']) ? (int)$data['currentPage'] : null,
             $data['tags'] ?? null,
             $data['allowedTags'] ?? null,
-            $data['genres'] ?? null
+            $data['genres'] ?? null,
+            isset($data['active_reading_session_id']) ? (int)$data['active_reading_session_id'] : null,
+            isset($data['total_sessions_completed']) ? (int)$data['total_sessions_completed'] : null,
+            isset($data['current_session_number']) ? (int)$data['current_session_number'] : null,
+            $data['session_started_at'] ?? null,
+            $data['last_session_completed_at'] ?? null
         );
     }
 }

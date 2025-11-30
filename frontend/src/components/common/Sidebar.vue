@@ -103,10 +103,10 @@ onMounted(async () => {
   left: 0;
   width: 280px;
   height: calc(100vh - 70px);
-  background: #1a1a1b;
-  border-right: 1px solid #343536;
-  transition: width 0.3s ease;
-  z-index: 200; /* Aumenté significativamente el z-index */
+  background: var(--color-background-soft);
+  border-right: 1px solid var(--color-border);
+  transition: width var(--transition-medium);
+  z-index: 200;
   overflow: hidden;
 }
 
@@ -115,22 +115,22 @@ onMounted(async () => {
 }
 
 .app-sidebar__toggle {
-  position: fixed; /* Cambié a fixed para que sea independiente del sidebar */
-  top: 85px; /* Debajo del header */
-  left: 265px; /* Posición fija desde la izquierda cuando sidebar está abierto */
+  position: fixed;
+  top: 85px;
+  left: 265px;
   width: 40px;
   height: 40px;
-  border: 1px solid #343536;
+  border: 1px solid var(--color-border);
   border-radius: 50%;
-  background: #1a1a1b;
-  color: #d7dadc;
+  background: var(--color-background-soft);
+  color: var(--color-text);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1500; /* Z-index muy alto */
-  transition: all 0.3s ease; /* Misma transición que el sidebar */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 1500;
+  transition: all var(--transition-medium);
+  box-shadow: var(--shadow-medium);
 }
 
 /* Posición del toggle cuando el sidebar está colapsado */
@@ -139,10 +139,10 @@ onMounted(async () => {
 }
 
 .app-sidebar__toggle:hover {
-  background: #272729;
-  color: #ffffff;
-  border-color: #0079d3; /* Añadí color de borde en hover */
-  box-shadow: 0 4px 12px rgba(0, 121, 211, 0.3); /* Sombra azul en hover */
+  background: var(--color-background-mute);
+  color: var(--color-text-light);
+  border-color: var(--color-primary-light);
+  box-shadow: var(--shadow-heavy);
 }
 
 .app-sidebar__content {
@@ -159,7 +159,7 @@ onMounted(async () => {
   justify-content: center;
   flex-direction: column;
   padding: 20px;
-  color: #818384;
+  color: var(--color-text-secondary);
   gap: 10px;
 }
 
@@ -172,7 +172,7 @@ onMounted(async () => {
 }
 
 .app-sidebar__section-title {
-  color: #818384;
+  color: var(--color-text-secondary);
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -195,9 +195,9 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   padding: 12px 20px;
-  color: #d7dadc;
+  color: var(--color-text);
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
   font-size: 14px;
   font-weight: 500;
   border-radius: 0;
@@ -205,13 +205,13 @@ onMounted(async () => {
 }
 
 .app-sidebar__link:hover:not(.app-sidebar__link--disabled) {
-  background: #272729;
-  color: #ffffff;
+  background: var(--color-background-mute);
+  color: var(--color-text-light);
 }
 
 .app-sidebar__link.router-link-active {
-  background: #0079d3;
-  color: #ffffff;
+  background: var(--color-primary);
+  color: var(--color-text-light);
 }
 
 .app-sidebar__link.router-link-active::before {
@@ -221,7 +221,7 @@ onMounted(async () => {
   top: 0;
   bottom: 0;
   width: 4px;
-  background: #ffffff;
+  background: var(--color-highlight);
 }
 
 .app-sidebar__link--disabled {
@@ -252,12 +252,12 @@ onMounted(async () => {
 }
 
 .app-sidebar__content::-webkit-scrollbar-thumb {
-  background: #343536;
+  background: var(--color-border);
   border-radius: 3px;
 }
 
 .app-sidebar__content::-webkit-scrollbar-thumb:hover {
-  background: #4a4a4b;
+  background: var(--color-border-hover);
 }
 
 /* Responsive */

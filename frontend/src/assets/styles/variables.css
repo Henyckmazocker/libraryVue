@@ -1,0 +1,135 @@
+/* Paleta de colores personalizada */
+:root {
+  /* Nueva paleta de colores por orden de importancia */
+  --color-primary: #1D4E4A;          /* Color principal - Verde oscuro profundo */
+  --color-secondary: #A3CBC1;        /* Color secundario - Verde agua suave */
+  --color-tertiary: #6F5D4F;         /* Color terciario - Marrón medio */
+  --color-accent: #E2CBBF;           /* Acento - Beige claro */
+  --color-highlight: #DCA1B0;        /* Resaltado - Rosa suave */
+  
+  /* Variaciones de los colores principales */
+  --color-primary-dark: #0f2a27;     /* Más oscuro que el principal */
+  --color-primary-hover: #2a5e5a;    /* Para estados hover del principal */
+  --color-primary-light: #3a6e6a;    /* Variación más clara del principal */
+  --color-secondary-light: #c4ddd8;  /* Variación más clara del secundario */
+  --color-secondary-dark: #7ab3a8;   /* Variación más oscura del secundario */
+  
+  /* Fondos basados en la nueva paleta */
+  --color-background: #1D4E4A;       /* Fondo principal - usa el color principal */
+  --color-background-soft: #2a5e5a;  /* Fondo suave - variación del principal */
+  --color-background-mute: #6F5D4F;  /* Fondo silenciado - terciario */
+  --color-background-card: #A3CBC1;  /* Fondo de tarjetas - color secundario */
+  --color-background-overlay: rgba(29, 78, 74, 0.9);
+  
+  /* Textos */
+  --color-text: #E2CBBF;             /* Texto principal - acento */
+  --color-text-dark: #6F5D4F;        /* Texto oscuro - terciario */
+  --color-text-light: #ffffff;       /* Texto claro */
+  --color-text-secondary: #A3CBC1;   /* Texto secundario - color secundario */
+  --color-text-muted: rgba(226, 203, 191, 0.7); /* Texto deshabilitado */
+  
+  /* Bordes */
+  --color-border: #6F5D4F;           /* Borde principal - terciario */
+  --color-border-light: #A3CBC1;     /* Borde claro - secundario */
+  --color-border-hover: #DCA1B0;     /* Borde en hover - highlight */
+  
+  /* Estados de componentes */
+  --color-success: #A3CBC1;          /* Éxito - usando secundario */
+  --color-warning: #DCA1B0;          /* Advertencia - usando highlight */
+  --color-error: #6F5D4F;            /* Error - usando terciario */
+  --color-info: #E2CBBF;             /* Información - usando acento */
+  
+  /* Estados de fondo para componentes */
+  --color-success-bg: rgba(163, 203, 193, 0.1);
+  --color-warning-bg: rgba(220, 161, 176, 0.1);
+  --color-error-bg: rgba(111, 93, 79, 0.1);
+  --color-info-bg: rgba(226, 203, 191, 0.1);
+  
+  /* Botones */
+  --btn-primary-bg: #1D4E4A;
+  --btn-primary-bg-hover: #0f2a27;
+  --btn-primary-text: #E2CBBF;
+  
+  --btn-secondary-bg: #6F5D4F;
+  --btn-secondary-bg-hover: #5a4d3f;
+  --btn-secondary-text: #E2CBBF;
+  
+  --btn-accent-bg: #DCA1B0;
+  --btn-accent-bg-hover: #c9889a;
+  --btn-accent-text: #1D4E4A;
+  
+  /* Sombras */
+  --shadow-light: 0 2px 4px rgba(29, 78, 74, 0.1);
+  --shadow-medium: 0 4px 8px rgba(29, 78, 74, 0.15);
+  --shadow-heavy: 0 8px 16px rgba(29, 78, 74, 0.2);
+  
+  /* Transiciones */
+  --transition-fast: 0.2s ease;
+  --transition-medium: 0.3s ease;
+  --transition-slow: 0.5s ease;
+}
+
+/* Tema oscuro alternativo (aplicado cuando .app-dark está presente) */
+.app-dark {
+  /* Colores principales ajustados para modo oscuro */
+  --color-primary: #2a5e5a;          /* Principal más claro para mejor contraste */
+  --color-secondary: #7ab3a8;        /* Secundario más vibrante */
+  --color-tertiary: #8a7a6d;         /* Terciario más claro */
+  --color-accent: #f5e8e0;           /* Acento más claro para lectura */
+  --color-highlight: #e8b3c1;        /* Highlight más brillante */
+  
+  /* Variaciones ajustadas */
+  --color-primary-dark: #1D4E4A;     /* El color principal original como oscuro */
+  --color-primary-hover: #3a6e6a;    /* Hover más claro */
+  --color-primary-light: #4a7e7a;    /* Variación clara */
+  --color-secondary-light: #a3cbc1;  /* Secundario original como claro */
+  --color-secondary-dark: #5a9e92;   /* Más oscuro para contraste */
+  
+  /* Fondos para modo oscuro */
+  --color-background: #0f1412;       /* Fondo muy oscuro con tono verdoso */
+  --color-background-soft: #1a2420;  /* Fondo suave oscuro */
+  --color-background-mute: #2a3530;  /* Fondo silenciado */
+  --color-background-card: #1D4E4A;  /* Tarjetas con el verde principal original */
+  --color-background-overlay: rgba(15, 20, 18, 0.95);
+  
+  /* Textos para modo oscuro */
+  --color-text: #f5e8e0;             /* Texto principal muy claro */
+  --color-text-dark: #a3cbc1;        /* Texto oscuro ahora es claro */
+  --color-text-light: #ffffff;       /* Blanco puro */
+  --color-text-secondary: #c4ddd8;   /* Secundario más brillante */
+  --color-text-muted: rgba(245, 232, 224, 0.6);
+  
+  /* Bordes para modo oscuro */
+  --color-border: #3a4a45;           /* Bordes sutiles */
+  --color-border-light: #5a6a65;     /* Bordes claros */
+  --color-border-hover: #e8b3c1;     /* Hover rosa brillante */
+  
+  /* Estados ajustados */
+  --color-success: #7ab3a8;
+  --color-warning: #e8b3c1;
+  --color-error: #d4a5a5;
+  --color-info: #c4ddd8;
+  
+  --color-success-bg: rgba(122, 179, 168, 0.15);
+  --color-warning-bg: rgba(232, 179, 193, 0.15);
+  --color-error-bg: rgba(212, 165, 165, 0.15);
+  --color-info-bg: rgba(196, 221, 216, 0.15);
+  
+  /* Botones modo oscuro */
+  --btn-primary-bg: #2a5e5a;
+  --btn-primary-bg-hover: #3a6e6a;
+  --btn-primary-text: #f5e8e0;
+  
+  --btn-secondary-bg: #7ab3a8;
+  --btn-secondary-bg-hover: #8ac3b8;
+  --btn-secondary-text: #0f1412;
+  
+  --btn-accent-bg: #e8b3c1;
+  --btn-accent-bg-hover: #d4a1b0;
+  --btn-accent-text: #1D4E4A;
+  
+  /* Sombras más sutiles para modo oscuro */
+  --shadow-light: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-medium: 0 4px 8px rgba(0, 0, 0, 0.4);
+  --shadow-heavy: 0 8px 16px rgba(0, 0, 0, 0.5);
+}

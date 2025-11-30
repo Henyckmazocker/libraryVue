@@ -15,6 +15,15 @@
         <slot></slot>
       </div>
     </main>
+    
+    <!-- Modal de confirmación global -->
+    <ConfirmationModal
+      :is-visible="modalState.isVisible"
+      :is-processing="modalState.isProcessing"
+      v-bind="modalState.config"
+      @confirm="handleConfirm"
+      @cancel="handleCancel"
+    />
   </div>
 </template>
 
@@ -28,9 +37,14 @@ export default {
 import { ref } from 'vue';
 import AppHeader from './Header.vue';
 import AppSidebar from './Sidebar.vue';
+import ConfirmationModal from './ConfirmationModal.vue';
+import { useConfirmationModal } from '@/composables/useConfirmationModal';
 
 // Estado del sidebar
 const sidebarCollapsed = ref(false);
+
+// Modal de confirmación
+const { modalState, handleConfirm, handleCancel } = useConfirmationModal();
 
 // Métodos
 const handleSidebarToggle = (collapsed) => {
@@ -46,8 +60,8 @@ const handleLogout = () => {
 <style scoped>
 .app-layout {
   min-height: 100vh;
-  background: #201f1f;
-  color: #d7dadc;
+  background: var(--color-background);
+  color: var(--color-text);
 }
 
 .app-layout__main {

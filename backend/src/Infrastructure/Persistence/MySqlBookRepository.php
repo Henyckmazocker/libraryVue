@@ -51,6 +51,13 @@ class MySqlBookRepository implements BookRepositoryInterface
         }
     }
 
+    private function logWarning(string $message, array $context = []): void
+    {
+        if ($this->logger) {
+            $this->logger->warning($message, ['context' => $context]);
+        }
+    }
+
     private function getStatusId(string $statusName): ?int
     {
         $stmt = $this->db->prepare("SELECT id FROM book_statuses WHERE name = :name");
@@ -59,6 +66,8 @@ class MySqlBookRepository implements BookRepositoryInterface
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return $result ? (int)$result['id'] : null;
     }
+
+
 
     private function fetchBookStatusNames(string $isbn): array
     {
@@ -280,14 +289,18 @@ class MySqlBookRepository implements BookRepositoryInterface
 
             $this->db->commit();
         } catch (PDOException $e) {
-            $this->db->rollBack();
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             $this->logError('DB Save Error', $e, [
                 'book_data' => $book->toArray(),
                 'operation' => 'save_book'
             ]);
             throw new RuntimeException("Could not save book and/or its book_statuses. DB Error: " . $e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
-            $this->db->rollBack();
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             $this->logError('Generic Error during save', $e, [
                 'book_data' => $book->toArray(),
                 'operation' => 'save_book'
@@ -315,11 +328,15 @@ class MySqlBookRepository implements BookRepositoryInterface
             return $deleted;
 
         } catch (PDOException $e) {
-            $this->db->rollBack();
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             error_log("DB Delete Error (MySqlBookRepository): " . $e->getMessage() . " ISBN: " . $isbn);
             throw new RuntimeException("Could not delete book. DB Error: " . $e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
-            $this->db->rollBack();
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             error_log("Generic Error during delete (MySqlBookRepository): " . $e->getMessage() . " ISBN: " . $isbn);
             throw new RuntimeException("An unexpected error occurred while deleting book: " . $e->getMessage(), 0, $e);
         }
@@ -355,16 +372,20 @@ class MySqlBookRepository implements BookRepositoryInterface
 
             // Add user-specific statuses if provided
             if (!empty($statuses)) {
-                $this->updateUserBookStatuses((int)$userId, $isbn, $statuses, false);
+                $this->updateUserBookStatuses((int)$userId, $isbn, $statuses);
             }
 
             $this->db->commit();
         } catch (PDOException $e) {
-            $this->db->rollBack();
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             error_log("DB Error adding book to user (MySqlBookRepository): " . $e->getMessage());
             throw new RuntimeException("Could not add book to user. DB Error: " . $e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
-            $this->db->rollBack();
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             error_log("Error adding book to user (MySqlBookRepository): " . $e->getMessage());
             throw new RuntimeException("An unexpected error occurred while adding book to user: " . $e->getMessage(), 0, $e);
         }
@@ -426,11 +447,15 @@ class MySqlBookRepository implements BookRepositoryInterface
             return $userBookDeleted;
 
         } catch (PDOException $e) {
-            $this->db->rollBack();
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             $this->logError('DB Error removing book from user', $e, ['userId' => $userId, 'isbn' => $isbn]);
             throw new RuntimeException("Could not remove book from user. DB Error: " . $e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
-            $this->db->rollBack();
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             $this->logError('Error removing book from user', $e, ['userId' => $userId, 'isbn' => $isbn]);
             throw new RuntimeException("An unexpected error occurred while removing book from user: " . $e->getMessage(), 0, $e);
         }
@@ -443,12 +468,21 @@ class MySqlBookRepository implements BookRepositoryInterface
             $userId = (int) $userId;
             
             $sql = "
-                SELECT b.*, ub.added_at as user_added_at, ub.personal_rating as user_rating, ub.current_page,
+                SELECT b.*, 
+                       ub.added_at as user_added_at, 
+                       ub.personal_rating as user_rating, 
+                       ub.current_page,
+                       ub.active_reading_session_id,
+                       ub.total_sessions_completed,
+                       ub.last_session_completed_at,
+                       rs.session_number as current_session_number,
+                       rs.started_at as session_started_at,
                        GROUP_CONCAT(bs.name SEPARATOR ', ') as user_statuses
                 FROM books b
                 INNER JOIN user_books ub ON b.isbn = ub.book_isbn
                 LEFT JOIN user_book_statuses ubs ON b.isbn = ubs.book_isbn AND ubs.user_id = ub.user_id
                 LEFT JOIN book_statuses bs ON ubs.status_id = bs.id
+                LEFT JOIN reading_sessions rs ON ub.active_reading_session_id = rs.id
                 WHERE ub.user_id = :userId
             ";
 
@@ -465,7 +499,7 @@ class MySqlBookRepository implements BookRepositoryInterface
                 $params[':title'] = '%' . $filters['title'] . '%';
             }
 
-            $sql .= " GROUP BY b.isbn, b.title, b.author, b.publisher, b.publication_date, b.pages, b.rating, b.coverUrl, b.description, b.addedTimestamp, ub.added_at, ub.personal_rating, ub.current_page ORDER BY ub.added_at DESC";
+            $sql .= " GROUP BY b.isbn, b.title, b.author, b.publisher, b.publication_date, b.pages, b.rating, b.coverUrl, b.description, b.addedTimestamp, ub.added_at, ub.personal_rating, ub.current_page, ub.active_reading_session_id, ub.total_sessions_completed, ub.last_session_completed_at, rs.session_number, rs.started_at ORDER BY ub.added_at DESC";
 
             $stmt = $this->db->prepare($sql);
             foreach ($params as $key => $value) {
@@ -482,6 +516,13 @@ class MySqlBookRepository implements BookRepositoryInterface
                 $data['addedTimestamp'] = isset($data['addedTimestamp']) ? (int)$data['addedTimestamp'] : null;
                 $data['currentPage'] = isset($data['current_page']) ? (int)$data['current_page'] : 0;
                 $data['genres'] = isset($data['genres']) ? json_decode($data['genres'], true) : null;
+                
+                // Session data
+                $data['active_reading_session_id'] = isset($data['active_reading_session_id']) ? (int)$data['active_reading_session_id'] : null;
+                $data['total_sessions_completed'] = isset($data['total_sessions_completed']) ? (int)$data['total_sessions_completed'] : 0;
+                $data['current_session_number'] = isset($data['current_session_number']) ? (int)$data['current_session_number'] : null;
+                $data['session_started_at'] = $data['session_started_at'] ?? null;
+                $data['last_session_completed_at'] = $data['last_session_completed_at'] ?? null;
                 
                 // Handle user statuses - convert comma-separated string to array
                 $userStatusesString = $data['user_statuses'] ?? '';
@@ -519,29 +560,112 @@ class MySqlBookRepository implements BookRepositoryInterface
         }
     }
 
-    public function updateUserBookStatuses(int $userId, string $isbn, array $statuses, bool $manageTransaction = true): void
+    public function updateUserBookStatuses(int|string $userId, string $isbn, array $statuses): void
     {
+        // Ensure userId is actually an integer (can come as string from session or PDO fetch)
+        $userId = (int) $userId;
+        
+        // Detectar si este método debe gestionar la transacción
+        $weStartedTransaction = false;
+        if (!$this->db->inTransaction()) {
+            $this->db->beginTransaction();
+            $weStartedTransaction = true;
+        }
+        
         try {
-            // Ensure userId is actually an integer
-            $userId = (int) $userId;
             
-            if ($manageTransaction) {
-                $this->db->beginTransaction();
+            // Obtener estados actuales antes de la modificación para detectar cambios
+            $currentStatuses = $this->getUserBookStatuses($userId, $isbn);
+            
+            // VALIDACIÓN Y LIMPIEZA: Si 'read' está en los nuevos estados
+            if (in_array('read', $statuses)) {
+                // Si 'read' es nuevo (no estaba antes), validar que current_page == total_pages
+                if (!in_array('read', $currentStatuses)) {
+                    $bookInfo = $this->findById($isbn);
+                    $currentPage = $this->getCurrentPage($userId, $isbn);
+                    
+                    if ($bookInfo && $bookInfo->getPages() && $currentPage < $bookInfo->getPages()) {
+                        // Verificar si hay transacción activa (independiente de quién la inició)
+                        if ($this->db->inTransaction()) {
+                            $this->db->rollBack();
+                        }
+                        throw new \InvalidArgumentException(
+                            "Debes marcar la última página ({$bookInfo->getPages()}) como leída antes de completar el libro. Página actual: {$currentPage}"
+                        );
+                    }
+                }
+                
+                // SIEMPRE eliminar estados incompatibles cuando 'read' está presente
+                $incompatibleStatuses = ['reading', 'to-read', 'paused', 're-reading'];
+                $statusesBeforeClean = $statuses;
+                $statuses = array_values(array_diff($statuses, $incompatibleStatuses));
+                if (!in_array('read', $statuses)) {
+                    $statuses[] = 'read';
+                }
+                
+                // Log solo si hubo limpieza
+                $removedFromNew = array_diff($statusesBeforeClean, $statuses);
+                if (!empty($removedFromNew)) {
+                    $this->logInfo("Limpiando estados incompatibles al tener 'read'", [
+                        'userId' => $userId,
+                        'isbn' => $isbn,
+                        'removedFromNewStatuses' => array_values($removedFromNew),
+                        'finalStatuses' => $statuses
+                    ]);
+                }
             }
+
+            // LIMPIEZA: Si 'paused' o 'abandoned' están presentes, eliminar 'reading'
+            if (in_array('paused', $statuses) || in_array('abandoned', $statuses)) {
+                if (in_array('reading', $statuses)) {
+                    $statusesBeforeClean = $statuses;
+                    $statuses = array_values(array_diff($statuses, ['reading']));
+                    
+                    $this->logInfo("Eliminando 'reading' al pausar o abandonar", [
+                        'userId' => $userId,
+                        'isbn' => $isbn,
+                        'statusesBefore' => $statusesBeforeClean,
+                        'statusesAfter' => $statuses
+                    ]);
+                }
+            }
+
+            // LOGGING DIAGNÓSTICO: Antes del DELETE
+            $this->logInfo("🔍 INICIO DELETE user_book_statuses", [
+                'userId' => $userId,
+                'isbn' => $isbn,
+                'currentStatuses' => $currentStatuses,
+                'newStatuses' => $statuses,
+                'inTransaction' => $this->db->inTransaction(),
+                'weStartedTransaction' => $weStartedTransaction
+            ]);
 
             // Remove existing statuses for this user-book combination
             $deleteStmt = $this->db->prepare("DELETE FROM user_book_statuses WHERE user_id = :userId AND book_isbn = :isbn");
             $deleteStmt->bindParam(':userId', $userId);
             $deleteStmt->bindParam(':isbn', $isbn);
             $deleteStmt->execute();
+            
+            // LOGGING DIAGNÓSTICO: Después del DELETE
+            $deletedRows = $deleteStmt->rowCount();
+            $this->logInfo("✅ RESULTADO DELETE", [
+                'rowsDeleted' => $deletedRows,
+                'expectedToDelete' => count($currentStatuses)
+            ]);
 
             // Add new statuses
             if (!empty($statuses)) {
+                $this->logInfo("🔍 INICIO INSERT user_book_statuses", [
+                    'statusesToInsert' => $statuses,
+                    'count' => count($statuses)
+                ]);
+                
                 $insertStmt = $this->db->prepare("
                     INSERT INTO user_book_statuses (user_id, book_isbn, status_id) 
                     VALUES (:userId, :isbn, :statusId)
                 ");
 
+                $insertedCount = 0;
                 foreach ($statuses as $statusName) {
                     $statusId = $this->getStatusId($statusName);
                     if ($statusId !== null) {
@@ -549,22 +673,196 @@ class MySqlBookRepository implements BookRepositoryInterface
                         $insertStmt->bindParam(':isbn', $isbn);
                         $insertStmt->bindParam(':statusId', $statusId);
                         $insertStmt->execute();
+                        $insertedCount++;
+                        
+                        $this->logDebug("  ➕ Insertado estado", [
+                            'statusName' => $statusName,
+                            'statusId' => $statusId
+                        ]);
+                    } else {
+                        $this->logWarning("  ⚠️ Status ID NULL para", [
+                            'statusName' => $statusName
+                        ]);
                     }
+                }
+                
+                $this->logInfo("✅ RESULTADO INSERT", [
+                    'statusesInserted' => $insertedCount,
+                    'statusNames' => $statuses
+                ]);
+            } else {
+                $this->logWarning("⚠️ SKIP INSERT - Array de estados vacío", []);
+            }
+            
+            // LÓGICA AUTOMÁTICA PRIORITARIA: Completar sesión si se agrega "read" (ANTES de actualizar estados)
+            // Esto debe ejecutarse PRIMERO para que la sesión se complete antes de limpiar el estado 'reading'
+            if (in_array('read', $statuses) && !in_array('read', $currentStatuses)) {
+                try {
+                    $activeSession = $this->getActiveReadingSession($userId, $isbn);
+                    
+                    $this->logInfo("Verificando sesión activa para completar al añadir 'read'", [
+                        'userId' => $userId, 
+                        'isbn' => $isbn,
+                        'activeSessionFound' => $activeSession !== null,
+                        'activeSessionData' => $activeSession
+                    ]);
+                    
+                    if ($activeSession !== null) {
+                        $currentPage = $this->getCurrentPage((int) $userId, $isbn);
+                        $this->logInfo("Completando sesión automáticamente ANTES de cambiar estado a 'read'", [
+                            'userId' => $userId, 
+                            'isbn' => $isbn,
+                            'sessionId' => $activeSession['id'],
+                            'finalPage' => $currentPage
+                        ]);
+                        // Esto limpiará active_reading_session_id y incrementará total_sessions_completed
+                        $this->updateSessionStatus($activeSession['id'], 'completed', $currentPage);
+                        
+                        $this->logInfo("Sesión completada - verificando resultado", [
+                            'sessionId' => $activeSession['id']
+                        ]);
+                    } else {
+                        $this->logWarning("No hay sesión activa para completar al añadir 'read'", [
+                            'userId' => $userId, 
+                            'isbn' => $isbn
+                        ]);
+                    }
+                } catch (\Exception $sessionError) {
+                    $this->logError('Error completando sesión automática para estado "read"', $sessionError, [
+                        'userId' => $userId, 
+                        'isbn' => $isbn
+                    ]);
+                }
+            }
+            
+            // LÓGICA AUTOMÁTICA: Crear sesión de lectura si se agrega el estado "reading"
+            if (in_array('reading', $statuses) && !in_array('reading', $currentStatuses)) {
+                try {
+                    // Verificar que no hay sesión activa
+                    $activeSession = $this->getActiveReadingSession($userId, $isbn);
+                    if ($activeSession === null) {
+                        $this->logInfo("Creando sesión automáticamente al cambiar estado a 'reading'", [
+                            'userId' => $userId, 
+                            'isbn' => $isbn,
+                            'previousStatuses' => $currentStatuses,
+                            'newStatuses' => $statuses
+                        ]);
+                        $this->createReadingSession($userId, $isbn, null);
+                    }
+                } catch (\Exception $sessionError) {
+                    // Log el error pero no abortar la transacción principal
+                    $this->logError('Error creando sesión automática para estado "reading"', $sessionError, [
+                        'userId' => $userId, 
+                        'isbn' => $isbn
+                    ]);
                 }
             }
 
-            if ($manageTransaction) {
-                $this->db->commit();
+            // LÓGICA AUTOMÁTICA: Pausar sesión si se cambia a "paused"
+            if (in_array('paused', $statuses) && !in_array('paused', $currentStatuses)) {
+                try {
+                    $activeSession = $this->getActiveReadingSession($userId, $isbn);
+                    if ($activeSession !== null) {
+                        $this->logInfo("Pausando sesión automáticamente al cambiar estado a 'paused'", [
+                            'userId' => $userId, 
+                            'isbn' => $isbn,
+                            'sessionId' => $activeSession['id']
+                        ]);
+                        $this->updateSessionStatus($activeSession['id'], 'paused');
+                    }
+                } catch (\Exception $sessionError) {
+                    $this->logError('Error pausando sesión automática', $sessionError, [
+                        'userId' => $userId, 
+                        'isbn' => $isbn
+                    ]);
+                }
             }
 
+            // LÓGICA AUTOMÁTICA: Reactivar sesión si se quita "paused" y se mantiene "reading"
+            if (!in_array('paused', $statuses) && in_array('paused', $currentStatuses) && in_array('reading', $statuses)) {
+                try {
+                    // Buscar sesión pausada para este libro
+                    $pausedSessionSql = "SELECT * FROM reading_sessions 
+                                        WHERE user_id = :user_id AND book_isbn = :isbn AND status = 'paused'
+                                        ORDER BY started_at DESC LIMIT 1";
+                    $pausedSessionStmt = $this->db->prepare($pausedSessionSql);
+                    $pausedSessionStmt->execute(['user_id' => $userId, 'isbn' => $isbn]);
+                    $pausedSession = $pausedSessionStmt->fetch(\PDO::FETCH_ASSOC);
+                    
+                    if ($pausedSession !== null) {
+                        $this->logInfo("Reactivando sesión pausada al quitar estado 'paused'", [
+                            'userId' => $userId, 
+                            'isbn' => $isbn,
+                            'sessionId' => $pausedSession['id']
+                        ]);
+                        $this->updateSessionStatus($pausedSession['id'], 'active');
+                    } else {
+                        $this->logWarning("No se encontró sesión pausada para reactivar", [
+                            'userId' => $userId, 
+                            'isbn' => $isbn
+                        ]);
+                    }
+                } catch (\Exception $sessionError) {
+                    $this->logError('Error reactivando sesión pausada', $sessionError, [
+                        'userId' => $userId, 
+                        'isbn' => $isbn
+                    ]);
+                }
+            }
+
+            // LÓGICA AUTOMÁTICA: Abandonar sesión si se cambia a "abandoned"
+            if (in_array('abandoned', $statuses) && !in_array('abandoned', $currentStatuses)) {
+                try {
+                    $activeSession = $this->getActiveReadingSession($userId, $isbn);
+                    if ($activeSession !== null) {
+                        $currentPage = $this->getCurrentPage((int) $userId, $isbn);
+                        $this->logInfo("Abandonando sesión automáticamente al cambiar estado a 'abandoned'", [
+                            'userId' => $userId, 
+                            'isbn' => $isbn,
+                            'sessionId' => $activeSession['id'],
+                            'finalPage' => $currentPage
+                        ]);
+                        $this->updateSessionStatus($activeSession['id'], 'abandoned', $currentPage);
+                    }
+                } catch (\Exception $sessionError) {
+                    $this->logError('Error abandonando sesión automática', $sessionError, [
+                        'userId' => $userId, 
+                        'isbn' => $isbn
+                    ]);
+                }
+            }
+
+            // LOGGING DIAGNÓSTICO: Antes del commit
+            $this->logInfo("🔍 PRE-COMMIT estado", [
+                'weStartedTransaction' => $weStartedTransaction,
+                'inTransaction' => $this->db->inTransaction(),
+                'finalStatuses' => $this->getUserBookStatuses($userId, $isbn)
+            ]);
+            
+            if ($weStartedTransaction) {
+                $this->db->commit();
+                $this->logInfo("✅ COMMIT EXITOSO", []);
+            } else {
+                $this->logInfo("ℹ️ NO COMMIT (transacción externa)", []);
+            }
+            
+            // LOGGING DIAGNÓSTICO: Verificación POST-COMMIT
+            $statusesAfterCommit = $this->getUserBookStatuses($userId, $isbn);
+            $this->logInfo("🔍 POST-OPERACIÓN estados en DB", [
+                'statusesBeforeOperation' => $currentStatuses,
+                'statusesRequestedToSet' => $statuses,
+                'statusesActuallyInDB' => $statusesAfterCommit,
+                'updateSuccessful' => ($statusesAfterCommit === $statuses || sort($statusesAfterCommit) === sort($statuses))
+            ]);
+
         } catch (PDOException $e) {
-            if ($manageTransaction) {
+            if ($weStartedTransaction && $this->db->inTransaction()) {
                 $this->db->rollBack();
             }
             error_log("DB Error updating user book statuses (MySqlBookRepository): " . $e->getMessage());
             throw new RuntimeException("Could not update user book statuses. DB Error: " . $e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
-            if ($manageTransaction) {
+            if ($weStartedTransaction && $this->db->inTransaction()) {
                 $this->db->rollBack();
             }
             error_log("Error updating user book statuses (MySqlBookRepository): " . $e->getMessage());
@@ -596,8 +894,9 @@ class MySqlBookRepository implements BookRepositoryInterface
         }
     }
 
-    public function getUserBookStatuses(int $userId, string $isbn): array
+    public function getUserBookStatuses(int|string $userId, string $isbn): array
     {
+        $userId = (int) $userId;
         try {
             $sql = "
                 SELECT bs.name 
@@ -627,14 +926,14 @@ class MySqlBookRepository implements BookRepositoryInterface
         $fields = [];
         $params = [':userId' => $userId, ':isbn' => $isbn];
         
-        // Verificar si ya hay una transacción activa
-        $wasInTransaction = $this->db->inTransaction();
+        // Detectar si este método debe gestionar la transacción
+        $weStartedTransaction = false;
+        if (!$this->db->inTransaction()) {
+            $this->db->beginTransaction();
+            $weStartedTransaction = true;
+        }
         
         try {
-            // Solo iniciar transacción si no hay una activa
-            if (!$wasInTransaction) {
-                $this->db->beginTransaction();
-            }
             
             // Si se está actualizando la página actual, manejar historial y consistencia
             if ($currentPage !== null) {
@@ -644,15 +943,104 @@ class MySqlBookRepository implements BookRepositoryInterface
                 // Obtener la última página de progreso real (del historial), no la actual de user_books
                 $previousPage = $this->getLastProgressPage($userId, $isbn);
                 
+                // Obtener estados actuales para detectar transiciones
+                $currentStatuses = $this->getUserBookStatuses($userId, $isbn);
+                
+                // LÓGICA AUTOMÁTICA: Detectar transiciones de progreso especiales
+                $wasCompleted = ($previousPage >= $totalPages && $totalPages > 0); // Venía del 100%
+                $wasAtStart = ($previousPage <= 0); // Venía del 0%
+                $isStartingReading = ($currentPage > 0 && $wasAtStart); // 0% → X%
+                $isReReading = ($currentPage > 0 && $wasCompleted); // 100% → X%
+                
+                // Si viene del 0% y empieza a leer, cambiar a "reading" y crear sesión
+                if ($isStartingReading) {
+                    try {
+                        if (!in_array('reading', $currentStatuses)) {
+                            $this->logInfo('Transición 0% → X% detectada - agregando estado "reading" automáticamente', [
+                                'userId' => $userId, 
+                                'isbn' => $isbn,
+                                'previousPage' => $previousPage,
+                                'currentPage' => $currentPage
+                            ]);
+                            
+                            $newStatuses = array_unique(array_merge($currentStatuses, ['reading']));
+                            $this->updateUserBookStatuses($userId, $isbn, $newStatuses);
+                        }
+                        
+                        // Crear sesión de lectura si no hay una activa
+                        $activeSession = $this->getActiveReadingSession($userId, $isbn);
+                        if ($activeSession === null) {
+                            $this->logInfo('Creando sesión automáticamente para transición 0% → X%', [
+                                'userId' => $userId, 
+                                'isbn' => $isbn,
+                                'previousPage' => $previousPage,
+                                'currentPage' => $currentPage
+                            ]);
+                            $this->createReadingSession($userId, $isbn, null);
+                        }
+                    } catch (\Exception $statusError) {
+                        $this->logError('Error agregando estado "reading" en transición 0% → X%', $statusError, [
+                            'userId' => $userId, 
+                            'isbn' => $isbn
+                        ]);
+                    }
+                }
+                
+                // NOTA: La lógica de re-reading ahora se maneja a través del sistema de sesiones
+                // No agregamos automáticamente estados "re-reading" aquí
+                /*
+                if ($isReReading) {
+                    try {
+                        $statusesToAdd = [];
+                        if (!in_array('re-reading', $currentStatuses)) {
+                            $statusesToAdd[] = 're-reading';
+                        }
+                        if (!in_array('reading', $currentStatuses)) {
+                            $statusesToAdd[] = 'reading';
+                        }
+                        
+                        if (!empty($statusesToAdd)) {
+                            $this->logInfo('Transición 100% → X% detectada - agregando estados para re-lectura', [
+                                'userId' => $userId, 
+                                'isbn' => $isbn,
+                                'previousPage' => $previousPage,
+                                'currentPage' => $currentPage,
+                                'statusesToAdd' => $statusesToAdd
+                            ]);
+                            
+                            $newStatuses = array_unique(array_merge($currentStatuses, $statusesToAdd));
+                            $this->updateUserBookStatuses($userId, $isbn, $newStatuses);
+                        }
+                        
+                        // Crear nueva sesión para re-lectura
+                        $activeSession = $this->getActiveReadingSession($userId, $isbn);
+                        if ($activeSession === null) {
+                            $this->logInfo('Creando nueva sesión para re-lectura', [
+                                'userId' => $userId, 
+                                'isbn' => $isbn
+                            ]);
+                            $this->createReadingSession($userId, $isbn, null);
+                        }
+                    } catch (\Exception $statusError) {
+                        $this->logError('Error manejando re-lectura en transición 100% → X%', $statusError, [
+                            'userId' => $userId, 
+                            'isbn' => $isbn
+                        ]);
+                    }
+                }
+                */
+                
                 // Solo registrar en el historial si hay un avance real
                 if ($currentPage > $previousPage) {
                     try {
-                        $this->addReadingProgressHistory($userId, $isbn, $currentPage, $previousPage);
+                        // Obtener sesión activa para vincular el progreso
+                        $activeSession = $this->getActiveReadingSession($userId, $isbn);
+                        $sessionId = $activeSession ? $activeSession['id'] : null;
+                        
+                        $this->addReadingProgressHistory($userId, $isbn, $currentPage, $previousPage, $sessionId);
                     } catch (\Exception $historyError) {
-                        // Si falla el registro del historial, abortar toda la operación
-                        if (!$wasInTransaction) {
-                            $this->db->rollBack();
-                        }
+                        // Si falla el registro del historial, NO hacer rollback aquí
+                        // Dejar que la excepción se propague y el catch externo maneje el rollback
                         $this->logError('Error registrando historial - no se actualizará currentPage', $historyError, [
                             'userId' => $userId, 
                             'isbn' => $isbn, 
@@ -666,26 +1054,40 @@ class MySqlBookRepository implements BookRepositoryInterface
                 $fields[] = 'current_page = :currentPage';
                 $params[':currentPage'] = $currentPage;
                 
-                // Si el progreso llega al 100% (currentPage >= totalPages), automáticamente marcar como "read"
+                // Si el progreso llega al 100% (currentPage >= totalPages), completar sesión y marcar como "read"
                 if ($totalPages > 0 && $currentPage >= $totalPages) {
                     try {
-                        // Verificar si el usuario ya tiene el estado "read"
-                        $currentStatuses = $this->getUserBookStatuses($userId, $isbn);
-                        if (!in_array('read', $currentStatuses)) {
-                            // Agregar estado "read" automáticamente
-                            $this->logDebug('Progreso completado al 100% - agregando estado "read" automáticamente', [
+                        // PASO 1: Completar sesión activa si existe (ANTES de cambiar estados)
+                        $activeSession = $this->getActiveReadingSession($userId, $isbn);
+                        if ($activeSession !== null) {
+                            $this->logInfo('Completando sesión automáticamente al alcanzar 100% de progreso', [
+                                'userId' => $userId, 
+                                'isbn' => $isbn,
+                                'sessionId' => $activeSession['id'],
+                                'currentPage' => $currentPage,
+                                'totalPages' => $totalPages
+                            ]);
+                            $this->updateSessionStatus($activeSession['id'], 'completed', $currentPage);
+                        }
+                        
+                        // PASO 2: Verificar si el usuario ya tiene el estado "read"
+                        $updatedStatuses = $this->getUserBookStatuses($userId, $isbn);
+                        if (!in_array('read', $updatedStatuses)) {
+                            // Agregar estado "read" automáticamente (esto limpiará 'reading' internamente)
+                            $this->logInfo('Progreso completado al 100% - agregando estado "read" automáticamente', [
                                 'userId' => $userId, 
                                 'isbn' => $isbn, 
                                 'currentPage' => $currentPage, 
                                 'totalPages' => $totalPages
                             ]);
                             
-                            $newStatuses = array_unique(array_merge($currentStatuses, ['read']));
-                            $this->updateUserBookStatuses($userId, $isbn, $newStatuses, false);
+                            $newStatuses = array_unique(array_merge($updatedStatuses, ['read']));
+                            // updateUserBookStatuses limpiará 'reading' y otros incompatibles automáticamente
+                            $this->updateUserBookStatuses($userId, $isbn, $newStatuses);
                         }
                     } catch (\Exception $statusError) {
                         // Log el error pero no abortar la transacción principal
-                        $this->logError('Error actualizando estado a "read" automáticamente', $statusError, [
+                        $this->logError('Error actualizando sesión/estado al completar libro', $statusError, [
                             'userId' => $userId, 
                             'isbn' => $isbn, 
                             'currentPage' => $currentPage, 
@@ -708,7 +1110,7 @@ class MySqlBookRepository implements BookRepositoryInterface
                 $params[':consumedAt'] = $consumedAt;
             }
             if (empty($fields)) {
-                if (!$wasInTransaction) {
+                if ($this->db->inTransaction()) {
                     $this->db->rollBack();
                 }
                 throw new \InvalidArgumentException('No hay campos para actualizar');
@@ -723,19 +1125,19 @@ class MySqlBookRepository implements BookRepositoryInterface
             
             $stmt->execute();
             
-            // Solo confirmar transacción si la iniciamos nosotros
-            if (!$wasInTransaction) {
+            // Confirmar transacción
+            if ($weStartedTransaction) {
                 $this->db->commit();
             }
             
         } catch (\PDOException $e) {
-            if (!$wasInTransaction) {
+            if ($weStartedTransaction && $this->db->inTransaction()) {
                 $this->db->rollBack();
             }
             $this->logError('DB Error editando user_books', $e, ['userId' => $userId, 'isbn' => $isbn]);
             throw new \RuntimeException('No se pudo editar user_books. DB Error: ' . $e->getMessage(), 0, $e);
         } catch (\Exception $e) {
-            if (!$wasInTransaction) {
+            if ($weStartedTransaction && $this->db->inTransaction()) {
                 $this->db->rollBack();
             }
             throw $e; // Re-lanzar otras excepciones
@@ -978,29 +1380,52 @@ class MySqlBookRepository implements BookRepositoryInterface
      * Registra un nuevo progreso de lectura en el historial.
      * Solo registra si currentPage > previousPage.
      */
-    public function addReadingProgressHistory(int $userId, string $isbn, int $currentPage, int $previousPage): void
+    public function addReadingProgressHistory(int $userId, string $isbn, int $currentPage, int $previousPage, ?int $sessionId = null): void
     {
         // Solo registrar si hay un avance real
         if ($currentPage <= $previousPage) {
             return;
         }
 
-        $sql = 'INSERT INTO reading_progress_history (user_id, book_isbn, current_page, previous_page) 
-                VALUES (:userId, :isbn, :currentPage, :previousPage)';
+        // Si no se proporciona sessionId, intentar obtener la sesión activa
+        if ($sessionId === null) {
+            $activeSession = $this->getActiveReadingSession($userId, $isbn);
+            $sessionId = $activeSession ? $activeSession['id'] : null;
+        }
+
+        $sql = 'INSERT INTO reading_progress_history (user_id, book_isbn, current_page, previous_page, reading_session_id) 
+                VALUES (:userId, :isbn, :currentPage, :previousPage, :sessionId)';
+        
+        // Detectar si este método debe gestionar la transacción
+        $weStartedTransaction = false;
+        if (!$this->db->inTransaction()) {
+            $this->db->beginTransaction();
+            $weStartedTransaction = true;
+        }
         
         try {
+            
             $stmt = $this->db->prepare($sql);
             $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
             $stmt->bindValue(':isbn', $isbn);
             $stmt->bindValue(':currentPage', $currentPage, PDO::PARAM_INT);
             $stmt->bindValue(':previousPage', $previousPage, PDO::PARAM_INT);
+            $stmt->bindValue(':sessionId', $sessionId, PDO::PARAM_INT);
             $stmt->execute();
+            
+            if ($weStartedTransaction) {
+                $this->db->commit();
+            }
         } catch (\PDOException $e) {
+            if ($weStartedTransaction && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             $this->logError('DB Error registrando historial de progreso', $e, [
                 'userId' => $userId, 
                 'isbn' => $isbn, 
                 'currentPage' => $currentPage, 
-                'previousPage' => $previousPage
+                'previousPage' => $previousPage,
+                'sessionId' => $sessionId
             ]);
             throw new \RuntimeException('No se pudo registrar el historial de progreso. DB Error: ' . $e->getMessage(), 0, $e);
         }
@@ -1069,4 +1494,941 @@ class MySqlBookRepository implements BookRepositoryInterface
             throw new \RuntimeException('No se pudieron obtener las estadísticas mensuales de páginas. DB Error: ' . $e->getMessage(), 0, $e);
         }
     }
+
+    // ===================================
+    // MÉTODOS DE SESIONES DE LECTURA
+    // ===================================
+
+    public function createReadingSession(int|string $userId, string $isbn, ?int $sessionNumber = null, ?int $startPage = null): int
+    {
+        $userId = (int) $userId;
+        
+        // Detectar si este método debe gestionar la transacción
+        $weStartedTransaction = false;
+        if (!$this->db->inTransaction()) {
+            $this->db->beginTransaction();
+            $weStartedTransaction = true;
+        }
+        
+        try {
+            
+            // Verificar que el libro existe
+            if (!$this->findById($isbn)) {
+                throw new \RuntimeException("Libro no encontrado con ISBN: $isbn");
+            }
+            
+            $this->logInfo("Creando nueva sesión de lectura", ['userId' => $userId, 'isbn' => $isbn, 'sessionNumber' => $sessionNumber, 'startPage' => $startPage]);
+
+            // Verificar que no hay una sesión activa para este libro y usuario
+            $activeSession = $this->getActiveReadingSession($userId, $isbn);
+            if ($activeSession !== null) {
+                throw new \RuntimeException("Ya existe una sesión activa para este libro");
+            }
+
+            // Determinar página de inicio
+            $initialPage = $startPage;
+            if ($initialPage === null) {
+                // Si no se especifica, usar página actual del usuario
+                $initialPage = $this->getCurrentPage($userId, $isbn);
+                if ($initialPage === 0) {
+                    $initialPage = 1; // Empezar desde página 1 si no hay progreso
+                }
+            }
+            
+            // Determinar el número de sesión
+            $actualSessionNumber = $sessionNumber;
+            if ($actualSessionNumber === null) {
+                // Obtener el próximo número de sesión
+                $lastSessionSql = "SELECT COALESCE(MAX(session_number), 0) FROM reading_sessions WHERE user_id = :user_id AND book_isbn = :isbn";
+                $lastSessionStmt = $this->db->prepare($lastSessionSql);
+                $lastSessionStmt->execute(['user_id' => $userId, 'isbn' => $isbn]);
+                $actualSessionNumber = $lastSessionStmt->fetchColumn() + 1;
+            }
+
+            $sql = "INSERT INTO reading_sessions (user_id, book_isbn, session_number, started_at, status) 
+                    VALUES (:user_id, :isbn, :session_number, NOW(), 'active')";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                'user_id' => $userId,
+                'isbn' => $isbn,
+                'session_number' => $actualSessionNumber
+            ]);
+
+            $sessionId = (int) $this->db->lastInsertId();
+            
+            // Actualizar user_books con el ID de la sesión activa
+            $updateUserBookSql = "UPDATE user_books 
+                                 SET active_reading_session_id = :session_id 
+                                 WHERE user_id = :user_id AND book_isbn = :isbn";
+            $updateUserBookStmt = $this->db->prepare($updateUserBookSql);
+            $updateUserBookStmt->execute([
+                'session_id' => $sessionId,
+                'user_id' => $userId,
+                'isbn' => $isbn
+            ]);
+            
+            // Actualizar estado del libro a 'reading' si no lo tiene
+            $this->updateUserBookStatuses($userId, $isbn, ['reading']);
+            
+            if ($weStartedTransaction) {
+                $this->db->commit();
+            }
+            
+            $this->logInfo("Sesión de lectura creada exitosamente", ['sessionId' => $sessionId]);
+            return $sessionId;
+
+        } catch (\PDOException $e) {
+            if ($weStartedTransaction && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            $this->logError('DB Error creando sesión de lectura', $e, ['userId' => $userId, 'isbn' => $isbn]);
+            throw new \RuntimeException('No se pudo crear la sesión de lectura. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    public function getActiveReadingSession(int|string $userId, string $isbn): ?array
+    {
+        $userId = (int) $userId;
+        try {
+            $sql = "SELECT * FROM reading_sessions 
+                    WHERE user_id = :user_id AND book_isbn = :isbn AND status = 'active'
+                    ORDER BY started_at DESC LIMIT 1";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute(['user_id' => $userId, 'isbn' => $isbn]);
+            
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+            return $result ?: null;
+
+        } catch (\PDOException $e) {
+            $this->logError('DB Error obteniendo sesión activa', $e, ['userId' => $userId, 'isbn' => $isbn]);
+            throw new \RuntimeException('No se pudo obtener la sesión activa. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    public function completeReadingSession(int $sessionId, ?int $finalPage = null): void
+    {
+        try {
+            $this->logInfo("Completando sesión de lectura", ['sessionId' => $sessionId, 'finalPage' => $finalPage]);
+
+            // Obtener info de la sesión antes de actualizarla
+            $sessionSql = "SELECT user_id, book_isbn FROM reading_sessions WHERE id = :session_id";
+            $sessionStmt = $this->db->prepare($sessionSql);
+            $sessionStmt->execute(['session_id' => $sessionId]);
+            $sessionInfo = $sessionStmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if (!$sessionInfo) {
+                throw new \RuntimeException("Sesión no encontrada");
+            }
+
+            $sql = "UPDATE reading_sessions 
+                    SET completed_at = NOW(), final_page = :final_page, status = 'completed' 
+                    WHERE id = :session_id AND status = 'active'";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                'session_id' => $sessionId,
+                'final_page' => $finalPage
+            ]);
+
+            if ($stmt->rowCount() === 0) {
+                $this->logWarning("No se encontró sesión activa para completar", ['sessionId' => $sessionId]);
+                throw new \RuntimeException("No se encontró sesión activa para completar");
+            }
+
+            // Actualizar user_books: limpiar active_reading_session_id
+            $updateUserBookSql = "UPDATE user_books SET active_reading_session_id = NULL WHERE user_id = :user_id AND book_isbn = :isbn";
+            $updateUserBookStmt = $this->db->prepare($updateUserBookSql);
+            $updateUserBookStmt->execute([
+                'user_id' => $sessionInfo['user_id'],
+                'isbn' => $sessionInfo['book_isbn']
+            ]);
+
+            $this->logInfo("Sesión de lectura completada exitosamente", ['sessionId' => $sessionId]);
+
+        } catch (\PDOException $e) {
+            $this->logError('DB Error completando sesión de lectura', $e, ['sessionId' => $sessionId]);
+            throw new \RuntimeException('No se pudo completar la sesión de lectura. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    /**
+     * Actualiza el estado de una sesión de lectura
+     * @param int $sessionId ID de la sesión
+     * @param string $status Nuevo estado ('active', 'completed', 'paused', 'abandoned')
+     * @param int|null $finalPage Página final (opcional, para estados completed/abandoned)
+     */
+    public function updateSessionStatus(int $sessionId, string $status, ?int $finalPage = null): void
+    {
+        try {
+            if (!$this->db) {
+                $this->initializeDatabase();
+            }
+
+            $allowedStatuses = ['active', 'completed', 'paused', 'abandoned'];
+            if (!in_array($status, $allowedStatuses)) {
+                throw new \InvalidArgumentException("Estado de sesión inválido: $status");
+            }
+
+            // Obtener info de la sesión
+            $sessionInfoSql = "SELECT user_id, book_isbn, status as current_status FROM reading_sessions WHERE id = :session_id";
+            $sessionInfoStmt = $this->db->prepare($sessionInfoSql);
+            $sessionInfoStmt->execute(['session_id' => $sessionId]);
+            $sessionInfo = $sessionInfoStmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$sessionInfo) {
+                $this->logWarning("Sesión no encontrada para actualizar", ['sessionId' => $sessionId]);
+                throw new \RuntimeException("Sesión no encontrada");
+            }
+
+            // Construir el SQL dinámicamente según el estado
+            if (in_array($status, ['completed', 'abandoned'])) {
+                $sql = "UPDATE reading_sessions 
+                        SET status = :status,
+                            completed_at = NOW(),
+                            final_page = :final_page
+                        WHERE id = :session_id";
+            } else {
+                $sql = "UPDATE reading_sessions 
+                        SET status = :status,
+                            completed_at = NULL,
+                            final_page = :final_page
+                        WHERE id = :session_id";
+            }
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':session_id', $sessionId, \PDO::PARAM_INT);
+            $stmt->bindValue(':status', $status, \PDO::PARAM_STR);
+            $stmt->bindValue(':final_page', $finalPage, \PDO::PARAM_INT);
+            $stmt->execute();
+
+            $rowsAffected = $stmt->rowCount();
+            
+            $this->logInfo("Actualización de reading_sessions ejecutada", [
+                'sessionId' => $sessionId,
+                'oldStatus' => $sessionInfo['current_status'],
+                'newStatus' => $status,
+                'finalPage' => $finalPage,
+                'rowsAffected' => $rowsAffected
+            ]);
+
+            if ($rowsAffected === 0) {
+                $this->logWarning("No se actualizó ninguna sesión - posible problema", [
+                    'sessionId' => $sessionId, 
+                    'status' => $status,
+                    'sessionInfo' => $sessionInfo
+                ]);
+            }
+
+            // Si se completa o abandona, limpiar active_reading_session_id en user_books
+            if ($sessionInfo && in_array($status, ['completed', 'abandoned'])) {
+                // Si se completa, incrementar contador de sesiones completadas
+                if ($status === 'completed') {
+                    $updateUserBookSql = "UPDATE user_books 
+                                         SET active_reading_session_id = NULL,
+                                             total_sessions_completed = total_sessions_completed + 1,
+                                             last_session_completed_at = NOW()
+                                         WHERE user_id = :user_id AND book_isbn = :isbn AND active_reading_session_id = :session_id";
+                } else {
+                    // Para 'abandoned'
+                    $updateUserBookSql = "UPDATE user_books 
+                                         SET active_reading_session_id = NULL 
+                                         WHERE user_id = :user_id AND book_isbn = :isbn AND active_reading_session_id = :session_id";
+                }
+                
+                $updateUserBookStmt = $this->db->prepare($updateUserBookSql);
+                $updateUserBookStmt->execute([
+                    'user_id' => $sessionInfo['user_id'],
+                    'isbn' => $sessionInfo['book_isbn'],
+                    'session_id' => $sessionId
+                ]);
+                
+                $userBookRowsAffected = $updateUserBookStmt->rowCount();
+                
+                $this->logInfo("Actualización de user_books ejecutada", [
+                    'userId' => $sessionInfo['user_id'],
+                    'isbn' => $sessionInfo['book_isbn'],
+                    'sessionId' => $sessionId,
+                    'newStatus' => $status,
+                    'rowsAffected' => $userBookRowsAffected
+                ]);
+                
+                if ($userBookRowsAffected === 0) {
+                    $this->logWarning("user_books no se actualizó - verificar active_reading_session_id", [
+                        'userId' => $sessionInfo['user_id'],
+                        'isbn' => $sessionInfo['book_isbn'],
+                        'sessionId' => $sessionId
+                    ]);
+                }
+            }
+            
+            // Si se reactiva (paused -> active), asegurar que active_reading_session_id esté establecido
+            if ($status === 'active' && $sessionInfo['current_status'] === 'paused') {
+                $updateUserBookSql = "UPDATE user_books 
+                                     SET active_reading_session_id = :session_id
+                                     WHERE user_id = :user_id AND book_isbn = :isbn";
+                
+                $updateUserBookStmt = $this->db->prepare($updateUserBookSql);
+                $updateUserBookStmt->execute([
+                    'user_id' => $sessionInfo['user_id'],
+                    'isbn' => $sessionInfo['book_isbn'],
+                    'session_id' => $sessionId
+                ]);
+                
+                $this->logInfo("Sesión reactivada - active_reading_session_id restaurado", [
+                    'userId' => $sessionInfo['user_id'],
+                    'isbn' => $sessionInfo['book_isbn'],
+                    'sessionId' => $sessionId,
+                    'rowsAffected' => $updateUserBookStmt->rowCount()
+                ]);
+            }
+
+            $this->logInfo("Session status updated", [
+                'sessionId' => $sessionId,
+                'newStatus' => $status,
+                'finalPage' => $finalPage
+            ]);
+        } catch (\PDOException $e) {
+            $this->logError('DB Error updating session status', $e, [
+                'sessionId' => $sessionId,
+                'status' => $status
+            ]);
+            throw new \RuntimeException("Could not update session status: " . $e->getMessage(), 0, $e);
+        }
+    }
+
+    public function updateReadingProgressWithSession(int $userId, string $isbn, int $currentPage, string $progressType = 'advance', ?string $notes = null): void
+    {
+        try {
+            // Verificar que el libro existe
+            if (!$this->findById($isbn)) {
+                throw new \RuntimeException("Libro no encontrado con ISBN: $isbn");
+            }
+            
+            $this->db->beginTransaction();
+
+            // Obtener progreso anterior para detectar transiciones
+            $previousPage = $this->getCurrentPage($userId, $isbn);
+            $totalPages = $this->getTotalPages($isbn);
+            
+            // Detectar transiciones especiales
+            $wasCompleted = ($previousPage >= $totalPages && $totalPages > 0);
+            $wasAtStart = ($previousPage <= 0);
+            $isStartingReading = ($currentPage > 0 && $wasAtStart);
+            $isReReading = ($currentPage > 0 && $wasCompleted);
+            
+            // Obtener la sesión activa
+            $activeSession = $this->getActiveReadingSession($userId, $isbn);
+            $sessionId = $activeSession ? $activeSession['id'] : null;
+            
+            // LÓGICA AUTOMÁTICA: Crear sesión si no hay una activa y se está progresando
+            if ($sessionId === null && $currentPage > 0) {
+                try {
+                    // Determinar qué estados agregar
+                    $currentStatuses = $this->getUserBookStatuses($userId, $isbn);
+                    $statusesToAdd = [];
+                    
+                    // NOTA: La lógica de re-reading se maneja mediante cambios de estado explícitos
+                    // Solo agregamos "reading" si es necesario
+                    if (!in_array('reading', $currentStatuses)) {
+                        $statusesToAdd[] = 'reading';
+                        
+                        if ($isStartingReading) {
+                            $this->logInfo('Creando sesión automáticamente - transición 0% → X%', [
+                                'userId' => $userId, 
+                                'isbn' => $isbn,
+                                'previousPage' => $previousPage,
+                                'currentPage' => $currentPage
+                            ]);
+                        } else {
+                            $this->logInfo('Creando sesión automáticamente - progreso sin estado "reading"', [
+                                'userId' => $userId, 
+                                'isbn' => $isbn,
+                                'currentPage' => $currentPage
+                            ]);
+                        }
+                    }
+                    
+                    /*
+                    // COMENTADO: Esta lógica causaba estados duplicados
+                    if ($isStartingReading && !in_array('reading', $currentStatuses)) {
+                        $statusesToAdd[] = 'reading';
+                        $this->logInfo('Creando sesión automáticamente - transición 0% → X%', [
+                            'userId' => $userId, 
+                            'isbn' => $isbn,
+                            'previousPage' => $previousPage,
+                            'currentPage' => $currentPage
+                        ]);
+                    } elseif ($isReReading) {
+                        if (!in_array('re-reading', $currentStatuses)) {
+                            $statusesToAdd[] = 're-reading';
+                        }
+                        if (!in_array('reading', $currentStatuses)) {
+                            $statusesToAdd[] = 'reading';
+                        }
+                        $this->logInfo('Creando sesión automáticamente - transición 100% → X% (re-lectura)', [
+                            'userId' => $userId, 
+                            'isbn' => $isbn,
+                            'previousPage' => $previousPage,
+                            'currentPage' => $currentPage
+                        ]);
+                    } elseif (!in_array('reading', $currentStatuses)) {
+                        $statusesToAdd[] = 'reading';
+                        $this->logInfo('Creando sesión automáticamente - progreso sin estado "reading"', [
+                            'userId' => $userId, 
+                            'isbn' => $isbn,
+                            'currentPage' => $currentPage
+                        ]);
+                    }
+                    */
+                    
+                    // Actualizar estados si es necesario
+                    if (!empty($statusesToAdd)) {
+                        $newStatuses = array_unique(array_merge($currentStatuses, $statusesToAdd));
+                        $this->updateUserBookStatuses($userId, $isbn, $newStatuses);
+                    }
+                    
+                    // Crear nueva sesión (no manejar transacción porque ya estamos en una)
+                    $sessionId = $this->createReadingSession($userId, $isbn, null);
+                    $this->logInfo('Sesión creada automáticamente', [
+                        'userId' => $userId, 
+                        'isbn' => $isbn,
+                        'sessionId' => $sessionId,
+                        'reason' => $isStartingReading ? 'start_reading' : ($isReReading ? 're_reading' : 'progress_update')
+                    ]);
+                    
+                } catch (\Exception $sessionError) {
+                    $this->logError('Error creando sesión automática en updateReadingProgressWithSession', $sessionError, [
+                        'userId' => $userId, 
+                        'isbn' => $isbn,
+                        'currentPage' => $currentPage
+                    ]);
+                    // Continuar sin sesión en caso de error
+                }
+            }
+
+            // Actualizar user_books (no manejar transacción porque ya estamos en una)
+            $this->editUserBook($userId, $isbn, $currentPage, null, null, null);
+
+            // Registrar en historial con sesión (puede ser null si no se pudo crear)
+            $sql = "INSERT INTO reading_progress_history (user_id, book_isbn, session_id, page_number, recorded_at) 
+                    VALUES (:user_id, :isbn, :session_id, :page_number, NOW())";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                'user_id' => $userId,
+                'isbn' => $isbn,
+                'session_id' => $sessionId,
+                'page_number' => $currentPage
+            ]);
+
+            $this->db->commit();
+            
+            $this->logInfo("Progreso actualizado con sesión", [
+                'userId' => $userId, 
+                'isbn' => $isbn,
+                'currentPage' => $currentPage,
+                'sessionId' => $sessionId,
+                'progressType' => $progressType,
+                'notes' => $notes,
+                'wasAutoSessionCreated' => ($activeSession === null && $sessionId !== null)
+            ]);
+
+        } catch (\PDOException $e) {
+            $this->db->rollBack();
+            $this->logError('DB Error actualizando progreso con sesión', $e, [
+                'userId' => $userId, 
+                'isbn' => $isbn, 
+                'currentPage' => $currentPage
+            ]);
+            throw new \RuntimeException('No se pudo actualizar el progreso con sesión. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    public function getReadingSessionHistory(int $userId, string $isbn): array
+    {
+        try {
+            $sql = "SELECT rs.*, 
+                           TIMESTAMPDIFF(MINUTE, rs.started_at, rs.completed_at) as reading_minutes
+                    FROM reading_sessions rs
+                    WHERE rs.user_id = :user_id AND rs.book_isbn = :isbn
+                    ORDER BY rs.started_at DESC";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute(['user_id' => $userId, 'isbn' => $isbn]);
+            
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        } catch (\PDOException $e) {
+            $this->logError('DB Error obteniendo historial de sesiones', $e, ['userId' => $userId, 'isbn' => $isbn]);
+            throw new \RuntimeException('No se pudo obtener el historial de sesiones. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    public function getSessionProgress(int $sessionId): array
+    {
+        try {
+            $sql = "SELECT rph.*, rs.start_page, rs.end_page as session_end_page
+                    FROM reading_progress_history rph
+                    JOIN reading_sessions rs ON rph.session_id = rs.id
+                    WHERE rph.session_id = :session_id
+                    ORDER BY rph.recorded_at ASC";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute(['session_id' => $sessionId]);
+            
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        } catch (\PDOException $e) {
+            $this->logError('DB Error obteniendo progreso de sesión', $e, ['sessionId' => $sessionId]);
+            throw new \RuntimeException('No se pudo obtener el progreso de la sesión. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    public function getUserActiveReadingSessions(int $userId): array
+    {
+        try {
+            $sql = "SELECT rs.*, b.title, b.author, b.pages as total_pages
+                    FROM reading_sessions rs
+                    JOIN books b ON rs.book_isbn = b.isbn
+                    WHERE rs.user_id = :user_id AND rs.status = 'active'
+                    ORDER BY rs.started_at DESC";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute(['user_id' => $userId]);
+            
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        } catch (\PDOException $e) {
+            $this->logError('DB Error obteniendo sesiones activas del usuario', $e, ['userId' => $userId]);
+            throw new \RuntimeException('No se pudieron obtener las sesiones activas. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    public function pauseReadingSession(int $sessionId, ?string $reason = null): void
+    {
+        try {
+            // Obtener info de la sesión antes de actualizarla
+            $sessionSql = "SELECT user_id, book_isbn FROM reading_sessions WHERE id = :session_id";
+            $sessionStmt = $this->db->prepare($sessionSql);
+            $sessionStmt->execute(['session_id' => $sessionId]);
+            $sessionInfo = $sessionStmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if (!$sessionInfo) {
+                throw new \RuntimeException("Sesión no encontrada");
+            }
+
+            $sql = "UPDATE reading_sessions 
+                    SET status = 'paused', 
+                        session_notes = CONCAT(COALESCE(session_notes, ''), '\nPausado: ', COALESCE(:reason, ''))
+                    WHERE id = :session_id AND status = 'active'";
+            
+            $stmt = $this->db->prepare($sql);
+            $result = $stmt->execute([
+                'session_id' => $sessionId,
+                'reason' => $reason
+            ]);
+
+            $success = $stmt->rowCount() > 0;
+            
+            if ($success) {
+                // Actualizar estado del libro a 'paused' (cast explícito de user_id de PDO)
+                $userId = (int)$sessionInfo['user_id'];
+                $this->updateUserBookStatuses($userId, $sessionInfo['book_isbn'], ['paused']);
+                
+                $this->logInfo("Sesión pausada exitosamente", [
+                    'sessionId' => $sessionId,
+                    'reason' => $reason
+                ]);
+            } else {
+                $this->logWarning("No se pudo pausar la sesión - posiblemente no estaba activa", [
+                    'sessionId' => $sessionId
+                ]);
+                throw new \RuntimeException('No se pudo pausar la sesión de lectura. La sesión puede no existir o no estar activa.');
+            }
+
+        } catch (\PDOException $e) {
+            $this->logError('DB Error pausando sesión', $e, [
+                'sessionId' => $sessionId,
+                'reason' => $reason
+            ]);
+            throw new \RuntimeException('No se pudo pausar la sesión. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    public function resumeReadingSession(int $sessionId): void
+    {
+        try {
+            // Obtener información de la sesión antes de actualizarla
+            $sessionSql = "SELECT user_id, book_isbn FROM reading_sessions WHERE id = :session_id";
+            $sessionStmt = $this->db->prepare($sessionSql);
+            $sessionStmt->execute(['session_id' => $sessionId]);
+            $sessionInfo = $sessionStmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if (!$sessionInfo) {
+                throw new \RuntimeException('Sesión no encontrada');
+            }
+            
+            $sql = "UPDATE reading_sessions 
+                    SET status = 'active' 
+                    WHERE id = :session_id AND status = 'paused'";
+            
+            $stmt = $this->db->prepare($sql);
+            $result = $stmt->execute(['session_id' => $sessionId]);
+
+            $success = $stmt->rowCount() > 0;
+            
+            if ($success) {
+                // Actualizar estado del libro a 'reading' cuando se reanuda (cast explícito de user_id de PDO)
+                $userId = (int)$sessionInfo['user_id'];
+                $this->updateUserBookStatuses($userId, $sessionInfo['book_isbn'], ['reading']);
+                
+                $this->logInfo("Sesión reanudada exitosamente", ['sessionId' => $sessionId]);
+            } else {
+                $this->logWarning("No se pudo reanudar la sesión - posiblemente no estaba pausada", [
+                    'sessionId' => $sessionId
+                ]);
+                throw new \RuntimeException('No se pudo reanudar la sesión de lectura. La sesión puede no existir o no estar pausada.');
+            }
+
+        } catch (\PDOException $e) {
+            $this->logError('DB Error reanudando sesión', $e, ['sessionId' => $sessionId]);
+            throw new \RuntimeException('No se pudo reanudar la sesión. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    public function abandonReadingSession(int $sessionId, ?string $reason = null): void
+    {
+        try {
+            // Obtener información de la sesión antes de actualizarla
+            $sessionSql = "SELECT user_id, book_isbn FROM reading_sessions WHERE id = :session_id";
+            $sessionStmt = $this->db->prepare($sessionSql);
+            $sessionStmt->execute(['session_id' => $sessionId]);
+            $sessionInfo = $sessionStmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if (!$sessionInfo) {
+                throw new \RuntimeException('Sesión no encontrada');
+            }
+            
+            $sql = "UPDATE reading_sessions 
+                    SET status = 'abandoned', 
+                        session_notes = CONCAT(COALESCE(session_notes, ''), :reason),
+                        completed_at = NOW()
+                    WHERE id = :session_id AND status IN ('active', 'paused')";
+            
+            $stmt = $this->db->prepare($sql);
+            $reasonText = $reason ? "\n[ABANDONADO: $reason]" : "\n[ABANDONADO]";
+            $result = $stmt->execute([
+                'session_id' => $sessionId,
+                'reason' => $reasonText
+            ]);
+
+            $success = $stmt->rowCount() > 0;
+            
+            if ($success) {
+                // Actualizar estado del libro a 'abandoned' (cast explícito de user_id de PDO)
+                $userId = (int)$sessionInfo['user_id'];
+                $this->updateUserBookStatuses($userId, $sessionInfo['book_isbn'], ['abandoned']);
+                
+                $this->logInfo("Sesión abandonada exitosamente", [
+                    'sessionId' => $sessionId,
+                    'reason' => $reason
+                ]);
+            } else {
+                $this->logWarning("No se pudo abandonar la sesión - posiblemente no estaba activa o pausada", [
+                    'sessionId' => $sessionId
+                ]);
+                throw new \RuntimeException('No se pudo abandonar la sesión de lectura. La sesión puede no existir o no estar en estado activo/pausado.');
+            }
+
+        } catch (\PDOException $e) {
+            $this->logError('DB Error abandonando sesión', $e, [
+                'sessionId' => $sessionId,
+                'reason' => $reason
+            ]);
+            throw new \RuntimeException('No se pudo abandonar la sesión. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    public function deleteReadingSession(int $sessionId, bool $keepHistory = true): void
+    {
+        try {
+            $this->db->beginTransaction();
+            
+            // Verificar que la sesión existe y no está activa
+            $sessionSql = "SELECT status FROM reading_sessions WHERE id = :session_id";
+            $sessionStmt = $this->db->prepare($sessionSql);
+            $sessionStmt->execute(['session_id' => $sessionId]);
+            $session = $sessionStmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if (!$session) {
+                throw new \RuntimeException("Sesión no encontrada");
+            }
+            
+            if ($session['status'] === 'active') {
+                throw new \RuntimeException("No se puede eliminar una sesión activa");
+            }
+
+            // Manejar historial de progreso según keepHistory
+            if (!$keepHistory) {
+                $sql1 = "DELETE FROM reading_progress_history WHERE session_id = :session_id";
+                $stmt1 = $this->db->prepare($sql1);
+                $stmt1->execute(['session_id' => $sessionId]);
+            } else {
+                // Desvincular pero mantener el historial
+                $sql1 = "UPDATE reading_progress_history SET session_id = NULL WHERE session_id = :session_id";
+                $stmt1 = $this->db->prepare($sql1);
+                $stmt1->execute(['session_id' => $sessionId]);
+            }
+
+            // Eliminar la sesión
+            $sql2 = "DELETE FROM reading_sessions WHERE id = :session_id";
+            $stmt2 = $this->db->prepare($sql2);
+            $stmt2->execute(['session_id' => $sessionId]);
+
+            $this->db->commit();
+            $this->logInfo("Sesión eliminada exitosamente", ['sessionId' => $sessionId, 'keepHistory' => $keepHistory]);
+
+        } catch (\PDOException $e) {
+            $this->db->rollBack();
+            $this->logError('DB Error eliminando sesión', $e, ['sessionId' => $sessionId]);
+            throw new \RuntimeException('No se pudo eliminar la sesión. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    public function getUserReadingSessions(int $userId, ?string $status = null): array
+    {
+        try {
+            $sql = "SELECT rs.*, 
+                           b.title, b.author, b.isbn,
+                           ub.current_page,
+                           b.pages as total_pages
+                    FROM reading_sessions rs
+                    INNER JOIN user_books ub ON rs.user_id = ub.user_id AND rs.book_isbn = ub.book_isbn
+                    INNER JOIN books b ON rs.book_isbn = b.isbn
+                    WHERE rs.user_id = :user_id";
+            
+            $params = ['user_id' => $userId];
+            
+            if ($status !== null) {
+                $sql .= " AND rs.status = :status";
+                $params['status'] = $status;
+            }
+            
+            $sql .= " ORDER BY rs.created_at DESC";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            
+            $sessions = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            
+            $this->logInfo("Sesiones de usuario obtenidas exitosamente", [
+                'userId' => $userId,
+                'status' => $status,
+                'count' => count($sessions)
+            ]);
+            
+            return $sessions;
+
+        } catch (\PDOException $e) {
+            $this->logError('DB Error obteniendo sesiones del usuario', $e, [
+                'userId' => $userId,
+                'status' => $status
+            ]);
+            throw new \RuntimeException('No se pudieron obtener las sesiones del usuario. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    public function getBookReadingSummary(int $userId, int $bookId): array
+    {
+        try {
+            $sql = "SELECT * FROM v_book_reading_summary 
+                    WHERE user_id = :user_id AND book_id = :book_id";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute(['user_id' => $userId, 'book_id' => $bookId]);
+            
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+            return $result ?: [];
+
+        } catch (\PDOException $e) {
+            $this->logError('DB Error obteniendo resumen de lectura del libro', $e, ['userId' => $userId, 'bookId' => $bookId]);
+            throw new \RuntimeException('No se pudo obtener el resumen de lectura. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    public function getDetailedProgressHistory(int $userId, int $bookId): array
+    {
+        try {
+            $sql = "SELECT * FROM v_detailed_progress_history 
+                    WHERE user_id = :user_id AND book_id = :book_id
+                    ORDER BY recorded_at ASC";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute(['user_id' => $userId, 'book_id' => $bookId]);
+            
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        } catch (\PDOException $e) {
+            $this->logError('DB Error obteniendo historial detallado', $e, ['userId' => $userId, 'bookId' => $bookId]);
+            throw new \RuntimeException('No se pudo obtener el historial detallado. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    public function getUserReadingStats(int $userId): array
+    {
+        try {
+            $sql = "SELECT * FROM v_user_reading_stats WHERE user_id = :user_id";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute(['user_id' => $userId]);
+            
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+            return $result ?: [];
+
+        } catch (\PDOException $e) {
+            $this->logError('DB Error obteniendo estadísticas de usuario', $e, ['userId' => $userId]);
+            throw new \RuntimeException('No se pudieron obtener las estadísticas del usuario. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    public function getCurrentReadingSessions(int $userId): array
+    {
+        try {
+            $sql = "SELECT * FROM v_current_reading_sessions WHERE user_id = :user_id";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute(['user_id' => $userId]);
+            
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        } catch (\PDOException $e) {
+            $this->logError('DB Error obteniendo sesiones actuales', $e, ['userId' => $userId]);
+            throw new \RuntimeException('No se pudieron obtener las sesiones actuales. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    public function getNextSessionNumber(int $userId, string $isbn): int
+    {
+        try {
+            $sql = "SELECT COALESCE(MAX(session_number), 0) + 1 FROM reading_sessions WHERE user_id = :user_id AND book_isbn = :isbn";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute(['user_id' => $userId, 'isbn' => $isbn]);
+            
+            return (int) $stmt->fetchColumn();
+            
+        } catch (\PDOException $e) {
+            $this->logError('DB Error obteniendo próximo número de sesión', $e, ['userId' => $userId, 'isbn' => $isbn]);
+            return 1;
+        }
+    }
+
+    public function getReadingSessionStats(int $userId): array
+    {
+        try {
+            $sql = "SELECT 
+                        COUNT(*) as total_sessions,
+                        COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_sessions,
+                        COUNT(CASE WHEN status = 'active' THEN 1 END) as active_sessions,
+                        COUNT(CASE WHEN status = 'abandoned' THEN 1 END) as abandoned_sessions,
+                        COUNT(CASE WHEN status = 'paused' THEN 1 END) as paused_sessions,
+                        COUNT(DISTINCT book_id) as books_with_sessions,
+                        AVG(CASE WHEN status = 'completed' AND end_page IS NOT NULL AND start_page IS NOT NULL 
+                            THEN (end_page - start_page) END) as avg_pages_per_session,
+                        AVG(CASE WHEN status = 'completed' AND completed_at IS NOT NULL AND started_at IS NOT NULL 
+                            THEN TIMESTAMPDIFF(MINUTE, started_at, completed_at) END) as avg_minutes_per_session
+                    FROM reading_sessions 
+                    WHERE user_id = :user_id";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute(['user_id' => $userId]);
+            
+            return $stmt->fetch(\PDO::FETCH_ASSOC) ?: [];
+            
+        } catch (\PDOException $e) {
+            $this->logError('DB Error obteniendo estadísticas de sesiones', $e, ['userId' => $userId]);
+            throw new \RuntimeException('No se pudieron obtener las estadísticas de sesiones. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    public function hasCompletedBook(int $userId, string $isbn): bool
+    {
+        try {
+            $sql = "SELECT COUNT(*) FROM reading_sessions WHERE user_id = :user_id AND book_isbn = :isbn AND status = 'completed'";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute(['user_id' => $userId, 'isbn' => $isbn]);
+            
+            return $stmt->fetchColumn() > 0;
+            
+        } catch (\PDOException $e) {
+            $this->logError('DB Error verificando libro completado', $e, ['userId' => $userId, 'isbn' => $isbn]);
+            return false;
+        }
+    }
+
+    public function getBookCompletionCount(int $userId, string $isbn): int
+    {
+        try {
+            $sql = "SELECT COUNT(*) FROM reading_sessions WHERE user_id = :user_id AND book_isbn = :isbn AND status = 'completed'";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute(['user_id' => $userId, 'isbn' => $isbn]);
+            
+            return (int) $stmt->fetchColumn();
+            
+        } catch (\PDOException $e) {
+            $this->logError('DB Error obteniendo contador de completado', $e, ['userId' => $userId, 'isbn' => $isbn]);
+            return 0;
+        }
+    }
+
+    public function updateBookStatusesBasedOnSessions(int $userId, string $isbn): void
+    {
+        try {
+            $this->db->beginTransaction();
+            
+            // Obtener información de sesiones
+            $activeCount = $this->db->prepare("SELECT COUNT(*) FROM reading_sessions WHERE user_id = :user_id AND book_isbn = :isbn AND status = 'active'");
+            $activeCount->execute(['user_id' => $userId, 'isbn' => $isbn]);
+            $hasActiveSessions = $activeCount->fetchColumn() > 0;
+            
+            $completedCount = $this->db->prepare("SELECT COUNT(*) FROM reading_sessions WHERE user_id = :user_id AND book_isbn = :isbn AND status = 'completed'");
+            $completedCount->execute(['user_id' => $userId, 'isbn' => $isbn]);
+            $completionCount = $completedCount->fetchColumn();
+            
+            // Actualizar estados basados en sesiones
+            $newStatus = 'to-read';
+            if ($hasActiveSessions) {
+                $newStatus = $completionCount > 0 ? 're-reading' : 'reading';
+            } elseif ($completionCount > 0) {
+                $newStatus = 'completed';
+            }
+            
+            // Actualizar el estado del libro
+            $updateSql = "UPDATE user_books SET status = :status, total_sessions_completed = :total_sessions WHERE user_id = :user_id AND book_id = :book_id";
+            $updateStmt = $this->db->prepare($updateSql);
+            $updateStmt->execute([
+                'status' => $newStatus,
+                'total_sessions' => $completionCount,
+                'user_id' => $userId,
+                'book_id' => $bookId
+            ]);
+            
+            $this->db->commit();
+            
+            $this->logInfo("Estados del libro actualizados basados en sesiones", [
+                'userId' => $userId,
+                'isbn' => $isbn,
+                'newStatus' => $newStatus,
+                'completionCount' => $completionCount
+            ]);
+            
+        } catch (\PDOException $e) {
+            $this->db->rollBack();
+            $this->logError('DB Error actualizando estados basados en sesiones', $e, ['userId' => $userId, 'isbn' => $isbn]);
+            throw new \RuntimeException('No se pudieron actualizar los estados del libro. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+
 }

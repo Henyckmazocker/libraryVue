@@ -470,7 +470,7 @@ class MySqlMovieRepository implements MovieRepositoryInterface
 
             // Add user-specific statuses if provided
             if (!empty($statuses)) {
-                $this->updateUserMovieStatuses((int)$userId, $movieId, $statuses, false);
+                $this->updateUserMovieStatuses((int)$userId, $movieId, $statuses);
             }
 
             $this->db->commit();
@@ -596,15 +596,18 @@ class MySqlMovieRepository implements MovieRepositoryInterface
         }
     }
 
-    public function updateUserMovieStatuses(int $userId, string $movieId, array $statuses, bool $manageTransaction = true): void
+    public function updateUserMovieStatuses(int $userId, string $movieId, array $statuses): void
     {
+        // Detectar si este método debe gestionar la transacción
+        $weStartedTransaction = false;
+        if (!$this->db->inTransaction()) {
+            $this->db->beginTransaction();
+            $weStartedTransaction = true;
+        }
+        
         try {
             // Ensure userId is actually an integer
             $userId = (int) $userId;
-            
-            if ($manageTransaction) {
-                $this->db->beginTransaction();
-            }
 
             // Remove existing statuses for this user-movie combination
             $deleteStmt = $this->db->prepare("DELETE FROM user_movie_statuses WHERE user_id = :userId AND movie_isbn = :movieId");
@@ -630,18 +633,18 @@ class MySqlMovieRepository implements MovieRepositoryInterface
                 }
             }
 
-            if ($manageTransaction) {
+            if ($weStartedTransaction) {
                 $this->db->commit();
             }
 
         } catch (PDOException $e) {
-            if ($manageTransaction) {
+            if ($weStartedTransaction && $this->db->inTransaction()) {
                 $this->db->rollBack();
             }
             $this->logError('DB Error updating user movie statuses', $e, ['movie_id' => $movieId, 'statuses' => $statuses, 'user_id' => $userId]);
             throw new RuntimeException("Could not update user movie statuses. DB Error: " . $e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
-            if ($manageTransaction) {
+            if ($weStartedTransaction && $this->db->inTransaction()) {
                 $this->db->rollBack();
             }
             $this->logError('Error updating user movie statuses', $e, ['movie_id' => $movieId, 'statuses' => $statuses, 'user_id' => $userId]);

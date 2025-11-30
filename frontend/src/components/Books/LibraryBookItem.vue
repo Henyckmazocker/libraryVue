@@ -42,8 +42,15 @@
           @status-changed="onStatusesChange"
         />
         
+        <!-- Reading Status Widget -->
+        <ReadingStatusWidget
+          v-if="!isNewBook"
+          :book="book"
+        />
+
         <!-- Book Actions Component -->
         <div class="book-actions">
+
           <!-- Save button for new books -->
           <button 
             v-if="isNewBook"
@@ -88,6 +95,7 @@ import { defineProps, defineEmits, ref, computed, watch } from 'vue';
 import ReadingProgressBar from '@/components/common/ReadingProgressBar.vue';
 import RatingComponent from '@/components/common/RatingComponent.vue';
 import StatusSelector from '@/components/common/StatusSelector.vue';
+import ReadingStatusWidget from '@/components/Books/ReadingStatusWidget.vue';
 import { useBooks } from '@/composables/useBooks';
 import Logger from '@/utils/logger';
 
@@ -114,7 +122,9 @@ const props = defineProps({
 const emit = defineEmits(['delete-book', 'update-progress', 'edit-item', 'update-rating', 'update-statuses', 'save-book']);
 
 // Composables
-const { updateReadingProgress } = useBooks();
+const { 
+  updateReadingProgress
+} = useBooks();
 
 // Estados seleccionados (locales para display)
 const selectedUserStatuses = ref(props.book.userStatuses || []);
@@ -161,20 +171,29 @@ const onDeleteBook = () => {
   emit('delete-book', { isbn: props.book.isbn, itemType: 'book' });
 };
 
+// ===================================
+// HANDLERS DE EVENTOS DEL WIDGET DE SESIONES
+// ===================================
+
+
+
 // Maneja la actualización del progreso de lectura
 const onUpdateProgress = async (currentPageValue) => {
   try {
     Logger.debug('Updating reading progress:', { isbn: props.book.isbn, currentPage: currentPageValue });
+    
+    // Usar el método tradicional de actualización de progreso
     const result = await updateReadingProgress(props.book.isbn, currentPageValue);
-    currentPage.value = currentPageValue; // Actualiza el valor local
     
-    // Emite evento para que el componente padre actualice el libro
-    emit('update-progress', { 
-      isbn: props.book.isbn, 
-      updates: { currentPage: currentPageValue } 
-    });
-    
-    if (!result.success) {
+    if (result.success) {
+      currentPage.value = currentPageValue; // Actualiza el valor local
+      
+      // Emite evento para que el componente padre actualice el libro
+      emit('update-progress', { 
+        isbn: props.book.isbn, 
+        updates: { currentPage: currentPageValue } 
+      });
+    } else {
       Logger.error('Error updating reading progress:', result.message);
     }
   } catch (error) {
@@ -354,10 +373,121 @@ watch(() => props.book.currentPage, (newPage) => {
   background: linear-gradient(135deg, #c82333, #bd2130);
 }
 
+/* Estilos para sesiones de lectura */
+.session-info {
+  margin: 12px 0;
+  padding: 10px;
+  background-color: #1a472a;
+  border-radius: 8px;
+  border-left: 4px solid #28a745;
+}
+
+.session-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #d4edda;
+}
+
+.session-badge i {
+  color: #28a745;
+}
+
+.session-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.session-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-sm {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.btn-success {
+  background-color: #28a745;
+  color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+  background-color: #1e7e34;
+}
+
+.btn-warning {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.btn-warning:hover:not(:disabled) {
+  background-color: #e0a800;
+}
+
+.btn-info {
+  background-color: #17a2b8;
+  color: white;
+}
+
+.btn-info:hover:not(:disabled) {
+  background-color: #138496;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #5a6268;
+}
+
 @media (max-width: 768px) {
   .book-actions {
     flex-direction: column;
     gap: 8px;
+  }
+  
+  .session-buttons {
+    justify-content: center;
+  }
+  
+  .session-actions {
+    justify-content: center;
   }
   
   .action-button {

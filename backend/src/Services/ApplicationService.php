@@ -180,7 +180,15 @@ class ApplicationService
                     str_starts_with($action, 'update_book') || str_starts_with($action, 'get_book') ||
                     str_starts_with($action, 'edit_user_book') ||
                     str_starts_with($action, 'get_user_book_tags') || str_starts_with($action, 'create_user_book_tag') ||
-                    str_starts_with($action, 'get_library') && $action === 'get_library') {
+                    str_starts_with($action, 'get_library') && $action === 'get_library' ||
+                    // Reading sessions actions
+                    str_starts_with($action, 'create_reading_session') || str_starts_with($action, 'get_active_reading') ||
+                    str_starts_with($action, 'complete_reading_session') || str_starts_with($action, 'update_reading_progress') ||
+                    str_starts_with($action, 'get_reading_session') || str_starts_with($action, 'get_session') ||
+                    str_starts_with($action, 'get_user_active_reading') || str_starts_with($action, 'pause_reading') ||
+                    str_starts_with($action, 'resume_reading') || str_starts_with($action, 'delete_reading') ||
+                    str_starts_with($action, 'get_book_reading') || str_starts_with($action, 'get_detailed_progress') ||
+                    str_starts_with($action, 'get_user_reading') || str_starts_with($action, 'get_current_reading')) {
                 $controller = $this->getBookController();
                 $controller->handleRequest($requestMethod, $requestUri);
             } 

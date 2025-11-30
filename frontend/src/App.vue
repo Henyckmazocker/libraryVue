@@ -16,12 +16,14 @@ export default {
 </script>
 
 <style>
+@import '@/assets/styles/variables.css';
+
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: #d7dadc;
-  background: #030303;
+  color: var(--color-text);
+  background: var(--color-background);
   min-height: 100vh;
 }
 
@@ -33,19 +35,20 @@ export default {
 body {
   margin: 0;
   padding: 0;
-  background: #030303;
-  color: #d7dadc;
+  background: var(--color-background);
+  color: var(--color-text);
   font-family: Avenir, Helvetica, Arial, sans-serif;
 }
 
 /* Estilos globales para enlaces */
 a {
-  color: #0079d3;
+  color: var(--color-primary-light);
   text-decoration: none;
 }
 
 a:hover {
   text-decoration: underline;
+  color: var(--color-highlight);
 }
 
 /* Estilos para botones */
@@ -59,28 +62,28 @@ a:hover {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
   text-decoration: none;
   gap: 8px;
 }
 
 .btn--primary {
-  background: #0079d3;
-  color: white;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
 }
 
 .btn--primary:hover {
-  background: #0060a8;
+  background: var(--btn-primary-bg-hover);
 }
 
 .btn--secondary {
-  background: #272729;
-  color: #d7dadc;
-  border: 1px solid #343536;
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
+  border: 1px solid var(--color-border);
 }
 
 .btn--secondary:hover {
-  background: #343536;
+  background: var(--btn-secondary-bg-hover);
 }
 
 /* Utilidades */

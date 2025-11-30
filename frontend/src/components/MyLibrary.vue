@@ -55,6 +55,7 @@
           @update-statuses="handleUpdateStatuses"
           @update-progress="handleUpdateProgress"
           @edit-item="handleEditItem"
+          @show-session-history="handleShowSessionHistory"
           class="book-item"
         />
         <LibraryMovieItem
@@ -88,6 +89,14 @@
       @close="closeImportModal"
       @import-success="handleImportSuccess"
     />
+
+    <!-- Session History Modal -->
+    <SessionHistoryModal
+      :is-visible="sessionHistoryModal.isVisible"
+      :book="sessionHistoryModal.book"
+      :history="sessionHistoryModal.history"
+      @close="closeSessionHistoryModal"
+    />
   </div>
 </template>
 
@@ -103,6 +112,7 @@ import LibraryBookItem from './Books/LibraryBookItem.vue';
 import LibraryMovieItem from './Movies/LibraryMovieItem.vue';
 import EditItemModal from './EditItemModal.vue';
 import ImportModal from './ImportModal.vue';
+import SessionHistoryModal from './Books/SessionHistoryModal.vue';
 
 // Composables
 const booksComposable = useBooks();
@@ -125,6 +135,13 @@ const showMovies = ref(true);
 const fetchError = ref("");
 const currentSort = ref('date-desc');
 const showImportModal = ref(false);
+
+// Estado del modal de historial de sesiones
+const sessionHistoryModal = ref({
+  isVisible: false,
+  book: {},
+  history: []
+});
 
 // Estados computados combinados
 const isLoading = computed(() => 
@@ -308,6 +325,14 @@ const handleUpdateStatuses = async ({ isbn, statuses, itemType }) => {
 const handleUpdateProgress = async ({ isbn, updates }) => {
   // No limpiar el estado para updates silenciosos como el progreso de lectura
   try {
+    // Si no hay updates específicos, significa que necesitamos refrescar el libro completo
+    // (por ejemplo, cuando cambia el estado por una sesión de lectura)
+    if (Object.keys(updates).length === 0) {
+      Logger.debug('Refrescando libros después de cambio de sesión');
+      await booksComposable.fetchBooks();
+      return;
+    }
+    
     // Encontrar el libro en el array original de libros y actualizarlo inmediatamente
     const bookIndex = booksComposable.books.value.findIndex(book => book.isbn === isbn);
     
@@ -362,6 +387,33 @@ const handleImportSuccess = async (importData) => {
   await fetchLibrary();
 };
 
+// ===================================
+// MÉTODOS DEL MODAL DE HISTORIAL DE SESIONES
+// ===================================
+
+const handleShowSessionHistory = async (data) => {
+  try {
+    Logger.debug('Showing session history for book:', data.book.title);
+    
+    sessionHistoryModal.value = {
+      isVisible: true,
+      book: data.book,
+      history: data.history || []
+    };
+  } catch (error) {
+    Logger.error('Error showing session history:', error);
+    notifications.showError('Error al cargar el historial de sesiones');
+  }
+};
+
+const closeSessionHistoryModal = () => {
+  sessionHistoryModal.value = {
+    isVisible: false,
+    book: {},
+    history: []
+  };
+};
+
 // Montar componente
 onMounted(async () => {
   await fetchLibrary();
@@ -385,10 +437,10 @@ const searchQuery = searchSystem.query;
 }
 
 .title {
-  font-size: 1.8rem; /* Reducido de 2.5rem */
-  font-weight: 600; /* Reducido de 700 */
-  color: #e0e0e0;
-  margin-bottom: 15px; /* Reducido de 30px */
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 15px;
   text-align: center;
 }
 
@@ -397,10 +449,10 @@ const searchQuery = searchSystem.query;
 .error-message,
 .status-message {
   font-size: 1.2rem;
-  color: #aaa;
-  margin: 20px auto; /* Center these messages */
+  color: var(--color-text-secondary);
+  margin: 20px auto;
   width: 100%;
-  max-width: 600px; /* Max width for messages */
+  max-width: 600px;
   text-align: center;
 }
 
@@ -413,18 +465,18 @@ const searchQuery = searchSystem.query;
 }
 
 .error-message {
-  color: #ff4d4f;
-  background-color: rgba(255, 77, 79, 0.1);
+  color: var(--color-error);
+  background-color: var(--color-error-bg);
 }
 
 .status-message.success {
-  color: #28a745; 
-  background-color: rgba(40, 167, 69, 0.1);
+  color: var(--color-success);
+  background-color: var(--color-success-bg);
 }
 
 .status-message.error {
-  color: #dc3545; 
-  background-color: rgba(220, 53, 69, 0.1);
+  color: var(--color-error);
+  background-color: var(--color-error-bg);
 }
 
 .book-list {
@@ -509,27 +561,27 @@ const searchQuery = searchSystem.query;
 .search-input {
   padding: 10px 15px;
   font-size: 1rem;
-  border: 1px solid #555;
+  border: 1px solid var(--color-border);
   border-radius: 20px;
-  background-color: #3a3a3a;
-  color: #e0e0e0;
-  flex-grow: 1; /* Allow search input to take available space */
-  min-width: 200px; /* Minimum width for search */
+  background-color: var(--color-background-mute);
+  color: var(--color-text);
+  flex-grow: 1;
+  min-width: 200px;
 }
 
 .search-input::placeholder {
-  color: #888;
+  color: var(--color-text-muted);
 }
 
 .sort-dropdown {
   padding: 10px 15px;
   font-size: 1rem;
-  border: 1px solid #555;
+  border: 1px solid var(--color-border);
   border-radius: 20px;
-  background-color: #3a3a3a;
-  color: #e0e0e0;
+  background-color: var(--color-background-mute);
+  color: var(--color-text);
   cursor: pointer;
-  min-width: 200px; /* Consistent minimum width */
+  min-width: 200px;
 }
 
 /* Checkboxes para filtro de tipo */
@@ -548,14 +600,14 @@ const searchQuery = searchSystem.query;
 .filter-checkbox-pill {
   display: flex;
   align-items: center;
-  background: #23272f;
-  border: 1.5px solid #444a57;
+  background: var(--color-background-soft);
+  border: 1.5px solid var(--color-border);
   border-radius: 999px;
   padding: 7px 18px 7px 10px;
   font-size: 1rem;
-  color: #e0e0e0;
-  box-shadow: 0 1px 4px 0 rgba(0,0,0,0.08);
-  transition: border 0.2s, background 0.2s;
+  color: var(--color-text);
+  box-shadow: var(--shadow-light);
+  transition: var(--transition-fast);
   cursor: pointer;
   user-select: none;
 }
@@ -568,7 +620,7 @@ const searchQuery = searchSystem.query;
 }
 
 .filter-checkboxes label {
-  color: #e0e0e0;
+  color: var(--color-text);
   font-size: 1rem;
   cursor: pointer;
   user-select: none;
@@ -583,21 +635,21 @@ const searchQuery = searchSystem.query;
 
 /* Import button */
 .import-button {
-  background: linear-gradient(135deg, #28a745, #20c997);
-  color: white;
+  background: linear-gradient(135deg, var(--color-success), var(--color-primary-light));
+  color: var(--color-text-light);
   border: none;
   border-radius: 999px;
   padding: 8px 20px;
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
+  transition: var(--transition-fast);
+  box-shadow: var(--shadow-medium);
 }
 
 .import-button:hover {
-  background: linear-gradient(135deg, #218838, #1ea080);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  box-shadow: var(--shadow-heavy);
 }
 </style> 

@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue';
 import { useAuth } from './useAuth';
 import { useAuthStore } from '@/store/auth';
+import { useConfirmationModal } from './useConfirmationModal';
 import Logger from '@/utils/logger';
 
 // Estados globales compartidos (singleton)
@@ -231,14 +232,33 @@ export function useBooks() {
   };
 
   /**
-   * Elimina un libro de la biblioteca
+   * Elimina un libro de la biblioteca con confirmación
    * @param {string} isbn - ISBN del libro
+   * @param {boolean} skipConfirmation - Omitir confirmación (para uso interno)
    */
-  const deleteBook = async (isbn) => {
-    isLoading.value = true;
-    error.value = null;
-
+  const deleteBook = async (isbn, skipConfirmation = false) => {
+    const { confirmDelete } = useConfirmationModal();
+    
     try {
+      // Encontrar el libro para obtener su título
+      const book = books.value.find(b => b.isbn === isbn);
+      const bookTitle = book ? book.title : `ISBN: ${isbn}`;
+
+      // Mostrar confirmación si no se omite
+      if (!skipConfirmation) {
+        const confirmed = await confirmDelete(
+          bookTitle,
+          'También se eliminarán todas las sesiones de lectura asociadas'
+        );
+        
+        if (!confirmed) {
+          return { success: false, cancelled: true };
+        }
+      }
+
+      isLoading.value = true;
+      error.value = null;
+
       Logger.debug('[useBooks] Deleting book:', isbn);
       
       const response = await authenticatedApiCall('delete_book', {
@@ -296,7 +316,7 @@ export function useBooks() {
   };
 
   /**
-   * Actualiza los estados de un libro
+   * Actualiza los estados de un libro con sincronización de sesiones
    * @param {string} isbn - ISBN del libro
    * @param {Array} statuses - Nuevos estados
    */
@@ -304,23 +324,119 @@ export function useBooks() {
     try {
       Logger.debug(`[useBooks] Updating book statuses: ${isbn}`, statuses);
       
+      // Obtener el libro actual
+      const book = books.value.find(b => b.isbn === isbn);
+      if (!book) {
+        throw new Error('Book not found');
+      }
+
+      const previousStatuses = book.userStatuses || [];
+      
+      // Detectar transiciones de estado
+      const transitions = {
+        startedReading: statuses.includes('reading') && !previousStatuses.includes('reading'),
+        completedBook: statuses.includes('read') && !previousStatuses.includes('read'),
+        pausedBook: statuses.includes('paused') && !previousStatuses.includes('paused'),
+        abandonedBook: statuses.includes('abandoned') && !previousStatuses.includes('abandoned')
+      };
+
+      // Preparar información de sesión si existe
+      let sessionInfo = null;
+      if (book.active_reading_session_id) {
+        sessionInfo = {
+          hasActiveSession: true,
+          sessionNumber: book.current_session_number || 1,
+          currentPage: book.current_page || 0,
+          totalPages: book.pages || 0,
+          startedAt: book.session_started_at
+        };
+      }
+
+      // Mostrar confirmación ANTES de actualizar (solo para acciones críticas con sesión activa)
+      if ((transitions.completedBook || transitions.abandonedBook) && sessionInfo) {
+        const { confirmStatusChangeWithSession } = useConfirmationModal();
+        const newStatus = transitions.completedBook ? 'read' : 'abandoned';
+        
+        const confirmed = await confirmStatusChangeWithSession(
+          book.title,
+          newStatus,
+          sessionInfo
+        );
+
+        if (!confirmed) {
+          Logger.debug('[useBooks] Status change cancelled by user');
+          return { success: false, cancelled: true };
+        }
+      }
+
+      // Ejecutar actualización de estado
       const response = await authenticatedApiCall('update_book_user_statuses', {
         isbn: isbn,
         statuses: statuses
       });
 
       if (response.data.status === 'success') {
-        // Actualizar los estados en la lista local
-        const book = books.value.find(b => b.isbn === isbn);
-        if (book) {
-          book.userStatuses = [...statuses];
+        // Actualizar estado local
+        book.userStatuses = [...statuses];
+        
+        // NOTIFICACIONES AUTOMÁTICAS
+        const { useSessionFeedback } = await import('./useSessionFeedback');
+        const sessionFeedback = useSessionFeedback();
+        
+        if (transitions.startedReading) {
+          sessionFeedback.notifyAutoSessionStart(book.title);
         }
+        
+        if (transitions.completedBook) {
+          sessionFeedback.notifyAutoSessionComplete(book.title);
+        }
+        
+        if (transitions.pausedBook) {
+          sessionFeedback.notifyAutoSessionPause(book.title);
+        }
+        
+        if (transitions.abandonedBook) {
+          sessionFeedback.notifyAutoSessionAbandoned(book.title);
+        }
+
         Logger.debug('[useBooks] Book statuses updated successfully');
         return { success: true };
       } else {
         throw new Error(response.data.message || 'Failed to update statuses');
       }
     } catch (err) {
+      // Validación especial para error de página incompleta
+      if (err.message && err.message.includes('Debes marcar la última página')) {
+        const { confirm } = useConfirmationModal();
+        
+        // Obtener el libro para acceder a sus propiedades
+        const currentBook = books.value.find(b => b.isbn === isbn);
+        
+        // Extraer el número de la última página del mensaje
+        const match = err.message.match(/página \((\d+)\)/);
+        const lastPage = match ? parseInt(match[1]) : (currentBook?.pages || 0);
+        
+        const confirmed = await confirm(
+          'Completar última página',
+          `${err.message}\n\n¿Deseas actualizar automáticamente a la página ${lastPage} y marcar el libro como leído?`,
+          {
+            confirmText: 'Sí, actualizar y completar',
+            cancelText: 'Cancelar',
+            type: 'warning'
+          }
+        );
+        
+        if (confirmed) {
+          // Primero actualizar la página
+          await updateReadingProgress(isbn, lastPage);
+          // Luego intentar cambiar el estado de nuevo
+          return await updateBookStatuses(isbn, statuses);
+        } else {
+          Logger.debug('[useBooks] User cancelled page update');
+          return { success: false, cancelled: true };
+        }
+      }
+      
       error.value = err.message || 'Failed to update statuses';
       Logger.error('[useBooks] Error updating book statuses:', err);
       return { success: false, message: err.message };
@@ -578,6 +694,257 @@ export function useBooks() {
     error.value = null;
   };
 
+  // ===================================
+  // FUNCIONES DE SESIONES DE LECTURA
+  // ===================================
+
+  /**
+   * Crea una nueva sesión de lectura con confirmación
+   * @param {number} bookId - ID del libro
+   * @param {number} startPage - Página inicial (opcional)
+   */
+  const createReadingSession = async (bookId, startPage = null) => {
+    const { confirmNewReadingSession } = useConfirmationModal();
+    
+    try {
+      // Encontrar el libro para obtener información
+      const book = books.value.find(b => b.id === bookId);
+      if (!book) {
+        throw new Error('Libro no encontrado');
+      }
+
+      // Confirmar creación de nueva sesión
+      const confirmed = await confirmNewReadingSession(book.title, startPage || book.current_page || 1);
+      if (!confirmed) {
+        return { success: false, cancelled: true };
+      }
+
+      isLoading.value = true;
+      error.value = null;
+
+      Logger.debug('[useBooks] Creating reading session:', { bookId, startPage });
+      
+      const response = await authenticatedApiCall('create_reading_session', {
+        bookId: bookId,
+        startPage: startPage
+      });
+
+      if (response.data.status === 'success') {
+        Logger.debug('[useBooks] Reading session created successfully');
+        // Actualizar estado local si es necesario
+        await fetchBooks(); // Refrescar datos
+        return { success: true, sessionId: response.data.data.sessionId };
+      } else {
+        throw new Error(response.data.message || 'Failed to create reading session');
+      }
+    } catch (err) {
+      error.value = err.message || 'Failed to create reading session';
+      Logger.error('[useBooks] Error creating reading session:', err);
+      return { success: false, message: err.message };
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  /**
+   * Completa una sesión de lectura con confirmación
+   * @param {number} sessionId - ID de la sesión
+   * @param {number} endPage - Página final
+   * @param {string} reason - Razón de completado
+   */
+  const completeReadingSession = async (sessionId, endPage, reason = 'completed') => {
+    const { confirmCompleteBook } = useConfirmationModal();
+    
+    try {
+      // Para confirmación, intentar obtener información del libro
+      // Esto podría requerir una llamada adicional en implementaciones futuras
+      const confirmed = await confirmCompleteBook('el libro', endPage);
+      if (!confirmed) {
+        return { success: false, cancelled: true };
+      }
+
+      isLoading.value = true;
+      error.value = null;
+
+      Logger.debug('[useBooks] Completing reading session:', { sessionId, endPage, reason });
+      
+      const response = await authenticatedApiCall('complete_reading_session', {
+        sessionId: sessionId,
+        endPage: endPage,
+        reason: reason
+      });
+
+      if (response.data.status === 'success') {
+        Logger.debug('[useBooks] Reading session completed successfully');
+        await fetchBooks(); // Refrescar datos
+        return { success: true };
+      } else {
+        throw new Error(response.data.message || 'Failed to complete reading session');
+      }
+    } catch (err) {
+      error.value = err.message || 'Failed to complete reading session';
+      Logger.error('[useBooks] Error completing reading session:', err);
+      return { success: false, message: err.message };
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  /**
+   * Actualiza progreso de lectura con sesión
+   * @param {number} bookId - ID del libro
+   * @param {number} currentPage - Página actual
+   * @param {number} sessionId - ID de sesión (opcional)
+   */
+  const updateReadingProgressWithSession = async (bookId, currentPage, sessionId = null) => {
+    try {
+      isLoading.value = true;
+      error.value = null;
+
+      Logger.debug('[useBooks] Updating reading progress:', { bookId, currentPage, sessionId });
+      
+      const response = await authenticatedApiCall('update_reading_progress_with_session', {
+        bookId: bookId,
+        currentPage: currentPage,
+        sessionId: sessionId
+      });
+
+      if (response.data.status === 'success') {
+        // Actualizar estado local
+        const book = books.value.find(b => b.id === bookId);
+        if (book) {
+          book.current_page = currentPage;
+        }
+        Logger.debug('[useBooks] Reading progress updated successfully');
+        return { success: true };
+      } else {
+        throw new Error(response.data.message || 'Failed to update reading progress');
+      }
+    } catch (err) {
+      error.value = err.message || 'Failed to update reading progress';
+      Logger.error('[useBooks] Error updating reading progress:', err);
+      return { success: false, message: err.message };
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  /**
+   * Reinicia el progreso de un libro con confirmación
+   * @param {string} isbn - ISBN del libro
+   */
+  const resetBookProgress = async (isbn) => {
+    const { confirmReset } = useConfirmationModal();
+    
+    try {
+      // Encontrar el libro
+      const book = books.value.find(b => b.isbn === isbn);
+      if (!book) {
+        throw new Error('Libro no encontrado');
+      }
+
+      // Confirmar reset
+      const confirmed = await confirmReset(book.title, [
+        `La página actual (${book.current_page || 0}) volverá a 1`,
+        'Se mantendrá el historial de sesiones de lectura'
+      ]);
+      
+      if (!confirmed) {
+        return { success: false, cancelled: true };
+      }
+
+      // Actualizar estado a 'not-started' y página a 1
+      const result = await updateBookStatuses(isbn, ['not-started']);
+      if (result.success) {
+        // Actualizar página local
+        book.current_page = 1;
+        // También podríamos llamar updateReadingProgress aquí si es necesario
+      }
+      
+      return result;
+    } catch (err) {
+      error.value = err.message || 'Failed to reset book progress';
+      Logger.error('[useBooks] Error resetting book progress:', err);
+      return { success: false, message: err.message };
+    }
+  };
+
+  /**
+   * Inicia re-lectura de un libro con confirmación
+   * @param {string} isbn - ISBN del libro
+   */
+  const startReReading = async (isbn) => {
+    const { confirmReReading } = useConfirmationModal();
+    
+    try {
+      // Encontrar el libro
+      const book = books.value.find(b => b.isbn === isbn);
+      if (!book) {
+        throw new Error('Libro no encontrado');
+      }
+
+      // Confirmar re-lectura
+      const confirmed = await confirmReReading(book.title);
+      if (!confirmed) {
+        return { success: false, cancelled: true };
+      }
+
+      // Crear nueva sesión de lectura desde página 1
+      return await createReadingSession(book.id, 1);
+    } catch (err) {
+      error.value = err.message || 'Failed to start re-reading';
+      Logger.error('[useBooks] Error starting re-reading:', err);
+      return { success: false, message: err.message };
+    }
+  };
+
+  /**
+   * Obtiene sesiones activas del usuario
+   */
+  const getUserActiveSessions = async () => {
+    try {
+      Logger.debug('[useBooks] Fetching user active sessions');
+      
+      const response = await authenticatedApiCall('get_user_active_reading_sessions');
+
+      if (response.data.status === 'success') {
+        Logger.debug('[useBooks] Active sessions fetched successfully');
+        return { success: true, sessions: response.data.data };
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch active sessions');
+      }
+    } catch (err) {
+      error.value = err.message || 'Failed to fetch active sessions';
+      Logger.error('[useBooks] Error fetching active sessions:', err);
+      return { success: false, message: err.message };
+    }
+  };
+
+  /**
+   * Obtiene historial de sesiones de un libro
+   * @param {number} bookId - ID del libro
+   */
+  const getBookSessionHistory = async (bookId) => {
+    try {
+      Logger.debug('[useBooks] Fetching book session history:', bookId);
+      
+      const response = await authenticatedApiCall('get_reading_session_history', {
+        bookId: bookId
+      });
+
+      if (response.data.status === 'success') {
+        Logger.debug('[useBooks] Session history fetched successfully');
+        return { success: true, history: response.data.data };
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch session history');
+      }
+    } catch (err) {
+      error.value = err.message || 'Failed to fetch session history';
+      Logger.error('[useBooks] Error fetching session history:', err);
+      return { success: false, message: err.message };
+    }
+  };
+
   /**
    * Reinicia todos los estados
    */
@@ -627,6 +994,15 @@ export function useBooks() {
     // Métodos de progreso de lectura
     updateReadingProgress,
     getReadingProgress,
+
+    // Métodos de sesiones de lectura
+    createReadingSession,
+    completeReadingSession,
+    updateReadingProgressWithSession,
+    resetBookProgress,
+    startReReading,
+    getUserActiveSessions,
+    getBookSessionHistory,
 
     // Métodos de utilidad
     findBookByISBN,

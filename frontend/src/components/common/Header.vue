@@ -73,6 +73,7 @@ const {
 const {
   isGoogleReady,
   renderGoogleButton,
+  showGoogleOneTap,
   googleError,
   clearGoogleError
 } = useGoogleAuth();
@@ -93,25 +94,12 @@ watch(isLoggedIn, (newVal, oldVal) => {
 onMounted(async () => {
   try {
     await initializeAuth();
-    
-    if (isGoogleReady.value) {
-      const signInButton = document.getElementById('g_id_signin');
-      if (signInButton) {
-        renderGoogleButton('g_id_signin', {
-          theme: 'outline',
-          size: 'large',
-          shape: 'circle',
-          text: 'signin_with',
-          logo_alignment: 'left'
-        });
-      }
-    }
   } catch (error) {
     Logger.error('[Header] Failed to initialize:', error);
   }
 });
 
-// Watch para renderizar el botón cuando Google esté listo
+// Watch para renderizar el botón y mostrar One Tap cuando Google esté listo
 watch(isGoogleReady, (ready) => {
   if (ready) {
     const signInButton = document.getElementById('g_id_signin');
@@ -123,6 +111,11 @@ watch(isGoogleReady, (ready) => {
         text: 'signin_with',
         logo_alignment: 'left'
       });
+    }
+    // Mostrar One Tap para auto-login si no está autenticado
+    if (!isAuthenticated.value) {
+      Logger.auth('[Header] Showing Google One Tap for auto-login');
+      showGoogleOneTap();
     }
   }
 });

@@ -109,7 +109,7 @@ export function useGoogleAuth() {
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: handleGoogleResponse,
-        auto_select: false,
+        auto_select: true, // Auto-login con cuenta detectada en navegador
         cancel_on_tap_outside: true,
         use_fedcm_for_prompt: false
       });

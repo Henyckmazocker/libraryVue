@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   frontend:
-    container_name: libraryvue-frontend-1
+    container_name: libraryvue-frontend-prod
     build:
       context: .
       dockerfile: docker/frontend/Dockerfile.frontend.prod
@@ -20,7 +20,7 @@ services:
     restart: always
 
   backend:
-    container_name: libraryvue-backend-1
+    container_name: libraryvue-backend-prod
     build:
       context: .
       dockerfile: docker/backend/Dockerfile.backend.prod

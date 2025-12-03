@@ -18,8 +18,8 @@ function loadEnvironmentVariables(): void {
     
     // Cargar archivo .env específico del entorno
     $envFiles = [
-        __DIR__ . "/.env.{$environment}",
-        __DIR__ . "/.env"
+        __DIR__ . "/../.env.{$environment}",
+        __DIR__ . "/../.env"
     ];
     
     foreach ($envFiles as $envFile) {

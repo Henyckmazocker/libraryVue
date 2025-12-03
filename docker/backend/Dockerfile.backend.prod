@@ -4,42 +4,43 @@ FROM php:8.2-apache
 # Set working directory for Apache web root
 WORKDIR /var/www/html
 
-# Install system dependencies that PHP extensions might need
+# Install system dependencies and PHP extensions
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libzip-dev \
     zip \
-    # Add other dependencies your application might require
+    unzip \
+    git \
     && docker-php-ext-configure zip \
     && docker-php-ext-install -j$(nproc) pdo pdo_mysql zip \
     && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# PHP Configuration (optional: copy a custom php.ini for production)
-# COPY php.ini.prod /usr/local/etc/php/php.ini
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# --- If you were using Composer ---
-# COPY composer.json composer.lock* ./
-# RUN composer install --no-dev --no-interaction --no-plugins --no-scripts --prefer-dist --optimize-autoloader
-# ---------------------------------
+# Enable Apache mod_rewrite for clean URLs
+RUN a2enmod rewrite headers
 
-# Copy all application code
-# This assumes your Docker context is the project root where backend/ is located.
-# It will create /var/www/html/backend/...
-# COPY ./backend/src /var/www/html/backend/src
-# COPY ./backend/public /var/www/html/backend/public
+# Copy application files
+COPY backend/ /var/www/html/
 
-# Copy the my_library.json file if it exists at the root of backend, or let it be created by api.php
-# If it must exist and be pre-filled, copy it explicitly:
-# COPY ./src/backend/my_library.json /var/www/html/backend/my_library.json
+# Install PHP dependencies (production only)
+RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
 
-# Ensure necessary directories are writable by Apache/PHP (www-data user)
-# The main data directory for my_library.json is no longer primary, but other dirs might be needed.
-RUN mkdir -p /var/www/html/backend && \
-    chown -R www-data:www-data /var/www/html/backend && \
-    # Ensure src is readable
-    chmod -R o+r /var/www/html/src /var/www/html/backend
+# Create necessary directories
+RUN mkdir -p storage/logs storage/cache storage/sessions storage/uploads \
+    && chown -R www-data:www-data /var/www/html \
+    && chmod -R 775 storage/
+
+# PHP Configuration for production
+RUN echo "display_errors = Off" >> /usr/local/etc/php/conf.d/custom.ini \
+    && echo "log_errors = On" >> /usr/local/etc/php/conf.d/custom.ini \
+    && echo "error_log = /var/www/html/storage/logs/php_errors.log" >> /usr/local/etc/php/conf.d/custom.ini \
+    && echo "memory_limit = 256M" >> /usr/local/etc/php/conf.d/custom.ini \
+    && echo "upload_max_filesize = 10M" >> /usr/local/etc/php/conf.d/custom.ini \
+    && echo "post_max_size = 10M" >> /usr/local/etc/php/conf.d/custom.ini
 
 # Apache typically runs on port 80
 EXPOSE 80
 
-# The base image's entrypoint (apache2-foreground) will start Apache.
-# You can add a custom entrypoint or command if needed for migrations, etc. 
+# Start Apache
+CMD ["apache2-foreground"] 

@@ -11,6 +11,13 @@ composer.lock
 .env
 .env.local
 .env.*.local
+.env.production
+.env.development
+.env.prod
+.env.docker
+backend/.env.docker-production
+backend/.env.docker-development
+backend/.env.docker
 
 # Log files
 npm-debug.log*

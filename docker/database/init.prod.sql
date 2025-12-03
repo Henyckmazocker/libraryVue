@@ -1,0 +1,380 @@
+-- Drop database if exists and recreate it - PRODUCTION
+DROP DATABASE IF EXISTS library_db_prod;
+CREATE DATABASE library_db_prod;
+USE library_db_prod;
+
+-- Recreate tables (your existing CREATE TABLE statements)
+CREATE TABLE IF NOT EXISTS books (
+    isbn VARCHAR(20) PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    author VARCHAR(255) DEFAULT NULL,
+    publisher VARCHAR(255) DEFAULT NULL, -- Editorial o casa publicadora
+    publication_date DATE DEFAULT NULL,  -- Fecha de publicación
+    coverUrl VARCHAR(1024) DEFAULT NULL,
+    rating DECIMAL(2,1) DEFAULT NULL, -- e.g., 3.5 (precision 2, 1 decimal place)
+    pages INT UNSIGNED DEFAULT NULL, -- Número total de páginas del libro
+    description TEXT DEFAULT NULL,   -- Descripción o sinopsis del libro
+    genres JSON DEFAULT NULL,        -- Géneros del libro (array JSON)
+    addedTimestamp INT UNSIGNED DEFAULT NULL,
+    CONSTRAINT check_book_rating CHECK (rating IS NULL OR (rating >= 0.5 AND rating <= 5.0 AND MOD(rating * 2, 1) = 0)),
+    CONSTRAINT check_book_pages CHECK (pages IS NULL OR pages > 0)
+);
+
+-- Índices optimizados para books
+CREATE INDEX idx_books_title ON books(title); -- Para búsquedas por título
+CREATE INDEX idx_books_author ON books(author); -- Para búsquedas por autor
+CREATE INDEX idx_books_publisher ON books(publisher); -- Para búsquedas por editorial
+CREATE INDEX idx_books_publication_date ON books(publication_date); -- Para filtros por fecha de publicación
+CREATE INDEX idx_books_rating ON books(rating); -- Para filtros y ordenación por rating
+CREATE INDEX idx_books_pages ON books(pages); -- Para filtros y ordenación por número de páginas
+CREATE INDEX idx_books_added_timestamp ON books(addedTimestamp); -- Para ordenar por fecha de adición
+CREATE INDEX idx_books_title_author ON books(title, author); -- Búsquedas combinadas
+CREATE INDEX idx_books_title_publisher ON books(title, publisher); -- Búsquedas combinadas título-editorial
+
+-- Table for allowed status types
+CREATE TABLE IF NOT EXISTS book_statuses (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE -- e.g., 'owned', 'read', 'to buy', 'reading'
+);
+
+-- Populate allowed statuses (actualizado para sesiones de lectura)
+INSERT INTO book_statuses (name) VALUES 
+('owned'),       -- Usuario posee el libro
+('read'),        -- Libro completamente leído (al menos una vez)
+('to read'),     -- En lista de pendientes
+('reading'),     -- Leyendo actualmente (primera vez)
+('re-reading'),  -- Releyendo (no es la primera vez)
+('want to buy'), -- Quiere comprarlo
+('abandoned'),   -- Lectura abandonada
+('paused');      -- Lectura pausada temporalmente
+
+
+-- Junction table to link books with their statuses using status IDs
+CREATE TABLE IF NOT EXISTS book_has_statuses (
+    book_isbn VARCHAR(20) NOT NULL,
+    status_id INT NOT NULL,
+    PRIMARY KEY (book_isbn, status_id),
+    FOREIGN KEY (book_isbn) 
+        REFERENCES books(isbn) 
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    FOREIGN KEY (status_id) 
+        REFERENCES book_statuses(id) 
+        ON DELETE CASCADE
+);
+
+CREATE INDEX idx_book_has_statuses_status_id ON book_has_statuses(status_id);
+CREATE INDEX idx_book_has_statuses_isbn_status ON book_has_statuses(book_isbn, status_id);
+
+-- Recreate tables (your existing CREATE TABLE statements)
+CREATE TABLE IF NOT EXISTS movie (
+    isbn VARCHAR(20) PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    original_title VARCHAR(255) DEFAULT NULL,
+    director VARCHAR(255) DEFAULT NULL,
+    author VARCHAR(255) DEFAULT NULL,
+    coverUrl VARCHAR(1024) DEFAULT NULL,
+    rating DECIMAL(2,1) DEFAULT NULL,
+    description TEXT DEFAULT NULL,
+    genres JSON DEFAULT NULL,
+    addedTimestamp INT UNSIGNED DEFAULT NULL,
+    CONSTRAINT check_movie_rating CHECK (rating IS NULL OR (rating >= 0.5 AND rating <= 5.0 AND MOD(rating * 2, 1) = 0))
+);
+
+-- Índices optimizados para movies
+CREATE INDEX idx_movies_title ON movie(title);
+CREATE INDEX idx_movies_original_title ON movie(original_title);
+CREATE INDEX idx_movies_director ON movie(director);
+CREATE INDEX idx_movies_author ON movie(author);
+CREATE INDEX idx_movies_rating ON movie(rating);
+CREATE INDEX idx_movies_added_timestamp ON movie(addedTimestamp);
+CREATE INDEX idx_movies_title_director ON movie(title, director);
+CREATE INDEX idx_movies_title_author ON movie(title, author);
+
+-- Table for allowed status types
+CREATE TABLE IF NOT EXISTS movie_statuses (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE
+);
+
+INSERT INTO movie_statuses (name) VALUES ('owned'), ('viewed'), ('in watchlist'), ('want to buy'), ('abandoned');
+
+-- Junction table to link books with their statuses using status IDs
+CREATE TABLE IF NOT EXISTS movie_has_statuses (
+    movie_isbn VARCHAR(20) NOT NULL,
+    status_id INT NOT NULL,
+    PRIMARY KEY (movie_isbn, status_id),
+    FOREIGN KEY (movie_isbn) 
+        REFERENCES movie(isbn) 
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    FOREIGN KEY (status_id) 
+        REFERENCES movie_statuses(id) 
+        ON DELETE CASCADE
+);
+
+CREATE INDEX idx_movie_has_statuses_status_id ON movie_has_statuses(status_id);
+CREATE INDEX idx_movie_has_statuses_isbn_status ON movie_has_statuses(movie_isbn, status_id);
+
+-- Table for users (Google OAuth integration)
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    google_id VARCHAR(255) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
+    picture VARCHAR(1024) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    last_login TIMESTAMP NULL DEFAULT NULL,
+    preferences JSON DEFAULT NULL,
+    is_active TINYINT(1) DEFAULT 1,
+    INDEX idx_users_google_id (google_id),
+    INDEX idx_users_email (email),
+    INDEX idx_users_active_created (is_active, created_at),
+    INDEX idx_users_last_login (last_login)
+);
+
+-- Tabla para sesiones de lectura (permite relecturas)
+CREATE TABLE IF NOT EXISTS reading_sessions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    book_isbn VARCHAR(20) NOT NULL,
+    session_number INT NOT NULL DEFAULT 1,
+    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP NULL,
+    status ENUM('active', 'completed', 'abandoned', 'paused') DEFAULT 'active',
+    final_page INT UNSIGNED NULL,
+    session_notes TEXT NULL,
+    
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (book_isbn) REFERENCES books(isbn) ON DELETE CASCADE,
+    
+    UNIQUE KEY unique_user_book_session (user_id, book_isbn, session_number),
+    INDEX idx_reading_sessions_active (user_id, status),
+    INDEX idx_reading_sessions_user_book (user_id, book_isbn),
+    INDEX idx_reading_sessions_status (status),
+    INDEX idx_reading_sessions_dates (started_at, completed_at)
+);
+
+-- Tablas para bibliotecas personales por usuario
+CREATE TABLE IF NOT EXISTS user_books (
+    user_id INT NOT NULL,
+    book_isbn VARCHAR(20) NOT NULL,
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    consumed_at TIMESTAMP NULL DEFAULT NULL,
+    current_page INT UNSIGNED DEFAULT 0,
+    active_reading_session_id INT NULL,
+    personal_rating DECIMAL(2,1) DEFAULT NULL,
+    personal_notes TEXT DEFAULT NULL,
+    total_sessions_completed INT DEFAULT 0,
+    last_session_completed_at TIMESTAMP NULL,
+    PRIMARY KEY (user_id, book_isbn),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (book_isbn) REFERENCES books(isbn) ON DELETE CASCADE,
+    FOREIGN KEY (active_reading_session_id) REFERENCES reading_sessions(id) ON DELETE SET NULL,
+    INDEX idx_user_books_user_added (user_id, added_at),
+    INDEX idx_user_books_consumed (user_id, consumed_at),
+    INDEX idx_user_books_rating (user_id, personal_rating),
+    INDEX idx_user_books_progress (user_id, current_page),
+    INDEX idx_user_books_active_session (active_reading_session_id),
+    INDEX idx_user_books_sessions_count (user_id, total_sessions_completed),
+    INDEX idx_user_books_last_session (user_id, last_session_completed_at),
+    CONSTRAINT check_user_book_rating CHECK (personal_rating IS NULL OR (personal_rating >= 0.5 AND personal_rating <= 5.0 AND MOD(personal_rating * 2, 1) = 0)),
+    CONSTRAINT check_user_book_page CHECK (current_page >= 0),
+    CONSTRAINT check_sessions_completed CHECK (total_sessions_completed >= 0)
+);
+
+-- Relación users -> movies
+CREATE TABLE IF NOT EXISTS user_movies (
+    user_id INT NOT NULL,
+    movie_isbn VARCHAR(20) NOT NULL,
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    consumed_at TIMESTAMP NULL DEFAULT NULL,
+    personal_rating DECIMAL(2,1) DEFAULT NULL,
+    personal_notes TEXT DEFAULT NULL,
+    PRIMARY KEY (user_id, movie_isbn),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (movie_isbn) REFERENCES movie(isbn) ON DELETE CASCADE,
+    INDEX idx_user_movies_user_added (user_id, added_at),
+    INDEX idx_user_movies_consumed (user_id, consumed_at),
+    INDEX idx_user_movies_rating (user_id, personal_rating),
+    CONSTRAINT check_user_movie_rating CHECK (personal_rating IS NULL OR (personal_rating >= 0.5 AND personal_rating <= 5.0 AND MOD(personal_rating * 2, 1) = 0))
+);
+
+-- Estados personales de libros por usuario
+CREATE TABLE IF NOT EXISTS user_book_statuses (
+    user_id INT NOT NULL,
+    book_isbn VARCHAR(20) NOT NULL,
+    status_id INT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, book_isbn, status_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (book_isbn) REFERENCES books(isbn) ON DELETE CASCADE,
+    FOREIGN KEY (status_id) REFERENCES book_statuses(id) ON DELETE CASCADE,
+    INDEX idx_user_book_statuses_user_status (user_id, status_id),
+    INDEX idx_user_book_statuses_updated (user_id, updated_at)
+);
+
+-- Estados personales de películas por usuario
+CREATE TABLE IF NOT EXISTS user_movie_statuses (
+    user_id INT NOT NULL,
+    movie_isbn VARCHAR(20) NOT NULL,
+    status_id INT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, movie_isbn, status_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (movie_isbn) REFERENCES movie(isbn) ON DELETE CASCADE,
+    FOREIGN KEY (status_id) REFERENCES movie_statuses(id) ON DELETE CASCADE,
+    INDEX idx_user_movie_statuses_user_status (user_id, status_id),
+    INDEX idx_user_movie_statuses_updated (user_id, updated_at)
+);
+
+CREATE TABLE IF NOT EXISTS user_preferences (
+    user_id INT NOT NULL,
+    preferences JSON DEFAULT NULL,
+    PRIMARY KEY (user_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_preferences_user (user_id)
+);
+
+CREATE TABLE IF NOT EXISTS versions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    version VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Sistema de tags personalizados por usuario
+CREATE TABLE IF NOT EXISTS user_book_tags (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    color VARCHAR(7) DEFAULT '#007bff',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_user_tag (user_id, name),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_book_tags_user (user_id),
+    INDEX idx_user_book_tags_name (user_id, name)
+);
+
+CREATE TABLE IF NOT EXISTS user_movie_tags (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    color VARCHAR(7) DEFAULT '#007bff',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_user_movie_tag (user_id, name),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_movie_tags_user (user_id),
+    INDEX idx_user_movie_tags_name (user_id, name)
+);
+
+CREATE TABLE IF NOT EXISTS user_book_tag_assignments (
+    user_id INT NOT NULL,
+    book_isbn VARCHAR(20) NOT NULL,
+    tag_id INT NOT NULL,
+    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, book_isbn, tag_id),
+    FOREIGN KEY (user_id, book_isbn) REFERENCES user_books(user_id, book_isbn) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES user_book_tags(id) ON DELETE CASCADE,
+    INDEX idx_book_tag_assignments_tag (tag_id),
+    INDEX idx_book_tag_assignments_book (user_id, book_isbn),
+    INDEX idx_book_tag_assignments_user (user_id)
+);
+
+CREATE TABLE IF NOT EXISTS user_movie_tag_assignments (
+    user_id INT NOT NULL,
+    movie_isbn VARCHAR(20) NOT NULL,
+    tag_id INT NOT NULL,
+    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, movie_isbn, tag_id),
+    FOREIGN KEY (user_id, movie_isbn) REFERENCES user_movies(user_id, movie_isbn) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES user_movie_tags(id) ON DELETE CASCADE,
+    INDEX idx_movie_tag_assignments_tag (tag_id),
+    INDEX idx_movie_tag_assignments_movie (user_id, movie_isbn),
+    INDEX idx_movie_tag_assignments_user (user_id)
+);
+
+CREATE TABLE IF NOT EXISTS user_book_notes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    book_isbn VARCHAR(20) NOT NULL,
+    page_number INT UNSIGNED NOT NULL,
+    note_text TEXT DEFAULT NULL,
+    note_type ENUM('note', 'quote', 'thought', 'question', 'summary', 'progress') DEFAULT 'progress',
+    is_private TINYINT(1) DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (user_id, book_isbn) REFERENCES user_books(user_id, book_isbn) ON DELETE CASCADE,
+    
+    INDEX idx_user_book_notes_user_book (user_id, book_isbn),
+    INDEX idx_user_book_notes_page (user_id, book_isbn, page_number),
+    INDEX idx_user_book_notes_type (user_id, note_type),
+    INDEX idx_user_book_notes_created (user_id, created_at),
+    INDEX idx_user_book_notes_updated (user_id, updated_at),
+    
+    CONSTRAINT check_page_number CHECK (page_number > 0),
+    CONSTRAINT check_note_text CHECK (CHAR_LENGTH(note_text) > 0)
+);
+
+CREATE TABLE IF NOT EXISTS user_follows (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    follower_id INT NOT NULL,
+    followed_id INT NOT NULL,
+    followed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_active TINYINT(1) DEFAULT 1,
+    
+    UNIQUE KEY unique_follow (follower_id, followed_id),
+    
+    FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (followed_id) REFERENCES users(id) ON DELETE CASCADE,
+    
+    INDEX idx_user_follows_follower (follower_id),
+    INDEX idx_user_follows_followed (followed_id),
+    INDEX idx_user_follows_active (follower_id, is_active),
+    INDEX idx_user_follows_recent (followed_at),
+    INDEX idx_user_follows_mutual (follower_id, followed_id),
+    
+    CONSTRAINT check_not_self_follow CHECK (follower_id != followed_id)
+);
+
+CREATE TABLE IF NOT EXISTS reading_progress_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    book_isbn VARCHAR(20) NOT NULL,
+    reading_session_id INT NULL,
+    current_page INT UNSIGNED NOT NULL,
+    previous_page INT UNSIGNED DEFAULT 0,
+    progress_type ENUM('advance', 'backtrack', 'restart') DEFAULT 'advance',
+    notes TEXT NULL,
+    logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (book_isbn) REFERENCES books(isbn) ON DELETE CASCADE,
+    FOREIGN KEY (user_id, book_isbn) REFERENCES user_books(user_id, book_isbn) ON DELETE CASCADE,
+    FOREIGN KEY (reading_session_id) REFERENCES reading_sessions(id) ON DELETE CASCADE,
+    
+    INDEX idx_progress_user_book (user_id, book_isbn),
+    INDEX idx_progress_user_date (user_id, logged_at),
+    INDEX idx_progress_book_date (book_isbn, logged_at),
+    INDEX idx_progress_recent (logged_at),
+    INDEX idx_progress_session (reading_session_id),
+    INDEX idx_progress_type (progress_type),
+    INDEX idx_progress_user_session (user_id, reading_session_id),
+    
+    CONSTRAINT check_progress_pages CHECK (current_page >= 0 AND previous_page >= 0),
+    CONSTRAINT check_progress_type_valid CHECK (progress_type IN ('advance', 'backtrack', 'restart'))
+);
+
+-- Índices adicionales para performance
+CREATE INDEX idx_user_books_status_lookup ON user_book_statuses(user_id, book_isbn);
+CREATE INDEX idx_progress_monthly_stats ON reading_progress_history(user_id, logged_at, progress_type);
+CREATE INDEX idx_sessions_user_status ON reading_sessions(user_id, status);
+CREATE INDEX idx_books_search_full ON books(title, author, isbn);
+CREATE INDEX idx_user_books_completed_sessions ON user_books(user_id, total_sessions_completed);
+CREATE INDEX idx_user_books_rating_filter ON user_books(user_id, personal_rating);
+
+-- Comentarios a las tablas
+ALTER TABLE reading_sessions COMMENT = 'Sesiones de lectura independientes - permite relecturas y seguimiento detallado';
+ALTER TABLE reading_progress_history COMMENT = 'Historial completo de progreso incluyendo retrocesos y reinicios por sesión';

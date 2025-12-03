@@ -19,8 +19,6 @@ services:
       - VUE_APP_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
     depends_on:
       - backend
-    networks:
-      - library_network
     restart: unless-stopped
 
   backend:
@@ -54,8 +52,6 @@ services:
                apache2-foreground"
     depends_on:
       - mysql
-    networks:
-      - library_network
     restart: unless-stopped
 
   mysql:
@@ -72,12 +68,6 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./docker/database/init.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - library_network    
-
-networks:
-  library_network:
-    driver: bridge
 
 volumes:
   mysql_data:

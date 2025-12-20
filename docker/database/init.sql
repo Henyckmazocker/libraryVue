@@ -42,13 +42,14 @@ CREATE TABLE IF NOT EXISTS book_statuses (
 -- Populate allowed statuses (actualizado para sesiones de lectura)
 -- This ensures that only valid statuses can be referenced.
 -- The Book::ALLOWED_STATUSES array should ideally be in sync with these values.
+-- IMPORTANT: Status names use kebab-case format (lowercase with hyphens)
 INSERT INTO book_statuses (name) VALUES 
 ('owned'),       -- Usuario posee el libro
 ('read'),        -- Libro completamente leído (al menos una vez)
-('to read'),     -- En lista de pendientes
+('to-read'),     -- En lista de pendientes
 ('reading'),     -- Leyendo actualmente (primera vez)
 ('re-reading'),  -- Releyendo (no es la primera vez)
-('want to buy'), -- Quiere comprarlo
+('want-to-buy'), -- Quiere comprarlo
 ('abandoned'),   -- Lectura abandonada
 ('paused');      -- Lectura pausada temporalmente
 
@@ -107,8 +108,8 @@ CREATE TABLE IF NOT EXISTS movie_statuses (
 
 -- Populate allowed statuses
 -- This ensures that only valid statuses can be referenced.
--- The Book::ALLOWED_STATUSES array should ideally be in sync with these values.
-INSERT INTO movie_statuses (name) VALUES ('owned'), ('viewed'), ('in watchlist'), ('want to buy'), ('abandoned');
+-- IMPORTANT: Status names use kebab-case format (lowercase with hyphens)
+INSERT INTO movie_statuses (name) VALUES ('owned'), ('viewed'), ('in-watchlist'), ('want-to-buy'), ('abandoned');
 
 -- Junction table to link books with their statuses using status IDs
 CREATE TABLE IF NOT EXISTS movie_has_statuses (

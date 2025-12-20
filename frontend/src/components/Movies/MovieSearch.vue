@@ -8,56 +8,32 @@
       </button>
     </div>
     <div v-if="errorMessage || movieSearch.error.value" class="error-message">{{ errorMessage || movieSearch.error.value }}</div>
-    <div :class="['status-message', notifications.statusType.value]" aria-live="polite" style="min-height: 2.5em;">
-      <span v-if="notifications.statusMessage.value">{{ notifications.statusMessage.value }}</span>
-    </div>
+    
+    <!-- Lista de resultados simplificada sin acordeón -->
     <div v-if="movieSearch.results.value && movieSearch.results.value.length" class="movie-list">
-      <div v-for="result in movieSearch.results.value" :key="result.imdbID" class="movie-list-item-wrapper">
-        <div class="movie-list-item" :class="{ expanded: selectedMovie && selectedMovie.imdbID === result.imdbID }" @click="toggleMovie(result.imdbID)">
-          <img v-if="result.Poster && result.Poster !== 'N/A'" :src="result.Poster" alt="Poster" class="movie-list-poster" />
-          <div class="movie-list-info">
-            <span class="movie-list-title">{{ result.Title }} ({{ result.Year }})</span>
-            <span v-if="selectedMovie && selectedMovie.imdbID === result.imdbID" class="accordion-arrow">
-              <i class="fas fa-chevron-up"></i>
-            </span>
-            <span v-else class="accordion-arrow">
-              <i class="fas fa-chevron-down"></i>
-            </span>
-          </div>
-        </div>
-        <transition name="accordion">
-          <div v-if="selectedMovie && selectedMovie.imdbID === result.imdbID" class="movie-detail-below">
-            <LibraryMovieItem 
-              v-if="allowedMovieStatusesList.length > 0"
-              :movie="transformMovieData(selectedMovie)" 
-              :allowedUserStatuses="allowedMovieStatusesList" 
-              :editable="true"
-              :readonly="false"
-              @delete-movie="handleDeleteMovie"
-              @update-rating="handleUpdateRating"
-              @update-statuses="handleUpdateStatuses"
-              @save-movie="handleSaveMovie"
-              @edit-item="handleEditItem"
-            />
-            <div v-else class="loading-statuses">
-              Cargando estados disponibles...
-            </div>
-          </div>
-        </transition>
-      </div>
+      <MovieListItem
+        v-for="result in movieSearch.results.value"
+        :key="result.imdbID"
+        :movie="transformSearchResultToMovie(result)"
+        :allowedStatuses="allowedUserStatusesList"
+        @click="goToMovieDetail"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
+import { useRouter } from 'vue-router';
 import axios from 'axios';
+import MovieListItem from '@/components/Movies/MovieListItem.vue';
 import { useMovies } from '@/composables/useMovies';
 import { useSearch } from '@/composables/useSearch';
 import { useLibraryNotifications } from '@/composables/useLibraryNotifications';
-import LibraryMovieItem from './LibraryMovieItem.vue';
+import Logger from '@/utils/logger';
 
 // Composables
+const router = useRouter();
 const moviesComposable = useMovies();
 const notifications = useLibraryNotifications();
 
@@ -68,87 +44,59 @@ const movieSearch = useSearch({
 });
 
 // Estados locales
-const selectedMovie = ref(null);
 const errorMessage = ref("");
 
-// Estados computados
-const allowedMovieStatusesList = computed(() => {
-  return Array.isArray(moviesComposable.allowedStatuses.value) ? moviesComposable.allowedStatuses.value : [];
-});
+// Computed
+const allowedUserStatusesList = computed(() => 
+  Array.isArray(moviesComposable.allowedStatuses.value) ? moviesComposable.allowedStatuses.value : []
+);
 
-// Función para transformar datos de OMDb al formato esperado por LibraryMovieItem
-const transformMovieData = (omdbMovie) => {
-  if (!omdbMovie) return null;
+// Transformar resultado de búsqueda a formato de película
+const transformSearchResultToMovie = (result) => {
+  return {
+    isbn: result.imdbID,
+    imdbID: result.imdbID,
+    title: result.Title,
+    year: result.Year,
+    coverUrl: result.Poster !== 'N/A' ? result.Poster : null,
+    user_rating: 0,
+    userStatuses: []
+  };
+};
+
+// Navegación a página de detalle
+const goToMovieDetail = (movie) => {
+  if (!movie.imdbID) {
+    Logger.warn('[MovieSearch] Movie has no IMDb ID, cannot navigate to detail');
+    notifications.showError('Esta película no tiene IMDb ID disponible');
+    return;
+  }
   
-  // Procesar géneros: convertir string separado por comas a array
-  const processedGenres = omdbMovie.Genre && omdbMovie.Genre !== 'N/A' 
-    ? omdbMovie.Genre.split(', ').map(g => g.trim()) 
-    : [];
+  Logger.debug('[MovieSearch] Navigating to movie detail:', movie.imdbID);
   
+  // Transformar datos básicos de la película
   const movieData = {
-    isbn: omdbMovie.imdbID, // Usamos imdbID como ISBN para consistencia
-    imdbID: omdbMovie.imdbID,
-    title: omdbMovie.Title,
-    originalTitle: omdbMovie.Title,
-    director: omdbMovie.Director !== 'N/A' ? omdbMovie.Director : null,
-    author: omdbMovie.Director !== 'N/A' ? omdbMovie.Director : null, // Para consistencia
-    year: omdbMovie.Year,
-    coverUrl: omdbMovie.Poster !== 'N/A' ? omdbMovie.Poster : null,
-    user_rating: 0, // Nuevo, sin rating del usuario
-    userStatuses: [], // Nuevo, sin estados del usuario
-    itemType: 'movie',
-    // Datos adicionales de OMDb procesados
-    genres: processedGenres, // Array de géneros procesados
-    plot: omdbMovie.Plot,
-    imdbRating: omdbMovie.imdbRating
+    isbn: movie.imdbID,
+    imdbID: movie.imdbID,
+    title: movie.Title,
+    originalTitle: movie.Title,
+    year: movie.Year,
+    coverUrl: movie.Poster !== 'N/A' ? movie.Poster : null,
+    user_rating: 0,
+    userStatuses: [],
+    itemType: 'movie'
   };
   
-  // Debug: mostrar géneros extraídos
-  if (processedGenres.length > 0) {
-    console.log(`Extracted genres for "${omdbMovie.Title}":`, processedGenres);
-  }
-  
-  return movieData;
-};
-
-// Manejadores de eventos para LibraryMovieItem
-const handleDeleteMovie = async () => {
-  // En búsqueda no deberíamos tener películas guardadas para eliminar
-  console.warn('Delete movie called from search - this should not happen');
-};
-
-const handleUpdateRating = async (data) => {
-  await moviesComposable.updateMovieRating(data.isbn, data.rating);
-};
-
-const handleUpdateStatuses = async (data) => {
-  await moviesComposable.updateMovieStatuses(data.isbn, data.statuses);
-};
-
-const handleSaveMovie = async (data) => {
-  try {
-    const result = await moviesComposable.addMovie(data.movie, data.statuses);
-    if (result.success) {
-      notifications.showSuccess("Película guardada correctamente en tu biblioteca");
-      // Cerrar el acordeón después de guardar exitosamente
-      selectedMovie.value = null;
-    } else {
-      notifications.showError("Error al guardar la película: " + (result.message || 'Error desconocido'));
-    }
-  } catch (error) {
-    notifications.showError("Error al guardar la película: " + (error.message || error));
-  }
-};
-
-const handleEditItem = (movie, itemType) => {
-  // Aquí podríamos abrir el modal de edición si fuera necesario
-  console.log('Edit item from search:', { movie, itemType });
+  router.push({
+    name: 'MovieDetail',
+    params: { imdbId: movie.imdbID },
+    state: { movie: movieData }
+  });
 };
 
 const searchMovies = async () => {
   errorMessage.value = "";
   notifications.clearMessage();
-  selectedMovie.value = null;
   
   if (!movieSearch.query.value.trim()) {
     errorMessage.value = "Introduce un título o palabra clave para buscar.";
@@ -156,6 +104,7 @@ const searchMovies = async () => {
   }
   
   try {
+    Logger.debug('[MovieSearch] Searching movies:', movieSearch.query.value);
     const apiKey = 'f03583fd';
     const url = `https://www.omdbapi.com/?apikey=${apiKey}&s=${encodeURIComponent(movieSearch.query.value)}`;
     const response = await axios.get(url);
@@ -163,37 +112,15 @@ const searchMovies = async () => {
     if (response.data && response.data.Response === 'True') {
       movieSearch.results.value = response.data.Search;
       movieSearch.error.value = '';
+      Logger.debug(`[MovieSearch] Found ${response.data.Search.length} movies`);
     } else {
       errorMessage.value = response.data.Error || 'No se encontraron resultados.';
       movieSearch.results.value = [];
     }
   } catch (e) {
+    Logger.error('[MovieSearch] Error searching movies:', e);
     errorMessage.value = 'Error al buscar las películas.';
     movieSearch.results.value = [];
-  }
-};
-
-const toggleMovie = async (imdbID) => {
-  if (selectedMovie.value && selectedMovie.value.imdbID === imdbID) {
-    selectedMovie.value = null;
-    return;
-  }
-  selectedMovie.value = null;
-  
-  try {
-    const apiKey = 'f03583fd';
-    const url = `https://www.omdbapi.com/?apikey=${apiKey}&i=${imdbID}`;
-    const response = await axios.get(url);
-    
-    if (response.data && response.data.Response === 'True') {
-      selectedMovie.value = response.data;
-      console.log(`Loaded detailed movie data for "${response.data.Title}"`);
-      console.log('Raw OMDB genre data:', response.data.Genre);
-    } else {
-      errorMessage.value = response.data.Error || 'No se pudo cargar la información de la película.';
-    }
-  } catch (e) {
-    errorMessage.value = 'Error al cargar la información de la película.';
   }
 };
 
@@ -274,6 +201,7 @@ onMounted(async () => {
   color: var(--color-error);
   background-color: var(--color-error-bg);
 }
+/* Lista de resultados simplificada */
 .movie-list {
   width: 100%;
   max-width: 600px;
@@ -282,21 +210,26 @@ onMounted(async () => {
   flex-direction: column;
   gap: 10px;
 }
-.movie-list-item-wrapper {
-  display: flex;
-  flex-direction: column;
-}
+
 .movie-list-item {
   display: flex;
   align-items: center;
   background: var(--color-background-soft);
   border-radius: 10px;
-  padding: 10px;
+  padding: 12px;
   cursor: pointer;
-  transition: var(--transition-fast);
+  transition: all 0.2s ease;
   box-shadow: var(--shadow-light);
   border: 1px solid transparent;
 }
+
+.movie-list-item:hover {
+  background: var(--color-background-mute);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-medium);
+  transform: translateX(4px);
+}
+
 .movie-list-poster {
   width: 50px;
   height: 75px;
@@ -304,75 +237,40 @@ onMounted(async () => {
   border-radius: 4px;
   margin-right: 16px;
   border: 1px solid var(--color-border);
-}
-.movie-detail-below {
-  margin-left: 0;
-  margin-top: 0;
-  padding-left: 0;
-  box-sizing: border-box;
-  width: 100%;
-  max-width: 600px;
+  flex-shrink: 0;
 }
 
-/* Estilos específicos para LibraryMovieItem en contexto de búsqueda */
-.movie-detail-below .library-movie-item-container {
-  margin-top: 0;
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-  border-top: none;
-  background: var(--color-background-soft);
-  width: 100%;
-  max-width: 600px;
-  margin-left: 0;
-  box-sizing: border-box;
-}
-
-/* Ajustar el layout para que se vea bien en el acordeón */
-.movie-detail-below .movie-details {
-  gap: 16px;
-}
-
-.movie-detail-below .cover-image {
-  width: 120px;
-  height: auto;
-}
-.movie-list-item-wrapper:not(:last-child) {
-  margin-bottom: 10px;
-}
-.movie-list-item.expanded {
-  background: var(--color-background-mute);
-  border: 1px solid var(--color-primary-light);
-  box-shadow: var(--shadow-medium);
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-}
 .movie-list-info {
+  flex-grow: 1;
   display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.accordion-arrow {
-  font-size: 1.2rem;
-  color: #88aaff;
-  margin-left: 10px;
-  user-select: none;
-}
-.accordion-enter-active, .accordion-leave-active {
-  transition: max-height 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.3s;
-}
-.accordion-enter-from, .accordion-leave-to {
-  max-height: 0;
-  opacity: 0;
-}
-.accordion-enter-to, .accordion-leave-from {
-  max-height: 600px;
-  opacity: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
 
-.loading-statuses {
-  padding: 20px;
-  text-align: center;
-  color: var(--color-text-secondary);
-  background: var(--color-background-soft);
+.movie-list-title {
+  color: var(--color-text);
+  font-size: 1rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.movie-list-subtitle {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.movie-list-arrow {
+  font-size: 1.2rem;
+  color: var(--color-primary-light);
+  margin-left: 10px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.movie-list-item:hover .movie-list-arrow {
+  transform: translateX(4px);
 }
 </style>

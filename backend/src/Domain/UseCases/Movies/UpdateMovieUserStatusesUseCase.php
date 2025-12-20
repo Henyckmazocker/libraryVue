@@ -1,50 +1,61 @@
 <?php
+
+declare(strict_types=1);
+
 namespace App\Domain\UseCases\Movies;
 
-use App\Domain\Repository\MovieRepositoryInterface;
-use App\Domain\Repository\UserRepositoryInterface;
+use App\Domain\Repository\User\UserRepositoryInterface;
+use App\Domain\Repository\Movie\UserMovieRepositoryInterface;
+use App\Domain\UseCases\AbstractUseCase;
+use App\Domain\DTO\Commands\UpdateMovieStatusesCommand;
+use Psr\Log\LoggerInterface;
 use InvalidArgumentException;
 
-class UpdateMovieUserStatusesUseCase
+class UpdateMovieUserStatusesUseCase extends AbstractUseCase
 {
-    private MovieRepositoryInterface $movieRepository;
-    private UserRepositoryInterface $userRepository;
-
     public function __construct(
-        MovieRepositoryInterface $movieRepository,
-        UserRepositoryInterface $userRepository
+        private readonly UserRepositoryInterface $userRepository,
+        private readonly UserMovieRepositoryInterface $userMovieRepository,
+        LoggerInterface $logger
     ) {
-        $this->movieRepository = $movieRepository;
-        $this->userRepository = $userRepository;
+        parent::__construct($logger);
     }
 
-    /**
-     * @param int $userId ID of the user updating the movie
-     * @param string $movieId Movie ID 
-     * @param array $userStatuses The new array of user statuses
-     * @return bool True if update was successful
-     * @throws InvalidArgumentException if user or movie not found, or if user doesn't have this movie
-     */
-    public function execute(int $userId, string $movieId, array $userStatuses): bool
+    protected function doExecute($command): bool
     {
-        if (empty($movieId)) {
-            throw new InvalidArgumentException('Movie ID is required to update movie statuses.');
+        if (!$command instanceof UpdateMovieStatusesCommand) {
+            throw new InvalidArgumentException('Command must be an instance of UpdateMovieStatusesCommand');
         }
 
         // Validate user exists
-        $user = $this->userRepository->findById($userId);
+        $user = $this->userRepository->findById($command->userId);
         if (!$user) {
-            throw new InvalidArgumentException("User with ID {$userId} not found");
+            throw new InvalidArgumentException("User with ID {$command->userId} not found");
         }
 
         // Check if user has this movie in their library
-        if (!$this->userRepository->hasUserMovie($userId, $movieId)) {
+        if (!$this->userMovieRepository->hasMovie($command->userId, $command->id->toString())) {
             throw new InvalidArgumentException('Movie not found in your library.');
         }
 
         // Update the user's statuses for this movie
-        $this->movieRepository->updateUserMovieStatuses($userId, $movieId, $userStatuses);
+        $this->userMovieRepository->updateStatuses($command->userId, $command->id->toString(), $command->statuses);
         
         return true;
+    }
+
+    protected function getLogContext(): string
+    {
+        return 'UpdateMovieUserStatusesUseCase';
+    }
+
+    protected function getSuccessMessage(): string
+    {
+        return 'Movie statuses updated successfully';
+    }
+
+    protected function getErrorMessage(): string
+    {
+        return 'Failed to update movie statuses';
     }
 }

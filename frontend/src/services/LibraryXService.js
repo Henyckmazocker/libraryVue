@@ -6,7 +6,7 @@ import Logger from '@/utils/logger';
  */
 class LibraryXService {
   constructor() {
-    this.baseUrl = process.env.VUE_APP_API_URL || 'http://localhost:8888';
+    this.baseUrl = process.env.VUE_APP_API_URL || 'http://127.0.0.1:8888';
   }
 
   /**

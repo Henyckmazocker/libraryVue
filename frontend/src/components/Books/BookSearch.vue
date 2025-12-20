@@ -17,84 +17,36 @@
     </div>
     
     <div v-if="nameSearch.error.value || isbnSearchError" class="error-message">{{ nameSearch.error.value || isbnSearchError }}</div>
-    <div :class="['status-message', notifications.statusType.value]" aria-live="polite" style="min-height: 2.5em;">
-      <span v-if="notifications.statusMessage.value">{{ notifications.statusMessage.value }}</span>
-    </div>
 
-    <!-- Lista de resultados con acordeón (igual que MovieSearch) -->
+    <!-- Lista de resultados simplificada sin acordeón -->
     <div v-if="nameSearch.results.value && nameSearch.results.value.length" class="search-results-list">
-      <div v-for="result in nameSearch.results.value" :key="result.key" class="search-list-item-wrapper">
-        <div class="search-list-item" :class="{ expanded: selectedBook && selectedBook.key === result.key }" @click="toggleBook(result.key)">
-          <img v-if="result.cover_i" :src="getBookCoverUrl(result.cover_i)" alt="Portada" class="search-list-poster" />
-          <div class="search-list-info">
-            <span class="search-list-title">{{ result.title }} {{ result.isbn ? `(${result.isbn})` : '' }}</span>
-            <span v-if="selectedBook && selectedBook.key === result.key" class="accordion-arrow">
-              <i class="fas fa-chevron-up"></i>
-            </span>
-            <span v-else class="accordion-arrow">
-              <i class="fas fa-chevron-down"></i>
-            </span>
-          </div>
-        </div>
-        <transition name="accordion">
-          <div v-if="selectedBook && selectedBook.key === result.key" class="search-detail-below">
-            <LibraryBookItem 
-              v-if="allowedUserStatusesList.length > 0"
-              :book="currentBook.isbn === selectedBook.isbn?.[0] ? currentBook : transformBookData(selectedBook)" 
-              :allowedUserStatuses="allowedUserStatusesList" 
-              :editable="true"
-              :readonly="false"
-              @update-rating="onUpdateRating"
-              @update-statuses="onUpdateStatuses"
-              @save-book="addBookToLibrary"
-            />
-            <div v-else class="loading-statuses">
-              Cargando estados disponibles...
-            </div>
-          </div>
-        </transition>
-      </div>
-    </div>
-
-    <!-- Resultado de búsqueda por ISBN -->
-    <div v-if="currentBook.title && !isFromAccordion">
-      <LibraryBookItem
-        :book="currentBook"
-        :allowedUserStatuses="allowedUserStatusesList"
-        :editable="true"
-        :readonly="false"
-        @update-rating="onUpdateRating"
-        @update-statuses="onUpdateStatuses"
-        @save-book="addBookToLibrary"
-        @show-session-history="handleShowSessionHistory"
+      <BookListItem
+        v-for="result in nameSearch.results.value"
+        :key="result.key"
+        :book="transformSearchResultToBook(result)"
+        :allowedStatuses="allowedUserStatusesList"
+        @click="goToBookDetail"
       />
     </div>
-
-    <!-- Session History Modal -->
-    <SessionHistoryModal
-      :is-visible="sessionHistoryModal.isVisible"
-      :book="sessionHistoryModal.book"
-      :history="sessionHistoryModal.history"
-      @close="closeSessionHistoryModal"
-    />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from "vue";
+import { ref, onMounted, computed } from "vue";
+import { useRouter } from 'vue-router';
 import axios from 'axios';
+import BookListItem from '@/components/Books/BookListItem.vue';
 import { useBooks } from '@/composables/useBooks';
 import { useSearch } from '@/composables/useSearch';
 import { useLibraryNotifications } from '@/composables/useLibraryNotifications';
-import LibraryBookItem from './LibraryBookItem.vue';
-import SessionHistoryModal from './SessionHistoryModal.vue';
 import Logger from '@/utils/logger';
 
 // Composables
+const router = useRouter();
 const booksComposable = useBooks();
 const notifications = useLibraryNotifications();
 
-// Configurar búsqueda para búsqueda por nombre (solo para estado, no para auto-búsqueda)
+// Configurar búsqueda para búsqueda por nombre
 const nameSearch = useSearch({
   debounceDelay: 500,
   minQueryLength: 3
@@ -102,30 +54,6 @@ const nameSearch = useSearch({
 
 // Estados locales del componente
 const decodedText = ref("");
-const selectedBook = ref(null);
-const isFromAccordion = ref(false);
-
-// Estado del modal de historial de sesiones
-const sessionHistoryModal = ref({
-  isVisible: false,
-  book: {},
-  history: []
-});
-const currentBook = reactive({
-  isbn: "",
-  title: "",
-  author: "",
-  publisher: "",
-  publicationDate: "",
-  coverUrl: "",
-  pages: null,
-  description: "",
-  genres: [], // Géneros del libro
-  publishers: "",
-  rating: null,
-  user_rating: null,
-  userStatuses: []
-});
 const isbnSearchError = ref("");
 
 // Estados computados
@@ -133,31 +61,54 @@ const allowedUserStatusesList = computed(() =>
   Array.isArray(booksComposable.allowedStatuses.value) ? booksComposable.allowedStatuses.value : []
 );
 
-// Funciones del acordeón
-const toggleBook = async (bookKey) => {
-  const book = nameSearch.results.value.find(r => r.key === bookKey);
-  if (!book) return;
+// Transformar resultado de búsqueda a formato de libro
+const transformSearchResultToBook = (result) => {
+  const isbn = Array.isArray(result.isbn) ? result.isbn[0] : result.isbn;
+  return {
+    isbn: isbn,
+    title: result.title || 'Título no disponible',
+    author: Array.isArray(result.author) ? result.author.join(', ') : (result.author || 'Autor desconocido'),
+    coverUrl: getBookCoverUrl(result.cover_i),
+    user_rating: 0,
+    userStatuses: []
+  };
+};
+
+// Navegación a página de detalle
+const goToBookDetail = (book) => {
+  // Extraer el ISBN, puede ser un string o un array
+  const isbn = Array.isArray(book.isbn) ? book.isbn[0] : book.isbn;
   
-  if (selectedBook.value && selectedBook.value.key === bookKey) {
-    // Si ya está seleccionado, contraer
-    selectedBook.value = null;
-    isFromAccordion.value = false;
-  } else {
-    // Seleccionar nuevo libro
-    selectedBook.value = book;
-    isFromAccordion.value = true;
-    clearBookDetails(); // Limpiar el libro actual para evitar conflictos
-    
-    // Si el libro tiene ISBN, buscar detalles completos con Google Books API para obtener géneros
-    if (book.isbn && book.isbn.length > 0) {
-      try {
-        Logger.debug("Fetching full book details with genres for selected book:", book.isbn[0]);
-        await fetchBookDetailsByISBN(book.isbn);
-      } catch (error) {
-        Logger.warn("Could not fetch full book details for selected book:", error);
-      }
-    }
+  if (!isbn) {
+    Logger.warn('[BookSearch] Book has no ISBN, cannot navigate to detail');
+    notifications.showError('Este libro no tiene ISBN disponible');
+    return;
   }
+  
+  Logger.debug('[BookSearch] Navigating to book detail:', isbn);
+  
+  // Transformar datos del libro al formato esperado
+  const bookData = {
+    isbn: isbn,
+    title: book.title || 'Título no disponible',
+    author: Array.isArray(book.author) ? book.author.join(', ') : (book.author || 'Autor no disponible'),
+    publisher: Array.isArray(book.publisher) ? book.publisher.join(', ') : (book.publisher || ''),
+    publicationDate: book.publicationDate || '',
+    coverUrl: getBookCoverUrl(book.cover_i),
+    pages: book.pages || null,
+    description: book.description || '',
+    publishers: Array.isArray(book.publisher) ? book.publisher : (book.publisher ? [book.publisher] : []),
+    rating: null,
+    user_rating: null,
+    userStatuses: [],
+    genres: book.genres || []
+  };
+  
+  router.push({
+    name: 'BookDetail',
+    params: { isbn: isbn },
+    state: { book: bookData }
+  });
 };
 
 // Función para obtener URL de portada
@@ -173,242 +124,28 @@ const getBookCoverUrl = (cover_i) => {
   }
 };
 
-// Función para transformar datos del acordeón al formato esperado por LibraryBookItem
-const transformBookData = (book) => {
-  if (!book) return null;
-  
-  return {
-    isbn: book.isbn || '',
-    title: book.title || 'Title not available',
-    author: Array.isArray(book.author) ? book.author.join(', ') : (book.author || 'Author not available'),
-    publisher: Array.isArray(book.publisher) ? book.publisher.join(', ') : (book.publisher || ''),
-    publicationDate: book.publicationDate || '',
-    coverUrl: getBookCoverUrl(book.cover_i),
-    pages: book.pages || null,
-    description: book.description || '',
-    publishers: Array.isArray(book.publisher) ? book.publisher : (book.publisher ? [book.publisher] : []),
-    rating: null,
-    user_rating: null,
-    userStatuses: [],
-    genres: book.categories || [] // Agregar géneros/categorías
-  };
-};
 
-// Maneja la actualización de estados desde LibraryBookItem
-const onUpdateStatuses = ({ statuses }) => {
-  currentBook.userStatuses = [...statuses];
-};
 
-// Maneja la actualización de rating desde LibraryBookItem
-const onUpdateRating = ({ rating }) => {
-  currentBook.user_rating = rating;
-};
-
-// ===================================
-// MÉTODOS DEL MODAL DE HISTORIAL DE SESIONES
-// ===================================
-
-const handleShowSessionHistory = async (data) => {
-  try {
-    Logger.debug('Showing session history for book:', data.book.title);
-    
-    sessionHistoryModal.value = {
-      isVisible: true,
-      book: data.book,
-      history: data.history || []
-    };
-  } catch (error) {
-    Logger.error('Error showing session history:', error);
-    notifications.showError('Error al cargar el historial de sesiones');
-  }
-};
-
-const closeSessionHistoryModal = () => {
-  sessionHistoryModal.value = {
-    isVisible: false,
-    book: {},
-    history: []
-  };
-};
-
-const clearBookDetails = () => {
-  currentBook.isbn = "";
-  currentBook.title = "";
-  currentBook.author = "";
-  currentBook.publisher = "";
-  currentBook.publicationDate = "";
-  currentBook.coverUrl = "";
-  currentBook.pages = null;
-  currentBook.description = "";
-  currentBook.genres = []; // Limpiar géneros
-  currentBook.publishers = "";
-  currentBook.rating = null;
-  currentBook.user_rating = null;
-  currentBook.userStatuses = [];
-};
-
-// Renamed from onDecode, which was specific to the old structure
+// Búsqueda por ISBN simplificada - navega directamente
 const triggerFetchBookInfo = () => {
-  clearBookDetails();
   isbnSearchError.value = "";
-  selectedBook.value = null; // Limpiar selección del acordeón
-  isFromAccordion.value = false;
-  fetchBookInfo();
-}
-
-// Función específica para buscar detalles por ISBN sin afectar decodedText
-const fetchBookDetailsByISBN = async (isbn) => {
-  try {
-    Logger.debug("Trying Google Books API for ISBN:", isbn);
-    const googleApiUrl = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`;
-    const response = await axios.get(googleApiUrl);
-    const data = response.data;
-
-    if (data.items && data.items.length > 0) {
-      const bookId = data.items[0].id;
-      Logger.debug("Found book ID:", bookId, "- Getting full details...");
-      
-      // Get full book details using the book ID
-      const detailsResponse = await axios.get(`https://www.googleapis.com/books/v1/volumes/${bookId}`);
-      const book = detailsResponse.data.volumeInfo;
-      
-      Logger.debug("Fetched complete book details from Google Books:", book);
-      currentBook.isbn = isbn;
-      currentBook.title = book.title || "Title not found";
-      currentBook.author = (book.authors && book.authors.length > 0) ? book.authors.join(', ') : "Author not found";
-      currentBook.publisher = book.publisher || "";
-      currentBook.publicationDate = book.publishedDate || "";
-      currentBook.coverUrl = book.imageLinks?.large?.replace('http:', 'https:') ||
-                            book.imageLinks?.medium?.replace('http:', 'https:') ||
-                            book.imageLinks?.thumbnail?.replace('http:', 'https:') || 
-                            book.imageLinks?.smallThumbnail?.replace('http:', 'https:') || "";
-      currentBook.pages = book.pageCount || null;
-      currentBook.description = book.description || "";
-      currentBook.genres = book.categories || []; // Extraer géneros/categorías
-      currentBook.publishers = book.publisher ? [book.publisher] : [];
-      
-      Logger.debug("Book found with Google Books API (full details):", currentBook.title);
-      Logger.debug("Extracted genres:", currentBook.genres);
-      
-      return true; // Success
-    }
-  } catch (error) {
-    Logger.warn("Could not fetch book details from Google Books API:", error);
-    return false;
-  }
-  
-  return false; // No book found
-};
-
-const fetchBookInfo = async () => {
-  // searchError and book details are cleared by the calling functions (handleIsbnScanned or triggerFetchBookInfo)
   const isbn = decodedText.value.trim();
-  currentBook.isbn = isbn;
-
+  
   if (!isbn) {
-    isbnSearchError.value = "Please enter or scan an ISBN.";
+    isbnSearchError.value = "Por favor ingresa un ISBN.";
     return;
   }
+  
+  Logger.debug('[BookSearch] Navigating to book detail by ISBN:', isbn);
+  router.push({
+    name: 'BookDetail',
+    params: { isbn: isbn }
+  });
+}
 
-  // Try Google Books API first
-  try {
-    Logger.debug("Trying Google Books API...");
-    const googleApiUrl = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`;
-    const response = await axios.get(googleApiUrl);
-    const data = response.data;
-
-    if (data.items && data.items.length > 0) {
-      const bookId = data.items[0].id;
-      Logger.debug("Found book ID:", bookId, "- Getting full details...");
-      
-      // Get full book details using the book ID
-      const detailsResponse = await axios.get(`https://www.googleapis.com/books/v1/volumes/${bookId}`);
-      const book = detailsResponse.data.volumeInfo;
-      
-      Logger.debug("Fetched complete book details from Google Books:", book);
-      currentBook.title = book.title || "Title not found";
-      currentBook.author = (book.authors && book.authors.length > 0) ? book.authors.join(', ') : "Author not found";
-      currentBook.publisher = book.publisher || "";
-      currentBook.publicationDate = book.publishedDate || "";
-      currentBook.coverUrl = book.imageLinks?.large?.replace('http:', 'https:') ||
-                            book.imageLinks?.medium?.replace('http:', 'https:') ||
-                            book.imageLinks?.thumbnail?.replace('http:', 'https:') || 
-                            book.imageLinks?.smallThumbnail?.replace('http:', 'https:') || "";
-      currentBook.pages = book.pageCount || null;
-      currentBook.description = book.description || "";
-      currentBook.genres = book.categories || []; // Extraer géneros/categorías
-      currentBook.publishers = book.publisher ? [book.publisher] : [];
-      
-      Logger.debug("Book found with Google Books API (full details):", currentBook.title);
-      Logger.debug("Extracted genres:", currentBook.genres);
-      
-      // Auto-save the book when found by ISBN
-      await autoSaveBookFromISBN();
-      
-      return; // Success, no need to try fallback
-    }
-  } catch (error) {
-    Logger.warn("Google Books API failed, trying fallback:", error.message);
-  }
-
-  // Fallback to OpenLibrary API
-  try {
-    Logger.debug("Trying OpenLibrary API as fallback...");
-    const openLibraryUrl = `https://openlibrary.org/isbn/${isbn}.json`;
-    const response = await axios.get(openLibraryUrl);
-    const data = response.data;
-
-    if (!data.error) {
-      const details = data;
-      currentBook.title = details.title || "Title not found";
-      Logger.debug("Fetched book details from OpenLibrary:", details);  
-      currentBook.author = (details.authors && details.authors.length > 0) ? details.authors[0].name : "Author not found";
-      currentBook.publisher = (details.publishers && details.publishers.length > 0) ? details.publishers[0] : "";
-      currentBook.publicationDate = details.publish_date || "";
-      currentBook.coverUrl = (details.covers && details.covers.length > 0) ? `https://covers.openlibrary.org/b/id/${details.covers[0]}-L.jpg` : "";
-      currentBook.pages = details.number_of_pages || null;
-      currentBook.description = details.description || "";
-      currentBook.publishers = (details.publishers && details.publishers.length > 0) ? details.publishers : [];
-      
-      // Auto-save the book when found by ISBN (fallback case)
-      await autoSaveBookFromISBN();
-      
-      if (currentBook.title === "Title not found" && currentBook.author === "Author not found") {
-        isbnSearchError.value = "Book details not found for this ISBN in any available database.";
-      }
-    } else {
-      isbnSearchError.value = "Book not found for this ISBN in any available database.";
-    }
-  } catch (error) {
-    Logger.error("Both APIs failed. Error with OpenLibrary:", error);
-    if (error.response) {
-      Logger.error("API Error Response:", error.response.data);
-      if (error.response.status === 503) {
-        isbnSearchError.value = "Book information services are temporarily unavailable (503). Please try again later.";
-      } else if (error.response.status === 404) {
-        isbnSearchError.value = "Book not found for this ISBN in any available database.";
-      } else if (error.response.status === 429) {
-        isbnSearchError.value = "Too many requests to book APIs. Please try again later.";
-      } else {
-        isbnSearchError.value = `Failed to fetch book information. Last API returned status ${error.response.status}.`;
-      }
-    } else if (error.request) {
-      isbnSearchError.value = "No response from book APIs. Check your internet connection or try again later.";
-    } else {
-      isbnSearchError.value = "Error setting up request to book APIs: " + error.message;
-    }
-    // Clear book details on error as well, so no stale info is shown
-    currentBook.title = "";
-    currentBook.author = "";
-    currentBook.coverUrl = "";
-  }
-};
-
+// Simplificar búsqueda por nombre - solo preparar lista
 const triggerFetchBookByName = async () => {
-  // Clear current book details and accordion state when starting a new search
-  clearBookDetails();
-  selectedBook.value = null;
-  isFromAccordion.value = false;
+  // Limpiar estado previo
   
   if (!nameSearch.query.value.trim()) {
     nameSearch.error.value = "Introduce un título o palabra clave para buscar.";
@@ -572,132 +309,6 @@ const triggerFetchBookByName = async () => {
   }
 };
 
-const autoSaveBookFromISBN = async () => {
-  // Only auto-save if we have valid book details
-  if (!currentBook.title || currentBook.title === "Title not found") {
-    Logger.debug("Cannot auto-save: invalid book details");
-    return;
-  }
-
-  // Check if book already exists in library using composable
-  const existingBook = booksComposable.findBookByISBN(currentBook.isbn);
-  
-  if (existingBook) {
-    Logger.debug("Book already exists in library, skipping auto-save");
-    notifications.showMessage("Book already exists in your library.", "info");
-    return;
-  }
-
-  // Ensure allowed statuses are loaded before attempting auto-save
-  Logger.debug("Current allowed statuses:", allowedUserStatusesList.value);
-  if (allowedUserStatusesList.value.length === 0) {
-    Logger.debug("No allowed statuses available, fetching them first...");
-    await booksComposable.fetchAllowedStatuses();
-    Logger.debug("After fetching, allowed statuses:", allowedUserStatusesList.value);
-  }
-
-  // Auto-save with "owned" as default status using existing addBookToLibrary function
-  const defaultStatuses = allowedUserStatusesList.value.includes('owned') ? ['owned'] : 
-                           allowedUserStatusesList.value.length > 0 ? [allowedUserStatusesList.value[0]] : [];
-    
-  if (defaultStatuses.length === 0) {
-    Logger.debug("Cannot auto-save: no allowed statuses available even after fetching");
-    return;
-  }
-
-  try {
-    Logger.debug("Auto-saving book with default statuses:", defaultStatuses);
-    
-    // Reuse the existing addBookToLibrary function
-    await addBookToLibrary({ 
-      book: { ...currentBook }, 
-      statuses: defaultStatuses 
-    });
-    
-    // Update the message to indicate it was auto-saved
-    if (notifications.statusType.value === "success") {
-      notifications.showSuccess(`Book automatically saved to library with status: ${defaultStatuses.join(', ')}`);
-      
-      // Set userStatuses on currentBook to reflect that it's now saved
-      currentBook.userStatuses = [...defaultStatuses];
-    }
-  } catch (error) {
-    Logger.error("Error during auto-save:", error);
-    // Don't show error to user for auto-save failures, just log it
-  }
-};
-
-const addBookToLibrary = async (bookDetailsWithStatuses) => {
-  const { book, statuses } = bookDetailsWithStatuses;
-
-  if (!book.title || book.title === "Title not found") {
-    notifications.showError("Cannot add book: valid details not found.");
-    return;
-  }
-  if (!statuses || statuses.length === 0) {
-    notifications.showError("Cannot add book: at least one user status must be selected.");
-    return;
-  }
-
-  // Ensure allowed statuses are loaded
-  if (allowedUserStatusesList.value.length === 0) {
-    Logger.debug("Allowed statuses not loaded, fetching them first...");
-    await booksComposable.fetchAllowedStatuses();
-  }
-
-  // Validate that the statuses being sent are allowed
-  const invalidStatuses = statuses.filter(status => !allowedUserStatusesList.value.includes(status));
-  if (invalidStatuses.length > 0) {
-    Logger.error("Invalid statuses detected:", invalidStatuses);
-    Logger.error("Allowed statuses:", allowedUserStatusesList.value);
-    notifications.showError(`Invalid status(es): ${invalidStatuses.join(', ')}. Allowed: ${allowedUserStatusesList.value.join(', ')}`);
-    return;
-  }
-
-  // Check if book already exists in library
-  const existingBook = booksComposable.findBookByISBN(book.isbn);
-  if (existingBook) {
-    Logger.debug("Book already exists in library, cannot add duplicate");
-    notifications.showMessage("Book already exists in your library.", "info");
-    return;
-  }
-
-  // If book doesn't have genres and has an ISBN, try to fetch them from Google Books API
-  // Create a copy of the book to avoid mutating the original parameter
-  let bookToSave = { ...book };
-
-  if ((!bookToSave.genres || bookToSave.genres.length === 0) && bookToSave.isbn) {
-    Logger.debug("Book has no genres, attempting to fetch from Google Books API...");
-    try {
-      await fetchBookDetailsByISBN(bookToSave.isbn);
-      // If currentBook was updated with the same ISBN, use it instead
-      if (currentBook.isbn === bookToSave.isbn && currentBook.genres && currentBook.genres.length > 0) {
-        Logger.debug("Found genres from Google Books, using currentBook:", currentBook.genres);
-        bookToSave = { ...bookToSave, genres: currentBook.genres };
-      }
-    } catch (error) {
-      Logger.warn("Could not fetch genres for book:", error);
-    }
-  }
-
-  // Use the books composable to add the book
-  Logger.debug("Book details being sent:", bookToSave);
-  Logger.debug("User statuses being sent:", statuses);
-  
-  const result = await booksComposable.addBook(bookToSave, statuses);
-  
-  if (result.success) {
-    notifications.showSuccess("Book added successfully!");
-    
-    // Set userStatuses on currentBook to reflect that it's now saved
-    if (currentBook.isbn === book.isbn) {
-      currentBook.userStatuses = [...statuses];
-    }
-  } else {
-    notifications.showError(result.message || "Failed to add book. Unknown error.");
-  }
-};
-
 // Load allowed user statuses from backend on component mount
 onMounted(async () => {
   try {
@@ -808,7 +419,7 @@ onMounted(async () => {
   background-color: rgba(0, 123, 255, 0.1);
 }
 
-/* Lista de resultados de búsqueda idéntica a MovieSearch */
+/* Lista de resultados simplificada */
 .search-results-list {
   width: 100%;
   max-width: 600px;
@@ -818,21 +429,23 @@ onMounted(async () => {
   gap: 10px;
 }
 
-.search-list-item-wrapper {
-  display: flex;
-  flex-direction: column;
-}
-
 .search-list-item {
   display: flex;
   align-items: center;
   background: #232323;
   border-radius: 10px;
-  padding: 10px;
+  padding: 12px;
   cursor: pointer;
-  transition: background 0.2s, box-shadow 0.2s;
+  transition: all 0.2s ease;
   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   border: 1px solid transparent;
+}
+
+.search-list-item:hover {
+  background: #282c34;
+  border-color: #007bff;
+  box-shadow: 0 2px 8px rgba(0,123,255,0.15);
+  transform: translateX(4px);
 }
 
 .search-list-poster {
@@ -842,91 +455,44 @@ onMounted(async () => {
   border-radius: 4px;
   margin-right: 16px;
   border: 1px solid #444;
-}
-
-.search-detail-below {
-  margin-left: 0;
-  margin-top: 0;
-  padding-left: 0;
-  box-sizing: border-box;
-  width: 100%;
-  max-width: 600px;
-}
-
-/* Estilos específicos para LibraryBookItem en contexto de búsqueda */
-.search-detail-below .library-book-item-container {
-  margin-top: 0;
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-  border-top: none;
-  background: #232323;
-  width: 100%;
-  max-width: 600px;
-  margin-left: 0;
-  box-sizing: border-box;
-}
-
-/* Ajustar el layout para que se vea bien en el acordeón */
-.search-detail-below .book-details {
-  gap: 16px;
-}
-
-.search-detail-below .cover-image {
-  width: 120px;
-  height: auto;
-}
-
-.search-list-item-wrapper:not(:last-child) {
-  margin-bottom: 10px;
-}
-
-.search-list-item.expanded {
-  background: #282c34;
-  border: 1px solid #007bff;
-  box-shadow: 0 2px 8px rgba(0,123,255,0.08);
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
+  flex-shrink: 0;
 }
 
 .search-list-info {
+  flex-grow: 1;
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
 
 .search-list-title {
   color: #e0e0e0;
   font-size: 1rem;
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.accordion-arrow {
+.search-list-subtitle {
+  color: #888;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-list-arrow {
   font-size: 1.2rem;
   color: #88aaff;
   margin-left: 10px;
-  user-select: none;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
 }
 
-/* Animaciones idénticas a MovieSearch */
-.accordion-enter-active, .accordion-leave-active {
-  transition: max-height 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.3s;
-}
-
-.accordion-enter-from, .accordion-leave-to {
-  max-height: 0;
-  opacity: 0;
-}
-
-.accordion-enter-to, .accordion-leave-from {
-  max-height: 600px;
-  opacity: 1;
-}
-
-.loading-statuses {
-  padding: 20px;
-  text-align: center;
-  color: #888;
-  background: #232323;
+.search-list-item:hover .search-list-arrow {
+  transform: translateX(4px);
 }
 
 /* Responsive design */

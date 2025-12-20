@@ -15,7 +15,7 @@ services:
       - ./frontend/vue.config.js:/app/vue.config.js
     environment:
       - NODE_ENV=development
-      - VUE_APP_API_URL=http://localhost:8888/index.php
+      - VUE_APP_API_URL=http://127.0.0.1:8888/index.php
       - VUE_APP_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
     depends_on:
       - backend

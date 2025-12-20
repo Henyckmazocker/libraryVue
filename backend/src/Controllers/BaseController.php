@@ -94,18 +94,4 @@ abstract class BaseController
         }
         return $data;
     }
-
-    /**
-     * Handle HTTP request - to be implemented by child controllers
-     */
-    public function handleRequest(string $method, string $path): void
-    {
-        // This method should be overridden by each controller
-        // For now, return a not implemented response
-        http_response_code(501);
-        echo json_encode([
-            'error' => true,
-            'message' => 'Method not implemented in ' . static::class
-        ]);
-    }
 }

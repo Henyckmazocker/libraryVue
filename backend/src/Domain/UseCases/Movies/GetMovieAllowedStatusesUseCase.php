@@ -4,27 +4,45 @@ declare(strict_types=1);
 
 namespace App\Domain\UseCases\Movies;
 
-use App\Domain\Repository\MovieRepositoryInterface;
+use App\Domain\Repository\Movie\MovieRepositoryInterface;
+use App\Domain\UseCases\AbstractUseCase;
+use App\Domain\DTO\Queries\GetAllowedStatusesQuery;
+use Psr\Log\LoggerInterface;
+use InvalidArgumentException;
 
-class GetMovieAllowedStatusesUseCase
+class GetMovieAllowedStatusesUseCase extends AbstractUseCase
 {
-    private MovieRepositoryInterface $movieRepository;
-
-    public function __construct(MovieRepositoryInterface $movieRepository)
-    {
-        $this->movieRepository = $movieRepository;
+    public function __construct(
+        private readonly MovieRepositoryInterface $movieRepository,
+        LoggerInterface $logger
+    ) {
+        parent::__construct($logger);
     }
 
     /**
-     * @return array
+     * Execute with GetAllowedStatusesQuery
      */
-    public function execute(): array
+    protected function doExecute($command): array
     {
-        // Suponemos que el repositorio tiene un método público para esto, si no, hay que exponerlo
-        if (method_exists($this->movieRepository, 'fetchAllowedStatuses')) {
-            return $this->movieRepository->fetchAllowedStatuses();
+        // Validate command
+        if (!$command instanceof GetAllowedStatusesQuery) {
+            throw new InvalidArgumentException('Command must be an instance of GetAllowedStatusesQuery');
         }
-        // Si no existe, puedes crear un método público en el repositorio
-        throw new \RuntimeException('MovieRepositoryInterface must expose fetchAllowedStatuses()');
+
+        if ($command->entityType !== 'movie') {
+            throw new InvalidArgumentException('This use case only handles movie statuses');
+        }
+
+        return $this->movieRepository->fetchAllowedStatuses();
+    }
+
+    protected function getLogContext(): string
+    {
+        return 'GetMovieAllowedStatusesUseCase';
+    }
+
+    protected function getSuccessMessage(): string
+    {
+        return 'Movie allowed statuses retrieved successfully';
     }
 }

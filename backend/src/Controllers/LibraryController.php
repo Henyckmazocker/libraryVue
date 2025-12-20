@@ -7,9 +7,12 @@ use App\Domain\UseCases\Movies\GetMoviesUseCase;
 use App\Domain\UseCases\Books\AddBookUseCase;
 use App\Domain\UseCases\Movies\AddMovieUseCase;
 use App\Domain\UseCases\Movies\GetMovieAllowedStatusesUseCase;
-use App\Domain\Repository\BookRepositoryInterface;
-use App\Domain\Repository\UserRepositoryInterface;
+use App\Domain\UseCases\Books\GetBookAllowedStatusesUseCase;
+use App\Domain\Repository\Book\UserBookRepositoryInterface;
+use App\Domain\Repository\Movie\UserMovieRepositoryInterface;
 use App\Infrastructure\Middleware\AuthMiddleware;
+use App\Domain\DTO\Queries\GetBooksByUserQuery;
+use App\Domain\DTO\Queries\GetMoviesByUserQuery;
 
 class LibraryController extends BaseController implements Contracts\LibraryControllerInterface
 {
@@ -19,8 +22,9 @@ class LibraryController extends BaseController implements Contracts\LibraryContr
     private AddBookUseCase $addBookUseCase;
     private AddMovieUseCase $addMovieUseCase;
     private GetMovieAllowedStatusesUseCase $getMovieAllowedStatusesUseCase;
-    private BookRepositoryInterface $bookRepository;
-    private UserRepositoryInterface $userRepository;
+    private GetBookAllowedStatusesUseCase $getBookAllowedStatusesUseCase;
+    private UserBookRepositoryInterface $userBookRepository;
+    private UserMovieRepositoryInterface $userMovieRepository;
     private AuthMiddleware $authMiddleware;
 
     public function __construct(
@@ -30,8 +34,9 @@ class LibraryController extends BaseController implements Contracts\LibraryContr
         AddBookUseCase $addBookUseCase,
         AddMovieUseCase $addMovieUseCase,
         GetMovieAllowedStatusesUseCase $getMovieAllowedStatusesUseCase,
-        BookRepositoryInterface $bookRepository,
-        UserRepositoryInterface $userRepository,
+        GetBookAllowedStatusesUseCase $getBookAllowedStatusesUseCase,
+        UserBookRepositoryInterface $userBookRepository,
+        UserMovieRepositoryInterface $userMovieRepository,
         AuthMiddleware $authMiddleware
     ) {
         $this->getLibraryUseCase = $getLibraryUseCase;
@@ -40,17 +45,20 @@ class LibraryController extends BaseController implements Contracts\LibraryContr
         $this->addBookUseCase = $addBookUseCase;
         $this->addMovieUseCase = $addMovieUseCase;
         $this->getMovieAllowedStatusesUseCase = $getMovieAllowedStatusesUseCase;
-        $this->bookRepository = $bookRepository;
-        $this->userRepository = $userRepository;
+        $this->getBookAllowedStatusesUseCase = $getBookAllowedStatusesUseCase;
+        $this->userBookRepository = $userBookRepository;
+        $this->userMovieRepository = $userMovieRepository;
         $this->authMiddleware = $authMiddleware;
     }
 
     public function getLibraryItems(int $userId): array
     {
-        $filters = [];
         // Get books and movies for this specific user
-        $books = $this->getBooksUseCase->execute($userId, $filters);
-        $movies = $this->getMoviesUseCase->execute($userId, $filters);
+        $booksQuery = new GetBooksByUserQuery($userId);
+        $books = $this->getBooksUseCase->execute($booksQuery);
+        
+        $moviesQuery = new GetMoviesByUserQuery($userId);
+        $movies = $this->getMoviesUseCase->execute($moviesQuery);
         
         return $this->successResponse('Library items (books and movies) retrieved.', [
             'books' => $books,
@@ -61,7 +69,8 @@ class LibraryController extends BaseController implements Contracts\LibraryContr
     public function saveLibrary(int $userId): array
     {
         // Obtiene la biblioteca actual del usuario específico y la guarda en my_library.json
-        $books = $this->getBooksUseCase->execute($userId);
+        $booksQuery = new GetBooksByUserQuery($userId);
+        $books = $this->getBooksUseCase->execute($booksQuery);
         $libraryArray = array_map(fn($book) => $book->toArray(), $books);
         $libraryFilePath = __DIR__ . '/../../public/my_library.json';
         $json = json_encode($libraryArray, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
@@ -91,13 +100,16 @@ class LibraryController extends BaseController implements Contracts\LibraryContr
                 
                 if ($isMovie) {
                     // Procesar como película
-                    if ($this->userRepository->hasUserMovie($userId, $itemData['id'])) {
+                    $existingMovie = $this->userMovieRepository->findByUserAndMovie($userId, $itemData['id']);
+                    if ($existingMovie !== null) {
                         $skippedCount++;
                         continue; // Skip movies user already has
                     }
                     
-                    $allowedStatuses = $this->getMovieAllowedStatusesUseCase->execute();
+                    $query = \App\Domain\DTO\Queries\GetAllowedStatusesQuery::forMovies();
+                    $allowedStatuses = $this->getMovieAllowedStatusesUseCase->execute($query);
                     $movieDataForUseCase = [
+                        'user_id' => $userId,
                         'id' => $itemData['id'],
                         'title' => $itemData['title'],
                         'originalTitle' => $itemData['originalTitle'] ?? $itemData['title'],
@@ -109,18 +121,22 @@ class LibraryController extends BaseController implements Contracts\LibraryContr
                         'allowedStatuses' => $allowedStatuses
                     ];
                     
-                    $this->addMovieUseCase->execute($movieDataForUseCase, $userId);
+                    $movieCommand = \App\Domain\DTO\Commands\AddMovieCommand::fromArray($movieDataForUseCase);
+                    $this->addMovieUseCase->execute($movieCommand);
                     $importedCount++;
                     
                 } else if ($isBook) {
                     // Procesar como libro
-                    if ($this->userRepository->hasUserBook($userId, $itemData['isbn'])) {
+                    $existingBook = $this->userBookRepository->findByUserAndBook($userId, $itemData['isbn']);
+                    if ($existingBook !== null) {
                         $skippedCount++;
                         continue; // Skip books user already has
                     }
                     
-                    $allowedStatuses = $this->bookRepository->fetchAllowedStatuses();
+                    $query = \App\Domain\DTO\Queries\GetAllowedStatusesQuery::forBooks();
+                    $allowedStatuses = $this->getBookAllowedStatusesUseCase->execute($query);
                     $bookDataForUseCase = [
+                        'user_id' => $userId,
                         'isbn' => $itemData['isbn'],
                         'title' => $itemData['title'],
                         'author' => $itemData['author'] ?? null,
@@ -135,7 +151,8 @@ class LibraryController extends BaseController implements Contracts\LibraryContr
                         'allowedStatuses' => $allowedStatuses
                     ];
                     
-                    $this->addBookUseCase->execute($bookDataForUseCase, $userId);
+                    $bookCommand = \App\Domain\DTO\Commands\AddBookCommand::fromArray($bookDataForUseCase);
+                    $this->addBookUseCase->execute($bookCommand);
                     $importedCount++;
                     
                 } else {
@@ -170,65 +187,4 @@ class LibraryController extends BaseController implements Contracts\LibraryContr
         return $this->successResponse('pong', null);
     }
 
-    /**
-     * Handle HTTP request for library endpoints
-     */
-    public function handleRequest(string $method, string $path): void
-    {
-        try {
-            $inputData = json_decode(file_get_contents('php://input'), true) ?? [];
-            $action = $inputData['action'] ?? $_REQUEST['action'] ?? null;
-            
-            // Handle authentication for actions that require it
-            $authResult = null;
-            $authRequiredActions = ['get_library_items', 'import_books', 'import_movies', 'import_data'];
-            
-            if (in_array($action, $authRequiredActions)) {
-                $authResult = $this->authMiddleware->requireAuth();
-                if ($authResult['status'] === 'error') {
-                    http_response_code(401);
-                    header('Content-Type: application/json');
-                    echo json_encode($authResult);
-                    exit();
-                }
-                
-                // Check CSRF for modifying actions
-                $csrfRequiredActions = ['import_books', 'import_movies', 'import_data'];
-                if (in_array($action, $csrfRequiredActions)) {
-                    $csrfResult = $this->authMiddleware->requireAuthAndCSRF($inputData['csrf_token'] ?? null);
-                    if ($csrfResult['status'] === 'error') {
-                        http_response_code(403);
-                        header('Content-Type: application/json');
-                        echo json_encode($csrfResult);
-                        exit();
-                    }
-                    $authResult = $csrfResult;
-                }
-            }
-            
-            $response = match ($action) {
-                'get_library_items' => $this->getLibraryItems($authResult['user']['id']),
-                'import_books' => $this->importBooks($inputData['books'] ?? [], $authResult['user']['id']),
-                'import_movies' => $this->importMovies($inputData['movies'] ?? [], $authResult['user']['id']),
-                'import_data' => $this->importData($inputData['processedData'] ?? [], $authResult['user']['id']),
-                'ping' => $this->ping(),
-                default => $this->errorResponse('Invalid library action: ' . $action)
-            };
-            
-            $statusCode = $response['status'] === 'success' ? 200 : 400;
-            http_response_code($statusCode);
-            header('Content-Type: application/json');
-            echo json_encode($response, JSON_PRETTY_PRINT);
-            exit();
-
-        } catch (\Throwable $e) {
-            http_response_code(500);
-            header('Content-Type: application/json');
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'Internal server error: ' . $e->getMessage()
-            ], JSON_PRETTY_PRINT);
-            exit(); // Asegurar que la respuesta termine aquí
-        }
-    }
 }

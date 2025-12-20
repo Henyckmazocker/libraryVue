@@ -3,40 +3,43 @@ declare(strict_types=1);
 
 namespace App\Domain\Model;
 
+use App\Domain\Model\ValueObjects\GoogleId;
+use App\Domain\Model\ValueObjects\Email;
+use App\Domain\Model\ValueObjects\Timestamp;
 use InvalidArgumentException;
 
 class User
 {
     private ?int $id;
-    private string $googleId;
-    private string $email;
+    private GoogleId $googleId;
+    private Email $email;
     private string $name;
     private ?string $picture;
-    private ?int $createdAt;
-    private ?int $updatedAt;
-    private ?int $lastLogin;
+    private Timestamp $createdAt;
+    private Timestamp $updatedAt;
+    private ?Timestamp $lastLogin;
     private ?array $preferences;
     private bool $isActive;
 
     public function __construct(
         ?int $id,
-        string $googleId,
-        string $email,
+        GoogleId $googleId,
+        Email $email,
         string $name,
         ?string $picture = null,
-        ?int $createdAt = null,
-        ?int $updatedAt = null,
-        ?int $lastLogin = null,
+        ?Timestamp $createdAt = null,
+        ?Timestamp $updatedAt = null,
+        ?Timestamp $lastLogin = null,
         ?array $preferences = null,
         bool $isActive = true
     ) {
         $this->id = $id;
-        $this->setGoogleId($googleId);
-        $this->setEmail($email);
+        $this->googleId = $googleId;
+        $this->email = $email;
         $this->setName($name);
         $this->picture = $picture;
-        $this->createdAt = $createdAt ?? time();
-        $this->updatedAt = $updatedAt ?? time();
+        $this->createdAt = $createdAt ?? Timestamp::now();
+        $this->updatedAt = $updatedAt ?? Timestamp::now();
         $this->lastLogin = $lastLogin;
         $this->preferences = $preferences;
         $this->isActive = $isActive;
@@ -44,30 +47,24 @@ class User
 
     // Getters
     public function getId(): ?int { return $this->id; }
-    public function getGoogleId(): string { return $this->googleId; }
-    public function getEmail(): string { return $this->email; }
+    public function getGoogleId(): GoogleId { return $this->googleId; }
+    public function getEmail(): Email { return $this->email; }
     public function getName(): string { return $this->name; }
     public function getPicture(): ?string { return $this->picture; }
-    public function getCreatedAt(): ?int { return $this->createdAt; }
-    public function getUpdatedAt(): ?int { return $this->updatedAt; }
-    public function getLastLogin(): ?int { return $this->lastLogin; }
+    public function getCreatedAt(): Timestamp { return $this->createdAt; }
+    public function getUpdatedAt(): Timestamp { return $this->updatedAt; }
+    public function getLastLogin(): ?Timestamp { return $this->lastLogin; }
     public function getPreferences(): ?array { return $this->preferences; }
     public function isActive(): bool { return $this->isActive; }
 
     // Setters with validation
-    public function setGoogleId(string $googleId): void
+    public function setGoogleId(GoogleId $googleId): void
     {
-        if (empty(trim($googleId))) {
-            throw new InvalidArgumentException('Google ID cannot be empty');
-        }
         $this->googleId = $googleId;
     }
 
-    public function setEmail(string $email): void
+    public function setEmail(Email $email): void
     {
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new InvalidArgumentException('Invalid email format');
-        }
         $this->email = $email;
     }
 
@@ -91,14 +88,14 @@ class User
 
     public function updateLastLogin(): void
     {
-        $this->lastLogin = time();
-        $this->updatedAt = time();
+        $this->lastLogin = Timestamp::now();
+        $this->updatedAt = Timestamp::now();
     }
 
     public function setActive(bool $isActive): void
     {
         $this->isActive = $isActive;
-        $this->updatedAt = time();
+        $this->updatedAt = Timestamp::now();
     }
 
     // Factory method
@@ -106,8 +103,8 @@ class User
     {
         return new self(
             null, // ID will be set by repository
-            $data['google_id'],
-            $data['email'],
+            GoogleId::fromString($data['google_id']),
+            Email::fromString($data['email']),
             $data['name'],
             $data['picture'] ?? null,
             null, // createdAt will be set by constructor
@@ -118,17 +115,38 @@ class User
         );
     }
 
+    // Factory method for Google OAuth registration
+    public static function registerWithGoogle(
+        GoogleId $googleId,
+        Email $email,
+        string $name,
+        ?string $picture = null
+    ): self {
+        return new self(
+            null, // ID will be set by repository
+            $googleId,
+            $email,
+            $name,
+            $picture,
+            null, // createdAt will be set by constructor
+            null, // updatedAt will be set by constructor
+            null, // lastLogin
+            null, // preferences
+            true  // is_active
+        );
+    }
+
     public function toArray(): array
     {
         return [
             'id' => $this->id,
-            'google_id' => $this->googleId,
-            'email' => $this->email,
+            'google_id' => $this->googleId->toString(),
+            'email' => $this->email->toString(),
             'name' => $this->name,
             'picture' => $this->picture,
-            'created_at' => $this->createdAt,
-            'updated_at' => $this->updatedAt,
-            'last_login' => $this->lastLogin,
+            'created_at' => $this->createdAt->toUnixTimestamp(),
+            'updated_at' => $this->updatedAt->toUnixTimestamp(),
+            'last_login' => $this->lastLogin?->toUnixTimestamp(),
             'preferences' => $this->preferences,
             'is_active' => $this->isActive
         ];
@@ -138,13 +156,13 @@ class User
     {
         return new self(
             $data['id'] ?? null,
-            $data['google_id'],
-            $data['email'],
+            GoogleId::fromString($data['google_id']),
+            Email::fromString($data['email']),
             $data['name'],
             $data['picture'] ?? null,
-            $data['created_at'] ?? null,
-            $data['updated_at'] ?? null,
-            $data['last_login'] ?? null,
+            isset($data['created_at']) ? Timestamp::fromUnixTimestamp($data['created_at']) : null,
+            isset($data['updated_at']) ? Timestamp::fromUnixTimestamp($data['updated_at']) : null,
+            isset($data['last_login']) ? Timestamp::fromUnixTimestamp($data['last_login']) : null,
             $data['preferences'] ?? null,
             $data['is_active'] ?? true
         );

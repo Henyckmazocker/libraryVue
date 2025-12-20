@@ -1,45 +1,68 @@
 <?php
+declare(strict_types=1);
+
 namespace App\Domain\UseCases;
 
 use App\Domain\UseCases\Books\GetBooksUseCase;
 use App\Domain\UseCases\Movies\GetMoviesUseCase;
+use App\Domain\UseCases\AbstractUseCase;
+use App\Domain\DTO\Queries\GetLibraryItemsQuery;
+use Psr\Log\LoggerInterface;
+use InvalidArgumentException;
 
-class GetLibraryItemsUseCase
+class GetLibraryItemsUseCase extends AbstractUseCase
 {
-    private GetBooksUseCase $getBooksUseCase;
-    private GetMoviesUseCase $getMoviesUseCase;
-
-    public function __construct(GetBooksUseCase $getBooksUseCase, GetMoviesUseCase $getMoviesUseCase)
-    {
-        $this->getBooksUseCase = $getBooksUseCase;
-        $this->getMoviesUseCase = $getMoviesUseCase;
+    public function __construct(
+        private readonly GetBooksUseCase $getBooksUseCase,
+        private readonly GetMoviesUseCase $getMoviesUseCase,
+        LoggerInterface $logger
+    ) {
+        parent::__construct($logger);
     }
 
     /**
-     * @param array $filters ['title' => string|null, 'status' => string|null, ...]
-     * @return array
+     * Execute with GetLibraryItemsQuery
+     * Returns unified list of books + movies with filters applied
      */
-    public function execute(array $filters = []): array
+    protected function doExecute($command): array
     {
+        // Validate command
+        if (!$command instanceof GetLibraryItemsQuery) {
+            throw new InvalidArgumentException('Command must be an instance of GetLibraryItemsQuery');
+        }
+
+        // Get filtered data from both use cases
+        $filters = $command->toFiltersArray();
         $books = $this->getBooksUseCase->execute($filters);
         $movies = $this->getMoviesUseCase->execute($filters);
 
-        // Añadir tipo identificador a cada elemento
-        $books = array_map(function($item) {
-            $item['itemType'] = 'book';
-            return $item;
-        }, $books);
-        $movies = array_map(function($item) {
-            $item['itemType'] = 'movie';
-            return $item;
-        }, $movies);
+        // Add type identifier to each element
+        $books = array_map(fn($item) => [...$item, 'itemType' => 'book'], $books);
+        $movies = array_map(fn($item) => [...$item, 'itemType' => 'movie'], $movies);
 
-        // Unificar y ordenar (el frontend puede ordenar, pero aquí puedes hacerlo si lo deseas)
+        // Merge and sort
         $all = array_merge($books, $movies);
-        // Ejemplo: ordenar por título ascendente
-        usort($all, function($a, $b) {
-            return strcmp(strtolower($a['title'] ?? ''), strtolower($b['title'] ?? ''));
+        
+        // Sort by configured field
+        $sortBy = $command->sortBy ?? 'title';
+        $sortOrder = $command->sortOrder ?? 'asc';
+        
+        usort($all, function($a, $b) use ($sortBy, $sortOrder) {
+            $valueA = strtolower($a[$sortBy] ?? '');
+            $valueB = strtolower($b[$sortBy] ?? '');
+            
+            $comparison = strcmp($valueA, $valueB);
+            return $sortOrder === 'desc' ? -$comparison : $comparison;
         });
+
         return $all;
+    }
+
+    /**
+     * Get log context for this use case
+     */
+    protected function getLogContext(): string
+    {
+        return 'GetLibraryItemsUseCase';
     }
 }

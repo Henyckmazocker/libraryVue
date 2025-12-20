@@ -3,11 +3,11 @@ declare(strict_types=1);
 
 /**
  * Entry point for the Library Vue Backend API
- * This file initializes the application with dependency injection
+ * This file initializes the application with ActionRouter and Clean Architecture
  */
 
-// Bootstrap the application with DI container
+// Bootstrap the application
 $app = require_once __DIR__ . '/../bootstrap.php';
 
-// Handle the request using the ApplicationService
-$app->handleRequest();
+// Run the application with ActionRouter
+$app->run();

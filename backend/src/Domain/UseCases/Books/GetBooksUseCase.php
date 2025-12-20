@@ -1,43 +1,57 @@
 <?php
+
+declare(strict_types=1);
+
 namespace App\Domain\UseCases\Books;
 
-use App\Domain\Repository\BookRepositoryInterface;
-use App\Domain\Repository\UserRepositoryInterface;
+use App\Domain\Repository\User\UserRepositoryInterface;
+use App\Domain\Repository\Book\UserBookRepositoryInterface;
+use App\Domain\UseCases\AbstractUseCase;
+use App\Domain\DTO\Queries\GetBooksByUserQuery;
+use Psr\Log\LoggerInterface;
 use InvalidArgumentException;
 
-class GetBooksUseCase
+class GetBooksUseCase extends AbstractUseCase
 {
-    private BookRepositoryInterface $bookRepository;
-    private UserRepositoryInterface $userRepository;
-
     public function __construct(
-        BookRepositoryInterface $bookRepository,
-        UserRepositoryInterface $userRepository
+        private readonly UserRepositoryInterface $userRepository,
+        private readonly UserBookRepositoryInterface $userBookRepository,
+        LoggerInterface $logger
     ) {
-        $this->bookRepository = $bookRepository;
-        $this->userRepository = $userRepository;
+        parent::__construct($logger);
     }
 
     /**
-     * @param int $userId ID of the user whose books to retrieve
-     * @param array $filters Opcional: ['userStatus' => 'read', ...]
-     * @return array
-     * @throws InvalidArgumentException if user not found
+     * Execute with GetBooksByUserQuery
+     * Get books for a specific user with optional filters
      */
-    public function execute(int $userId, array $filters = []): array
+    protected function doExecute($command): array
     {
+        // Validate command
+        if (!$command instanceof GetBooksByUserQuery) {
+            throw new InvalidArgumentException('Command must be an instance of GetBooksByUserQuery');
+        }
+
         // Validate user exists
-        $user = $this->userRepository->findById($userId);
+        $user = $this->userRepository->findById($command->userId);
         if (!$user) {
-            throw new InvalidArgumentException("User with ID {$userId} not found");
+            throw new InvalidArgumentException("User with ID {$command->userId} not found");
         }
 
         // Get books for this specific user
-        $books = $this->bookRepository->findBooksByUser((int)$userId, $filters);
+        $books = $this->userBookRepository->findByUser($command->userId, $command->filters);
 
         // Convert to array format if needed
         return array_map(function($book) {
             return is_object($book) && method_exists($book, 'toArray') ? $book->toArray() : $book;
         }, $books);
+    }
+
+    /**
+     * Get log context for this use case
+     */
+    protected function getLogContext(): string
+    {
+        return 'GetBooksUseCase';
     }
 }

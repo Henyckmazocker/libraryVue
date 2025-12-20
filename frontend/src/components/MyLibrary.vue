@@ -44,44 +44,22 @@
 
     <div v-if="displayedItems.length > 0" class="book-list">
       <template v-for="item in displayedItems" :key="item.itemType + '-' + (item.isbn || item.imdbID)">
-        <LibraryBookItem
+        <BookListItem
           v-if="item.itemType === 'book'"
           :book="item"
-          :allowedUserStatuses="allowedUserStatusesList('book')"
-          :editable="true"
-          :readonly="true"
-          @delete-book="handleDeleteBook"
-          @update-rating="handleUpdateRating"
-          @update-statuses="handleUpdateStatuses"
-          @update-progress="handleUpdateProgress"
-          @edit-item="handleEditItem"
-          @show-session-history="handleShowSessionHistory"
+          :allowedStatuses="allowedUserStatusesList('book')"
+          @click="navigateToBookDetail(item)"
           class="book-item"
         />
-        <LibraryMovieItem
+        <MovieListItem
           v-else-if="item.itemType === 'movie'"
           :movie="item"
-          :allowedUserStatuses="allowedUserStatusesList('movie')"
-          :editable="true"
-          :readonly="true"
-          @delete-movie="handleDeleteBook"
-          @update-rating="handleUpdateRating"
-          @update-statuses="handleUpdateStatuses"
-          @edit-item="handleEditItem"
+          :allowedStatuses="allowedUserStatusesList('movie')"
+          @click="navigateToMovieDetail(item)"
           class="book-item"
         />
       </template>
     </div>
-
-    <!-- Unified Edit Modal -->
-    <EditItemModal
-      v-if="modal.isOpen.value"
-      :item="modal.currentItem.value"
-      :item-type="modal.itemType.value"
-      :allowed-statuses="allowedUserStatusesList(modal.itemType.value)"
-      @close="modal.closeModal"
-      @saved="handleModalSaved"
-    />
 
     <!-- Import Modal Component -->
     <ImportModal 
@@ -89,39 +67,28 @@
       @close="closeImportModal"
       @import-success="handleImportSuccess"
     />
-
-    <!-- Session History Modal -->
-    <SessionHistoryModal
-      :is-visible="sessionHistoryModal.isVisible"
-      :book="sessionHistoryModal.book"
-      :history="sessionHistoryModal.history"
-      @close="closeSessionHistoryModal"
-    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, provide } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useBooks } from '@/composables/useBooks';
 import { useMovies } from '@/composables/useMovies';
 import { useSearch } from '@/composables/useSearch';
 import { useLibraryNotifications } from '@/composables/useLibraryNotifications';
-import { useItemModal } from '@/composables/useItemModal';
+import { useAuth } from '@/composables/useAuth';
 import Logger from '@/utils/logger';
-import LibraryBookItem from './Books/LibraryBookItem.vue';
-import LibraryMovieItem from './Movies/LibraryMovieItem.vue';
-import EditItemModal from './EditItemModal.vue';
+import BookListItem from './Books/BookListItem.vue';
+import MovieListItem from './Movies/MovieListItem.vue';
 import ImportModal from './ImportModal.vue';
-import SessionHistoryModal from './Books/SessionHistoryModal.vue';
 
 // Composables
+const router = useRouter();
+const { isAuthenticated } = useAuth();
 const booksComposable = useBooks();
 const moviesComposable = useMovies();
 const notifications = useLibraryNotifications();
-const modal = useItemModal();
-
-// Provide notifications to child components
-provide('notifications', notifications);
 
 // Configurar búsqueda con debouncing
 const searchSystem = useSearch({
@@ -135,13 +102,6 @@ const showMovies = ref(true);
 const fetchError = ref("");
 const currentSort = ref('date-desc');
 const showImportModal = ref(false);
-
-// Estado del modal de historial de sesiones
-const sessionHistoryModal = ref({
-  isVisible: false,
-  book: {},
-  history: []
-});
 
 // Estados computados combinados
 const isLoading = computed(() => 
@@ -242,130 +202,24 @@ const displayedItems = computed(() => {
   return processed;
 });
 
-const handleDeleteBook = async (payload) => {
-  // payload: { isbn, imdbID, itemType }
-  const { isbn, imdbID, itemType } = typeof payload === 'object' ? payload : { isbn: payload, itemType: 'book' };
-  let confirmMsg = itemType === 'movie'
-    ? `Are you sure you want to delete the movie with ID: ${imdbID || isbn}?`
-    : `Are you sure you want to delete the book with ISBN: ${isbn}?`;
-  if (!confirm(confirmMsg)) return;
-  
-  try {
-    let result;
-    if (itemType === 'movie') {
-      const tmdbId = imdbID || isbn; // Usar el ID apropiado
-      result = await moviesComposable.deleteMovie(tmdbId);
-    } else {
-      result = await booksComposable.deleteBook(isbn);
-    }
-    
-    if (result.success) {
-      notifications.showSuccess(`${itemType === 'movie' ? 'Movie' : 'Book'} deleted successfully.`);
-      // Eliminar del array local
-      if (itemType === 'movie') {
-        const idx = moviesComposable.movies.value.findIndex(m => m.imdbID === (imdbID || isbn));
-        if (idx !== -1) moviesComposable.movies.value.splice(idx, 1);
-      } else {
-        const idx = booksComposable.books.value.findIndex(b => b.isbn === isbn);
-        if (idx !== -1) booksComposable.books.value.splice(idx, 1);
-      }
-    } else {
-      notifications.showError(result.message || `Failed to delete ${itemType === 'movie' ? 'movie' : 'book'}.`);
-    }
-  } catch (error) {
-    Logger.error("Error deleting item:", error);
-    notifications.showError("Error connecting to backend to delete item.");
-  }
+
+
+// Navigate to book detail page
+const navigateToBookDetail = (book) => {
+  router.push({
+    name: 'BookDetail',
+    params: { isbn: book.isbn },
+    state: { book }
+  });
 };
 
-const handleUpdateRating = async ({ isbn, rating, itemType }) => {
-  try {
-    let result;
-    if (itemType === 'movie') {
-      // Para películas, usar directamente el ID que viene (imdbID)
-      result = await moviesComposable.updateMovieRating(isbn, rating);
-    } else {
-      result = await booksComposable.updateBookRating(isbn, rating);
-    }
-    
-    if (result.success) {
-      notifications.showSuccess("Rating updated successfully.");
-    } else {
-      notifications.showError(result.message || "Failed to update rating.");
-    }
-  } catch (error) {
-    Logger.error("Error updating rating:", error);
-    notifications.showError("Error connecting to backend to update rating.");
-  }
-};
-
-// Manejar actualización de estados de usuario
-const handleUpdateStatuses = async ({ isbn, statuses, itemType }) => {
-  try {
-    let result;
-    if (itemType === 'movie') {
-      // Para películas, usar directamente el ID que viene (imdbID)
-      result = await moviesComposable.updateMovieStatuses(isbn, statuses);
-    } else {
-      result = await booksComposable.updateBookStatuses(isbn, statuses);
-    }
-    
-    if (result.success) {
-      notifications.showSuccess("Estados actualizados correctamente.");
-    } else {
-      notifications.showError(result.message || "No se pudieron actualizar los estados.");
-    }
-  } catch (error) {
-    Logger.error("Error actualizando estados:", error);
-    notifications.showError("Error conectando con el backend para actualizar estados.");
-  }
-};
-
-// Manejar actualización de progreso de lectura
-const handleUpdateProgress = async ({ isbn, updates }) => {
-  // No limpiar el estado para updates silenciosos como el progreso de lectura
-  try {
-    // Si no hay updates específicos, significa que necesitamos refrescar el libro completo
-    // (por ejemplo, cuando cambia el estado por una sesión de lectura)
-    if (Object.keys(updates).length === 0) {
-      Logger.debug('Refrescando libros después de cambio de sesión');
-      await booksComposable.fetchBooks();
-      return;
-    }
-    
-    // Encontrar el libro en el array original de libros y actualizarlo inmediatamente
-    const bookIndex = booksComposable.books.value.findIndex(book => book.isbn === isbn);
-    
-    if (bookIndex !== -1) {
-      // Actualizar los campos localmente para reactividad inmediata
-      Object.keys(updates).forEach(key => {
-        booksComposable.books.value[bookIndex][key] = updates[key];
-      });
-      
-      Logger.debug('Book progress updated locally:', { isbn, updates });
-      // No mostrar mensaje de éxito para actualizaciones automáticas como currentPage
-      // ya que estas son frecuentes y podrían ser molestas para el usuario
-    } else {
-      Logger.warn('Book not found for progress update:', isbn);
-    }
-  } catch (error) {
-    Logger.error("Error updating book progress locally:", error);
-    notifications.showError("Error actualizando el progreso del libro localmente.");
-  }
-};
-
-// Manejar apertura del modal de edición
-const handleEditItem = (item, itemType) => {
-  modal.openModal(item, itemType);
-};
-
-// Manejar cierre del modal de edición
-const handleModalSaved = (updatedItem) => {
-  Logger.debug('Item saved from modal:', updatedItem);
-  
-  // El singleton useMovies/useBooks ya actualiza los datos localmente
-  // No necesitamos actualizar aquí porque ambos componentes comparten el mismo estado
-  Logger.debug('Modal saved - singleton composables already updated the data');
+// Navigate to movie detail page
+const navigateToMovieDetail = (movie) => {
+  router.push({
+    name: 'MovieDetail',
+    params: { imdbId: movie.imdbID },
+    state: { movie }
+  })
 };
 
 // Import functionality methods
@@ -387,36 +241,20 @@ const handleImportSuccess = async (importData) => {
   await fetchLibrary();
 };
 
-// ===================================
-// MÉTODOS DEL MODAL DE HISTORIAL DE SESIONES
-// ===================================
-
-const handleShowSessionHistory = async (data) => {
-  try {
-    Logger.debug('Showing session history for book:', data.book.title);
-    
-    sessionHistoryModal.value = {
-      isVisible: true,
-      book: data.book,
-      history: data.history || []
-    };
-  } catch (error) {
-    Logger.error('Error showing session history:', error);
-    notifications.showError('Error al cargar el historial de sesiones');
-  }
-};
-
-const closeSessionHistoryModal = () => {
-  sessionHistoryModal.value = {
-    isVisible: false,
-    book: {},
-    history: []
-  };
-};
-
 // Montar componente
 onMounted(async () => {
-  await fetchLibrary();
+  // Wait for authentication before fetching library
+  if (isAuthenticated.value) {
+    await fetchLibrary();
+  }
+});
+
+// Watch for authentication changes and fetch library when authenticated
+watch(isAuthenticated, async (newValue) => {
+  if (newValue && displayedItems.value.length === 0) {
+    Logger.debug('[MyLibrary] User authenticated, fetching library...');
+    await fetchLibrary();
+  }
 });
 
 // Exponer searchQuery para el template

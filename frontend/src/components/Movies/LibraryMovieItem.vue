@@ -36,21 +36,26 @@
           <button 
             v-if="isNewMovie"
             @click="onSaveMovie" 
-            class="action-button save-button" 
+            :class="['action-button', 'save-button', `save-button--${saveButtonState}`]"
             :disabled="!canSave"
             title="Guardar película"
           >
-            <i class="fas fa-save"></i>
+            <i v-if="saveButtonState === 'idle'" class="fas fa-save"></i>
+            <i v-else-if="saveButtonState === 'success'" class="fas fa-check"></i>
+            <i v-else-if="saveButtonState === 'error'" class="fas fa-times"></i>
             <span>Guardar</span>
           </button>
           
           <button 
             v-if="!isNewMovie"
             @click="onEditMovie"
-            class="action-button edit-button"
+            :class="['action-button', 'edit-button', `edit-button--${editButtonState}`]"
+            :disabled="editButtonState !== 'idle'"
             title="Editar película"
           >
-            <i class="fas fa-pencil-alt"></i>
+            <i v-if="editButtonState === 'idle'" class="fas fa-pencil-alt"></i>
+            <i v-else-if="editButtonState === 'success'" class="fas fa-check"></i>
+            <i v-else-if="editButtonState === 'error'" class="fas fa-times"></i>
             <span>Editar</span>
           </button>
           
@@ -70,7 +75,7 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, ref, computed, watch } from 'vue';
+import { defineProps, defineEmits, defineExpose, ref, computed, watch } from 'vue';
 import RatingComponent from '@/components/common/RatingComponent.vue';
 import StatusSelector from '@/components/common/StatusSelector.vue';
 import Logger from '@/utils/logger';
@@ -111,12 +116,18 @@ const getInitialStatuses = () => {
 const selectedUserStatuses = ref(getInitialStatuses());
 const rating = ref(props.movie.user_rating || 0);
 
-// Capturar si es nueva al inicializar (no reactivo)
-const isNewMovie = ref(!props.movie.userStatuses || props.movie.userStatuses.length === 0);
+// Estado del botón de guardar
+const saveButtonState = ref('idle'); // 'idle', 'success', 'error'
+
+// Estado del botón de editar
+const editButtonState = ref('idle'); // 'idle', 'success', 'error'
+
+// Computed: la película es nueva si NO es editable (editable=true significa que ya existe)
+const isNewMovie = computed(() => !props.editable);
 
 // Computed properties
 const canDelete = computed(() => {
-  return props.movie.userStatuses && props.movie.userStatuses.length > 0;
+  return props.editable; // Can only delete if movie exists (editable=true)
 });
 
 const canSave = computed(() => {
@@ -144,8 +155,46 @@ const onDeleteMovie = () => {
 const onSaveMovie = () => {
   // Emitir evento para guardar la película
   Logger.debug('Saving movie:', props.movie.isbn);
+  saveButtonState.value = 'idle'; // Reset state
   emit('save-movie', { movie: props.movie, statuses: selectedUserStatuses.value, itemType: 'movie' });
 };
+
+// Métodos públicos para actualizar el estado del botón
+const setSaveSuccess = () => {
+  saveButtonState.value = 'success';
+  setTimeout(() => {
+    saveButtonState.value = 'idle';
+  }, 2000);
+};
+
+const setSaveError = () => {
+  saveButtonState.value = 'error';
+  setTimeout(() => {
+    saveButtonState.value = 'idle';
+  }, 2000);
+};
+
+const setEditSuccess = () => {
+  editButtonState.value = 'success';
+  setTimeout(() => {
+    editButtonState.value = 'idle';
+  }, 2000);
+};
+
+const setEditError = () => {
+  editButtonState.value = 'error';
+  setTimeout(() => {
+    editButtonState.value = 'idle';
+  }, 2000);
+};
+
+// Exponer métodos al componente padre
+defineExpose({
+  setSaveSuccess,
+  setSaveError,
+  setEditSuccess,
+  setEditError
+});
 
 const onEditMovie = () => {
   emit('edit-item', props.movie, 'movie');
@@ -159,8 +208,6 @@ watch(() => props.movie.user_rating, (newRating) => {
 watch(() => props.movie.imdbID, (newId, oldId) => {
   if (newId !== oldId) {
     selectedUserStatuses.value = getInitialStatuses();
-    // Nueva película con nuevo ID
-    isNewMovie.value = true;
   }
 });
 </script>
@@ -298,19 +345,52 @@ watch(() => props.movie.imdbID, (newId, oldId) => {
 .save-button {
   background: linear-gradient(135deg, var(--color-secondary), var(--color-secondary-light));
   color: var(--color-text-dark);
+  transition: all 0.3s ease;
 }
 
 .save-button:hover:not(:disabled) {
   background: linear-gradient(135deg, var(--color-secondary-dark), var(--color-secondary));
 }
 
+.save-button--success {
+  background: linear-gradient(135deg, #28a745, #32cd32) !important;
+  animation: pulse-success 0.5s ease;
+}
+
+.save-button--error {
+  background: linear-gradient(135deg, #dc3545, #ff6b6b) !important;
+  animation: shake 0.5s ease;
+}
+
+@keyframes pulse-success {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
 .edit-button {
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
   color: var(--color-text-light);
+  transition: all 0.3s ease;
 }
 
 .edit-button:hover:not(:disabled) {
   background: linear-gradient(135deg, var(--color-primary-hover), var(--color-primary-light));
+}
+
+.edit-button--success {
+  background: linear-gradient(135deg, #28a745, #32cd32) !important;
+  animation: pulse-success 0.5s ease;
+}
+
+.edit-button--error {
+  background: linear-gradient(135deg, #dc3545, #ff6b6b) !important;
+  animation: shake 0.5s ease;
 }
 
 .delete-button {

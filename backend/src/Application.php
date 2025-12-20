@@ -3,9 +3,17 @@ declare(strict_types=1);
 
 namespace App;
 
-use App\Infrastructure\Persistence\MySqlBookRepository;
-use App\Infrastructure\Persistence\MySqlMovieRepository;
-use App\Infrastructure\Persistence\MySqlUserRepository;
+use App\Infrastructure\Persistence\Book\MySqlBookRepository;
+use App\Infrastructure\Persistence\Movie\MySqlMovieRepository;
+use App\Infrastructure\Persistence\User\MySqlUserRepository;
+use App\Infrastructure\Persistence\Book\MySqlUserBookRepository;
+use App\Infrastructure\Persistence\Movie\MySqlUserMovieRepository;
+use App\Infrastructure\Persistence\Book\MySqlBookTagRepository;
+use App\Infrastructure\Persistence\Book\MySqlBookNoteRepository;
+use App\Infrastructure\Persistence\Book\MySqlReadingSessionRepository;
+use App\Infrastructure\Persistence\Book\MySqlReadingProgressRepository;
+use App\Infrastructure\Persistence\Movie\MySqlMovieTagRepository;
+use App\Infrastructure\Persistence\Movie\MySqlMovieNoteRepository;
 use App\Infrastructure\Database\DatabaseConnector;
 use App\Infrastructure\Logging\LoggerFactory;
 use App\Domain\UseCases\Books\AddBookUseCase;
@@ -50,6 +58,14 @@ class Application
     private MySqlUserRepository $userRepository;
     private MySqlBookRepository $bookRepository;
     private MySqlMovieRepository $movieRepository;
+    private MySqlUserBookRepository $userBookRepository;
+    private MySqlUserMovieRepository $userMovieRepository;
+    private MySqlBookTagRepository $bookTagRepository;
+    private MySqlBookNoteRepository $bookNoteRepository;
+    private MySqlReadingSessionRepository $readingSessionRepository;
+    private MySqlReadingProgressRepository $readingProgressRepository;
+    private MySqlMovieTagRepository $movieTagRepository;
+    private MySqlMovieNoteRepository $movieNoteRepository;
     private AuthMiddleware $authMiddleware;
     
     public function __construct()
@@ -69,6 +85,27 @@ class Application
         if ($this->requestMethod === 'OPTIONS') {
             http_response_code(200);
             exit();
+        }
+        
+        // Start session ONCE at application bootstrap before any middleware
+        // This prevents multiple session_start() calls from creating different sessions
+        if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+            // Configure session settings for security
+            ini_set('session.cookie_httponly', '1');
+            // Don't require HTTPS in development
+            $isProduction = ($_ENV['APP_ENV'] ?? 'development') === 'production';
+            ini_set('session.cookie_secure', $isProduction ? '1' : '0');
+            // Use Lax samesite for development (allows some cross-origin)
+            ini_set('session.cookie_samesite', $isProduction ? 'Strict' : 'Lax');
+            // Force cookie domain to be empty for localhost
+            ini_set('session.cookie_domain', '');
+            // Set cookie path to root
+            ini_set('session.cookie_path', '/');
+            ini_set('session.use_strict_mode', '1');
+            ini_set('session.gc_maxlifetime', '604800'); // 7 days
+            
+            session_name('LIBRARY_SESSION');
+            session_start();
         }
         
         // Set response headers
@@ -96,40 +133,63 @@ class Application
         // Initialize session and auth components
         $this->sessionManager = new SessionManager();
         $databaseLogger = LoggerFactory::createDatabaseLogger();
-        $this->userRepository = new MySqlUserRepository($pdo, $databaseLogger);
-        $this->authMiddleware = new AuthMiddleware($this->sessionManager, $this->userRepository);
         
-        // Initialize repositories
-        $this->bookRepository = new MySqlBookRepository($pdo, $databaseLogger);
-        $this->movieRepository = new MySqlMovieRepository($pdo, $databaseLogger);
+        // Initialize mappers
+        $bookMapper = new \App\Infrastructure\Persistence\Book\Mappers\BookDataMapper();
+        $movieMapper = new \App\Infrastructure\Persistence\Movie\Mappers\MovieDataMapper();
+        $userMapper = new \App\Infrastructure\Persistence\User\Mappers\UserDataMapper();
+        
+        // Initialize base repositories
+        $this->userRepository = new MySqlUserRepository($pdo, $databaseLogger, $userMapper);
+        $this->bookRepository = new MySqlBookRepository($pdo, $bookMapper, $databaseLogger);
+        $this->movieRepository = new MySqlMovieRepository($pdo, $movieMapper, $databaseLogger);
+        
+        // Initialize relationship repositories (need mappers and base repositories)
+        $this->userBookRepository = new MySqlUserBookRepository($pdo, $bookMapper, $databaseLogger, $this->bookRepository);
+        $this->userMovieRepository = new MySqlUserMovieRepository($pdo, $movieMapper, $databaseLogger);
+        
+        // Initialize specialized repositories (only need PDO and logger)
+        $this->bookTagRepository = new MySqlBookTagRepository($pdo, $databaseLogger);
+        $this->bookNoteRepository = new MySqlBookNoteRepository($pdo, $databaseLogger);
+        $this->readingSessionRepository = new MySqlReadingSessionRepository($pdo, $databaseLogger);
+        $this->readingProgressRepository = new MySqlReadingProgressRepository($pdo, $databaseLogger);
+        $this->movieTagRepository = new MySqlMovieTagRepository($pdo, $databaseLogger);
+        $this->movieNoteRepository = new MySqlMovieNoteRepository($pdo, $databaseLogger);
+        
+        // Initialize auth middleware
+        $this->authMiddleware = new AuthMiddleware($this->sessionManager, $this->userRepository);
     }
     
     private function setupRouter(): void
     {
+        // Get logger for Use Cases
+        $logger = LoggerFactory::createDatabaseLogger();
+        
         // Auth use cases
-        $loginUserUseCase = new LoginUserUseCase($this->userRepository);
+        $loginUserUseCase = new LoginUserUseCase($this->userRepository, $logger);
         
         // Book use cases
-        $addBookUseCase = new AddBookUseCase($this->bookRepository, $this->userRepository);
-        $getBooksUseCase = new GetBooksUseCase($this->bookRepository, $this->userRepository);
-        $getAllBooksUseCase = new GetAllBooksUseCase($this->bookRepository);
-        $deleteBookUseCase = new DeleteBookUseCase($this->bookRepository, $this->userRepository);
-        $updateBookRatingUseCase = new UpdateBookRatingUseCase($this->bookRepository, $this->userRepository);
-        $updateBookUserStatusesUseCase = new UpdateBookUserStatusesUseCase($this->bookRepository, $this->userRepository);
-        $editUserBookUseCase = new EditUserBookUseCase($this->bookRepository);
+        $addBookUseCase = new AddBookUseCase($this->bookRepository, $this->userRepository, $this->userBookRepository, $logger);
+        $getBooksUseCase = new GetBooksUseCase($this->userRepository, $this->userBookRepository, $logger);
+        $getAllBooksUseCase = new GetAllBooksUseCase($this->bookRepository, $logger);
+        $deleteBookUseCase = new DeleteBookUseCase($this->userRepository, $this->userBookRepository, $logger);
+        $updateBookRatingUseCase = new UpdateBookRatingUseCase($this->userRepository, $this->userBookRepository, $logger);
+        $updateBookUserStatusesUseCase = new UpdateBookUserStatusesUseCase($this->userRepository, $this->userBookRepository, $logger);
+        $editUserBookUseCase = new EditUserBookUseCase($this->userRepository, $this->userBookRepository, $this->bookTagRepository, $this->bookNoteRepository, $logger);
+        $getBookAllowedStatusesUseCase = new \App\Domain\UseCases\Books\GetBookAllowedStatusesUseCase($this->bookRepository, $logger);
 
         // Movie use cases
-        $addMovieUseCase = new AddMovieUseCase($this->movieRepository, $this->userRepository);
-        $getMoviesUseCase = new GetMoviesUseCase($this->movieRepository, $this->userRepository);
-        $deleteMovieUseCase = new DeleteMovieUseCase($this->movieRepository, $this->userRepository);
-        $updateMovieRatingUseCase = new UpdateMovieRatingUseCase($this->movieRepository, $this->userRepository);
-        $updateMovieUserStatusesUseCase = new UpdateMovieUserStatusesUseCase($this->movieRepository, $this->userRepository);
-        $getMovieAllowedStatusesUseCase = new GetMovieAllowedStatusesUseCase($this->movieRepository);
-        $editUserMovieUseCase = new EditUserMovieUseCase($this->movieRepository);
+        $addMovieUseCase = new AddMovieUseCase($this->movieRepository, $this->userRepository, $this->userMovieRepository, $logger);
+        $getMoviesUseCase = new GetMoviesUseCase($this->userRepository, $this->userMovieRepository, $logger);
+        $deleteMovieUseCase = new DeleteMovieUseCase($this->userRepository, $this->userMovieRepository, $logger);
+        $updateMovieRatingUseCase = new UpdateMovieRatingUseCase($this->userRepository, $this->userMovieRepository, $logger);
+        $updateMovieUserStatusesUseCase = new UpdateMovieUserStatusesUseCase($this->userRepository, $this->userMovieRepository, $logger);
+        $getMovieAllowedStatusesUseCase = new GetMovieAllowedStatusesUseCase($this->movieRepository, $logger);
+        $editUserMovieUseCase = new EditUserMovieUseCase($this->userMovieRepository, $this->movieTagRepository, $this->movieNoteRepository, $logger);
 
         // Library use cases
-        $getLibraryUseCase = new GetLibraryUseCase($this->bookRepository);
-        $getLibraryItemsUseCase = new GetLibraryItemsUseCase($getBooksUseCase, $getMoviesUseCase);
+        $getLibraryUseCase = new GetLibraryUseCase($this->bookRepository, $this->movieRepository, $logger);
+        $getLibraryItemsUseCase = new GetLibraryItemsUseCase($getBooksUseCase, $getMoviesUseCase, $logger);
         
         // Create controllers with dependency injection
         $authController = new AuthController(
@@ -145,7 +205,11 @@ class Application
             $updateBookUserStatusesUseCase,
             $getBooksUseCase,
             $getAllBooksUseCase,
+            $getBookAllowedStatusesUseCase,
             $this->bookRepository,
+            $this->bookTagRepository,
+            $this->readingSessionRepository,
+            $this->readingProgressRepository,
             $this->authMiddleware,
             $editUserBookUseCase
         );
@@ -159,6 +223,8 @@ class Application
             $getMovieAllowedStatusesUseCase,
             $this->authMiddleware,
             $editUserMovieUseCase,
+            $this->movieTagRepository,
+            $this->movieNoteRepository
         );
         
         $libraryController = new LibraryController(
@@ -168,30 +234,76 @@ class Application
             $addBookUseCase,
             $addMovieUseCase,
             $getMovieAllowedStatusesUseCase,
-            $this->bookRepository,
-            $this->userRepository,
+            $getBookAllowedStatusesUseCase,
+            $this->userBookRepository,
+            $this->userMovieRepository,
             $this->authMiddleware
         );
         
         // LibraryX controller
-        $libraryXController = new LibraryXController();
+        $libraryXController = new LibraryXController($this->authMiddleware);
         
         // Stats controller
         $statsController = new StatsController(
-            $this->bookRepository,
-            $this->movieRepository,
+            $this->userBookRepository,
+            $this->userMovieRepository,
+            $this->readingProgressRepository,
             $this->authMiddleware
         );
         
+        // Load routes configuration
+        $routes = require __DIR__ . '/../config/routes.php';
+        
+        // Create middleware instances
+        $authenticationMiddleware = new \App\Infrastructure\Middleware\AuthenticationMiddleware($logger);
+        $csrfMiddleware = new \App\Infrastructure\Middleware\CSRFMiddleware($logger);
+        $loggingMiddleware = new \App\Infrastructure\Middleware\LoggingMiddleware($logger);
+        $validationMiddleware = new \App\Infrastructure\Middleware\ValidationMiddleware($logger);
+        
+        // Create simple container for ActionRouter
+        $container = new class(
+            $authController, 
+            $bookController, 
+            $movieController, 
+            $libraryController, 
+            $libraryXController, 
+            $statsController,
+            $authenticationMiddleware,
+            $csrfMiddleware,
+            $loggingMiddleware,
+            $validationMiddleware
+        ) implements \Psr\Container\ContainerInterface {
+            private array $services = [];
+            
+            public function __construct($auth, $book, $movie, $library, $libraryX, $stats, $authMid, $csrf, $logging, $validation) {
+                $this->services = [
+                    \App\Controllers\AuthController::class => $auth,
+                    \App\Controllers\BookController::class => $book,
+                    \App\Controllers\MovieController::class => $movie,
+                    \App\Controllers\LibraryController::class => $library,
+                    \App\Controllers\LibraryXController::class => $libraryX,
+                    \App\Controllers\StatsController::class => $stats,
+                    \App\Infrastructure\Middleware\AuthenticationMiddleware::class => $authMid,
+                    \App\Infrastructure\Middleware\CSRFMiddleware::class => $csrf,
+                    \App\Infrastructure\Middleware\LoggingMiddleware::class => $logging,
+                    \App\Infrastructure\Middleware\ValidationMiddleware::class => $validation,
+                ];
+            }
+            
+            public function get(string $id) {
+                return $this->services[$id] ?? throw new \RuntimeException("Service not found: $id");
+            }
+            
+            public function has(string $id): bool {
+                return isset($this->services[$id]);
+            }
+        };
+        
         // Create and configure router
         $this->router = new ActionRouter(
-            $authController,
-            $bookController,
-            $movieController,
-            $libraryController,
-            $libraryXController,
-            $statsController,
-            $this->authMiddleware
+            $routes,
+            $container,
+            $logger
         );
     }
     

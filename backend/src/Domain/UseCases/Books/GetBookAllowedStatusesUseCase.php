@@ -4,27 +4,45 @@ declare(strict_types=1);
 
 namespace App\Domain\UseCases\Books;
 
-use App\Domain\Repository\BookRepositoryInterface;
+use App\Domain\Repository\Book\BookRepositoryInterface;
+use App\Domain\UseCases\AbstractUseCase;
+use App\Domain\DTO\Queries\GetAllowedStatusesQuery;
+use Psr\Log\LoggerInterface;
+use InvalidArgumentException;
 
-class GetBookAllowedStatusesUseCase
+class GetBookAllowedStatusesUseCase extends AbstractUseCase
 {
-    private BookRepositoryInterface $bookRepository;
-
-    public function __construct(BookRepositoryInterface $bookRepository)
-    {
-        $this->bookRepository = $bookRepository;
+    public function __construct(
+        private readonly BookRepositoryInterface $bookRepository,
+        LoggerInterface $logger
+    ) {
+        parent::__construct($logger);
     }
 
     /**
-     * @return array
+     * Execute with GetAllowedStatusesQuery
      */
-    public function execute(): array
+    protected function doExecute($command): array
     {
-        // Suponemos que el repositorio tiene un método público para esto, si no, hay que exponerlo
-        if (method_exists($this->bookRepository, 'fetchAllowedStatuses')) {
-            return $this->bookRepository->fetchAllowedStatuses();
+        // Validate command
+        if (!$command instanceof GetAllowedStatusesQuery) {
+            throw new InvalidArgumentException('Command must be an instance of GetAllowedStatusesQuery');
         }
-        // Si no existe, puedes crear un método público en el repositorio
-        throw new \RuntimeException('BookRepositoryInterface must expose fetchAllowedStatuses()');
+
+        if ($command->entityType !== 'book') {
+            throw new InvalidArgumentException('This use case only handles book statuses');
+        }
+
+        return $this->bookRepository->fetchAllowedStatuses();
+    }
+
+    protected function getLogContext(): string
+    {
+        return 'GetBookAllowedStatusesUseCase';
+    }
+
+    protected function getSuccessMessage(): string
+    {
+        return 'Book allowed statuses retrieved successfully';
     }
 }

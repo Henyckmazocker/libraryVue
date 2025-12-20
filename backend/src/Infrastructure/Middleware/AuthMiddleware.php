@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\Middleware;
 
 use App\Infrastructure\Session\SessionManager;
-use App\Domain\Repository\UserRepositoryInterface;
+use App\Domain\Repository\User\UserRepositoryInterface;
 
 class AuthMiddleware
 {

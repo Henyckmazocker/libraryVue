@@ -63,15 +63,11 @@ if (file_exists(__DIR__ . '/config/logging.php')) {
     require_once __DIR__ . '/config/logging.php';
 }
 
-// Initialize Application Service
-use App\Services\ApplicationService;
+// Initialize Application with ActionRouter (new architecture)
+use App\Application;
 
 try {
-    $app = new ApplicationService();
-    
-    // Store the application instance globally for backward compatibility
-    // This will be removed once all code is migrated to use DI
-    $GLOBALS['app'] = $app;
+    $app = new Application();
     
     return $app;
     

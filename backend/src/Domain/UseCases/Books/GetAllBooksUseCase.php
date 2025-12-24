@@ -1,28 +1,42 @@
 <?php
+declare(strict_types=1);
+
 namespace App\Domain\UseCases\Books;
 
-use App\Domain\Repository\BookRepositoryInterface;
+use App\Domain\Repository\Book\BookRepositoryInterface;
+use App\Domain\UseCases\AbstractUseCase;
+use App\Domain\DTO\Queries\GetAllBooksQuery;
+use Psr\Log\LoggerInterface;
+use InvalidArgumentException;
 
-class GetAllBooksUseCase
+class GetAllBooksUseCase extends AbstractUseCase
 {
-    private BookRepositoryInterface $bookRepository;
-
-    public function __construct(BookRepositoryInterface $bookRepository)
-    {
-        $this->bookRepository = $bookRepository;
+    public function __construct(
+        private readonly BookRepositoryInterface $bookRepository,
+        LoggerInterface $logger
+    ) {
+        parent::__construct($logger);
     }
 
     /**
+     * Execute with GetAllBooksQuery
      * Get all books from the catalog
-     *
-     * @return array
      */
-    public function execute(): array
+    protected function doExecute($command): array
     {
-        try {
-            return $this->bookRepository->findAll();
-        } catch (\Exception $e) {
-            throw new \RuntimeException('Unable to retrieve books: ' . $e->getMessage(), 0, $e);
+        // Validate command
+        if (!$command instanceof GetAllBooksQuery) {
+            throw new InvalidArgumentException('Command must be an instance of GetAllBooksQuery');
         }
+
+        return $this->bookRepository->findAll();
+    }
+
+    /**
+     * Get log context for this use case
+     */
+    protected function getLogContext(): string
+    {
+        return 'GetAllBooksUseCase';
     }
 }

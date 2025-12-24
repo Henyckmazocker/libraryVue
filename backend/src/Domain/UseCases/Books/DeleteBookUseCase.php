@@ -4,47 +4,56 @@ declare(strict_types=1);
 
 namespace App\Domain\UseCases\Books;
 
-use App\Domain\Repository\BookRepositoryInterface;
-use App\Domain\Repository\UserRepositoryInterface;
+use App\Domain\Repository\User\UserRepositoryInterface;
+use App\Domain\Repository\Book\UserBookRepositoryInterface;
+use App\Domain\UseCases\AbstractUseCase;
+use App\Domain\DTO\Commands\DeleteBookCommand;
+use Psr\Log\LoggerInterface;
 use InvalidArgumentException;
 
-class DeleteBookUseCase
+class DeleteBookUseCase extends AbstractUseCase
 {
-    private BookRepositoryInterface $bookRepository;
-    private UserRepositoryInterface $userRepository;
-
     public function __construct(
-        BookRepositoryInterface $bookRepository,
-        UserRepositoryInterface $userRepository
+        private readonly UserRepositoryInterface $userRepository,
+        private readonly UserBookRepositoryInterface $userBookRepository,
+        LoggerInterface $logger
     ) {
-        $this->bookRepository = $bookRepository;
-        $this->userRepository = $userRepository;
+        parent::__construct($logger);
     }
 
-    /**
-     * @param int $userId ID of the user removing the book from their library
-     * @param string $isbn The ISBN of the book to remove from user's library.
-     * @return bool True if removal was successful.
-     * @throws InvalidArgumentException if user or book not found, or user doesn't have this book.
-     */
-    public function execute(int $userId, string $isbn): bool
+    protected function doExecute($command): bool
     {
-        if (empty($isbn)) {
-            throw new InvalidArgumentException('ISBN is required to remove a book.');
+        if (!$command instanceof DeleteBookCommand) {
+            throw new InvalidArgumentException('Command must be an instance of DeleteBookCommand');
         }
 
         // Validate user exists
-        $user = $this->userRepository->findById($userId);
+        $user = $this->userRepository->findById($command->userId);
         if (!$user) {
-            throw new InvalidArgumentException("User with ID {$userId} not found");
+            throw new InvalidArgumentException("User with ID {$command->userId} not found");
         }
 
         // Check if user has this book in their library
-        if (!$this->userRepository->hasUserBook($userId, $isbn)) {
+        if (!$this->userBookRepository->hasBook($command->userId, $command->isbn->toString())) {
             throw new InvalidArgumentException('Book not found in your library.');
         }
 
-        // Remove the book from user's library (not from the system)
-        return $this->bookRepository->removeBookFromUser($userId, $isbn);
+        // Remove the book from user's library
+        return $this->userBookRepository->remove($command->userId, $command->isbn->toString());
+    }
+
+    protected function getLogContext(): string
+    {
+        return 'DeleteBookUseCase';
+    }
+
+    protected function getSuccessMessage(): string
+    {
+        return 'Book removed successfully from user library';
+    }
+
+    protected function getErrorMessage(): string
+    {
+        return 'Failed to remove book from user library';
     }
 } 

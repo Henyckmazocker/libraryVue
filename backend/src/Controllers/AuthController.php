@@ -44,7 +44,8 @@ class AuthController extends BaseController implements Contracts\AuthControllerI
         // For now, we'll accept the payload without cryptographic verification
         // In production, you MUST verify the signature with Google's public keys
         
-        $user = $this->loginUserUseCase->execute($payload);
+        $command = \App\Domain\DTO\Commands\LoginUserCommand::fromGoogleToken($payload);
+        $user = $this->loginUserUseCase->execute($command);
         $this->sessionManager->login($user);
         
         return $this->successResponse('Login successful.', [
@@ -135,34 +136,4 @@ class AuthController extends BaseController implements Contracts\AuthControllerI
     /**
      * Handle HTTP request for auth endpoints
      */
-    public function handleRequest(string $method, string $path): void
-    {
-        try {
-            $inputData = json_decode(file_get_contents('php://input'), true) ?? [];
-            $action = $inputData['action'] ?? $_REQUEST['action'] ?? null;
-            
-            $response = match ($action) {
-                'login' => $this->login($inputData),
-                'logout' => $this->logout(),
-                'check_auth' => $this->checkAuth(),
-                'log_frontend' => $this->logFrontend($inputData['log_data'] ?? []),
-                default => $this->errorResponse('Invalid auth action: ' . $action)
-            };
-            
-            $statusCode = $response['status'] === 'success' ? 200 : 400;
-            http_response_code($statusCode);
-            header('Content-Type: application/json');
-            echo json_encode($response, JSON_PRETTY_PRINT);
-            exit(); // Asegurar que la respuesta termine aquí
-            
-        } catch (\Throwable $e) {
-            http_response_code(500);
-            header('Content-Type: application/json');
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'Internal server error: ' . $e->getMessage()
-            ], JSON_PRETTY_PRINT);
-            exit(); // Asegurar que la respuesta termine aquí
-        }
-    }
 }

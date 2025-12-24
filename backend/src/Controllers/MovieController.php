@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace App\Controllers;
 
 use App\Domain\UseCases\Movies\AddMovieUseCase;
@@ -7,9 +10,16 @@ use App\Domain\UseCases\Movies\UpdateMovieRatingUseCase;
 use App\Domain\UseCases\Movies\UpdateMovieUserStatusesUseCase;
 use App\Domain\UseCases\Movies\GetMoviesUseCase;
 use App\Domain\UseCases\Movies\GetMovieAllowedStatusesUseCase;
-use App\Infrastructure\Middleware\AuthMiddleware;
 use App\Domain\UseCases\Movies\EditUserMovieUseCase;
-use App\Domain\Repository\MovieRepositoryInterface;
+use App\Domain\DTO\Commands\AddMovieCommand;
+use App\Domain\DTO\Commands\DeleteMovieCommand;
+use App\Domain\DTO\Commands\UpdateMovieRatingCommand;
+use App\Domain\DTO\Commands\UpdateMovieStatusesCommand;
+use App\Domain\DTO\Commands\EditUserMovieCommand;
+use App\Domain\DTO\Queries\GetMoviesByUserQuery;
+use App\Infrastructure\Middleware\AuthMiddleware;
+use App\Domain\Repository\Movie\MovieTagRepositoryInterface;
+use App\Domain\Repository\Movie\MovieNoteRepositoryInterface;
 
 class MovieController extends BaseController implements Contracts\MovieControllerInterface
 {
@@ -22,7 +32,8 @@ class MovieController extends BaseController implements Contracts\MovieControlle
     private GetMovieAllowedStatusesUseCase $getMovieAllowedStatusesUseCase;
     private AuthMiddleware $authMiddleware;
     private EditUserMovieUseCase $editUserMovieUseCase;
-    private MovieRepositoryInterface $movieRepository;
+    private MovieTagRepositoryInterface $movieTagRepository;
+    private MovieNoteRepositoryInterface $movieNoteRepository;
 
     public function __construct(
         AddMovieUseCase $addMovieUseCase,
@@ -33,7 +44,8 @@ class MovieController extends BaseController implements Contracts\MovieControlle
         GetMovieAllowedStatusesUseCase $getMovieAllowedStatusesUseCase,
         AuthMiddleware $authMiddleware,
         EditUserMovieUseCase $editUserMovieUseCase,
-        MovieRepositoryInterface $movieRepository
+        MovieTagRepositoryInterface $movieTagRepository,
+        MovieNoteRepositoryInterface $movieNoteRepository
     ) {
         $this->addMovieUseCase = $addMovieUseCase;
         $this->deleteMovieUseCase = $deleteMovieUseCase;
@@ -43,67 +55,74 @@ class MovieController extends BaseController implements Contracts\MovieControlle
         $this->getMovieAllowedStatusesUseCase = $getMovieAllowedStatusesUseCase;
         $this->editUserMovieUseCase = $editUserMovieUseCase;
         $this->authMiddleware = $authMiddleware;
-        $this->movieRepository = $movieRepository;
+        $this->movieTagRepository = $movieTagRepository;
+        $this->movieNoteRepository = $movieNoteRepository;
     }
 
-    public function addMovie(array $movieData, int $userId): array
+    /**
+     * Add a new movie to user's library
+     * 
+     * @param AddMovieCommand $command Command containing movie data and user ID
+     * @return array Success response with movie data
+     */
+    public function addMovie(AddMovieCommand $command): array
     {
-        if (empty($movieData)) {
-            throw new \InvalidArgumentException('Movie data is required for add_movie action.');
-        }
-        
-        $addedMovie = $this->addMovieUseCase->execute($movieData, $userId);
+        $addedMovie = $this->addMovieUseCase->execute($command);
         return $this->successResponse('Movie added: ' . $addedMovie->getTitle(), $addedMovie->toArray(), 201);
     }
 
-    public function deleteMovie(string $movieId, int $userId): array
+    /**
+     * Delete a movie from user's library
+     * 
+     * @param DeleteMovieCommand $command Command containing user ID and movie ID
+     * @return array Success response
+     */
+    public function deleteMovie(DeleteMovieCommand $command): array
     {
-        if (empty($movieId)) {
-            throw new \InvalidArgumentException('ID is required for delete_movie action.');
-        }
-        
-        $this->deleteMovieUseCase->execute($userId, $movieId);
-        return $this->successResponse('Movie removed from your library: ' . $movieId);
+        $this->deleteMovieUseCase->execute($command);
+        return $this->successResponse('Movie removed from your library: ' . $command->movieId);
     }
 
-    public function updateMovieRating(string $movieId, ?float $rating, int $userId): array
+    /**
+     * Update movie rating
+     * 
+     * @param UpdateMovieRatingCommand $command Command containing user ID, movie ID, and rating
+     * @return array Success response
+     */
+    public function updateMovieRating(UpdateMovieRatingCommand $command): array
     {
-        if (empty($movieId)) {
-            return $this->errorResponse('movieId is required to update movie rating.');
-        }
-        
-        // Allow null rating for unrating
-        if ($rating === 0.0) {
-            $rating = null;
-        }
-        
-        $this->updateMovieRatingUseCase->execute($userId, $movieId, $rating);
+        $this->updateMovieRatingUseCase->execute($command);
         return $this->successResponse('Movie rating updated successfully.');
     }
 
-    public function updateMovieUserStatuses(string $movieId, array $statuses, int $userId): array
+    /**
+     * Update movie user statuses
+     * 
+     * @param UpdateMovieStatusesCommand $command Command containing user ID, movie ID, and statuses
+     * @return array Success response
+     */
+    public function updateMovieUserStatuses(UpdateMovieStatusesCommand $command): array
     {
-        if (empty($movieId)) {
-            throw new \InvalidArgumentException('movieId is required for update_movie_user_statuses.');
-        }
-        
-        if (empty($statuses)) {
-            throw new \InvalidArgumentException('Statuses must be a non-empty array.');
-        }
-        
-        $this->updateMovieUserStatusesUseCase->execute($userId, $movieId, $statuses);
-        return $this->successResponse('User statuses updated for Movie ID ' . $movieId);
+        $this->updateMovieUserStatusesUseCase->execute($command);
+        return $this->successResponse('User statuses updated for Movie ID ' . $command->movieId);
     }
 
     public function getMovieAllowedStatuses(): array
     {
-        $statuses = $this->getMovieAllowedStatusesUseCase->execute();
+        $query = \App\Domain\DTO\Queries\GetAllowedStatusesQuery::forMovies();
+        $statuses = $this->getMovieAllowedStatusesUseCase->execute($query);
         return $this->successResponse('Allowed movie statuses retrieved.', $statuses);
     }
 
-    public function getMovies(int $userId): array
+    /**
+     * Get user's movies
+     * 
+     * @param GetMoviesByUserQuery $query Query containing user ID
+     * @return array Success response with movies data
+     */
+    public function getMovies(GetMoviesByUserQuery $query): array
     {
-        $movies = $this->getMoviesUseCase->execute($userId);
+        $movies = $this->getMoviesUseCase->execute($query);
         return $this->successResponse('Movies data retrieved.', $movies);
     }
 
@@ -116,13 +135,15 @@ class MovieController extends BaseController implements Contracts\MovieControlle
      * @param array $notes
      * @return array
      */
-    public function editUserMovie(string $movieIsbn, int $userId, array $data = [], array $tags = [], array $notes = []): array
+    /**
+     * Edit all aspects of a user_movie: main data, tags, and notes
+     * 
+     * @param EditUserMovieCommand $command Command containing all edit data
+     * @return array Success response
+     */
+    public function editUserMovie(EditUserMovieCommand $command): array
     {
-        if (empty($movieIsbn) || empty($userId)) {
-            throw new \InvalidArgumentException('movieIsbn y userId son requeridos para editar user_movie.');
-        }
-
-        $this->editUserMovieUseCase->execute($userId, $movieIsbn, $data, $tags, $notes);
+        $this->editUserMovieUseCase->execute($command);
         return $this->successResponse('User movie actualizado correctamente.');
     }
 
@@ -132,7 +153,7 @@ class MovieController extends BaseController implements Contracts\MovieControlle
     public function getUserMovieTags(int $userId): array
     {
         try {
-            $tags = $this->movieRepository->getUserMovieTags($userId);
+            $tags = $this->movieTagRepository->getByUser($userId);
             return $this->successResponse('Tags obtenidos correctamente', $tags);
         } catch (\Exception $e) {
             return $this->errorResponse('Error al obtener tags: ' . $e->getMessage());
@@ -145,7 +166,7 @@ class MovieController extends BaseController implements Contracts\MovieControlle
     public function createUserMovieTag(int $userId, string $name, string $color = '#1976d2'): array
     {
         try {
-            $tagId = $this->movieRepository->addUserMovieTag($userId, $name, $color);
+            $tagId = $this->movieTagRepository->create($userId, $name, $color);
             $newTag = ['id' => $tagId, 'name' => $name, 'color' => $color];
             return $this->successResponse('Tag creado correctamente', $newTag);
         } catch (\Exception $e) {
@@ -159,77 +180,10 @@ class MovieController extends BaseController implements Contracts\MovieControlle
     public function getMovieTags(int $userId, string $movieIsbn): array
     {
         try {
-            $tags = $this->movieRepository->getMovieTags($userId, $movieIsbn);
+            $tags = $this->movieTagRepository->getByMovie($userId, $movieIsbn);
             return $this->successResponse('Tags de la película obtenidos correctamente', $tags);
         } catch (\Exception $e) {
             return $this->errorResponse('Error al obtener tags de la película: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Handle HTTP request for movie endpoints
-     */
-    public function handleRequest(string $method, string $path): void
-    {
-        try {
-            $inputData = json_decode(file_get_contents('php://input'), true) ?? [];
-            $action = $inputData['action'] ?? $_REQUEST['action'] ?? null;
-            
-            // Handle authentication for actions that require it
-            $authResult = null;
-            $authRequiredActions = ['add_movie', 'delete_movie', 'update_movie_rating', 'update_movie_user_statuses', 'get_movies', 'edit_user_movie', 'get_user_movie_tags', 'create_user_movie_tag', 'get_movie_tags'];
-            
-            if (in_array($action, $authRequiredActions)) {
-                $authResult = $this->authMiddleware->requireAuth();
-                if ($authResult['status'] === 'error') {
-                    http_response_code(401);
-                    header('Content-Type: application/json');
-                    echo json_encode($authResult);
-                    exit();
-                }
-                
-                // Check CSRF for modifying actions
-                $csrfRequiredActions = ['add_movie', 'delete_movie', 'update_movie_rating', 'update_movie_user_statuses', 'edit_user_movie', 'create_user_movie_tag'];
-                if (in_array($action, $csrfRequiredActions)) {
-                    $csrfResult = $this->authMiddleware->requireAuthAndCSRF($inputData['csrf_token'] ?? null);
-                    if ($csrfResult['status'] === 'error') {
-                        http_response_code(403);
-                        header('Content-Type: application/json');
-                        echo json_encode($csrfResult);
-                        exit();
-                    }
-                    $authResult = $csrfResult;
-                }
-            }
-            
-            $response = match ($action) {
-                'add_movie' => $this->addMovie($inputData['movie'] ?? [], $authResult['user']['id']),
-                'delete_movie' => $this->deleteMovie($inputData['movieId'] ?? 0, $authResult['user']['id']),
-                'update_movie_rating' => $this->updateMovieRating($inputData['movieId'] ?? 0, $inputData['rating'] ?? null, $authResult['user']['id']),
-                'update_movie_user_statuses' => $this->updateMovieUserStatuses($inputData['movieId'] ?? 0, $inputData['statuses'] ?? [], $authResult['user']['id']),
-                'get_movie_allowed_statuses' => $this->getMovieAllowedStatuses(),
-                'get_movies' => $this->getMovies($authResult['user']['id']),
-                'edit_user_movie' => $this->editUserMovie($inputData['movieId'] ?? 0, $authResult['user']['id'], $inputData['data'] ?? [], $inputData['tags'] ?? [], $inputData['notes'] ?? []),
-                'get_user_movie_tags' => $this->getUserMovieTags($authResult['user']['id']),
-                'create_user_movie_tag' => $this->createUserMovieTag($authResult['user']['id'], $inputData['name'] ?? '', $inputData['color'] ?? '#1976d2'),
-                'get_movie_tags' => $this->getMovieTags($authResult['user']['id'], $inputData['movieIsbn'] ?? ''),
-                default => $this->errorResponse('Invalid movie action: ' . $action)
-            };
-            
-            $statusCode = $response['status'] === 'success' ? 200 : 400;
-            http_response_code($statusCode);
-            header('Content-Type: application/json');
-            echo json_encode($response, JSON_PRETTY_PRINT);
-            exit();
-
-        } catch (\Throwable $e) {
-            http_response_code(500);
-            header('Content-Type: application/json');
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'Internal server error: ' . $e->getMessage()
-            ], JSON_PRETTY_PRINT);
-            exit();
         }
     }
 }

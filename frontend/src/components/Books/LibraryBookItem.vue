@@ -55,11 +55,13 @@
           <button 
             v-if="isNewBook"
             @click="onSaveBook" 
-            class="action-button save-button" 
+            :class="['action-button', 'save-button', `save-button--${saveButtonState}`]"
             :disabled="!canSave"
             title="Guardar libro"
           >
-            <i class="fas fa-save"></i>
+            <i v-if="saveButtonState === 'idle'" class="fas fa-save"></i>
+            <i v-else-if="saveButtonState === 'success'" class="fas fa-check"></i>
+            <i v-else-if="saveButtonState === 'error'" class="fas fa-times"></i>
             <span>Guardar</span>
           </button>
           
@@ -67,10 +69,13 @@
           <button 
             v-if="!isNewBook"
             @click="onEditBook" 
-            class="action-button edit-button" 
+            :class="['action-button', 'edit-button', `edit-button--${editButtonState}`]"
+            :disabled="editButtonState !== 'idle'"
             title="Editar libro"
           >
-            <i class="fas fa-pencil-alt"></i>
+            <i v-if="editButtonState === 'idle'" class="fas fa-pencil-alt"></i>
+            <i v-else-if="editButtonState === 'success'" class="fas fa-check"></i>
+            <i v-else-if="editButtonState === 'error'" class="fas fa-times"></i>
             <span>Editar</span>
           </button>
           
@@ -91,7 +96,7 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, ref, computed, watch } from 'vue';
+import { defineProps, defineEmits, defineExpose, ref, computed, watch } from 'vue';
 import ReadingProgressBar from '@/components/common/ReadingProgressBar.vue';
 import RatingComponent from '@/components/common/RatingComponent.vue';
 import StatusSelector from '@/components/common/StatusSelector.vue';
@@ -131,11 +136,17 @@ const selectedUserStatuses = ref(props.book.userStatuses || []);
 const rating = ref(props.book.user_rating || 0);
 const currentPage = ref(props.book.currentPage || 0);
 
-// Capturar si es nuevo al inicializar (no reactivo)
-const isNewBook = ref(!props.book.userStatuses || props.book.userStatuses.length === 0);
+// Estado del botón de guardar
+const saveButtonState = ref('idle'); // 'idle', 'success', 'error'
+
+// Estado del botón de editar
+const editButtonState = ref('idle'); // 'idle', 'success', 'error'
+
+// Computed: el libro es nuevo si NO es editable (editable=true significa que ya existe)
+const isNewBook = computed(() => !props.editable);
 
 const canDelete = computed(() => {
-  return props.book.userStatuses && props.book.userStatuses.length > 0;
+  return props.editable; // Can only delete if book exists (editable=true)
 });
 
 const canSave = computed(() => {
@@ -158,8 +169,46 @@ const onStatusesChange = (newStatuses) => {
 const onSaveBook = () => {
   // Emitir evento para guardar el libro
   Logger.debug('Saving book:', props.book.isbn);
+  saveButtonState.value = 'idle'; // Reset state
   emit('save-book', { book: props.book, statuses: selectedUserStatuses.value, itemType: 'book' });
 };
+
+// Métodos públicos para actualizar el estado del botón
+const setSaveSuccess = () => {
+  saveButtonState.value = 'success';
+  setTimeout(() => {
+    saveButtonState.value = 'idle';
+  }, 2000);
+};
+
+const setSaveError = () => {
+  saveButtonState.value = 'error';
+  setTimeout(() => {
+    saveButtonState.value = 'idle';
+  }, 2000);
+};
+
+const setEditSuccess = () => {
+  editButtonState.value = 'success';
+  setTimeout(() => {
+    editButtonState.value = 'idle';
+  }, 2000);
+};
+
+const setEditError = () => {
+  editButtonState.value = 'error';
+  setTimeout(() => {
+    editButtonState.value = 'idle';
+  }, 2000);
+};
+
+// Exponer métodos al componente padre
+defineExpose({
+  setSaveSuccess,
+  setSaveError,
+  setEditSuccess,
+  setEditError
+});
 
 // Methods
 const onEditBook = () => {
@@ -208,6 +257,10 @@ watch(() => props.book.user_rating, (newRating) => {
 watch(() => props.book.currentPage, (newPage) => {
   currentPage.value = newPage || 0;
 });
+
+watch(() => props.book.userStatuses, (newStatuses) => {
+  selectedUserStatuses.value = newStatuses || [];
+}, { deep: true });
 </script>
 
 <style>
@@ -349,19 +402,52 @@ watch(() => props.book.currentPage, (newPage) => {
 .save-button {
   background: linear-gradient(135deg, #28a745, #20c997);
   color: white;
+  transition: all 0.3s ease;
 }
 
 .save-button:hover:not(:disabled) {
   background: linear-gradient(135deg, #20c997, #17a2b8);
 }
 
+.save-button--success {
+  background: linear-gradient(135deg, #28a745, #32cd32) !important;
+  animation: pulse-success 0.5s ease;
+}
+
+.save-button--error {
+  background: linear-gradient(135deg, #dc3545, #ff6b6b) !important;
+  animation: shake 0.5s ease;
+}
+
+@keyframes pulse-success {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
 .edit-button {
   background: linear-gradient(135deg, #007bff, #0056b3);
   color: white;
+  transition: all 0.3s ease;
 }
 
 .edit-button:hover:not(:disabled) {
   background: linear-gradient(135deg, #0056b3, #004085);
+}
+
+.edit-button--success {
+  background: linear-gradient(135deg, #28a745, #32cd32) !important;
+  animation: pulse-success 0.5s ease;
+}
+
+.edit-button--error {
+  background: linear-gradient(135deg, #dc3545, #ff6b6b) !important;
+  animation: shake 0.5s ease;
 }
 
 .delete-button {

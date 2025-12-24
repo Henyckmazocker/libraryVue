@@ -1,87 +1,38 @@
 <?php
 namespace App\Controllers;
 
-use App\Domain\Repository\BookRepositoryInterface;
-use App\Domain\Repository\MovieRepositoryInterface;
+use App\Domain\Repository\Book\UserBookRepositoryInterface;
+use App\Domain\Repository\Movie\UserMovieRepositoryInterface;
+use App\Domain\Repository\Book\ReadingProgressRepositoryInterface;
 use App\Infrastructure\Middleware\AuthMiddleware;
 
 class StatsController extends BaseController
 {
-    private BookRepositoryInterface $bookRepository;
-    private MovieRepositoryInterface $movieRepository;
+    private UserBookRepositoryInterface $userBookRepository;
+    private UserMovieRepositoryInterface $userMovieRepository;
+    private ReadingProgressRepositoryInterface $readingProgressRepository;
     private AuthMiddleware $authMiddleware;
 
     public function __construct(
-        BookRepositoryInterface $bookRepository,
-        MovieRepositoryInterface $movieRepository,
+        UserBookRepositoryInterface $userBookRepository,
+        UserMovieRepositoryInterface $userMovieRepository,
+        ReadingProgressRepositoryInterface $readingProgressRepository,
         AuthMiddleware $authMiddleware
     ) {
-        $this->bookRepository = $bookRepository;
-        $this->movieRepository = $movieRepository;
+        $this->userBookRepository = $userBookRepository;
+        $this->userMovieRepository = $userMovieRepository;
+        $this->readingProgressRepository = $readingProgressRepository;
         $this->authMiddleware = $authMiddleware;
     }
 
     /**
      * Handle HTTP requests for statistics endpoints
      */
-    public function handleRequest(string $method, string $path): void
-    {
-        try {
-            // Set JSON content type
-            header('Content-Type: application/json');
-            
-            // Parse input data
-            $inputData = json_decode(file_get_contents('php://input'), true) ?? [];
-            $action = $inputData['action'] ?? $_REQUEST['action'] ?? null;
-            
-            // Authenticate user
-            $authResult = $this->authMiddleware->requireAuth();
-            if ($authResult['status'] === 'error') {
-                http_response_code(401);
-                echo json_encode($authResult);
-                return;
-            }
-            
-            $userId = $authResult['user']['id'];
-            
-            // Route to appropriate method based on action
-            switch ($action) {
-                case 'get_book_stats':
-                    $response = $this->getBookStats($userId);
-                    break;
-                    
-                case 'get_movie_stats':
-                    $response = $this->getMovieStats($userId);
-                    break;
-                    
-                default:
-                    http_response_code(400);
-                    echo json_encode([
-                        'status' => 'error',
-                        'message' => 'Invalid action for statistics endpoint: ' . $action
-                    ]);
-                    return;
-            }
-            
-            // Send response
-            $httpCode = $response['http_code'] ?? ($response['status'] === 'success' ? 200 : 400);
-            http_response_code($httpCode);
-            echo json_encode($response, JSON_PRETTY_PRINT);
-            
-        } catch (\Exception $e) {
-            http_response_code(500);
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'Internal server error: ' . $e->getMessage()
-            ]);
-        }
-    }
-
     public function getBookStats(int $userId): array
     {
         try {
             // Obtener todos los libros del usuario
-            $books = $this->bookRepository->findBooksByUser($userId);
+            $books = $this->userBookRepository->findByUser($userId);
             
             $stats = [
                 'totalBooks' => count($books),
@@ -102,7 +53,7 @@ class StatsController extends BaseController
     {
         try {
             // Obtener todas las películas del usuario
-            $movies = $this->movieRepository->findMoviesByUser($userId);
+            $movies = $this->userMovieRepository->findByUser($userId);
             
             $stats = [
                 'totalMovies' => count($movies),
@@ -209,14 +160,17 @@ class StatsController extends BaseController
 
         foreach ($books as $book) {
             $rating = $book->getUserRating();
-            if ($rating !== null && $rating > 0) {
-                // Redondear a 0.5 más cercano para agrupar medios puntos
-                $roundedRating = round($rating * 2) / 2;
-                if ($roundedRating >= 1 && $roundedRating <= 5) {
-                    $ratingKey = (string)$roundedRating;
-                    $ratingCounts[$ratingKey] = ($ratingCounts[$ratingKey] ?? 0) + 1;
-                    $totalRated++;
-                    $sumRatings += $rating;
+            if ($rating !== null) {
+                $ratingValue = $rating->toFloat();
+                if ($ratingValue > 0) {
+                    // Redondear a 0.5 más cercano para agrupar medios puntos
+                    $roundedRating = round($ratingValue * 2) / 2;
+                    if ($roundedRating >= 1 && $roundedRating <= 5) {
+                        $ratingKey = (string)$roundedRating;
+                        $ratingCounts[$ratingKey] = ($ratingCounts[$ratingKey] ?? 0) + 1;
+                        $totalRated++;
+                        $sumRatings += $ratingValue;
+                    }
                 }
             }
         }
@@ -239,14 +193,17 @@ class StatsController extends BaseController
 
         foreach ($movies as $movie) {
             $rating = $movie->getUserRating();
-            if ($rating !== null && $rating > 0) {
-                // Redondear a 0.5 más cercano para agrupar medios puntos
-                $roundedRating = round($rating * 2) / 2;
-                if ($roundedRating >= 1 && $roundedRating <= 5) {
-                    $ratingKey = (string)$roundedRating;
-                    $ratingCounts[$ratingKey] = ($ratingCounts[$ratingKey] ?? 0) + 1;
-                    $totalRated++;
-                    $sumRatings += $rating;
+            if ($rating !== null) {
+                $ratingValue = $rating->toFloat();
+                if ($ratingValue > 0) {
+                    // Redondear a 0.5 más cercano para agrupar medios puntos
+                    $roundedRating = round($ratingValue * 2) / 2;
+                    if ($roundedRating >= 1 && $roundedRating <= 5) {
+                        $ratingKey = (string)$roundedRating;
+                        $ratingCounts[$ratingKey] = ($ratingCounts[$ratingKey] ?? 0) + 1;
+                        $totalRated++;
+                        $sumRatings += $ratingValue;
+                    }
                 }
             }
         }
@@ -269,7 +226,7 @@ class StatsController extends BaseController
         foreach ($books as $book) {
             $timestamp = $book->getAddedTimestamp();
             if ($timestamp) {
-                $month = date('Y-m', $timestamp);
+                $month = date('Y-m', $timestamp->toUnixTimestamp());
                 $monthlyCounts[$month] = ($monthlyCounts[$month] ?? 0) + 1;
             }
         }
@@ -291,7 +248,7 @@ class StatsController extends BaseController
         foreach ($movies as $movie) {
             $timestamp = $movie->getAddedTimestamp();
             if ($timestamp) {
-                $month = date('Y-m', $timestamp);
+                $month = date('Y-m', $timestamp->toUnixTimestamp());
                 $monthlyCounts[$month] = ($monthlyCounts[$month] ?? 0) + 1;
             }
         }
@@ -315,7 +272,7 @@ class StatsController extends BaseController
             // Por ahora, usaremos el timestamp de cuando se agregó
             $timestamp = $movie->getAddedTimestamp();
             if ($timestamp) {
-                $year = (int)date('Y', $timestamp);
+                $year = (int)date('Y', $timestamp->toUnixTimestamp());
                 $decade = (int)(floor($year / 10) * 10);
                 $decadeLabel = $decade . 's';
                 $decadeCounts[$decadeLabel] = ($decadeCounts[$decadeLabel] ?? 0) + 1;
@@ -331,7 +288,8 @@ class StatsController extends BaseController
     private function calculateMonthlyPagesStats(int $userId): array
     {
         try {
-            return $this->bookRepository->getMonthlyPagesReadStats($userId, 12);
+            $stats = $this->readingProgressRepository->getMonthlyStats($userId, 12);
+            return $stats;
         } catch (\Exception $e) {
             // En caso de error, devolver array vacío para evitar que falle toda la respuesta
             return [];

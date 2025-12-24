@@ -42,6 +42,18 @@ const routes = [
     name: 'MoviesDashboard',
     component: () => import('../components/Dashboard/MoviesDashboard.vue'),
     meta: { requiresAuth: false }
+  },
+  {
+    path: '/books/:isbn',
+    name: 'BookDetail',
+    component: () => import('../views/BookDetailView.vue'),
+    props: true
+  },
+  {
+    path: '/movies/:imdbId',
+    name: 'MovieDetail',
+    component: () => import('../views/MovieDetailView.vue'),
+    props: true
   }
 ];
 

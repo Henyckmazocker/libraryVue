@@ -19,6 +19,8 @@ class SessionManager
 
     private function startSession(): void
     {
+        // Session should already be started by Application::bootstrap()
+        // Only start if not already active (for backward compatibility or testing)
         if (session_status() === PHP_SESSION_NONE) {
             // Configure session settings for security ONLY if headers haven't been sent
             if (!headers_sent()) {
@@ -42,30 +44,30 @@ class SessionManager
                 // (this might happen in CLI or testing environments)
                 @session_start();
             }
-            
-            // Check session timeout only if session was started successfully
-            if (session_status() === PHP_SESSION_ACTIVE) {
-                if ($this->isSessionExpired()) {
-                    $this->logout();
-                    return;
-                }
-                
-                // Regenerate session ID periodically for security
-                if (!isset($_SESSION['last_regenerated'])) {
-                    $this->regenerateSession();
-                } elseif (time() - $_SESSION['last_regenerated'] > 300) { // 5 minutes
-                    $this->regenerateSession();
-                }
-                
-                // Update last activity
-                $_SESSION['last_activity'] = time();
-                
-                // Debug: Log cookie and header information
-                $sessionId = session_id();
-                $headers = headers_list();
-                $cookieParams = session_get_cookie_params();
-                error_log("Session Debug - ID: {$sessionId}, Cookie Params: " . json_encode($cookieParams) . ", Headers: " . json_encode($headers));
+        }
+        
+        // Check session timeout and regenerate if needed (only if session is active)
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            if ($this->isSessionExpired()) {
+                $this->logout();
+                return;
             }
+            
+            // Regenerate session ID periodically for security
+            if (!isset($_SESSION['last_regenerated'])) {
+                $this->regenerateSession();
+            } elseif (time() - $_SESSION['last_regenerated'] > 300) { // 5 minutes
+                $this->regenerateSession();
+            }
+            
+            // Update last activity
+            $_SESSION['last_activity'] = time();
+            
+            // Debug: Log cookie and header information
+            $sessionId = session_id();
+            $headers = headers_list();
+            $cookieParams = session_get_cookie_params();
+            error_log("Session Debug - ID: {$sessionId}, Cookie Params: " . json_encode($cookieParams) . ", Headers: " . json_encode($headers));
         }
     }
 
@@ -73,8 +75,8 @@ class SessionManager
     {
         $_SESSION[self::USER_KEY] = [
             'id' => $user->getId(),
-            'google_id' => $user->getGoogleId(),
-            'email' => $user->getEmail(),
+            'google_id' => $user->getGoogleId()->toString(),
+            'email' => $user->getEmail()->toString(),
             'name' => $user->getName(),
             'picture' => $user->getPicture(),
             'is_active' => $user->isActive()
@@ -153,8 +155,8 @@ class SessionManager
         if ($this->isLoggedIn()) {
             $_SESSION[self::USER_KEY] = [
                 'id' => $user->getId(),
-                'google_id' => $user->getGoogleId(),
-                'email' => $user->getEmail(),
+                'google_id' => $user->getGoogleId()->toString(),
+                'email' => $user->getEmail()->toString(),
                 'name' => $user->getName(),
                 'picture' => $user->getPicture(),
                 'is_active' => $user->isActive()

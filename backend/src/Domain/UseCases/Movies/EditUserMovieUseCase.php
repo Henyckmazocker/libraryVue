@@ -4,95 +4,68 @@ declare(strict_types=1);
 
 namespace App\Domain\UseCases\Movies;
 
-use App\Domain\Repository\MovieRepositoryInterface;
-use App\Domain\Repository\UserRepositoryInterface;
+use App\Domain\Repository\Movie\UserMovieRepositoryInterface;
+use App\Domain\Repository\Movie\MovieTagRepositoryInterface;
+use App\Domain\Repository\Movie\MovieNoteRepositoryInterface;
+use App\Domain\UseCases\AbstractUseCase;
+use App\Domain\DTO\Commands\EditUserMovieCommand;
+use Psr\Log\LoggerInterface;
+use InvalidArgumentException;
 
-class EditUserMovieUseCase
+class EditUserMovieUseCase extends AbstractUseCase
 {
-    private MovieRepositoryInterface $movieRepository;
-    private UserRepositoryInterface $userRepository;
-
     public function __construct(
-        MovieRepositoryInterface $movieRepository,
-        UserRepositoryInterface $userRepository
+        private readonly UserMovieRepositoryInterface $userMovieRepository,
+        private readonly MovieTagRepositoryInterface $movieTagRepository,
+        private readonly MovieNoteRepositoryInterface $movieNoteRepository,
+        LoggerInterface $logger
     ) {
-        $this->movieRepository = $movieRepository;
-        $this->userRepository = $userRepository;
+        parent::__construct($logger);
     }
 
-    /**
-     * Modifica todos los aspectos de un user_movie: datos principales, tags y notas.
-     * Los parámetros que sean null no se modifican.
-     *
-     * @param int $userId
-     * @param string $movieIsbn
-     * @param array $data ['personalRating', 'personalNotes', 'consumedAt']
-     * @param array $tags [['name' => string, 'color' => string]]
-     * @param array $notes [['noteText' => string, 'noteType' => string, 'isPrivate' => bool]]
-     */
-    public function execute(
-        int $userId,
-        string $movieIsbn,
-        array $data = [],
-        array $tags = [],
-        array $notes = []
-    ): void {
-        // Verificar si la película existe en la biblioteca del usuario
-        if (!$this->userRepository->hasUserMovie($userId, $movieIsbn)) {
-            // Si no existe, añadirla primero
-            $this->userRepository->addUserMovie(
-                $userId,
-                $movieIsbn,
-                $data['personalRating'] ?? null,
-                $data['personalNotes'] ?? null,
-                $data['consumedAt'] ?? null
-            );
-        } else {
-            // Si existe, editar datos principales
-            $this->movieRepository->editUserMovie(
-                $userId,
-                $movieIsbn,
-                $data['personalRating'] ?? null,
-                $data['personalNotes'] ?? null,
-                $data['consumedAt'] ?? null
-            );
+    protected function doExecute($command): void
+    {
+        if (!$command instanceof EditUserMovieCommand) {
+            throw new InvalidArgumentException('Command must be an instance of EditUserMovieCommand');
         }
 
-        // Actualizar estados de la película si se pasan
-        if (isset($data['statuses']) && is_array($data['statuses'])) {
-            $this->movieRepository->updateUserMovieStatuses($userId, $movieIsbn, $data['statuses']);
+        $movieId = $command->id->toString();
+        $userId = $command->userId;
+
+        // Update rating if provided
+        if ($command->userRating !== null) {
+            $updateData = ['personal_rating' => $command->userRating->toFloat()];
+            $this->userMovieRepository->update($userId, $movieId, $updateData);
         }
 
-        // Eliminar todos los tags previamente asignados
-        $this->movieRepository->removeAllUserMovieTags($userId, $movieIsbn);
+        // Update statuses if provided
+        if (!empty($command->statuses)) {
+            $this->userMovieRepository->updateStatuses($userId, $movieId, $command->statuses);
+        }
 
-        // Añadir tags y asignarlos
-        foreach ($tags as $tag) {
-            // Si $tag es un ID numérico, simplemente asignarlo
+        // Remove all existing tags
+        $this->movieTagRepository->removeAll($userId, $movieId);
+
+        // Add new tags
+        foreach ($command->tags as $tag) {
             if (is_numeric($tag)) {
-                $tagId = (int)$tag;
-                $this->movieRepository->assignUserMovieTag($userId, $movieIsbn, $tagId);
-            } 
-            // Si $tag es un array con name, crear nuevo tag
-            elseif (is_array($tag) && isset($tag['name'])) {
-                $tagId = $this->movieRepository->addUserMovieTag(
-                    $userId,
-                    $tag['name'],
-                    $tag['color'] ?? '#007bff'
-                );
-                $this->movieRepository->assignUserMovieTag($userId, $movieIsbn, $tagId);
+                $this->movieTagRepository->assign($userId, $movieId, (int)$tag);
             }
         }
+    }
 
-        // Añadir notas
-        foreach ($notes as $note) {
-            $this->movieRepository->addUserMovieNote(
-                $userId,
-                $movieIsbn,
-                $note['noteText'],
-                $note['noteType'] ?? 'note',
-                $note['isPrivate'] ?? true
-            );
-        }
+    protected function getLogContext(): string
+    {
+        return 'EditUserMovieUseCase';
+    }
+
+    protected function getSuccessMessage(): string
+    {
+        return 'User movie edited successfully';
+    }
+
+    protected function getErrorMessage(): string
+    {
+        return 'Failed to edit user movie';
     }
 }

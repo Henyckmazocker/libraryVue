@@ -5,95 +5,82 @@ declare(strict_types=1);
 namespace App\Domain\UseCases\Movies;
 
 use App\Domain\Model\Movie;
-use App\Domain\Repository\MovieRepositoryInterface;
-use App\Domain\Repository\UserRepositoryInterface;
+use App\Domain\Repository\Movie\MovieRepositoryInterface;
+use App\Domain\Repository\User\UserRepositoryInterface;
+use App\Domain\Repository\Movie\UserMovieRepositoryInterface;
+use App\Domain\UseCases\AbstractUseCase;
+use App\Domain\DTO\Commands\AddMovieCommand;
+use Psr\Log\LoggerInterface;
 use InvalidArgumentException;
 
-class AddMovieUseCase
+class AddMovieUseCase extends AbstractUseCase
 {
-    private MovieRepositoryInterface $movieRepository;
-    private UserRepositoryInterface $userRepository;
-
     public function __construct(
-        MovieRepositoryInterface $movieRepository,
-        UserRepositoryInterface $userRepository
+        private readonly MovieRepositoryInterface $movieRepository,
+        private readonly UserRepositoryInterface $userRepository,
+        private readonly UserMovieRepositoryInterface $userMovieRepository,
+        LoggerInterface $logger
     ) {
-        $this->movieRepository = $movieRepository;
-        $this->userRepository = $userRepository;
+        parent::__construct($logger);
     }
 
-    /**
-     * @param array $movieData Datos crudos de la película, incluyendo userStatuses.
-     * @param int $userId ID of the user to associate the movie with
-     * @return Movie La película agregada.
-     * @throws InvalidArgumentException si los datos son inválidos o la relación usuario-película ya existe.
-     */
-    public function execute(array $movieData, int $userId): Movie
+    protected function doExecute($command): Movie
     {
-        if (empty($movieData['id'])) {
-            throw new InvalidArgumentException('ID is required to add a movie.');
-        }
-        if (empty($movieData['title'])) {
-            throw new InvalidArgumentException('Title is required to add a movie.');
-        }
-        if (empty($movieData['userStatuses']) || !is_array($movieData['userStatuses'])) {
-            throw new InvalidArgumentException('User statuses are required and must be an array.');
+        if (!$command instanceof AddMovieCommand) {
+            throw new InvalidArgumentException('Command must be an instance of AddMovieCommand');
         }
 
         // Validate user exists
-        $user = $this->userRepository->findById($userId);
+        $user = $this->userRepository->findById($command->userId);
         if (!$user) {
-            throw new InvalidArgumentException("User with ID {$userId} not found");
+            throw new InvalidArgumentException("User with ID {$command->userId} not found");
         }
 
-        // Check if user already has this movie - this is the only error case
-        if ($this->userRepository->hasUserMovie($userId, $movieData['id'])) {
+        // Check if user already has this movie
+        if ($this->userMovieRepository->hasMovie($command->userId, $command->id->toString())) {
             throw new InvalidArgumentException('You already have this movie in your library.');
         }
 
         // Check if movie exists in the system
-        $existingMovie = $this->movieRepository->findById($movieData['id']);
+        $existingMovie = $this->movieRepository->findById($command->id->toString());
         
         if (!$existingMovie) {
             // Movie doesn't exist, create it first
-            try {
-                $movie = Movie::fromArray([
-                    'id' => $movieData['id'],
-                    'title' => $movieData['title'],
-                    'originalTitle' => $movieData['originalTitle'] ?? null,
-                    'director' => $movieData['director'] ?? null,
-                    'coverUrl' => $movieData['coverUrl'] ?? null,
-                    'rating' => isset($movieData['rating']) && is_numeric($movieData['rating']) ? (float)$movieData['rating'] : null,
-                    'description' => $movieData['description'] ?? null,
-                    'userStatuses' => $movieData['userStatuses'],
-                    'addedTimestamp' => $movieData['addedTimestamp'] ?? time(),
-                    'allowedStatuses' => $movieData['allowedStatuses'] ?? [],
-                    'genres' => $movieData['genres'] ?? null // Add genres field
-                ]);
-            } catch (\InvalidArgumentException $e) {
-                throw new InvalidArgumentException('Invalid movie data: ' . $e->getMessage());
-            }
-            
-            // Save the movie to the system
+            $movie = Movie::fromArray($command->toArray());
             $this->movieRepository->save($movie);
         } else {
-            // Movie exists, we need to convert the array to Movie object
-            $movie = Movie::fromArray(array_merge($existingMovie, [
-                'allowedStatuses' => $movieData['allowedStatuses'] ?? []
-            ]));
+            // Movie exists, use existing movie data
+            $movie = $existingMovie;
         }
 
         // Add the movie to user's library with their specific statuses
-        $this->movieRepository->addMovieToUser((int)$userId, $movieData['id'], $movieData['userStatuses']);
+        $this->userMovieRepository->add(
+            $command->userId, 
+            $command->id->toString(), 
+            $command->statuses,
+            $command->userRating?->toFloat(),
+            null, // personalNotes - not provided in AddMovieCommand
+            null  // consumedAt - not provided in AddMovieCommand
+        );
         
-        // Update user's personal rating if provided
-        if (isset($movieData['rating']) && is_numeric($movieData['rating'])) {
-            $personalRating = (float)$movieData['rating'];
-            if ($personalRating >= 0 && $personalRating <= 5) {
-                $this->movieRepository->updateUserMovieRating((int)$userId, $movieData['id'], $personalRating);
-            }
-        }
+        // Note: Rating is already handled in the add() method above
+        // No need for separate updateRating call
         
         return $movie;
+    }
+
+    protected function getLogContext(): string
+    {
+        return 'AddMovieUseCase';
+    }
+
+    protected function getSuccessMessage(): string
+    {
+        return 'Movie added successfully to user library';
+    }
+
+    protected function getErrorMessage(): string
+    {
+        return 'Failed to add movie to user library';
     }
 }

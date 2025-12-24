@@ -1,43 +1,57 @@
 <?php
+
+declare(strict_types=1);
+
 namespace App\Domain\UseCases\Movies;
 
-use App\Domain\Repository\MovieRepositoryInterface;
-use App\Domain\Repository\UserRepositoryInterface;
+use App\Domain\Repository\User\UserRepositoryInterface;
+use App\Domain\Repository\Movie\UserMovieRepositoryInterface;
+use App\Domain\UseCases\AbstractUseCase;
+use App\Domain\DTO\Queries\GetMoviesByUserQuery;
+use Psr\Log\LoggerInterface;
 use InvalidArgumentException;
 
-class GetMoviesUseCase
+class GetMoviesUseCase extends AbstractUseCase
 {
-    private MovieRepositoryInterface $movieRepository;
-    private UserRepositoryInterface $userRepository;
-
     public function __construct(
-        MovieRepositoryInterface $movieRepository,
-        UserRepositoryInterface $userRepository
+        private readonly UserRepositoryInterface $userRepository,
+        private readonly UserMovieRepositoryInterface $userMovieRepository,
+        LoggerInterface $logger
     ) {
-        $this->movieRepository = $movieRepository;
-        $this->userRepository = $userRepository;
+        parent::__construct($logger);
     }
 
     /**
-     * @param int $userId ID of the user whose movies to retrieve
-     * @param array $filters ['title' => string|null, 'status' => string|null]
-     * @return array
-     * @throws InvalidArgumentException if user not found
+     * Execute with GetMoviesByUserQuery
+     * Get movies for a specific user with optional filters
      */
-    public function execute(int $userId, array $filters = []): array
+    protected function doExecute($command): array
     {
+        // Validate command
+        if (!$command instanceof GetMoviesByUserQuery) {
+            throw new InvalidArgumentException('Command must be an instance of GetMoviesByUserQuery');
+        }
+
         // Validate user exists
-        $user = $this->userRepository->findById($userId);
+        $user = $this->userRepository->findById($command->userId);
         if (!$user) {
-            throw new InvalidArgumentException("User with ID {$userId} not found");
+            throw new InvalidArgumentException("User with ID {$command->userId} not found");
         }
 
         // Get movies for this specific user
-        $movies = $this->movieRepository->findMoviesByUser((int)$userId, $filters);
+        $movies = $this->userMovieRepository->findByUser($command->userId, $command->filters);
         
         // Convert to array format if needed
         return array_map(function($movie) {
             return is_object($movie) && method_exists($movie, 'toArray') ? $movie->toArray() : $movie;
         }, $movies);
+    }
+
+    /**
+     * Get log context for this use case
+     */
+    protected function getLogContext(): string
+    {
+        return 'GetMoviesUseCase';
     }
 }

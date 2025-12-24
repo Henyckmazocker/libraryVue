@@ -4,36 +4,41 @@ declare(strict_types=1);
 
 namespace App\Domain\Model;
 
+use App\Domain\Model\ValueObjects\MovieIdentifier;
+use App\Domain\Model\ValueObjects\Rating;
+use App\Domain\Model\ValueObjects\Genre;
+use App\Domain\Model\ValueObjects\Timestamp;
 use InvalidArgumentException;
 
 class Movie
 {
-    private string $id;
+    private MovieIdentifier $id;
     private string $title;
     private ?string $originalTitle;
     private ?string $director;
     private ?string $coverUrl;
-    private ?float $rating; // General movie rating
-    private ?float $userRating; // User's personal rating
+    private ?Rating $rating; // General movie rating
+    private ?Rating $userRating; // User's personal rating
     private ?string $description;
     private array $userStatuses;
-    private int $addedTimestamp;
+    private Timestamp $addedTimestamp;
     private array $allowedStatuses;
     private ?array $tags;
     private ?array $allowedTags;
+    /** @var Genre[]|null */
     private ?array $genres; // Géneros de la película
 
     public function __construct(
-        string $id,
+        MovieIdentifier $id,
         string $title,
         ?string $originalTitle,
         ?string $director,
         ?string $coverUrl,
-        ?float $rating,
-        ?float $userRating,
+        ?Rating $rating,
+        ?Rating $userRating,
         ?string $description,
         array $userStatuses,
-        int $addedTimestamp,
+        Timestamp $addedTimestamp,
         array $allowedStatuses = [],
         ?array $tags = null,
         ?array $allowedTags = null,
@@ -63,37 +68,55 @@ class Movie
         if (empty($data['userStatuses']) || !is_array($data['userStatuses'])) {
             throw new InvalidArgumentException('User statuses are required and must be an array.');
         }
+        
+        $id = MovieIdentifier::fromString(empty($data['id']) ? $data['isbn'] : $data['id']);
+        $rating = isset($data['rating']) && is_numeric($data['rating']) 
+            ? Rating::fromNullableFloat((float)$data['rating']) 
+            : null;
+        $userRating = isset($data['user_rating']) && is_numeric($data['user_rating']) 
+            ? Rating::fromNullableFloat((float)$data['user_rating']) 
+            : null;
+        $addedTimestamp = isset($data['addedTimestamp']) 
+            ? Timestamp::fromUnixTimestamp($data['addedTimestamp']) 
+            : Timestamp::now();
+        
+        $genres = null;
+        if (isset($data['genres']) && is_array($data['genres'])) {
+            $genres = array_map(fn($g) => Genre::fromString($g), $data['genres']);
+        }
+        
         return new self(
-            empty($data['id']) ? $data['isbn'] : $data['id'],
+            $id,
             $data['title'],
             $data['originalTitle'] ?? null,
             $data['director'] ?? null,
             $data['coverUrl'] ?? null,
-            isset($data['rating']) && is_numeric($data['rating']) ? (float)$data['rating'] : null,
-            isset($data['user_rating']) && is_numeric($data['user_rating']) ? (float)$data['user_rating'] : null,
+            $rating,
+            $userRating,
             $data['description'] ?? null,
             $data['userStatuses'],
-            $data['addedTimestamp'] ?? time(),
-            $data['allowedStatuses'] ?? null,
+            $addedTimestamp,
+            $data['allowedStatuses'] ?? [],
             $data['tags'] ?? null,
             $data['allowedTags'] ?? null,
-            $data['genres'] ?? null
+            $genres
         );
     }
 
-    public function getId(): string { return $this->id; }
+    public function getId(): MovieIdentifier { return $this->id; }
     public function getTitle(): string { return $this->title; }
     public function getOriginalTitle(): ?string { return $this->originalTitle; }
     public function getDirector(): ?string { return $this->director; }
     public function getCoverUrl(): ?string { return $this->coverUrl; }
-    public function getRating(): ?float { return $this->rating; }
-    public function getUserRating(): ?float { return $this->userRating; }
+    public function getRating(): ?Rating { return $this->rating; }
+    public function getUserRating(): ?Rating { return $this->userRating; }
     public function getDescription(): ?string { return $this->description; }
     public function getUserStatuses(): array { return $this->userStatuses; }
-    public function getAddedTimestamp(): int { return $this->addedTimestamp; }
+    public function getAddedTimestamp(): Timestamp { return $this->addedTimestamp; }
     public function getAllowedStatuses(): array { return $this->allowedStatuses; }
     public function getTags(): ?array { return $this->tags; }
     public function getAllowedTags(): ?array { return $this->allowedTags; }
+    /** @return Genre[]|null */
     public function getGenres(): ?array { return $this->genres; }
 
     public function setTags(?array $tags): void { $this->tags = $tags; }
@@ -120,12 +143,12 @@ class Movie
         $this->coverUrl = $coverUrl; 
     }
 
-    public function setRating(?float $rating): void 
+    public function setRating(?Rating $rating): void 
     { 
         $this->rating = $rating; 
     }
 
-    public function setUserRating(?float $userRating): void 
+    public function setUserRating(?Rating $userRating): void 
     { 
         $this->userRating = $userRating; 
     }
@@ -140,7 +163,7 @@ class Movie
         $this->userStatuses = $userStatuses; 
     }
 
-    public function setAddedTimestamp(int $addedTimestamp): void 
+    public function setAddedTimestamp(Timestamp $addedTimestamp): void 
     { 
         $this->addedTimestamp = $addedTimestamp; 
     }
@@ -152,23 +175,29 @@ class Movie
 
     public function toArray(): array
     {
+        $idString = $this->id->toString();
+        $genres = null;
+        if ($this->genres !== null) {
+            $genres = array_map(fn(Genre $g) => $g->toString(), $this->genres);
+        }
+        
         return [
-            'id' => $this->id,
-            'isbn' => $this->id, // Alias para compatibilidad con backend
-            'imdbID' => $this->id, // Alias para compatibilidad con frontend
+            'id' => $idString,
+            'isbn' => $idString, // Alias para compatibilidad con backend
+            'imdbID' => $idString, // Alias para compatibilidad con frontend
             'title' => $this->title,
             'originalTitle' => $this->originalTitle,
             'director' => $this->director,
             'coverUrl' => $this->coverUrl,
-            'rating' => $this->rating,
-            'user_rating' => $this->userRating,
+            'rating' => $this->rating?->toFloat(),
+            'user_rating' => $this->userRating?->toFloat(),
             'description' => $this->description,
             'userStatuses' => $this->userStatuses,
-            'addedTimestamp' => $this->addedTimestamp,
+            'addedTimestamp' => $this->addedTimestamp->toUnixTimestamp(),
             'allowedStatuses' => $this->allowedStatuses,
             'tags' => $this->tags,
             'allowedTags' => $this->allowedTags,
-            'genres' => $this->genres
+            'genres' => $genres
         ];
     }
 }

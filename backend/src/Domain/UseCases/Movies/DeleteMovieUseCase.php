@@ -4,47 +4,56 @@ declare(strict_types=1);
 
 namespace App\Domain\UseCases\Movies;
 
-use App\Domain\Repository\MovieRepositoryInterface;
-use App\Domain\Repository\UserRepositoryInterface;
+use App\Domain\Repository\User\UserRepositoryInterface;
+use App\Domain\Repository\Movie\UserMovieRepositoryInterface;
+use App\Domain\UseCases\AbstractUseCase;
+use App\Domain\DTO\Commands\DeleteMovieCommand;
+use Psr\Log\LoggerInterface;
 use InvalidArgumentException;
 
-class DeleteMovieUseCase
+class DeleteMovieUseCase extends AbstractUseCase
 {
-    private MovieRepositoryInterface $movieRepository;
-    private UserRepositoryInterface $userRepository;
-
     public function __construct(
-        MovieRepositoryInterface $movieRepository,
-        UserRepositoryInterface $userRepository
+        private readonly UserRepositoryInterface $userRepository,
+        private readonly UserMovieRepositoryInterface $userMovieRepository,
+        LoggerInterface $logger
     ) {
-        $this->movieRepository = $movieRepository;
-        $this->userRepository = $userRepository;
+        parent::__construct($logger);
     }
 
-    /**
-     * @param int $userId ID of the user removing the movie from their library
-     * @param string $movieId The ID of the movie to remove from user's library.
-     * @return bool True if removal was successful.
-     * @throws InvalidArgumentException if user or movie not found, or user doesn't have this movie.
-     */
-    public function execute(int $userId, string $movieId): bool
+    protected function doExecute($command): bool
     {
-        if (empty($movieId)) {
-            throw new InvalidArgumentException('Movie ID is required to remove a movie.');
+        if (!$command instanceof DeleteMovieCommand) {
+            throw new InvalidArgumentException('Command must be an instance of DeleteMovieCommand');
         }
 
         // Validate user exists
-        $user = $this->userRepository->findById($userId);
+        $user = $this->userRepository->findById($command->userId);
         if (!$user) {
-            throw new InvalidArgumentException("User with ID {$userId} not found");
+            throw new InvalidArgumentException("User with ID {$command->userId} not found");
         }
 
         // Check if user has this movie in their library
-        if (!$this->userRepository->hasUserMovie($userId, $movieId)) {
+        if (!$this->userMovieRepository->hasMovie($command->userId, $command->id->toString())) {
             throw new InvalidArgumentException('Movie not found in your library.');
         }
 
-        // Remove the movie from user's library (not from the system)
-        return $this->movieRepository->removeMovieFromUser($userId, $movieId);
+        // Remove the movie from user's library
+        return $this->userMovieRepository->remove($command->userId, $command->id->toString());
+    }
+
+    protected function getLogContext(): string
+    {
+        return 'DeleteMovieUseCase';
+    }
+
+    protected function getSuccessMessage(): string
+    {
+        return 'Movie removed successfully from user library';
+    }
+
+    protected function getErrorMessage(): string
+    {
+        return 'Failed to remove movie from user library';
     }
 }

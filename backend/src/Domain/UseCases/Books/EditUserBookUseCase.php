@@ -4,97 +4,100 @@ declare(strict_types=1);
 
 namespace App\Domain\UseCases\Books;
 
-use App\Domain\Repository\BookRepositoryInterface;
-use App\Domain\Repository\UserRepositoryInterface;
+use App\Domain\Repository\User\UserRepositoryInterface;
+use App\Domain\Repository\Book\UserBookRepositoryInterface;
+use App\Domain\Repository\Book\BookTagRepositoryInterface;
+use App\Domain\Repository\Book\BookNoteRepositoryInterface;
+use App\Domain\UseCases\AbstractUseCase;
+use App\Domain\DTO\Commands\EditUserBookCommand;
+use Psr\Log\LoggerInterface;
+use InvalidArgumentException;
 
-class EditUserBookUseCase
+class EditUserBookUseCase extends AbstractUseCase
 {
-    private BookRepositoryInterface $bookRepository;
-    private UserRepositoryInterface $userRepository;
-
-    public function __construct(BookRepositoryInterface $bookRepository, UserRepositoryInterface $userRepository)
-    {
-        $this->bookRepository = $bookRepository;
-        $this->userRepository = $userRepository;
+    public function __construct(
+        private readonly UserRepositoryInterface $userRepository,
+        private readonly UserBookRepositoryInterface $userBookRepository,
+        private readonly BookTagRepositoryInterface $bookTagRepository,
+        private readonly BookNoteRepositoryInterface $bookNoteRepository,
+        LoggerInterface $logger
+    ) {
+        parent::__construct($logger);
     }
 
-    /**
-     * Modifica todos los aspectos de un user_book: datos principales, tags y notas por página.
-     * Los parámetros que sean null no se modifican.
-     *
-     * @param int $userId
-     * @param string $isbn
-     * @param array $data ['currentPage', 'personalRating', 'personalNotes', 'consumedAt']
-     * @param array $tags [['name' => string, 'color' => string]]
-     * @param array $notes [['pageNumber' => int, 'noteText' => string, 'noteType' => string, 'isPrivate' => bool]]
-     */
-    public function execute(
-        int $userId,
-        string $isbn,
-        array $data = [],
-        array $tags = [],
-        array $notes = []
-    ): void {
-        // Verificar si el libro existe en la biblioteca del usuario
-        if (!$this->userRepository->hasUserBook($userId, $isbn)) {
-            // Si no existe, añadirlo primero
-            $this->userRepository->addUserBook(
-                $userId,
-                $isbn,
-                $data['currentPage'] ?? null,
-                $data['personalRating'] ?? null,
-                $data['personalNotes'] ?? null,
-                $data['consumedAt'] ?? null
-            );
-        } else {
-            // Si existe, editar datos principales
-            $this->bookRepository->editUserBook(
-                $userId,
-                $isbn,
-                $data['currentPage'] ?? null,
-                $data['personalRating'] ?? null,
-                $data['personalNotes'] ?? null,
-                $data['consumedAt'] ?? null
-            );
+    protected function doExecute($command): void
+    {
+        if (!$command instanceof EditUserBookCommand) {
+            throw new InvalidArgumentException('Command must be an instance of EditUserBookCommand');
         }
 
-        // Actualizar estados del libro si se pasan
-        // SIEMPRE actualizar estados si se proporcionan, sin importar si currentPage está presente
-        if (isset($data['statuses']) && is_array($data['statuses'])) {
-            $this->bookRepository->updateUserBookStatuses($userId, $isbn, $data['statuses']);
+        $isbn = $command->isbn->toString();
+        $userId = $command->userId;
+
+        $this->logger->info('EditUserBook - Command data', [
+            'isbn' => $isbn,
+            'userId' => $userId,
+            'userRating' => $command->userRating?->toFloat(),
+            'statuses' => $command->statuses,
+            'tags' => $command->tags,
+            'currentPage' => $command->currentPage,
+            'personalNotes' => $command->personalNotes,
+            'consumedAt' => $command->consumedAt
+        ]);
+
+        // Prepare data for edit method
+        $editData = [];
+        
+        if ($command->userRating !== null) {
+            $editData['personal_rating'] = $command->userRating->toFloat();
+        }
+        
+        if ($command->currentPage !== null) {
+            $editData['current_page'] = $command->currentPage;
+        }
+        
+        if ($command->personalNotes !== null) {
+            $editData['personal_notes'] = $command->personalNotes;
+        }
+        
+        if ($command->consumedAt !== null) {
+            $editData['consumed_at'] = $command->consumedAt;
+        }
+        
+        // Update user book data if there's anything to update
+        if (!empty($editData)) {
+            $this->userBookRepository->edit($userId, $isbn, $editData);
         }
 
-        // Eliminar todos los tags previamente asignados
-        $this->bookRepository->removeAllUserBookTags($userId, $isbn);
+        // Update statuses if provided
+        if (!empty($command->statuses)) {
+            $this->userBookRepository->updateStatuses($userId, $isbn, $command->statuses);
+        }
 
-        // Añadir tags y asignarlos
-        foreach ($tags as $tag) {
-            // Si $tag es un ID numérico, simplemente asignarlo
+        // Remove all existing tags
+        $this->bookTagRepository->removeAll($userId, $isbn);
+
+        // Add new tags
+        foreach ($command->tags as $tag) {
+            // If tag is numeric ID, assign directly
             if (is_numeric($tag)) {
-                $tagId = (int)$tag;
-                $this->bookRepository->assignUserBookTag($userId, $isbn, $tagId);
-            } 
-            // Si $tag es un array con name, crear nuevo tag
-            elseif (is_array($tag) && isset($tag['name'])) {
-                $tagId = $this->bookRepository->addUserBookTag(
-                    $userId,
-                    $tag['name'],
-                    $tag['color'] ?? '#007bff'
-                );
-                $this->bookRepository->assignUserBookTag($userId, $isbn, $tagId);
+                $this->bookTagRepository->assign($userId, $isbn, (int)$tag);
             }
         }
+    }
 
-        // Añadir notas por página
-        foreach ($notes as $note) {
-            $this->bookRepository->addUserBookNote(
-                $userId,
-                $isbn,
-                $note['pageNumber'],
-                $note['noteText'],
-                $note['noteType'] ?? 'note',
-                $note['isPrivate'] ?? true
-            );
-        }
+    protected function getLogContext(): string
+    {
+        return 'EditUserBookUseCase';
+    }
+
+    protected function getSuccessMessage(): string
+    {
+        return 'User book edited successfully';
+    }
+
+    protected function getErrorMessage(): string
+    {
+        return 'Failed to edit user book';
     }
 }

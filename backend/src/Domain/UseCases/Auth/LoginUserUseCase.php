@@ -3,129 +3,106 @@ declare(strict_types=1);
 
 namespace App\Domain\UseCases\Auth;
 
-use App\Domain\Repository\UserRepositoryInterface;
+use App\Domain\Repository\User\UserRepositoryInterface as NewUserRepositoryInterface;
 use App\Domain\Model\User;
+use App\Domain\Model\ValueObjects\Timestamp;
+use App\Domain\UseCases\AbstractUseCase;
+use App\Domain\DTO\Commands\LoginUserCommand;
+use Psr\Log\LoggerInterface;
 use InvalidArgumentException;
 
-class LoginUserUseCase
+class LoginUserUseCase extends AbstractUseCase
 {
-    private UserRepositoryInterface $userRepository;
-
-    public function __construct(UserRepositoryInterface $userRepository)
-    {
-        $this->userRepository = $userRepository;
+    public function __construct(
+        private readonly NewUserRepositoryInterface $userRepository,
+        LoggerInterface $logger
+    ) {
+        parent::__construct($logger);
     }
 
     /**
+     * Execute with LoginUserCommand
      * Login or register user with Google OAuth data
      */
-    public function execute(array $googleTokenData): User
+    protected function doExecute($command): User
     {
-        // Validate required Google token data
-        if (!isset($googleTokenData['sub'], $googleTokenData['email'], $googleTokenData['name'])) {
-            if (function_exists('logger')) {
-                try {
-                    logger('auth')->warning('Invalid Google token data provided', [
-                        'provided_fields' => array_keys($googleTokenData),
-                        'required_fields' => ['sub', 'email', 'name']
-                    ]);
-                } catch (\Throwable $e) {
-                    error_log("Logging error in LoginUserUseCase: " . $e->getMessage());
-                }
-            }
-            throw new InvalidArgumentException('Invalid Google token data. Missing required fields.');
-        }
-
-        $googleId = $googleTokenData['sub'];
-        $email = $googleTokenData['email'];
-        $name = $googleTokenData['name'];
-        $picture = $googleTokenData['picture'] ?? null;
-
-        if (function_exists('logger')) {
-            try {
-                logger('auth')->info('Attempting user authentication', [
-                    'google_id' => $googleId,
-                    'email' => $email,
-                    'name' => $name
-                ]);
-            } catch (\Throwable $e) {
-                error_log("Logging error in LoginUserUseCase: " . $e->getMessage());
-            }
+        // Validate command
+        if (!$command instanceof LoginUserCommand) {
+            throw new InvalidArgumentException('Command must be an instance of LoginUserCommand');
         }
 
         // Try to find existing user
-        $existingUser = $this->userRepository->findByGoogleId($googleId);
+        $existingUser = $this->userRepository->findByGoogleId($command->googleId);
         
         if ($existingUser) {
-            if (function_exists('logger')) {
-                try {
-                    logger('auth')->info('Existing user found, updating login data', [
-                        'user_id' => $existingUser->getId(),
-                        'email' => $email
-                    ]);
-                } catch (\Throwable $e) {
-                    error_log("Logging error in LoginUserUseCase: " . $e->getMessage());
-                }
-            }
-            
             // Update last login and any changed data
             $existingUser->updateLastLogin();
-            if ($existingUser->getEmail() !== $email) {
-                $existingUser->setEmail($email);
+            
+            if ($existingUser->getEmail()->toString() !== $command->email->toString()) {
+                $existingUser->setEmail($command->email);
             }
-            if ($existingUser->getName() !== $name) {
-                $existingUser->setName($name);
+            
+            if ($existingUser->getName() !== $command->name) {
+                $existingUser->setName($command->name);
             }
-            if ($existingUser->getPicture() !== $picture) {
-                $existingUser->setPicture($picture);
+            
+            if ($command->picture !== null && $existingUser->getPicture() !== $command->picture) {
+                $existingUser->setPicture($command->picture);
             }
             
             $this->userRepository->update($existingUser);
             
-            if (function_exists('logger')) {
-                try {
-                    logger('auth')->auth('login', (string)$existingUser->getId(), true, [
-                        'login_type' => 'google_oauth'
-                    ]);
-                } catch (\Throwable $e) {
-                    error_log("Logging error in LoginUserUseCase: " . $e->getMessage());
-                }
-            }
+            $this->logAuthEvent('login', (string)$existingUser->getId());
             
             return $existingUser;
         }
 
-        if (function_exists('logger')) {
-            try {
-                logger('auth')->info('Creating new user account', [
-                    'google_id' => $googleId,
-                    'email' => $email
-                ]);
-            } catch (\Throwable $e) {
-                error_log("Logging error in LoginUserUseCase: " . $e->getMessage());
-            }
-        }
-
         // Create new user
-        $newUser = User::create([
-            'google_id' => $googleId,
-            'email' => $email,
-            'name' => $name,
-            'picture' => $picture
-        ]);
+        $newUser = User::registerWithGoogle(
+            $command->googleId,
+            $command->email,
+            $command->name,
+            $command->picture
+        );
 
         $savedUser = $this->userRepository->save($newUser);
         
+        $this->logAuthEvent('register', (string)$savedUser->getId());
+        
+        return $savedUser;
+    }
+
+    /**
+     * Hook for logging successful execution with auth context
+     */
+    protected function logSuccess($command, $result): void
+    {
+        parent::logSuccess($command, $result);
+        
+        // Additional auth-specific success logging handled in logAuthEvent
+    }
+
+    /**
+     * Helper to log authentication events
+     */
+    private function logAuthEvent(string $action, string $userId): void
+    {
         if (function_exists('logger')) {
             try {
-                logger('auth')->auth('register', (string)$savedUser->getId(), true, [
+                logger('auth')->auth($action, $userId, true, [
                     'login_type' => 'google_oauth'
                 ]);
             } catch (\Throwable $e) {
-                error_log("Logging error in LoginUserUseCase: " . $e->getMessage());
+                error_log("Auth logging error: " . $e->getMessage());
             }
         }
+    }
 
-        return $savedUser;
+    /**
+     * Get log context for this use case
+     */
+    protected function getLogContext(): string
+    {
+        return 'LoginUserUseCase';
     }
 }

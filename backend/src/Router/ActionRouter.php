@@ -204,11 +204,7 @@ class ActionRouter
                 UpdateMovieRatingCommand::fromArray($data, $userId)
             ),
             'update_movie_user_statuses' => $controller->updateMovieUserStatuses(
-                new UpdateMovieStatusesCommand(
-                    $userId,
-                    $data['imdbID'] ?? $data['id'] ?? '',
-                    $data['statuses'] ?? []
-                )
+                UpdateMovieStatusesCommand::fromArray($data, $userId)
             ),
             'edit_user_movie' => $controller->editUserMovie(
                 EditUserMovieCommand::fromArray($data, $userId)

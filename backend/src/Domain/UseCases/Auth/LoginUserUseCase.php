@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace App\Domain\UseCases\Auth;
 
-use App\Domain\Repository\User\UserRepositoryInterface as NewUserRepositoryInterface;
+use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Model\User;
 use App\Domain\Model\ValueObjects\Timestamp;
 use App\Domain\UseCases\AbstractUseCase;
@@ -14,7 +14,7 @@ use InvalidArgumentException;
 class LoginUserUseCase extends AbstractUseCase
 {
     public function __construct(
-        private readonly NewUserRepositoryInterface $userRepository,
+        private readonly UserRepositoryInterface $userRepository,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);

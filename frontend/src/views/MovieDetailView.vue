@@ -319,18 +319,16 @@ const handleDeleteMovie = async () => {
   Logger.warn('[MovieDetailView] Delete movie called from detail view - should not happen for new movies');
 };
 
-const handleUpdateRating = async (data) => {
+const handleUpdateRating = async ({ rating }) => {
   if (movie.value) {
-    movie.value.user_rating = data.rating;
+    movie.value.user_rating = rating;
   }
-  await moviesComposable.updateMovieRating(data.isbn, data.rating);
 };
 
-const handleUpdateStatuses = async (data) => {
+const handleUpdateStatuses = async ({ statuses }) => {
   if (movie.value) {
-    movie.value.userStatuses = [...data.statuses];
+    movie.value.userStatuses = [...statuses];
   }
-  await moviesComposable.updateMovieStatuses(data.isbn, data.statuses);
 };
 
 const handleSaveMovie = async (data) => {
@@ -367,14 +365,20 @@ const handleEditItem = async (movieData) => {
   try {
     Logger.debug('[MovieDetailView] Editing movie in library:', movieData);
     
-    // Update the movie with current rating and statuses
-    const updateData = {
-      isbn: movie.value.imdbID, // Using imdbID as identifier
+    // Prepare the data object with current values
+    const data = {
       personalRating: movie.value.user_rating,
       statuses: movie.value.userStatuses
     };
     
-    const result = await moviesComposable.editUserMovie(updateData);
+    // Call editUserMovie with separate parameters: movieId, userId, data, tags, notes
+    const result = await moviesComposable.editUserMovie(
+      movie.value.imdbID, // Using imdbID as identifier
+      null, // userId will be taken from auth on backend
+      data,
+      [], // tags
+      []  // notes
+    );
     
     if (result.success) {
       // Llamar al método de éxito del componente hijo

@@ -94,7 +94,7 @@ class MovieDataMapper
             'coverUrl' => $this->toDbValue($movie->getCoverUrl()),
             'rating' => $this->toDbValue($movie->getRating()),
             'description' => $this->toDbValue($movie->getDescription()),
-            'addedTimestamp' => $movie->getAddedTimestamp(),
+            'addedTimestamp' => $movie->getAddedTimestamp()->toUnixTimestamp(),
             'genres' => $this->toDbValue($movie->getGenres(), 'json')
         ];
     }

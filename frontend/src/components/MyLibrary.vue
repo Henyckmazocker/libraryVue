@@ -34,11 +34,8 @@
       <i class="fas fa-spinner fa-spin"></i> Cargando biblioteca...
     </div>
     <div v-if="fetchError" class="error-message">{{ fetchError }}</div>
-    <div :class="['status-message', notifications.statusType.value]" aria-live="polite" style="min-height: 2.5em;">
-      <span v-if="notifications.statusMessage.value">{{ notifications.statusMessage.value }}</span>
-    </div>
 
-    <div v-if="!isLoading && !fetchError && displayedItems.length === 0 && !notifications.statusMessage.value" class="empty-library-message">
+    <div v-if="!isLoading && !fetchError && displayedItems.length === 0" class="empty-library-message">
       Your library is currently empty. Add some books from the ISBN Finder!
     </div>
 
@@ -76,7 +73,7 @@ import { useRouter } from 'vue-router';
 import { useBooks } from '@/composables/useBooks';
 import { useMovies } from '@/composables/useMovies';
 import { useSearch } from '@/composables/useSearch';
-import { useLibraryNotifications } from '@/composables/useLibraryNotifications';
+import { useUIStore } from '@/store/ui';
 import { useAuth } from '@/composables/useAuth';
 import Logger from '@/utils/logger';
 import BookListItem from './Books/BookListItem.vue';
@@ -88,7 +85,7 @@ const router = useRouter();
 const { isAuthenticated } = useAuth();
 const booksComposable = useBooks();
 const moviesComposable = useMovies();
-const notifications = useLibraryNotifications();
+const uiStore = useUIStore();
 
 // Configurar búsqueda con debouncing
 const searchSystem = useSearch({
@@ -233,7 +230,7 @@ const closeImportModal = () => {
 
 const handleImportSuccess = async (importData) => {
   // Show success message in the main library
-  notifications.showSuccess(
+  uiStore.showSuccess(
     `Datos importados correctamente desde ${importData.service}. Archivo: ${importData.fileName}`
   );
   

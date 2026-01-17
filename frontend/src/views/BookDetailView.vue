@@ -189,7 +189,7 @@ import axios from 'axios';
 import LibraryBookItem from '@/components/Books/LibraryBookItem.vue';
 import SessionHistoryModal from '@/components/Books/SessionHistoryModal.vue';
 import { useBooks } from '@/composables/useBooks';
-import { useLibraryNotifications } from '@/composables/useLibraryNotifications';
+import { useUIStore } from '@/store/ui';
 import { useAuth } from '@/composables/useAuth';
 import Logger from '@/utils/logger';
 
@@ -197,7 +197,7 @@ const route = useRoute();
 const router = useRouter();
 const { isAuthenticated } = useAuth();
 const booksComposable = useBooks();
-const notifications = useLibraryNotifications();
+const uiStore = useUIStore();
 
 // Estados
 const book = ref(null);
@@ -522,7 +522,7 @@ const handleShowSessionHistory = async (data) => {
     };
   } catch (err) {
     Logger.error('[BookDetailView] Error showing session history:', err);
-    notifications.showError('Error al cargar el historial de sesiones');
+    uiStore.showError('Error al cargar el historial de sesiones');
   }
 };
 

@@ -1,66 +1,48 @@
-import { ref, onMounted } from 'vue';
+import { storeToRefs } from 'pinia'
+import { useUIStore } from '@/store/ui'
+import { onMounted, onUnmounted } from 'vue'
 
+/**
+ * Composable para gestión de tema (wrapper ligero de useUIStore)
+ * 
+ * REFACTORIZADO: La lógica está en useUIStore, este es solo un wrapper
+ * para mantener compatibilidad con la API anterior
+ * 
+ * @deprecated Considerar migrar a useUIStore directamente
+ */
 export function useTheme() {
-  const isDark = ref(false);
-
-  // Cargar preferencia guardada o del sistema
-  const loadTheme = () => {
-    const savedTheme = localStorage.getItem('theme');
-    
-    if (savedTheme) {
-      isDark.value = savedTheme === 'dark';
-    } else {
-      // Detectar preferencia del sistema
-      isDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    }
-    
-    applyTheme();
-  };
-
-  // Aplicar el tema al documento
-  const applyTheme = () => {
-    if (isDark.value) {
-      document.documentElement.classList.add('app-dark');
-    } else {
-      document.documentElement.classList.remove('app-dark');
-    }
-  };
-
-  // Cambiar entre modo claro y oscuro
-  const toggleTheme = () => {
-    isDark.value = !isDark.value;
-    localStorage.setItem('theme', isDark.value ? 'dark' : 'light');
-    applyTheme();
-  };
-
-  // Establecer tema específico
-  const setTheme = (theme) => {
-    isDark.value = theme === 'dark';
-    localStorage.setItem('theme', theme);
-    applyTheme();
-  };
-
-  // Cargar tema inmediatamente (sin esperar a onMounted)
-  if (typeof window !== 'undefined') {
-    loadTheme();
-  }
-
-  // Inicializar al montar y escuchar cambios del sistema
+  const uiStore = useUIStore()
+  
+  // ✅ Estado reactivo via storeToRefs
+  const { theme, isDark, isDarkTheme } = storeToRefs(uiStore)
+  
+  // ✅ Actions del store
+  const { toggleTheme, setTheme, loadTheme, initSystemThemeListener, removeSystemThemeListener, applyTheme } = uiStore
+  
+  // Inicializar tema y listeners al montar
   onMounted(() => {
-    // Escuchar cambios en la preferencia del sistema
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    mediaQuery.addEventListener('change', (e) => {
-      if (!localStorage.getItem('theme')) {
-        isDark.value = e.matches;
-        applyTheme();
-      }
-    });
-  });
-
+    // Si el tema no está inicializado, cargarlo
+    if (!theme.value) {
+      loadTheme()
+    }
+    initSystemThemeListener()
+  })
+  
+  // Limpiar listeners al desmontar
+  onUnmounted(() => {
+    removeSystemThemeListener()
+  })
+  
   return {
+    // Estado
     isDark,
+    isDarkTheme,
+    theme,
+    
+    // Métodos
     toggleTheme,
     setTheme,
-    loadTheme
-  };
+    loadTheme,
+    applyTheme
+  }
 }

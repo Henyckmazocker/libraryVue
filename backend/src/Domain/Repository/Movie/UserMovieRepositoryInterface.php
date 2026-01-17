@@ -62,18 +62,10 @@ interface UserMovieRepositoryInterface
      *
      * @param int $userId User ID
      * @param string $movieIsbn Movie identifier
-     * @param float|null $personalRating User's rating
-     * @param string|null $personalNotes User's notes
-     * @param string|null $consumedAt Date when consumed
+     * @param array $data Array containing optional keys: personal_rating, personal_notes, consumed_at
      * @return void
      */
-    public function edit(
-        int $userId,
-        string $movieIsbn,
-        ?float $personalRating = null,
-        ?string $personalNotes = null,
-        ?string $consumedAt = null
-    ): void;
+    public function edit(int $userId, string $movieIsbn, array $data): void;
 
     /**
      * Update user's statuses for a movie

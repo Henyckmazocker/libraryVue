@@ -26,12 +26,6 @@ const routes = [
     component: () => import('../components/MyLibrary.vue')
   },
   {
-    path: '/libraryx',
-    name: 'LibraryX',
-    component: () => import('../components/LibraryX.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
     path: '/dashboard/books',
     name: 'BooksDashboard',
     component: () => import('../components/Dashboard/BooksDashboard.vue'),
@@ -60,6 +54,17 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
   routes
+});
+
+// Asegurar que el tema se aplique después de cada navegación
+router.afterEach(() => {
+  // Reaplica el tema al DOM después de la navegación
+  const theme = localStorage.getItem('theme') || 'light';
+  if (theme === 'dark') {
+    document.documentElement.classList.add('app-dark');
+  } else {
+    document.documentElement.classList.remove('app-dark');
+  }
 });
 
 export default router;

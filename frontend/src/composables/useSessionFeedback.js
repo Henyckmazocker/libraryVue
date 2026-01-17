@@ -1,4 +1,4 @@
-import { useLibraryNotifications } from './useLibraryNotifications';
+import { useUIStore } from '@/store/ui';
 import Logger from '@/utils/logger';
 
 /**
@@ -6,7 +6,12 @@ import Logger from '@/utils/logger';
  * Proporciona notificaciones automáticas para transiciones de estado
  */
 export function useSessionFeedback() {
-  const { showNotification } = useLibraryNotifications();
+  const uiStore = useUIStore();
+  
+  // Helper para mostrar notificaciones con el nuevo formato
+  const showNotification = ({ type, title, message, duration }) => {
+    uiStore.addNotification({ type, title, message, duration });
+  };
 
   /**
    * Notifica el inicio de una sesión de lectura

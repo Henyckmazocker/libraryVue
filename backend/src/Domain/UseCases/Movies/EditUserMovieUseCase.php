@@ -35,7 +35,7 @@ class EditUserMovieUseCase extends AbstractUseCase
         // Update rating if provided
         if ($command->userRating !== null) {
             $updateData = ['personal_rating' => $command->userRating->toFloat()];
-            $this->userMovieRepository->update($userId, $movieId, $updateData);
+            $this->userMovieRepository->edit($userId, $movieId, $updateData);
         }
 
         // Update statuses if provided

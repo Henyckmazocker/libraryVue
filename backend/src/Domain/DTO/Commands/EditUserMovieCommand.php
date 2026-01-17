@@ -29,13 +29,18 @@ final readonly class EditUserMovieCommand
 
     public static function fromArray(array $data, int $userId): self
     {
+        // Si los datos vienen dentro de un sub-array 'data', extraerlos
+        $movieData = $data['data'] ?? $data;
+        
         return new self(
             id: MovieIdentifier::fromString($data['id'] ?? $data['isbn'] ?? $data['imdbID']),
             userId: $userId,
-            userRating: isset($data['user_rating']) && is_numeric($data['user_rating']) && (float)$data['user_rating'] > 0
-                ? Rating::fromNullableFloat((float)$data['user_rating'])
-                : null,
-            statuses: $data['statuses'] ?? [],
+            userRating: isset($movieData['user_rating']) && is_numeric($movieData['user_rating']) && (float)$movieData['user_rating'] > 0
+                ? Rating::fromNullableFloat((float)$movieData['user_rating'])
+                : (isset($movieData['personalRating']) && is_numeric($movieData['personalRating']) && (float)$movieData['personalRating'] > 0
+                    ? Rating::fromNullableFloat((float)$movieData['personalRating'])
+                    : null),
+            statuses: $movieData['statuses'] ?? $data['statuses'] ?? [],
             tags: $data['tags'] ?? []
         );
     }

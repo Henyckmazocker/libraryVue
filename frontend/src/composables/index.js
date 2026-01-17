@@ -6,7 +6,8 @@ export { useGoogleAuth } from './useGoogleAuth';
 export { usePermissions } from './usePermissions';
 export { useSidebarMenu } from './useSidebarMenu';
 export { useConfirmationModal } from './useConfirmationModal';
-export { useTheme } from './useTheme';
+// useTheme ELIMINADO - Usar useUIStore directamente
+// useLibraryNotifications ELIMINADO - Usar useUIStore directamente
 
 // Importar composables para el composable combinado
 import { useAuth } from './useAuth';

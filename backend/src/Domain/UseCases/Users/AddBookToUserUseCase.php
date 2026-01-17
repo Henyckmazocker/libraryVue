@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace App\Domain\UseCases\Users;
 
 use App\Domain\Repository\Book\BookRepositoryInterface;
-use App\Domain\Repository\User\UserRepositoryInterface as NewUserRepositoryInterface;
+use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Book\UserBookRepositoryInterface;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\AddBookToUserCommand;
@@ -16,7 +16,7 @@ class AddBookToUserUseCase extends AbstractUseCase
 {
     public function __construct(
         private readonly BookRepositoryInterface $bookRepository,
-        private readonly NewUserRepositoryInterface $userRepository,
+        private readonly UserRepositoryInterface $userRepository,
         private readonly UserBookRepositoryInterface $userBookRepository,
         LoggerInterface $logger
     ) {

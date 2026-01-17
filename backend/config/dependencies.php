@@ -6,34 +6,28 @@ use Psr\Container\ContainerInterface;
 use App\Infrastructure\Database\DatabaseConnector;
 use App\Infrastructure\Session\SessionManager;
 use App\Infrastructure\Middleware\AuthMiddleware;
-use App\Infrastructure\Persistence\MySqlUserRepository;
-use App\Infrastructure\Persistence\User\MySqlUserRepository as NewMySqlUserRepository;
-use App\Infrastructure\Persistence\MySqlBookRepository;
-use App\Infrastructure\Persistence\MySqlMovieRepository;
-use App\Infrastructure\Persistence\Movie\MySqlMovieRepository as NewMySqlMovieRepository;
+use App\Infrastructure\Persistence\User\MySqlUserRepository;
+use App\Infrastructure\Persistence\Movie\MySqlMovieRepository;
 use App\Infrastructure\Persistence\Movie\MySqlUserMovieRepository;
 use App\Infrastructure\Persistence\Movie\MySqlMovieTagRepository;
 use App\Infrastructure\Persistence\Movie\MySqlMovieNoteRepository;
 use App\Infrastructure\Persistence\Movie\Mappers\MovieDataMapper;
-use App\Infrastructure\Persistence\Book\MySqlBookRepository as NewMySqlBookRepository;
-use App\Infrastructure\Persistence\Book\MySqlUserBookRepository as NewMySqlUserBookRepository;
+use App\Infrastructure\Persistence\Book\MySqlBookRepository;
+use App\Infrastructure\Persistence\Book\MySqlUserBookRepository;
 use App\Infrastructure\Persistence\Book\MySqlBookTagRepository;
 use App\Infrastructure\Persistence\Book\MySqlBookNoteRepository;
 use App\Infrastructure\Persistence\Book\MySqlReadingSessionRepository;
 use App\Infrastructure\Persistence\Book\MySqlReadingProgressRepository;
 use App\Infrastructure\Persistence\Book\Mappers\BookDataMapper;
 use App\Infrastructure\Logging\LoggingService;
-use App\Domain\Repository\UserRepositoryInterface;
-use App\Domain\Repository\User\UserRepositoryInterface as NewUserRepositoryInterface;
+use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Services\UserLibraryStatisticsService;
-use App\Domain\Repository\BookRepositoryInterface;
-use App\Domain\Repository\MovieRepositoryInterface;
-use App\Domain\Repository\Movie\MovieRepositoryInterface as NewMovieRepositoryInterface;
+use App\Domain\Repository\Movie\MovieRepositoryInterface;
 use App\Domain\Repository\Movie\UserMovieRepositoryInterface;
 use App\Domain\Repository\Movie\MovieTagRepositoryInterface;
 use App\Domain\Repository\Movie\MovieNoteRepositoryInterface;
-use App\Domain\Repository\Book\BookRepositoryInterface as NewBookRepositoryInterface;
-use App\Domain\Repository\Book\UserBookRepositoryInterface as NewUserBookRepositoryInterface;
+use App\Domain\Repository\Book\BookRepositoryInterface;
+use App\Domain\Repository\Book\UserBookRepositoryInterface;
 use App\Domain\Repository\Book\BookTagRepositoryInterface;
 use App\Domain\Repository\Book\BookNoteRepositoryInterface;
 use App\Domain\Repository\Book\ReadingSessionRepositoryInterface;
@@ -48,21 +42,21 @@ return [
 
     DatabaseConnector::class => DI\autowire(),
 
-    // Repositories - User Module (New Architecture)
-    NewUserRepositoryInterface::class => DI\autowire(NewMySqlUserRepository::class),
-    NewMySqlUserRepository::class => DI\autowire()
+    // Repositories - User Module
+    UserRepositoryInterface::class => DI\autowire(MySqlUserRepository::class),
+    MySqlUserRepository::class => DI\autowire()
         ->constructorParameter('database', DI\get(PDO::class))
         ->constructorParameter('logger', DI\get('Logger')),
     
     UserLibraryStatisticsService::class => DI\autowire()
-        ->constructorParameter('bookRepository', DI\get(NewUserBookRepositoryInterface::class))
+        ->constructorParameter('bookRepository', DI\get(UserBookRepositoryInterface::class))
         ->constructorParameter('movieRepository', DI\get(UserMovieRepositoryInterface::class)),
     
-    // Repositories - Movie Module (New Architecture)
+    // Repositories - Movie Module
     MovieDataMapper::class => DI\autowire(),
     
-    NewMovieRepositoryInterface::class => DI\autowire(NewMySqlMovieRepository::class),
-    NewMySqlMovieRepository::class => DI\autowire()
+    MovieRepositoryInterface::class => DI\autowire(MySqlMovieRepository::class),
+    MySqlMovieRepository::class => DI\autowire()
         ->constructorParameter('db', DI\get(PDO::class))
         ->constructorParameter('mapper', DI\get(MovieDataMapper::class))
         ->constructorParameter('logger', DI\get('Logger')),
@@ -83,21 +77,21 @@ return [
         ->constructorParameter('db', DI\get(PDO::class))
         ->constructorParameter('logger', DI\get('Logger')),
     
-    // Repositories - Book Module (New Architecture)
+    // Repositories - Book Module
     BookDataMapper::class => DI\autowire(),
     
-    NewBookRepositoryInterface::class => DI\autowire(NewMySqlBookRepository::class),
-    NewMySqlBookRepository::class => DI\autowire()
+    BookRepositoryInterface::class => DI\autowire(MySqlBookRepository::class),
+    MySqlBookRepository::class => DI\autowire()
         ->constructorParameter('db', DI\get(PDO::class))
         ->constructorParameter('mapper', DI\get(BookDataMapper::class))
         ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
     
-    NewUserBookRepositoryInterface::class => DI\autowire(NewMySqlUserBookRepository::class),
-    NewMySqlUserBookRepository::class => DI\autowire()
+    UserBookRepositoryInterface::class => DI\autowire(MySqlUserBookRepository::class),
+    MySqlUserBookRepository::class => DI\autowire()
         ->constructorParameter('db', DI\get(PDO::class))
         ->constructorParameter('mapper', DI\get(BookDataMapper::class))
         ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class))
-        ->constructorParameter('bookRepository', DI\get(NewMySqlBookRepository::class)),
+        ->constructorParameter('bookRepository', DI\get(MySqlBookRepository::class)),
     
     BookTagRepositoryInterface::class => DI\autowire(MySqlBookTagRepository::class),
     MySqlBookTagRepository::class => DI\autowire()
@@ -124,7 +118,7 @@ return [
     
     AuthMiddleware::class => DI\autowire()
         ->constructorParameter('sessionManager', DI\get(SessionManager::class))
-        ->constructorParameter('userRepository', DI\get(NewUserRepositoryInterface::class)),
+        ->constructorParameter('userRepository', DI\get(UserRepositoryInterface::class)),
 
     LoggingService::class => function () {
         return LoggingService::getInstance();
@@ -146,71 +140,71 @@ return [
 
     // Use Cases
     App\Domain\UseCases\Auth\LoginUserUseCase::class => DI\autowire()
-        ->constructorParameter('userRepository', DI\get(NewUserRepositoryInterface::class)),
+        ->constructorParameter('userRepository', DI\get(UserRepositoryInterface::class)),
     
     App\Domain\UseCases\Users\AddBookToUserUseCase::class => DI\autowire()
-        ->constructorParameter('bookRepository', DI\get(NewBookRepositoryInterface::class))
-        ->constructorParameter('userRepository', DI\get(NewUserRepositoryInterface::class))
-        ->constructorParameter('userBookRepository', DI\get(NewUserBookRepositoryInterface::class)),
+        ->constructorParameter('bookRepository', DI\get(BookRepositoryInterface::class))
+        ->constructorParameter('userRepository', DI\get(UserRepositoryInterface::class))
+        ->constructorParameter('userBookRepository', DI\get(UserBookRepositoryInterface::class)),
 
     // Book Use Cases
     App\Domain\UseCases\Books\AddBookUseCase::class => DI\autowire()
-        ->constructorParameter('bookRepository', DI\get(NewBookRepositoryInterface::class))
-        ->constructorParameter('userRepository', DI\get(NewUserRepositoryInterface::class))
-        ->constructorParameter('userBookRepository', DI\get(NewUserBookRepositoryInterface::class)),
+        ->constructorParameter('bookRepository', DI\get(BookRepositoryInterface::class))
+        ->constructorParameter('userRepository', DI\get(UserRepositoryInterface::class))
+        ->constructorParameter('userBookRepository', DI\get(UserBookRepositoryInterface::class)),
 
     App\Domain\UseCases\Books\DeleteBookUseCase::class => DI\autowire()
-        ->constructorParameter('userRepository', DI\get(NewUserRepositoryInterface::class))
-        ->constructorParameter('userBookRepository', DI\get(NewUserBookRepositoryInterface::class)),
+        ->constructorParameter('userRepository', DI\get(UserRepositoryInterface::class))
+        ->constructorParameter('userBookRepository', DI\get(UserBookRepositoryInterface::class)),
 
     App\Domain\UseCases\Books\UpdateBookRatingUseCase::class => DI\autowire()
-        ->constructorParameter('userRepository', DI\get(NewUserRepositoryInterface::class))
-        ->constructorParameter('userBookRepository', DI\get(NewUserBookRepositoryInterface::class)),
+        ->constructorParameter('userRepository', DI\get(UserRepositoryInterface::class))
+        ->constructorParameter('userBookRepository', DI\get(UserBookRepositoryInterface::class)),
 
     App\Domain\UseCases\Books\UpdateBookUserStatusesUseCase::class => DI\autowire()
-        ->constructorParameter('userRepository', DI\get(NewUserRepositoryInterface::class))
-        ->constructorParameter('userBookRepository', DI\get(NewUserBookRepositoryInterface::class)),
+        ->constructorParameter('userRepository', DI\get(UserRepositoryInterface::class))
+        ->constructorParameter('userBookRepository', DI\get(UserBookRepositoryInterface::class)),
 
     App\Domain\UseCases\Books\GetBooksUseCase::class => DI\autowire()
-        ->constructorParameter('userRepository', DI\get(NewUserRepositoryInterface::class))
-        ->constructorParameter('userBookRepository', DI\get(NewUserBookRepositoryInterface::class)),
+        ->constructorParameter('userRepository', DI\get(UserRepositoryInterface::class))
+        ->constructorParameter('userBookRepository', DI\get(UserBookRepositoryInterface::class)),
 
     App\Domain\UseCases\Books\GetAllBooksUseCase::class => DI\autowire()
-        ->constructorParameter('bookRepository', DI\get(NewBookRepositoryInterface::class)),
+        ->constructorParameter('bookRepository', DI\get(BookRepositoryInterface::class)),
 
     App\Domain\UseCases\Books\GetBookAllowedStatusesUseCase::class => DI\autowire()
-        ->constructorParameter('bookRepository', DI\get(NewBookRepositoryInterface::class)),
+        ->constructorParameter('bookRepository', DI\get(BookRepositoryInterface::class)),
 
     App\Domain\UseCases\Books\EditUserBookUseCase::class => DI\autowire()
-        ->constructorParameter('userRepository', DI\get(NewUserRepositoryInterface::class))
-        ->constructorParameter('userBookRepository', DI\get(NewUserBookRepositoryInterface::class))
+        ->constructorParameter('userRepository', DI\get(UserRepositoryInterface::class))
+        ->constructorParameter('userBookRepository', DI\get(UserBookRepositoryInterface::class))
         ->constructorParameter('bookTagRepository', DI\get(BookTagRepositoryInterface::class))
         ->constructorParameter('bookNoteRepository', DI\get(BookNoteRepositoryInterface::class)),
 
     // Movie Use Cases
     App\Domain\UseCases\Movies\AddMovieUseCase::class => DI\autowire()
-        ->constructorParameter('movieRepository', DI\get(NewMovieRepositoryInterface::class))
-        ->constructorParameter('userRepository', DI\get(NewUserRepositoryInterface::class))
+        ->constructorParameter('movieRepository', DI\get(MovieRepositoryInterface::class))
+        ->constructorParameter('userRepository', DI\get(UserRepositoryInterface::class))
         ->constructorParameter('userMovieRepository', DI\get(UserMovieRepositoryInterface::class)),
 
     App\Domain\UseCases\Movies\DeleteMovieUseCase::class => DI\autowire()
-        ->constructorParameter('userRepository', DI\get(NewUserRepositoryInterface::class))
+        ->constructorParameter('userRepository', DI\get(UserRepositoryInterface::class))
         ->constructorParameter('userMovieRepository', DI\get(UserMovieRepositoryInterface::class)),
 
     App\Domain\UseCases\Movies\UpdateMovieRatingUseCase::class => DI\autowire()
-        ->constructorParameter('userRepository', DI\get(NewUserRepositoryInterface::class))
+        ->constructorParameter('userRepository', DI\get(UserRepositoryInterface::class))
         ->constructorParameter('userMovieRepository', DI\get(UserMovieRepositoryInterface::class)),
 
     App\Domain\UseCases\Movies\UpdateMovieUserStatusesUseCase::class => DI\autowire()
-        ->constructorParameter('userRepository', DI\get(NewUserRepositoryInterface::class))
+        ->constructorParameter('userRepository', DI\get(UserRepositoryInterface::class))
         ->constructorParameter('userMovieRepository', DI\get(UserMovieRepositoryInterface::class)),
 
     App\Domain\UseCases\Movies\GetMoviesUseCase::class => DI\autowire()
-        ->constructorParameter('userRepository', DI\get(NewUserRepositoryInterface::class))
+        ->constructorParameter('userRepository', DI\get(UserRepositoryInterface::class))
         ->constructorParameter('userMovieRepository', DI\get(UserMovieRepositoryInterface::class)),
 
     App\Domain\UseCases\Movies\GetMovieAllowedStatusesUseCase::class => DI\autowire()
-        ->constructorParameter('movieRepository', DI\get(NewMovieRepositoryInterface::class)),
+        ->constructorParameter('movieRepository', DI\get(MovieRepositoryInterface::class)),
 
     App\Domain\UseCases\Movies\EditUserMovieUseCase::class => DI\autowire()
         ->constructorParameter('userMovieRepository', DI\get(UserMovieRepositoryInterface::class))
@@ -219,7 +213,7 @@ return [
 
     // General Use Cases
     App\Domain\UseCases\GetLibraryUseCase::class => DI\autowire()
-        ->constructorParameter('bookRepository', DI\get(NewBookRepositoryInterface::class)),
+        ->constructorParameter('bookRepository', DI\get(BookRepositoryInterface::class)),
 
     // Controllers
     App\Controllers\AuthController::class => DI\autowire()

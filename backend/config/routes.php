@@ -174,6 +174,17 @@ return [
         'validation' => ['statuses']
     ],
     
+    'edit_user_movie' => [
+        'controller' => ['MovieController', 'editUserMovie'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['isbn']]]
+        ],
+        'validation' => ['isbn']
+    ],
+    
     // MOVIES - Read operations (Auth only, no CSRF)
     'get_movie_allowed_statuses' => [
         'controller' => ['MovieController', 'getMovieAllowedStatuses'],

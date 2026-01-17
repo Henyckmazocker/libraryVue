@@ -4,15 +4,20 @@
   </AppLayout>
 </template>
 
-<script>
+<script setup>
+import { onMounted } from 'vue';
 import AppLayout from '@/components/common/Layout.vue';
+import { useUIStore } from '@/store/ui';
 
-export default {
-  name: 'App',
-  components: {
-    AppLayout
-  }
-}
+// Inicializar el tema al montar la aplicación
+const uiStore = useUIStore();
+
+onMounted(() => {
+  // Cargar y aplicar el tema guardado o detectar preferencia del sistema
+  uiStore.loadTheme();
+  // Inicializar listener de cambios del sistema
+  uiStore.initSystemThemeListener();
+});
 </script>
 
 <style>

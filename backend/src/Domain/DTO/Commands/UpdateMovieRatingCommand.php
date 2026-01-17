@@ -13,16 +13,16 @@ use App\Domain\Model\ValueObjects\Rating;
 final readonly class UpdateMovieRatingCommand
 {
     public function __construct(
-        public MovieIdentifier $id,
         public int $userId,
+        public MovieIdentifier $id,
         public Rating $rating
     ) {}
 
     public static function fromArray(array $data, int $userId): self
     {
         return new self(
-            id: MovieIdentifier::fromString($data['id'] ?? $data['imdbID']),
             userId: $userId,
+            id: MovieIdentifier::fromString($data['id'] ?? $data['imdbID'] ?? $data['isbn']),
             rating: isset($data['rating']) && (float)$data['rating'] > 0
                 ? Rating::fromNullableFloat((float)$data['rating'])
                 : null

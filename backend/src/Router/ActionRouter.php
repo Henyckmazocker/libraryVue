@@ -201,11 +201,7 @@ class ActionRouter
                 new DeleteMovieCommand($userId, $data['imdbID'] ?? $data['id'] ?? '')
             ),
             'update_movie_rating' => $controller->updateMovieRating(
-                new UpdateMovieRatingCommand(
-                    $userId,
-                    $data['imdbID'] ?? $data['id'] ?? '',
-                    $data['rating'] ?? null
-                )
+                UpdateMovieRatingCommand::fromArray($data, $userId)
             ),
             'update_movie_user_statuses' => $controller->updateMovieUserStatuses(
                 new UpdateMovieStatusesCommand(
@@ -213,6 +209,9 @@ class ActionRouter
                     $data['imdbID'] ?? $data['id'] ?? '',
                     $data['statuses'] ?? []
                 )
+            ),
+            'edit_user_movie' => $controller->editUserMovie(
+                EditUserMovieCommand::fromArray($data, $userId)
             ),
             'get_movie_allowed_statuses' => $controller->getMovieAllowedStatuses(),
             'get_movies' => $controller->getMovies(

@@ -1,40 +1,91 @@
-import { ref } from 'vue'
+import { useUIStore } from '@/store/ui'
 
 /**
  * Composable para manejo centralizado de notificaciones en la librería
+ * 
+ * @deprecated Este composable está DEPRECADO. Usar directamente useUIStore
+ * 
+ * RAZÓN: useUIStore ya tiene un sistema de notificaciones más completo con:
+ * - addNotification(options)
+ * - showSuccess(message, title)
+ * - showError(message, title)
+ * - showWarning(message, title)
+ * - showInfo(message, title)
+ * - removeNotification(id)
+ * - clearAllNotifications()
+ * 
+ * Este wrapper se mantiene SOLO para compatibilidad temporal.
+ * Se recomienda migrar a useUIStore directamente.
+ * 
+ * MIGRACIÓN:
+ * Antes:
+ *   const { showSuccess, showError } = useLibraryNotifications()
+ * 
+ * Después:
+ *   const uiStore = useUIStore()
+ *   uiStore.showSuccess(message)
+ *   uiStore.showError(message)
  */
 export function useLibraryNotifications() {
-  const statusMessage = ref('')
-  const statusType = ref('')
+  const uiStore = useUIStore()
   
+  // Wrapper para compatibilidad con API anterior (statusMessage/statusType)
+  // Nota: Esta API es limitada comparada con useUIStore
+  
+  /**
+   * @deprecated Usar useUIStore.addNotification() o showSuccess/showError/etc
+   */
   const showMessage = (message, type = 'info', duration = 3000) => {
-    statusMessage.value = message
-    statusType.value = type
+    console.warn('[useLibraryNotifications] DEPRECATED: Use useUIStore directly')
     
-    if (duration > 0) {
-      setTimeout(() => clearMessage(), duration)
+    const typeMapping = {
+      'info': 'info',
+      'success': 'success',
+      'error': 'error',
+      'warning': 'warning'
     }
+    
+    uiStore.addNotification({
+      type: typeMapping[type] || 'info',
+      message,
+      duration
+    })
   }
   
+  /**
+   * @deprecated Usar useUIStore.clearAllNotifications()
+   */
   const clearMessage = () => {
-    statusMessage.value = ''
-    statusType.value = ''
+    console.warn('[useLibraryNotifications] DEPRECATED: Use useUIStore.clearAllNotifications()')
+    uiStore.clearAllNotifications()
   }
   
-  const showSuccess = (message, duration = 3000) => {
-    showMessage(message, 'success', duration)
+  /**
+   * @deprecated Usar useUIStore.showSuccess()
+   */
+  const showSuccess = (message) => {
+    console.warn('[useLibraryNotifications] DEPRECATED: Use useUIStore.showSuccess()')
+    uiStore.showSuccess(message)
   }
   
-  const showError = (message, duration = 5000) => {
-    showMessage(message, 'error', duration)
+  /**
+   * @deprecated Usar useUIStore.showError()
+   */
+  const showError = (message) => {
+    console.warn('[useLibraryNotifications] DEPRECATED: Use useUIStore.showError()')
+    uiStore.showError(message)
   }
   
+  // Exposición limitada para compatibilidad
+  // No incluye statusMessage/statusType porque no son parte del nuevo sistema
   return { 
-    statusMessage, 
-    statusType, 
     showMessage, 
     clearMessage,
     showSuccess,
-    showError
+    showError,
+    
+    // Helper para facilitar migración
+    _uiStore: uiStore // Acceso directo al store para facilitar transición
   }
 }
+

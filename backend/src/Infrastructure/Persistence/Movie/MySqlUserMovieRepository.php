@@ -218,39 +218,30 @@ final class MySqlUserMovieRepository implements UserMovieRepositoryInterface
         }
     }
 
-    public function edit(
-        int $userId,
-        string $movieIsbn,
-        ?float $personalRating = null,
-        ?string $personalNotes = null,
-        ?string $consumedAt = null
-    ): void
+    public function edit(int $userId, string $movieIsbn, array $data): void
     {
+        $this->db->beginTransaction();
         try {
-            $this->db->beginTransaction();
-
-            // Update user-specific data in user_movies table
-            $sql = "UPDATE user_movies SET ";
             $updates = [];
             $params = [':userId' => $userId, ':movieIsbn' => $movieIsbn];
 
-            if ($personalRating !== null) {
+            if (isset($data['personal_rating'])) {
                 $updates[] = "personal_rating = :personalRating";
-                $params[':personalRating'] = $personalRating;
+                $params[':personalRating'] = $data['personal_rating'] !== null ? (float) $data['personal_rating'] : null;
             }
 
-            if ($personalNotes !== null) {
+            if (isset($data['personal_notes'])) {
                 $updates[] = "personal_notes = :personalNotes";
-                $params[':personalNotes'] = $personalNotes;
+                $params[':personalNotes'] = $data['personal_notes'];
             }
 
-            if ($consumedAt !== null) {
+            if (isset($data['consumed_at'])) {
                 $updates[] = "consumed_at = :consumedAt";
-                $params[':consumedAt'] = $consumedAt;
+                $params[':consumedAt'] = $data['consumed_at'];
             }
 
             if (!empty($updates)) {
-                $sql .= implode(', ', $updates);
+                $sql = "UPDATE user_movies SET " . implode(', ', $updates);
                 $sql .= " WHERE user_id = :userId AND movie_isbn = :movieIsbn";
                 
                 $stmt = $this->db->prepare($sql);
@@ -262,9 +253,7 @@ final class MySqlUserMovieRepository implements UserMovieRepositoryInterface
             $this->logInfo('User movie data edited successfully', [
                 'user_id' => $userId,
                 'movie_isbn' => $movieIsbn,
-                'personal_rating' => $personalRating,
-                'personal_notes' => $personalNotes,
-                'consumed_at' => $consumedAt
+                'data' => $data
             ]);
         } catch (PDOException $e) {
             $this->db->rollBack();

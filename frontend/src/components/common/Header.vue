@@ -52,7 +52,8 @@ export default {
 <script setup>
 import { watch, onMounted, defineEmits } from 'vue';
 import { useAuth, useGoogleAuth } from '@/composables';
-import { useTheme } from '@/composables/useTheme';
+import { useUIStore } from '@/store/ui';
+import { storeToRefs } from 'pinia';
 import Logger from '@/utils/logger';
 
 // Emits
@@ -78,8 +79,10 @@ const {
   clearGoogleError
 } = useGoogleAuth();
 
-// Theme composable
-const { isDark, toggleTheme } = useTheme();
+// UI Store para tema
+const uiStore = useUIStore();
+const { isDark } = storeToRefs(uiStore);
+const { toggleTheme } = uiStore;
 
 // Watch auth state changes for debugging
 watch(isAuthenticated, (newVal, oldVal) => {

@@ -1,115 +1,36 @@
-import { ref, computed } from 'vue';
-// import yaml from 'js-yaml'; // Para futuro uso cuando carguemos YAML dinámicamente
+import { storeToRefs } from 'pinia'
+import { useMenuStore } from '@/store/menu'
+import { computed } from 'vue'
 
-const menuData = ref(null);
-const loading = ref(false);
-const error = ref(null);
-
+/**
+ * Composable para gestión del menú lateral (wrapper ligero de useMenuStore)
+ * 
+ * REFACTORIZADO: La lógica está en useMenuStore, este es solo un wrapper
+ * para mantener compatibilidad con la API anterior
+ */
 export function useSidebarMenu() {
-  const loadMenu = async () => {
-    if (menuData.value) return menuData.value;
-
-    loading.value = true;
-    error.value = null;
-
-    try {
-      // Cargar el archivo JSON desde la carpeta public
-      const response = await fetch('/config/sidebar-menu.json');
-      
-      if (!response.ok) {
-        throw new Error(`Error al cargar el menú: ${response.status}`);
-      }
-      
-      const menuConfig = await response.json();
-
-      menuData.value = menuConfig;
-      return menuConfig;
-    } catch (err) {
-      error.value = err.message;
-      console.error('Error loading sidebar menu:', err);
-      
-      // Fallback al menú hardcodeado si falla la carga
-      const fallbackConfig = {
-        menu: [
-          {
-            title: "Principal",
-            items: [
-              {
-                name: "Biblioteca",
-                path: "/library",
-                icon: "fas fa-bookmark",
-                description: "Tu biblioteca personal"
-              }
-            ]
-          },
-          {
-            title: "Libros",
-            items: [
-              {
-                name: "Buscar Libros",
-                path: "/books",
-                icon: "fas fa-search",
-                description: "Buscar nuevos libros"
-              },
-              {
-                name: "Mis Libros",
-                path: "/dashboard/books",
-                icon: "fas fa-book",
-                description: "Dashboard de tus libros"
-              }
-            ]
-          },
-          {
-            title: "Películas",
-            items: [
-              {
-                name: "Buscar Películas",
-                path: "/movies",
-                icon: "fas fa-search",
-                description: "Buscar nuevas películas"
-              },
-              {
-                name: "Mis Películas",
-                path: "/dashboard/movies",
-                icon: "fas fa-film",
-                description: "Dashboard de tus películas"
-              }
-            ]
-          },
-          {
-            title: "Próximamente",
-            items: [
-              {
-                name: "Música",
-                path: "#",
-                icon: "fas fa-music",
-                description: "Próximamente disponible",
-                disabled: true
-              }
-            ]
-          }
-        ]
-      };
-      
-      menuData.value = fallbackConfig;
-      return fallbackConfig;
-    } finally {
-      loading.value = false;
-    }
-  };
-
-  const menuItems = computed(() => {
-    return menuData.value?.menu || [];
-  });
-
-  const isLoading = computed(() => loading.value);
-  const hasError = computed(() => error.value !== null);
-
+  const menuStore = useMenuStore()
+  
+  // ✅ Estado reactivo via storeToRefs
+  const { menuData, isLoading, error, menuItems } = storeToRefs(menuStore)
+  
+  // ✅ Actions del store
+  const { loadMenu, reloadMenu, clearError } = menuStore
+  
+  // Computed properties para compatibilidad
+  const hasError = computed(() => error.value !== null)
+  
   return {
+    // Estado
     menuItems,
     isLoading,
     hasError,
-    error: computed(() => error.value),
-    loadMenu
-  };
+    error,
+    menuData,
+    
+    // Métodos
+    loadMenu,
+    reloadMenu,
+    clearError
+  }
 }

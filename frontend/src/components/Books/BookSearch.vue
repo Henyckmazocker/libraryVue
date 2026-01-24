@@ -1,19 +1,91 @@
 <template>
-  <GenericSearch :config="searchConfig" />
+  <div class="book-search-container">
+      <!-- Search Section -->
+    <GenericSearch :config="searchConfig" />
+    <!-- Trending Books Section -->
+    <TrendingCarousel
+      :items="trendingBooks"
+      :is-loading="isLoadingTrending"
+      :error="errorTrending"
+      type="books"
+      :item-component="BookCarouselItem"
+      title="Libros Populares"
+      subtitle="Los libros más populares en nuestra comunidad"
+      @item-click="handleTrendingClick"
+    />
+  </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted, watch } from 'vue';
 import axios from 'axios';
+import { useRouter } from 'vue-router';
 import GenericSearch from '@/components/shared/GenericSearch.vue';
-import BookListItem from '@/components/Books/BookListItem.vue';
+import TrendingCarousel from '@/components/TrendingCarousel.vue';
+import BookCarouselItem from '@/components/Books/BookCarouselItem.vue';
 import { useBooks } from '@/composables/useBooks';
+import { useTrending } from '@/composables/useTrending';
+import { useAuthStore } from '@/store/auth';
+import { useBooksStore } from '@/store/books';
 import { useUIStore } from '@/store/ui';
+import { storeToRefs } from 'pinia';
 import Logger from '@/utils/logger';
 
-// Composables
+// Router
+const router = useRouter();
+
+// Composables & Stores
 const booksComposable = useBooks();
+const authStore = useAuthStore();
+const booksStore = useBooksStore();
 const uiStore = useUIStore();
+const { isAuthenticated } = storeToRefs(authStore);
+const { 
+  trendingBooks, 
+  isLoadingBooks: isLoadingTrending, 
+  errorBooks: errorTrending,
+  fetchTrendingBooks 
+} = useTrending();
+
+// Cargar libros del usuario y trending al montar (solo si está autenticado)
+onMounted(async () => {
+  if (isAuthenticated.value) {
+    // Cargar libros de la biblioteca para poder verificar qué items tiene el usuario
+    if (booksStore.books.length === 0) {
+      await booksStore.fetchBooks();
+    }
+    // Cargar trending books
+    fetchTrendingBooks(10, 90); // 10 libros, últimos 90 días
+  }
+});
+
+// Cargar libros cuando se autentique
+watch(isAuthenticated, async (newValue) => {
+  if (newValue) {
+    // Cargar biblioteca del usuario
+    if (booksStore.books.length === 0) {
+      Logger.debug('[BookSearch] User authenticated, fetching user books...');
+      await booksStore.fetchBooks();
+    }
+    // Cargar trending books
+    if (trendingBooks.value.length === 0) {
+      Logger.debug('[BookSearch] Fetching trending books...');
+      fetchTrendingBooks(10, 90);
+    }
+  }
+});
+
+// Función para detectar si es ISBN o búsqueda por nombre
+const detectSearchType = (query) => {
+  const cleanQuery = query.replace(/[-\s]/g, ''); // Remover guiones y espacios
+  const isNumeric = /^\d+$/.test(cleanQuery);
+  const isValidISBN = isNumeric && (cleanQuery.length === 10 || cleanQuery.length === 13);
+  
+  return {
+    type: isValidISBN ? 'direct' : 'name',
+    isDirect: isValidISBN
+  };
+};
 
 // Función para obtener URL de portada
 const getBookCoverUrl = (cover_i) => {
@@ -32,7 +104,7 @@ const searchBooks = async (query, searchType) => {
     // Búsqueda por nombre usando Google Books y OpenLibrary
     try {
       Logger.debug("Searching by name with Google Books API...");
-      const googleApiUrl = `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(query)}&maxResults=5`;
+      const googleApiUrl = `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(query)}&maxResults=10`;
       const response = await axios.get(googleApiUrl);
       const data = response.data;
 
@@ -96,7 +168,7 @@ const searchBooks = async (query, searchType) => {
         return [];
       }
       
-      docs = docs.slice(0, 5);
+      docs = docs.slice(0, 10);
       const books = [];
       
       for (const doc of docs) {
@@ -203,8 +275,7 @@ const navigateToDetail = (router, book) => {
   const bookData = {
     isbn: isbn,
     title: book.title || 'Título no disponible',
-    author: Array.isArray(book.author) ? book.author.join(', ') : (book.author || 'Autor no disponible'),
-    publisher: Array.isArray(book.publisher) ? book.publisher.join(', ') : (book.publisher || ''),
+    authors: Array.isArray(book.author) ? book.author : (book.author ? [book.author] : ['Autor desconocido']),
     publicationDate: book.publicationDate || '',
     coverUrl: getBookCoverUrl(book.cover_i),
     pages: book.pages || null,
@@ -219,6 +290,33 @@ const navigateToDetail = (router, book) => {
   router.push({
     name: 'BookDetail',
     params: { isbn: isbn },
+    state: { book: bookData }
+  });
+};
+
+// Handler para clicks en trending
+const handleTrendingClick = (book) => {
+  Logger.debug('Trending book clicked:', book);
+  
+  // Navegar a detalle del libro trending
+  const bookData = {
+    isbn: book.isbn,
+    title: book.title,
+    authors: [book.author],
+    publicationDate: '',
+    coverUrl: book.cover_url,
+    pages: null,
+    description: '',
+    publishers: [],
+    rating: book.avg_rating || null,
+    user_rating: null,
+    userStatuses: [],
+    genres: []
+  };
+  
+  router.push({
+    name: 'BookDetail',
+    params: { isbn: book.isbn },
     state: { book: bookData }
   });
 };
@@ -241,27 +339,30 @@ const searchConfig = computed(() => ({
   title: 'Book Finder (Google Books + OpenLibrary)',
   inputs: [
     {
-      type: 'direct',
-      placeholder: 'Enter ISBN manually',
-      buttonText: 'ISBN',
+      type: 'auto',
+      placeholder: 'Buscar por ISBN o título del libro...',
+      buttonText: '',
       idField: 'isbn',
-      emptyMessage: 'Por favor ingresa un ISBN.',
-      errorMessage: 'Error al buscar por ISBN.'
-    },
-    {
-      type: 'name',
-      placeholder: 'Buscar por nombre de libro',
-      buttonText: 'Nombre',
-      emptyMessage: 'Introduce un título o palabra clave para buscar.',
-      errorMessage: 'Error al buscar por nombre.'
+      emptyMessage: 'Introduce un ISBN o título para buscar.',
+      errorMessage: 'Error al buscar el libro.'
     }
   ],
-  itemComponent: BookListItem,
+  carouselItemComponent: BookCarouselItem,
   itemProp: 'book',
   searchHandler: searchBooks,
   transformResult: transformResult,
   navigateToDetail: navigateToDetail,
   getResultKey: getResultKey,
-  fetchAllowedStatuses: fetchAllowedStatuses
+  fetchAllowedStatuses: fetchAllowedStatuses,
+  detectSearchType: detectSearchType
 }));
 </script>
+
+<style scoped>
+.book-search-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+</style>

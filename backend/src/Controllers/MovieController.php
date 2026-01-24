@@ -11,12 +11,14 @@ use App\Domain\UseCases\Movies\UpdateMovieUserStatusesUseCase;
 use App\Domain\UseCases\Movies\GetMoviesUseCase;
 use App\Domain\UseCases\Movies\GetMovieAllowedStatusesUseCase;
 use App\Domain\UseCases\Movies\EditUserMovieUseCase;
+use App\Domain\UseCases\Movies\GetTrendingMoviesUseCase;
 use App\Domain\DTO\Commands\AddMovieCommand;
 use App\Domain\DTO\Commands\DeleteMovieCommand;
 use App\Domain\DTO\Commands\UpdateMovieRatingCommand;
 use App\Domain\DTO\Commands\UpdateMovieStatusesCommand;
 use App\Domain\DTO\Commands\EditUserMovieCommand;
 use App\Domain\DTO\Queries\GetMoviesByUserQuery;
+use App\Domain\DTO\Queries\GetTrendingMoviesQuery;
 use App\Infrastructure\Middleware\AuthMiddleware;
 use App\Domain\Repository\Movie\MovieTagRepositoryInterface;
 use App\Domain\Repository\Movie\MovieNoteRepositoryInterface;
@@ -34,6 +36,7 @@ class MovieController extends BaseController implements Contracts\MovieControlle
     private EditUserMovieUseCase $editUserMovieUseCase;
     private MovieTagRepositoryInterface $movieTagRepository;
     private MovieNoteRepositoryInterface $movieNoteRepository;
+    private GetTrendingMoviesUseCase $getTrendingMoviesUseCase;
 
     public function __construct(
         AddMovieUseCase $addMovieUseCase,
@@ -45,7 +48,8 @@ class MovieController extends BaseController implements Contracts\MovieControlle
         AuthMiddleware $authMiddleware,
         EditUserMovieUseCase $editUserMovieUseCase,
         MovieTagRepositoryInterface $movieTagRepository,
-        MovieNoteRepositoryInterface $movieNoteRepository
+        MovieNoteRepositoryInterface $movieNoteRepository,
+        GetTrendingMoviesUseCase $getTrendingMoviesUseCase
     ) {
         $this->addMovieUseCase = $addMovieUseCase;
         $this->deleteMovieUseCase = $deleteMovieUseCase;
@@ -57,6 +61,7 @@ class MovieController extends BaseController implements Contracts\MovieControlle
         $this->authMiddleware = $authMiddleware;
         $this->movieTagRepository = $movieTagRepository;
         $this->movieNoteRepository = $movieNoteRepository;
+        $this->getTrendingMoviesUseCase = $getTrendingMoviesUseCase;
     }
 
     /**
@@ -185,5 +190,27 @@ class MovieController extends BaseController implements Contracts\MovieControlle
         } catch (\Exception $e) {
             return $this->errorResponse('Error al obtener tags de la película: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Get trending movies based on user activity
+     * 
+     * @param GetTrendingMoviesQuery $query Query containing limit and daysWindow
+     * @return array Success response with trending movies data
+     */
+    public function getTrendingMovies(GetTrendingMoviesQuery $query): array
+    {
+        // Get authenticated user ID from session
+        $userId = $_SESSION['user_data']['id'] ?? null;
+        
+        // Create query with userId
+        $queryWithUser = GetTrendingMoviesQuery::create(
+            $query->limit,
+            $query->daysWindow,
+            $userId
+        );
+        
+        $trendingMovies = $this->getTrendingMoviesUseCase->execute($queryWithUser);
+        return $this->successResponse('Trending movies retrieved.', $trendingMovies);
     }
 }

@@ -1,10 +1,12 @@
 <template>
   <div class="movie-list-item" @click="handleClick">
     <img 
-      v-if="movie.coverUrl" 
+      v-if="movie.coverUrl && !imageError" 
       :src="movie.coverUrl" 
       alt="Poster" 
-      class="movie-list-poster" 
+      class="movie-list-poster"
+      @error="handleImageError"
+      loading="lazy"
     />
     <div v-else class="movie-list-poster-placeholder">
       <i class="fas fa-film"></i>
@@ -40,7 +42,7 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue';
+import { ref, defineProps, defineEmits } from 'vue';
 import RatingComponent from '@/components/common/RatingComponent.vue';
 
 const props = defineProps({
@@ -56,8 +58,14 @@ const props = defineProps({
 
 const emit = defineEmits(['click']);
 
+const imageError = ref(false);
+
 const handleClick = () => {
   emit('click', props.movie);
+};
+
+const handleImageError = () => {
+  imageError.value = true;
 };
 
 // Función para obtener el label legible del status

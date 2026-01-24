@@ -127,6 +127,15 @@ return [
         'validation' => []
     ],
 
+    'get_trending_books' => [
+        'controller' => ['BookController', 'getTrendingBooks'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
     // ============================================================================
     // MOVIES ROUTES - Write operations require Auth + CSRF
     // ============================================================================
@@ -194,6 +203,15 @@ return [
     
     'get_movies' => [
         'controller' => ['MovieController', 'getMovies'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
+    'get_trending_movies' => [
+        'controller' => ['MovieController', 'getTrendingMovies'],
         'middleware' => [
             LoggingMiddleware::class,
             AuthenticationMiddleware::class

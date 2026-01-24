@@ -65,7 +65,7 @@ class MovieDataMapper
             $this->extractString($row, 'title'),
             $this->extractString($row, 'original_title', null),
             $this->extractString($row, 'director', null),
-            $this->extractString($row, 'cover_url', null),
+            $this->extractString($row, 'coverUrl', null),
             $rating,
             $userRating,
             $this->extractString($row, 'description', null),

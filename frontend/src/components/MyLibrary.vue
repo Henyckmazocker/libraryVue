@@ -17,16 +17,36 @@
           placeholder="Search by title or author..." 
           class="search-input"
         />
-        <select v-model="currentSort" @change="sortLibrary" class="sort-dropdown">
-          <option value="title-asc">Title (A-Z)</option>
-          <option value="title-desc">Title (Z-A)</option>
-          <option value="author-asc">Author (A-Z)</option>
-          <option value="author-desc">Author (Z-A)</option>
-          <option value="rating-desc">Rating (Highest First)</option>
-          <option value="rating-asc">Rating (Lowest First)</option>
-          <option value="date-desc">Date Added (Newest First)</option>
-          <option value="date-asc">Date Added (Oldest First)</option>
-        </select>
+        <div class="sort-buttons">
+          <button 
+            @click="toggleSort('title')"
+            :class="['sort-button', { active: sortField === 'title' }]"
+          >
+            Title
+            <i v-if="sortField === 'title'" :class="sortDirection === 'asc' ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"></i>
+          </button>
+          <button 
+            @click="toggleSort('author')"
+            :class="['sort-button', { active: sortField === 'author' }]"
+          >
+            Author
+            <i v-if="sortField === 'author'" :class="sortDirection === 'asc' ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"></i>
+          </button>
+          <button 
+            @click="toggleSort('rating')"
+            :class="['sort-button', { active: sortField === 'rating' }]"
+          >
+            Rating
+            <i v-if="sortField === 'rating'" :class="sortDirection === 'asc' ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"></i>
+          </button>
+          <button 
+            @click="toggleSort('date')"
+            :class="['sort-button', { active: sortField === 'date' }]"
+          >
+            Date
+            <i v-if="sortField === 'date'" :class="sortDirection === 'asc' ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"></i>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -97,8 +117,25 @@ const searchSystem = useSearch({
 const showBooks = ref(true);
 const showMovies = ref(true);
 const fetchError = ref("");
-const currentSort = ref('date-desc');
+const sortField = ref('date');
+const sortDirection = ref('desc');
 const showImportModal = ref(false);
+
+// Función para toggle de ordenación
+const toggleSort = (field) => {
+  if (sortField.value === field) {
+    // Si es el mismo campo, cambiar dirección
+    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    // Si es campo nuevo, establecer dirección por defecto
+    sortField.value = field;
+    if (field === 'date' || field === 'rating') {
+      sortDirection.value = 'desc'; // Más reciente/alto primero
+    } else {
+      sortDirection.value = 'asc'; // A-Z por defecto
+    }
+  }
+};
 
 // Estados computados combinados
 const isLoading = computed(() => 
@@ -162,7 +199,8 @@ const displayedItems = computed(() => {
   }
   
   // Ordenar según selección
-  switch (currentSort.value) {
+  const sortKey = `${sortField.value}-${sortDirection.value}`;
+  switch (sortKey) {
     case 'title-asc':
       processed.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
       break;
@@ -406,6 +444,42 @@ const searchQuery = searchSystem.query;
 
 .search-input::placeholder {
   color: var(--color-text-muted);
+}
+
+.sort-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.sort-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: 2px solid var(--color-border);
+  border-radius: 20px;
+  background-color: var(--color-background-mute);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.sort-button:hover {
+  background-color: var(--color-background-soft);
+  border-color: var(--color-primary);
+}
+
+.sort-button.active {
+  background-color: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.sort-button i {
+  font-size: 0.75rem;
 }
 
 .sort-dropdown {

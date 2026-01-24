@@ -181,6 +181,10 @@ return [
         ->constructorParameter('bookTagRepository', DI\get(BookTagRepositoryInterface::class))
         ->constructorParameter('bookNoteRepository', DI\get(BookNoteRepositoryInterface::class)),
 
+    App\Domain\UseCases\Books\GetTrendingBooksUseCase::class => DI\autowire()
+        ->constructorParameter('userBookRepository', DI\get(UserBookRepositoryInterface::class))
+        ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
+
     // Movie Use Cases
     App\Domain\UseCases\Movies\AddMovieUseCase::class => DI\autowire()
         ->constructorParameter('movieRepository', DI\get(MovieRepositoryInterface::class))
@@ -211,6 +215,10 @@ return [
         ->constructorParameter('movieTagRepository', DI\get(MovieTagRepositoryInterface::class))
         ->constructorParameter('movieNoteRepository', DI\get(MovieNoteRepositoryInterface::class)),
 
+    App\Domain\UseCases\Movies\GetTrendingMoviesUseCase::class => DI\autowire()
+        ->constructorParameter('userMovieRepository', DI\get(UserMovieRepositoryInterface::class))
+        ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
+
     // General Use Cases
     App\Domain\UseCases\GetLibraryUseCase::class => DI\autowire()
         ->constructorParameter('bookRepository', DI\get(BookRepositoryInterface::class)),
@@ -234,7 +242,8 @@ return [
         ->constructorParameter('readingSessionRepository', DI\get(App\Domain\Repository\Book\ReadingSessionRepositoryInterface::class))
         ->constructorParameter('readingProgressRepository', DI\get(App\Domain\Repository\Book\ReadingProgressRepositoryInterface::class))
         ->constructorParameter('authMiddleware', DI\get(AuthMiddleware::class))
-        ->constructorParameter('editUserBookUseCase', DI\get(App\Domain\UseCases\Books\EditUserBookUseCase::class)),
+        ->constructorParameter('editUserBookUseCase', DI\get(App\Domain\UseCases\Books\EditUserBookUseCase::class))
+        ->constructorParameter('getTrendingBooksUseCase', DI\get(App\Domain\UseCases\Books\GetTrendingBooksUseCase::class)),
 
     App\Controllers\MovieController::class => DI\autowire()
         ->constructorParameter('addMovieUseCase', DI\get(App\Domain\UseCases\Movies\AddMovieUseCase::class))
@@ -246,7 +255,8 @@ return [
         ->constructorParameter('editUserMovieUseCase', DI\get(App\Domain\UseCases\Movies\EditUserMovieUseCase::class))
         ->constructorParameter('movieTagRepository', DI\get(App\Domain\Repository\Movie\MovieTagRepositoryInterface::class))
         ->constructorParameter('movieNoteRepository', DI\get(App\Domain\Repository\Movie\MovieNoteRepositoryInterface::class))
-        ->constructorParameter('authMiddleware', DI\get(AuthMiddleware::class)),
+        ->constructorParameter('authMiddleware', DI\get(AuthMiddleware::class))
+        ->constructorParameter('getTrendingMoviesUseCase', DI\get(App\Domain\UseCases\Movies\GetTrendingMoviesUseCase::class)),
 
     App\Controllers\LibraryController::class => DI\autowire()
         ->constructorParameter('getLibraryUseCase', DI\get(App\Domain\UseCases\GetLibraryUseCase::class))

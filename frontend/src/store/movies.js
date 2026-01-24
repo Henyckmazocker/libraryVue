@@ -47,6 +47,9 @@ export const useMoviesStore = defineStore('movies', {
     getMovieById: (state) => (id) => 
       state.movies.find(movie => movie.id === id || movie.imdbID === id || movie.isbn === id),
     
+    isMovieInLibrary: (state) => (imdbId) => 
+      state.movies.some(movie => movie.imdbID === imdbId || movie.isbn === imdbId),
+    
     movieCountByStatus: (state) => {
       const counts = {}
       state.movies.forEach(movie => {

@@ -12,6 +12,7 @@ use App\Domain\UseCases\Books\GetBooksUseCase;
 use App\Domain\UseCases\Books\GetAllBooksUseCase;
 use App\Domain\UseCases\Books\GetBookAllowedStatusesUseCase;
 use App\Domain\UseCases\Books\EditUserBookUseCase;
+use App\Domain\UseCases\Books\GetTrendingBooksUseCase;
 use App\Domain\DTO\Commands\AddBookCommand;
 use App\Domain\DTO\Commands\DeleteBookCommand;
 use App\Domain\DTO\Commands\UpdateBookRatingCommand;
@@ -24,6 +25,7 @@ use App\Domain\DTO\Commands\ManageReadingSessionCommand;
 use App\Domain\DTO\Queries\GetBooksByUserQuery;
 use App\Domain\DTO\Queries\GetReadingSessionQuery;
 use App\Domain\DTO\Queries\GetUserReadingStatsQuery;
+use App\Domain\DTO\Queries\GetTrendingBooksQuery;
 use App\Domain\Repository\Book\BookRepositoryInterface;
 use App\Domain\Repository\Book\BookTagRepositoryInterface;
 use App\Domain\Repository\Book\ReadingSessionRepositoryInterface;
@@ -46,6 +48,7 @@ class BookController extends BaseController implements Contracts\BookControllerI
     private ReadingProgressRepositoryInterface $readingProgressRepository;
     private AuthMiddleware $authMiddleware;
     private EditUserBookUseCase $editUserBookUseCase;
+    private GetTrendingBooksUseCase $getTrendingBooksUseCase;
 
     public function __construct(
         AddBookUseCase $addBookUseCase,
@@ -60,7 +63,8 @@ class BookController extends BaseController implements Contracts\BookControllerI
         ReadingSessionRepositoryInterface $readingSessionRepository,
         ReadingProgressRepositoryInterface $readingProgressRepository,
         AuthMiddleware $authMiddleware,
-        EditUserBookUseCase $editUserBookUseCase
+        EditUserBookUseCase $editUserBookUseCase,
+        GetTrendingBooksUseCase $getTrendingBooksUseCase
     ) {
         $this->addBookUseCase = $addBookUseCase;
         $this->deleteBookUseCase = $deleteBookUseCase;
@@ -75,6 +79,7 @@ class BookController extends BaseController implements Contracts\BookControllerI
         $this->readingProgressRepository = $readingProgressRepository;
         $this->authMiddleware = $authMiddleware;
         $this->editUserBookUseCase = $editUserBookUseCase;
+        $this->getTrendingBooksUseCase = $getTrendingBooksUseCase;
     }
 
     /**
@@ -353,7 +358,6 @@ class BookController extends BaseController implements Contracts\BookControllerI
             return $this->errorResponse('Error al obtener estadísticas: ' . $e->getMessage());
         }
     }
-
     public function getCurrentReadingSessions(GetUserReadingStatsQuery $query): array
     {
         try {
@@ -362,5 +366,27 @@ class BookController extends BaseController implements Contracts\BookControllerI
         } catch (\Exception $e) {
             return $this->errorResponse('Error al obtener sesiones actuales: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Get trending books based on user activity
+     * 
+     * @param GetTrendingBooksQuery $query Query containing limit and daysWindow
+     * @return array Success response with trending books data
+     */
+    public function getTrendingBooks(GetTrendingBooksQuery $query): array
+    {
+        // Get authenticated user ID from session
+        $userId = $_SESSION['user_data']['id'] ?? null;
+        
+        // Create query with userId
+        $queryWithUser = GetTrendingBooksQuery::create(
+            $query->limit,
+            $query->daysWindow,
+            $userId
+        );
+        
+        $trendingBooks = $this->getTrendingBooksUseCase->execute($queryWithUser);
+        return $this->successResponse('Trending books retrieved.', $trendingBooks);
     }
 }

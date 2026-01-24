@@ -441,6 +441,80 @@ final class MySqlUserMovieRepository implements UserMovieRepositoryInterface
         }
     }
 
+    public function getTrendingMovies(int $limit = 20, int $daysWindow = 90, ?int $userId = null): array
+    {
+        try {
+            $viewedStatusId = $this->getStatusId('viewed');
+            $recentDays = 30;
+            
+            // Build user library check if userId provided
+            $userLibraryCheck = $userId 
+                ? "EXISTS(SELECT 1 FROM user_movies um2 WHERE um2.movie_isbn = m.isbn AND um2.user_id = {$userId}) as is_in_user_library,"
+                : "0 as is_in_user_library,";
+            
+            // Use string interpolation for INTERVAL and repeated parameters
+            // Values are type-hinted as int, so they're safe
+            $sql = "
+                SELECT 
+                    m.isbn,
+                    m.title,
+                    m.original_title,
+                    m.coverUrl,
+                    m.director,
+                    m.rating as movie_rating,
+                    {$userLibraryCheck}
+                    COUNT(DISTINCT um.user_id) as user_count,
+                    AVG(um.personal_rating) as avg_rating,
+                    SUM(CASE 
+                        WHEN um.added_at >= DATE_SUB(NOW(), INTERVAL {$recentDays} DAY) 
+                        THEN 1 ELSE 0 
+                    END) as recent_adds,
+                    SUM(CASE 
+                        WHEN ums.status_id = {$viewedStatusId}
+                        THEN 1 ELSE 0 
+                    END) as viewed_count,
+                    MAX(um.added_at) as last_added,
+                    -- Trending score calculation
+                    (
+                        (COUNT(DISTINCT um.user_id) * 10) +
+                        (COALESCE(AVG(um.personal_rating), 0) * 5) +
+                        (SUM(CASE WHEN um.added_at >= DATE_SUB(NOW(), INTERVAL {$recentDays} DAY) THEN 1 ELSE 0 END) * 15) +
+                        (SUM(CASE WHEN ums.status_id = {$viewedStatusId} THEN 1 ELSE 0 END) * 8) -
+                        (DATEDIFF(NOW(), MAX(um.added_at)) * 0.1)
+                    ) as trending_score
+                FROM movie m
+                INNER JOIN user_movies um ON m.isbn = um.movie_isbn
+                LEFT JOIN user_movie_statuses ums ON um.user_id = ums.user_id AND um.movie_isbn = ums.movie_isbn
+                WHERE um.added_at >= DATE_SUB(NOW(), INTERVAL {$daysWindow} DAY)
+                GROUP BY m.isbn
+                HAVING user_count >= 2
+                ORDER BY trending_score DESC
+                LIMIT :limit
+            ";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $this->logDebug('Trending movies fetched', [
+                'count' => count($results),
+                'limit' => $limit,
+                'daysWindow' => $daysWindow
+            ]);
+
+            return $results;
+
+        } catch (PDOException $e) {
+            $this->logError('Error getting trending movies', $e, [
+                'limit' => $limit,
+                'daysWindow' => $daysWindow
+            ]);
+            throw new RuntimeException("Could not get trending movies: " . $e->getMessage(), 0, $e);
+        }
+    }
+
     protected function getLogger(): ?LoggerInterface
     {
         return $this->logger;

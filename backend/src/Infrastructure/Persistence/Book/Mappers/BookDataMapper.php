@@ -48,7 +48,7 @@ final class BookDataMapper
         
         // Extract optional string fields
         $description = $this->extractOptionalString($dbRow, 'description');
-        $coverUrl = $this->extractOptionalString($dbRow, 'cover_url');
+        $coverUrl = $this->extractOptionalString($dbRow, 'coverUrl');
         $publisher = $this->extractOptionalString($dbRow, 'publisher');
         $language = $this->extractOptionalString($dbRow, 'language');
         

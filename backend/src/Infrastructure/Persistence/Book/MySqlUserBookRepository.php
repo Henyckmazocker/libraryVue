@@ -411,6 +411,80 @@ final class MySqlUserBookRepository implements UserBookRepositoryInterface
         }
     }
 
+    public function getTrendingBooks(int $limit = 20, int $daysWindow = 90, ?int $userId = null): array
+    {
+        try {
+            $readingStatusId = $this->getStatusId('reading');
+            $recentDays = 30;
+            
+            // Build user library check if userId provided
+            $userLibraryCheck = $userId 
+                ? "EXISTS(SELECT 1 FROM user_books ub2 WHERE ub2.book_isbn = b.isbn AND ub2.user_id = {$userId}) as is_in_user_library,"
+                : "0 as is_in_user_library,";
+            
+            // Use string interpolation for INTERVAL and repeated parameters
+            // Values are type-hinted as int, so they're safe
+            $sql = "
+                SELECT 
+                    b.isbn,
+                    b.title,
+                    b.author,
+                    b.coverUrl,
+                    b.publisher,
+                    b.pages,
+                    {$userLibraryCheck}
+                    COUNT(DISTINCT ub.user_id) as user_count,
+                    AVG(ub.personal_rating) as avg_rating,
+                    SUM(CASE 
+                        WHEN ub.added_at >= DATE_SUB(NOW(), INTERVAL {$recentDays} DAY) 
+                        THEN 1 ELSE 0 
+                    END) as recent_adds,
+                    SUM(CASE 
+                        WHEN ubs.status_id = {$readingStatusId}
+                        THEN 1 ELSE 0 
+                    END) as reading_count,
+                    MAX(ub.added_at) as last_added,
+                    -- Trending score calculation
+                    (
+                        (COUNT(DISTINCT ub.user_id) * 10) +
+                        (COALESCE(AVG(ub.personal_rating), 0) * 5) +
+                        (SUM(CASE WHEN ub.added_at >= DATE_SUB(NOW(), INTERVAL {$recentDays} DAY) THEN 1 ELSE 0 END) * 15) +
+                        (SUM(CASE WHEN ubs.status_id = {$readingStatusId} THEN 1 ELSE 0 END) * 8) -
+                        (DATEDIFF(NOW(), MAX(ub.added_at)) * 0.1)
+                    ) as trending_score
+                FROM books b
+                INNER JOIN user_books ub ON b.isbn = ub.book_isbn
+                LEFT JOIN user_book_statuses ubs ON ub.user_id = ubs.user_id AND ub.book_isbn = ubs.book_isbn
+                WHERE ub.added_at >= DATE_SUB(NOW(), INTERVAL {$daysWindow} DAY)
+                GROUP BY b.isbn
+                HAVING user_count >= 2
+                ORDER BY trending_score DESC
+                LIMIT :limit
+            ";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $this->logDebug('Trending books fetched', [
+                'count' => count($results),
+                'limit' => $limit,
+                'daysWindow' => $daysWindow
+            ]);
+
+            return $results;
+
+        } catch (PDOException $e) {
+            $this->logError('Error getting trending books', $e, [
+                'limit' => $limit,
+                'daysWindow' => $daysWindow
+            ]);
+            throw new RuntimeException("Could not get trending books: " . $e->getMessage(), 0, $e);
+        }
+    }
+
     protected function getLogger(): ?LoggerInterface
     {
         return $this->logger;

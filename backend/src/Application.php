@@ -32,6 +32,8 @@ use App\Domain\UseCases\Movies\GetMoviesUseCase;
 use App\Domain\UseCases\Movies\UpdateMovieUserStatusesUseCase;
 use App\Domain\UseCases\Movies\UpdateMovieRatingUseCase;
 use App\Domain\UseCases\Books\EditUserBookUseCase;
+use App\Domain\UseCases\Books\GetTrendingBooksUseCase;
+use App\Domain\UseCases\Movies\GetTrendingMoviesUseCase;
 use App\Domain\UseCases\Auth\LoginUserUseCase;
 use App\Infrastructure\Session\SessionManager;
 use App\Infrastructure\Middleware\AuthMiddleware;
@@ -177,6 +179,7 @@ class Application
         $updateBookUserStatusesUseCase = new UpdateBookUserStatusesUseCase($this->userRepository, $this->userBookRepository, $logger);
         $editUserBookUseCase = new EditUserBookUseCase($this->userRepository, $this->userBookRepository, $this->bookTagRepository, $this->bookNoteRepository, $logger);
         $getBookAllowedStatusesUseCase = new \App\Domain\UseCases\Books\GetBookAllowedStatusesUseCase($this->bookRepository, $logger);
+        $getTrendingBooksUseCase = new GetTrendingBooksUseCase($this->userBookRepository, $logger);
 
         // Movie use cases
         $addMovieUseCase = new AddMovieUseCase($this->movieRepository, $this->userRepository, $this->userMovieRepository, $logger);
@@ -186,6 +189,7 @@ class Application
         $updateMovieUserStatusesUseCase = new UpdateMovieUserStatusesUseCase($this->userRepository, $this->userMovieRepository, $logger);
         $getMovieAllowedStatusesUseCase = new GetMovieAllowedStatusesUseCase($this->movieRepository, $logger);
         $editUserMovieUseCase = new EditUserMovieUseCase($this->userMovieRepository, $this->movieTagRepository, $this->movieNoteRepository, $logger);
+        $getTrendingMoviesUseCase = new GetTrendingMoviesUseCase($this->userMovieRepository, $logger);
 
         // Library use cases
         $getLibraryUseCase = new GetLibraryUseCase($this->bookRepository, $this->movieRepository, $logger);
@@ -211,7 +215,8 @@ class Application
             $this->readingSessionRepository,
             $this->readingProgressRepository,
             $this->authMiddleware,
-            $editUserBookUseCase
+            $editUserBookUseCase,
+            $getTrendingBooksUseCase
         );
         
         $movieController = new MovieController(
@@ -224,7 +229,8 @@ class Application
             $this->authMiddleware,
             $editUserMovieUseCase,
             $this->movieTagRepository,
-            $this->movieNoteRepository
+            $this->movieNoteRepository,
+            $getTrendingMoviesUseCase
         );
         
         $libraryController = new LibraryController(

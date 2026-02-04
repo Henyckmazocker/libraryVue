@@ -66,9 +66,10 @@
 </template>
 
 <script setup>
-import { ref, computed, defineProps, defineEmits, watch } from 'vue';
+import { ref, computed, defineProps, defineEmits, watch, onMounted } from 'vue';
 import MultiSelect from 'primevue/multiselect';
 import Dropdown from 'primevue/dropdown';
+import Logger from '@/utils/logger';
 
 // Props
 const props = defineProps({
@@ -121,6 +122,18 @@ const emit = defineEmits(['update:modelValue', 'change', 'status-changed']);
 // Reactive data
 const selectedStatuses = ref(Array.isArray(props.modelValue) ? [...props.modelValue] : []);
 const selectedStatus = ref(typeof props.modelValue === 'string' ? props.modelValue : '');
+
+// Log on mount
+onMounted(() => {
+  Logger.debug('[StatusSelector] Component mounted with:', {
+    modelValue: props.modelValue,
+    allowedStatuses: props.allowedStatuses,
+    multiple: props.multiple,
+    readonly: props.readonly,
+    selectedStatuses: selectedStatuses.value,
+    selectedStatus: selectedStatus.value
+  });
+});
 
 // Computed
 const containerStyle = computed(() => ({
@@ -211,13 +224,23 @@ const getSessionTooltip = (status) => {
 };
 
 // Watch for external changes
-watch(() => props.modelValue, (newValue) => {
+watch(() => props.modelValue, (newValue, oldValue) => {
+  Logger.debug('[StatusSelector] modelValue changed:', { 
+    old: oldValue, 
+    new: newValue,
+    isArray: Array.isArray(newValue)
+  });
+  
   if (props.multiple) {
     selectedStatuses.value = Array.isArray(newValue) ? [...newValue] : [];
   } else {
     selectedStatus.value = typeof newValue === 'string' ? newValue : '';
   }
 });
+
+watch(() => props.allowedStatuses, (newValue) => {
+  Logger.debug('[StatusSelector] allowedStatuses changed:', newValue);
+}, { deep: true });
 </script>
 
 <style scoped>

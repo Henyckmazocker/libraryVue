@@ -137,6 +137,39 @@ return [
     ],
 
     // ============================================================================
+    // WORKS ROUTES - Read operations (public endpoints for search)
+    // These endpoints allow searching and viewing book works/editions without authentication
+    'search_works' => [
+        'controller' => ['BookController', 'searchWorks'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => []
+    ],
+    
+    'get_work' => [
+        'controller' => ['BookController', 'getWork'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => []
+    ],
+    
+    'get_work_editions' => [
+        'controller' => ['BookController', 'getWorkEditions'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => []
+    ],
+    
+    'validate_isbn' => [
+        'controller' => ['BookController', 'validateISBN'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => []
+    ],
+
+    'search_google_books_isbn' => [
+        'controller' => ['BookController', 'searchGoogleBooksByISBN'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => []
+    ],
+
+    // ============================================================================
     // MOVIES ROUTES - Write operations require Auth + CSRF
     // ============================================================================
     'add_movie' => [

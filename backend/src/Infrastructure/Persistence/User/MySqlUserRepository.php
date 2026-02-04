@@ -24,7 +24,7 @@ class MySqlUserRepository implements UserRepositoryInterface
     private const TABLE = 'users';
 
     public function __construct(
-        private readonly PDO $database,
+        private readonly PDO $db,
         private readonly ?LoggerInterface $logger = null,
         private readonly UserDataMapper $mapper = new UserDataMapper()
     ) {
@@ -36,7 +36,7 @@ class MySqlUserRepository implements UserRepositoryInterface
     public function findByGoogleId(GoogleId $googleId): ?User
     {
         try {
-            $stmt = $this->database->prepare(
+            $stmt = $this->db->prepare(
                 "SELECT * FROM " . self::TABLE . " WHERE google_id = :google_id LIMIT 1"
             );
             
@@ -70,7 +70,7 @@ class MySqlUserRepository implements UserRepositoryInterface
     public function findById(int $id): ?User
     {
         try {
-            $stmt = $this->database->prepare(
+            $stmt = $this->db->prepare(
                 "SELECT * FROM " . self::TABLE . " WHERE id = :id LIMIT 1"
             );
             
@@ -98,7 +98,7 @@ class MySqlUserRepository implements UserRepositoryInterface
     public function findByEmail(Email $email): ?User
     {
         try {
-            $stmt = $this->database->prepare(
+            $stmt = $this->db->prepare(
                 "SELECT * FROM " . self::TABLE . " WHERE email = :email LIMIT 1"
             );
             
@@ -144,10 +144,10 @@ class MySqlUserRepository implements UserRepositoryInterface
                 implode(', ', $placeholders)
             );
 
-            $stmt = $this->database->prepare($sql);
+            $stmt = $this->db->prepare($sql);
             $stmt->execute($data);
 
-            $userId = (int) $this->database->lastInsertId();
+            $userId = (int) $this->db->lastInsertId();
 
             $this->logInfo('User created successfully', [
                 'user_id' => $userId,
@@ -190,7 +190,7 @@ class MySqlUserRepository implements UserRepositoryInterface
 
             $data['id'] = $user->getId();
             
-            $stmt = $this->database->prepare($sql);
+            $stmt = $this->db->prepare($sql);
             $stmt->execute($data);
 
             $this->logInfo('User updated successfully', [
@@ -213,7 +213,7 @@ class MySqlUserRepository implements UserRepositoryInterface
     public function delete(int $id): void
     {
         try {
-            $stmt = $this->database->prepare(
+            $stmt = $this->db->prepare(
                 "DELETE FROM " . self::TABLE . " WHERE id = :id"
             );
             

@@ -198,6 +198,13 @@ class ActionRouter
                 GetTrendingBooksQuery::fromArray($data)
             ),
             
+            // WORKS - Work search endpoints (no DTOs needed)
+            'search_works' => $controller->searchWorks($data),
+            'get_work' => $controller->getWork($data),
+            'get_work_editions' => $controller->getWorkEditions($data),
+            'validate_isbn' => $controller->validateISBN($data),
+            'search_google_books_isbn' => $controller->searchGoogleBooksByISBN($data),
+            
             // MOVIES - Use Command DTOs
             'add_movie' => $controller->addMovie(
                 AddMovieCommand::fromArray($data['movie'] ?? [], $userId)

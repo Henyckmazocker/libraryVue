@@ -84,6 +84,15 @@
           <div class="book-description-content" v-html="formatDescription(book.description)"></div>
         </div>
 
+        <!-- Selector de Ediciones -->
+        <EditionSelector 
+          v-if="book.work_key"
+          :work-key="book.work_key"
+          :initial-selected-edition="book"
+          :saved-isbn="existingBook ? existingBook.isbn : null"
+          @edition-selected="handleEditionSelected"
+        />
+
         <!-- Temas y materias (OpenLibrary) -->
         <div v-if="book.subjects && book.subjects.length > 0" class="book-subjects-section">
           <h2 class="section-title">
@@ -188,14 +197,18 @@ import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
 import LibraryBookItem from '@/components/Books/LibraryBookItem.vue';
 import SessionHistoryModal from '@/components/Books/SessionHistoryModal.vue';
+import EditionSelector from '@/components/Books/EditionSelector.vue';
 import { useBooks } from '@/composables/useBooks';
 import { useUIStore } from '@/store/ui';
 import { useAuth } from '@/composables/useAuth';
+import { useAuthStore } from '@/store/auth';
+import { getLanguageName } from '@/utils/languageConstants';
 import Logger from '@/utils/logger';
 
 const route = useRoute();
 const router = useRouter();
 const { isAuthenticated } = useAuth();
+const authStore = useAuthStore();
 const booksComposable = useBooks();
 const uiStore = useUIStore();
 
@@ -236,41 +249,30 @@ const fetchBookDetails = async (isbn) => {
   try {
     Logger.debug(`[BookDetailView] Fetching details for ISBN: ${isbn}`);
     
-    // Primero intentar con Google Books API
-    const googleApiUrl = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`;
-    const response = await axios.get(googleApiUrl);
-    const data = response.data;
+    // Usar el endpoint del backend que maneja Google Books API
+    // Esto evita problemas de cuota al hacer llamadas directas desde el cliente
+    const response = await authStore.apiCall('search_google_books_isbn', { isbn });
 
-    if (data.items && data.items.length > 0) {
-      const bookId = data.items[0].id;
-      Logger.debug(`[BookDetailView] Found book ID: ${bookId}`);
+    if (response.data && response.data.status === 'success' && response.data.data) {
+      const bookData = response.data.data;
+      Logger.debug(`[BookDetailView] Found book in Google Books:`, bookData.title);
       
-      // Obtener detalles completos
-      const detailsResponse = await axios.get(`https://www.googleapis.com/books/v1/volumes/${bookId}`);
-      const bookData = detailsResponse.data.volumeInfo;
-      
-      // Extraer identificadores
-      const isbn13 = bookData.industryIdentifiers?.find(id => id.type === 'ISBN_13')?.identifier || isbn;
-      const isbn10 = bookData.industryIdentifiers?.find(id => id.type === 'ISBN_10')?.identifier || null;
-      
+      // Transformar datos de Google Books al formato esperado
       book.value = {
-        isbn: isbn13,
-        isbn10: isbn10,
+        isbn: bookData.isbn_13 || isbn,
+        isbn10: bookData.isbn_10 || null,
         title: bookData.title || "Título no disponible",
         author: (bookData.authors && bookData.authors.length > 0) ? bookData.authors.join(', ') : "Autor no disponible",
         publisher: bookData.publisher || "",
-        publicationDate: bookData.publishedDate || "",
-        coverUrl: bookData.imageLinks?.large?.replace('http:', 'https:') ||
-                  bookData.imageLinks?.medium?.replace('http:', 'https:') ||
-                  bookData.imageLinks?.thumbnail?.replace('http:', 'https:') || 
-                  bookData.imageLinks?.smallThumbnail?.replace('http:', 'https:') || "",
-        pages: bookData.pageCount || null,
+        publicationDate: bookData.published_date || "",
+        coverUrl: bookData.cover_url_large || bookData.cover_url_medium || bookData.cover_url_small || "",
+        pages: bookData.page_count || null,
         description: bookData.description || "",
         genres: bookData.categories || [],
         publishers: bookData.publisher ? [bookData.publisher] : [],
         language: bookData.language || null,
-        previewLink: bookData.previewLink || null,
-        infoLink: bookData.infoLink || null,
+        previewLink: bookData.preview_link || null,
+        infoLink: bookData.info_link || null,
         rating: null,
         user_rating: null,
         userStatuses: []
@@ -304,6 +306,23 @@ const fetchBookDetails = async (isbn) => {
 
 const fetchFromOpenLibrary = async (isbn) => {
   Logger.debug(`[BookDetailView] Trying OpenLibrary for ISBN: ${isbn}`);
+  
+  // First get edition to extract work_key
+  let workKey = null;
+  try {
+    const editionUrl = `https://openlibrary.org/isbn/${isbn}.json`;
+    const editionResponse = await axios.get(editionUrl);
+    const editionData = editionResponse.data;
+    
+    if (editionData.works && editionData.works.length > 0) {
+      const workPath = editionData.works[0].key;
+      workKey = workPath.split('/').pop();
+      Logger.debug('[BookDetailView] Extracted work_key from OpenLibrary edition:', workKey);
+    }
+  } catch (editionErr) {
+    Logger.debug('[BookDetailView] Could not fetch edition for work_key:', editionErr.message);
+  }
+  
   const openLibraryUrl = `https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`;
   const response = await axios.get(openLibraryUrl);
   const data = response.data;
@@ -319,6 +338,7 @@ const fetchFromOpenLibrary = async (isbn) => {
     book.value = {
       isbn: isbn13,
       isbn10: isbn10,
+      work_key: workKey, // Add work_key here
       title: bookData.title || "Título no disponible",
       author: (bookData.authors && bookData.authors.length > 0) 
         ? bookData.authors.map(a => a.name).join(', ') 
@@ -352,6 +372,23 @@ const fetchFromOpenLibrary = async (isbn) => {
 const enrichWithOpenLibrary = async (isbn) => {
   Logger.debug(`[BookDetailView] Enriching with OpenLibrary data for ISBN: ${isbn}`);
   try {
+    // First, try to get edition info to extract work_key
+    const editionUrl = `https://openlibrary.org/isbn/${isbn}.json`;
+    try {
+      const editionResponse = await axios.get(editionUrl);
+      const editionData = editionResponse.data;
+      
+      // Extract work_key from edition
+      if (editionData.works && editionData.works.length > 0 && book.value) {
+        const workPath = editionData.works[0].key; // e.g., "/works/OL123456W"
+        book.value.work_key = workPath.split('/').pop(); // Extract "OL123456W"
+        Logger.debug('[BookDetailView] Extracted work_key:', book.value.work_key);
+      }
+    } catch (editionErr) {
+      Logger.debug('[BookDetailView] Could not fetch edition data:', editionErr.message);
+    }
+    
+    // Now get full book data
     const openLibraryUrl = `https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`;
     const response = await axios.get(openLibraryUrl);
     const data = response.data;
@@ -437,6 +474,89 @@ const handleUpdateProgress = async ({ isbn, updates }) => {
   } catch (error) {
     Logger.error('[BookDetailView] Error updating book progress:', error);
   }
+};
+
+const handleEditionSelected = (edition) => {
+  Logger.debug('[BookDetailView] Edition selected, updating book info:', edition);
+  
+  if (!book.value || !edition) return;
+  
+  // Obtener el nuevo ISBN de la edición seleccionada
+  const newIsbn = edition.isbn_13 || edition.isbn_10;
+  
+  // Verificar si esta edición específica existe en la biblioteca
+  const existingEditionInLibrary = newIsbn ? booksComposable.findBookByISBN(newIsbn) : null;
+  
+  Logger.debug('[BookDetailView] Checking for existing edition in library:', {
+    newIsbn,
+    found: !!existingEditionInLibrary
+  });
+  
+  // Determinar qué datos de usuario usar
+  let userData;
+  if (existingEditionInLibrary) {
+    // Si la nueva edición ya está en la biblioteca, usar sus datos
+    Logger.debug('[BookDetailView] Using user data from library for this edition');
+    userData = {
+      user_rating: existingEditionInLibrary.user_rating,
+      userStatuses: existingEditionInLibrary.userStatuses || [],
+      currentPage: existingEditionInLibrary.currentPage,
+      totalPages: existingEditionInLibrary.totalPages
+    };
+  } else {
+    // Si es una edición nueva, resetear los datos de usuario
+    Logger.debug('[BookDetailView] Edition not in library, resetting user data');
+    userData = {
+      user_rating: null,
+      userStatuses: [],
+      currentPage: 0,
+      totalPages: edition.number_of_pages || book.value.pages
+    };
+  }
+  
+  // Actualizar la información del libro con los datos de la edición seleccionada
+  book.value = {
+    ...book.value,
+    // Mantener work_key para el selector de ediciones
+    work_key: book.value.work_key,
+    // Actualizar con datos de la edición
+    isbn: newIsbn || book.value.isbn,
+    isbn10: edition.isbn_10 || book.value.isbn10,
+    title: edition.title || book.value.title,
+    publisher: edition.publishers && edition.publishers.length > 0 
+      ? edition.publishers[0] 
+      : book.value.publisher,
+    publishers: edition.publishers || book.value.publishers,
+    publicationDate: edition.publish_date || book.value.publicationDate,
+    pages: edition.number_of_pages || book.value.pages,
+    coverUrl: edition.cover_url || book.value.coverUrl,
+    language: (edition.languages && edition.languages.length > 0) 
+      ? (typeof edition.languages[0] === 'string' ? edition.languages[0] : (edition.languages[0].key || 'en'))
+      : book.value.language,
+    physical_format: edition.physical_format || null,
+    // Mantener datos que no están en la edición
+    author: book.value.author,
+    description: book.value.description,
+    genres: book.value.genres,
+    subjects: book.value.subjects,
+    rating: book.value.rating,
+    // Aplicar los datos de usuario determinados
+    user_rating: userData.user_rating,
+    userStatuses: userData.userStatuses,
+    currentPage: userData.currentPage,
+    totalPages: userData.totalPages
+  };
+  
+  Logger.debug('[BookDetailView] Book info updated with edition data:', {
+    isbn: book.value.isbn,
+    hasUserData: !!existingEditionInLibrary,
+    userStatuses: userData.userStatuses
+  });
+  
+  const message = existingEditionInLibrary 
+    ? 'Edición seleccionada. Esta edición ya está en tu biblioteca.'
+    : 'Edición seleccionada. Los datos del libro se han actualizado.';
+  uiStore.showSuccess(message);
 };
 
 const handleSaveBook = async (bookData) => {
@@ -537,43 +657,14 @@ const closeSessionHistoryModal = () => {
 // Métodos de formateo
 const formatDescription = (description) => {
   if (!description) return '';
+  
+  // Crear un elemento temporal para decodificar HTML entities
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = description;
+  const decodedText = textarea.value;
+  
   // Convertir saltos de línea a <br> y mantener formato básico
-  return description.replace(/\n/g, '<br>');
-};
-
-const getLanguageName = (code) => {
-  const languages = {
-    'en': 'English',
-    'es': 'Español',
-    'fr': 'Français',
-    'de': 'Deutsch',
-    'it': 'Italiano',
-    'pt': 'Português',
-    'ru': 'Русский',
-    'ja': '日本語',
-    'zh': '中文',
-    'ar': 'العربية',
-    'hi': 'हिन्दी',
-    'ko': '한국어',
-    'nl': 'Nederlands',
-    'pl': 'Polski',
-    'tr': 'Türkçe',
-    'sv': 'Svenska',
-    'no': 'Norsk',
-    'da': 'Dansk',
-    'fi': 'Suomi',
-    'el': 'Ελληνικά',
-    'cs': 'Čeština',
-    'ro': 'Română',
-    'hu': 'Magyar',
-    'th': 'ไทย',
-    'vi': 'Tiếng Việt',
-    'id': 'Bahasa Indonesia',
-    'uk': 'Українська',
-    'ca': 'Català',
-    'he': 'עברית'
-  };
-  return languages[code] || code.toUpperCase();
+  return decodedText.replace(/\n/g, '<br>');
 };
 
 // Helper function to load book data
@@ -586,6 +677,12 @@ const loadBookData = async () => {
     allowedStatuses.value.length === 0 ? booksComposable.fetchAllowedStatuses() : Promise.resolve()
   ]);
 
+  Logger.debug('[BookDetailView] After loading:', {
+    totalBooksInStore: booksComposable.books.value.length,
+    allowedStatusesCount: allowedStatuses.value.length,
+    allowedStatuses: allowedStatuses.value
+  });
+
   // Si hay datos en el state del router, usarlos
   if (route.state && route.state.book) {
     Logger.debug('[BookDetailView] Using book data from router state');
@@ -596,16 +693,59 @@ const loadBookData = async () => {
     await fetchBookDetails(route.params.isbn);
   }
   
+  Logger.debug('[BookDetailView] Book loaded, checking if exists in library:', {
+    bookIsbn: book.value?.isbn,
+    existingBook: existingBook.value ? 'FOUND' : 'NOT FOUND'
+  });
+  
   // Si el libro ya existe en la biblioteca, mezclar los datos
   if (existingBook.value && book.value) {
-    Logger.debug('[BookDetailView] Merging with existing book data');
+    Logger.debug('[BookDetailView] Merging with existing book data from library:', {
+      existingUserStatuses: existingBook.value.userStatuses,
+      existingRating: existingBook.value.user_rating,
+      existingRating_personal: existingBook.value.personal_rating,
+      existingRating_rating: existingBook.value.rating,
+      existingRating_userRating: existingBook.value.userRating,
+      existingCurrentPage: existingBook.value.currentPage,
+      existingBook_keys: Object.keys(existingBook.value)
+    });
+    
+    // Usar la información de la edición guardada en la biblioteca
     book.value = {
       ...book.value,
+      // Datos de usuario
       user_rating: existingBook.value.user_rating,
       userStatuses: existingBook.value.userStatuses || [],
       currentPage: existingBook.value.currentPage,
-      totalPages: existingBook.value.totalPages || book.value.pages
+      totalPages: existingBook.value.totalPages || book.value.pages,
+      
+      // Datos de la edición específica guardada (si están disponibles)
+      isbn: existingBook.value.isbn || book.value.isbn,
+      isbn10: existingBook.value.isbn10 || book.value.isbn10,
+      title: existingBook.value.title || book.value.title,
+      author: existingBook.value.author || book.value.author,
+      publisher: existingBook.value.publisher || book.value.publisher,
+      publishers: existingBook.value.publishers || book.value.publishers,
+      publicationDate: existingBook.value.publicationDate || book.value.publicationDate,
+      pages: existingBook.value.pages || book.value.pages,
+      coverUrl: existingBook.value.coverUrl || book.value.coverUrl,
+      language: existingBook.value.language || book.value.language,
+      physical_format: existingBook.value.physical_format || book.value.physical_format,
+      
+      // Mantener work_key para el selector de ediciones
+      work_key: book.value.work_key || existingBook.value.work_key
     };
+    
+    Logger.debug('[BookDetailView] Loaded saved edition data:', {
+      isbn: book.value.isbn,
+      title: book.value.title,
+      publisher: book.value.publisher,
+      publicationDate: book.value.publicationDate,
+      userStatuses: book.value.userStatuses,
+      user_rating: book.value.user_rating
+    });
+  } else {
+    Logger.debug('[BookDetailView] No existing book found in library or book not loaded');
   }
 };
 

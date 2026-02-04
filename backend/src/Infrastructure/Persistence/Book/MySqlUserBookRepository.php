@@ -211,8 +211,21 @@ final class MySqlUserBookRepository implements UserBookRepositoryInterface
     {
         $this->db->beginTransaction();
         try {
+            // First, find the edition_id from the ISBN
+            $sql = "SELECT edition_id FROM book_editions WHERE isbn_13 = :isbn OR isbn_10 = :isbn2 LIMIT 1";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':isbn' => $isbn, ':isbn2' => $isbn]);
+            $edition = $stmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if (!$edition) {
+                $this->db->rollBack();
+                throw new RuntimeException("Edition not found for ISBN: {$isbn}");
+            }
+            
+            $editionId = (int) $edition['edition_id'];
+            
             $updates = [];
-            $params = [':userId' => $userId, ':isbn' => $isbn];
+            $params = [':userId' => $userId, ':editionId' => $editionId];
 
             if (isset($data['current_page'])) {
                 $updates[] = "current_page = :current_page";
@@ -220,8 +233,8 @@ final class MySqlUserBookRepository implements UserBookRepositoryInterface
             }
 
             if (isset($data['personal_rating'])) {
-                $updates[] = "personal_rating = :personal_rating";
-                $params[':personal_rating'] = $data['personal_rating'] !== null ? (float) $data['personal_rating'] : null;
+                $updates[] = "edition_rating = :edition_rating";
+                $params[':edition_rating'] = $data['personal_rating'] !== null ? (float) $data['personal_rating'] : null;
             }
 
             if (isset($data['personal_notes'])) {
@@ -239,7 +252,7 @@ final class MySqlUserBookRepository implements UserBookRepositoryInterface
                 return;
             }
 
-            $sql = "UPDATE user_books SET " . implode(', ', $updates) . " WHERE user_id = :userId AND book_isbn = :isbn";
+            $sql = "UPDATE user_book_editions SET " . implode(', ', $updates) . " WHERE user_id = :userId AND edition_id = :editionId";
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
 
@@ -249,7 +262,7 @@ final class MySqlUserBookRepository implements UserBookRepositoryInterface
             }
 
             $this->db->commit();
-            $this->logInfo('User book edited', ['userId' => $userId, 'isbn' => $isbn]);
+            $this->logInfo('User book edited', ['userId' => $userId, 'isbn' => $isbn, 'editionId' => $editionId]);
 
         } catch (PDOException $e) {
             if ($this->db->inTransaction()) {
@@ -269,26 +282,55 @@ final class MySqlUserBookRepository implements UserBookRepositoryInterface
         }
 
         try {
+            // First, find the edition_id from the ISBN
+            $sql = "SELECT edition_id FROM book_editions WHERE isbn_13 = :isbn OR isbn_10 = :isbn2 LIMIT 1";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':isbn' => $isbn, ':isbn2' => $isbn]);
+            $edition = $stmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if (!$edition) {
+                if ($weStartedTransaction && $this->db->inTransaction()) {
+                    $this->db->rollBack();
+                }
+                throw new RuntimeException("Edition not found for ISBN: {$isbn}");
+            }
+            
+            $editionId = (int) $edition['edition_id'];
+            
+            // Find the user_book_edition id
+            $sql = "SELECT id FROM user_book_editions WHERE user_id = :userId AND edition_id = :editionId LIMIT 1";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':userId' => $userId, ':editionId' => $editionId]);
+            $userBookEdition = $stmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if (!$userBookEdition) {
+                if ($weStartedTransaction && $this->db->inTransaction()) {
+                    $this->db->rollBack();
+                }
+                throw new RuntimeException("User book edition not found for user: {$userId}, edition: {$editionId}");
+            }
+            
+            $userBookEditionId = (int) $userBookEdition['id'];
+            
             // Delete existing statuses
             $stmtDelete = $this->db->prepare("
                 DELETE FROM user_book_statuses 
-                WHERE user_id = :userId AND book_isbn = :isbn
+                WHERE user_edition_id = :userEditionId
             ");
-            $stmtDelete->execute([':userId' => $userId, ':isbn' => $isbn]);
+            $stmtDelete->execute([':userEditionId' => $userBookEditionId]);
 
             // Insert new statuses
             if (!empty($statuses)) {
                 $stmtInsert = $this->db->prepare("
-                    INSERT INTO user_book_statuses (user_id, book_isbn, status_id) 
-                    VALUES (:userId, :isbn, :statusId)
+                    INSERT INTO user_book_statuses (user_edition_id, status_id) 
+                    VALUES (:userEditionId, :statusId)
                 ");
 
                 foreach ($statuses as $statusName) {
                     $statusId = $this->getStatusId($statusName);
                     if ($statusId !== null) {
                         $stmtInsert->execute([
-                            ':userId' => $userId,
-                            ':isbn' => $isbn,
+                            ':userEditionId' => $userBookEditionId,
                             ':statusId' => $statusId
                         ]);
                     } else {
@@ -301,7 +343,7 @@ final class MySqlUserBookRepository implements UserBookRepositoryInterface
                 $this->db->commit();
             }
 
-            $this->logInfo('User book statuses updated', ['userId' => $userId, 'isbn' => $isbn, 'statuses' => $statuses]);
+            $this->logInfo('User book statuses updated', ['userId' => $userId, 'isbn' => $isbn, 'editionId' => $editionId, 'statuses' => $statuses]);
 
         } catch (PDOException $e) {
             if ($weStartedTransaction && $this->db->inTransaction()) {
@@ -419,44 +461,46 @@ final class MySqlUserBookRepository implements UserBookRepositoryInterface
             
             // Build user library check if userId provided
             $userLibraryCheck = $userId 
-                ? "EXISTS(SELECT 1 FROM user_books ub2 WHERE ub2.book_isbn = b.isbn AND ub2.user_id = {$userId}) as is_in_user_library,"
+                ? "EXISTS(SELECT 1 FROM user_book_editions ube2 INNER JOIN book_editions be2 ON ube2.edition_id = be2.edition_id WHERE be2.work_id = w.work_id AND ube2.user_id = {$userId}) as is_in_user_library,"
                 : "0 as is_in_user_library,";
             
             // Use string interpolation for INTERVAL and repeated parameters
             // Values are type-hinted as int, so they're safe
             $sql = "
                 SELECT 
-                    b.isbn,
-                    b.title,
-                    b.author,
-                    b.coverUrl,
-                    b.publisher,
-                    b.pages,
+                    COALESCE(be.isbn_13, be.isbn_10) as isbn,
+                    w.title as title,
+                    JSON_UNQUOTE(JSON_EXTRACT(w.authors, '$[0].name')) as author,
+                    COALESCE(be.cover_url_large, be.cover_url_medium, be.cover_url_small) as coverUrl,
+                    be.publisher as publisher,
+                    be.pages as pages,
                     {$userLibraryCheck}
-                    COUNT(DISTINCT ub.user_id) as user_count,
-                    AVG(ub.personal_rating) as avg_rating,
+                    COUNT(DISTINCT ube.user_id) as user_count,
+                    AVG(ube.work_rating) as avg_rating,
                     SUM(CASE 
-                        WHEN ub.added_at >= DATE_SUB(NOW(), INTERVAL {$recentDays} DAY) 
+                        WHEN ube.added_at >= DATE_SUB(NOW(), INTERVAL {$recentDays} DAY) 
                         THEN 1 ELSE 0 
                     END) as recent_adds,
                     SUM(CASE 
                         WHEN ubs.status_id = {$readingStatusId}
                         THEN 1 ELSE 0 
                     END) as reading_count,
-                    MAX(ub.added_at) as last_added,
+                    MAX(ube.added_at) as last_added,
                     -- Trending score calculation
                     (
-                        (COUNT(DISTINCT ub.user_id) * 10) +
-                        (COALESCE(AVG(ub.personal_rating), 0) * 5) +
-                        (SUM(CASE WHEN ub.added_at >= DATE_SUB(NOW(), INTERVAL {$recentDays} DAY) THEN 1 ELSE 0 END) * 15) +
+                        (COUNT(DISTINCT ube.user_id) * 10) +
+                        (COALESCE(AVG(ube.work_rating), 0) * 5) +
+                        (SUM(CASE WHEN ube.added_at >= DATE_SUB(NOW(), INTERVAL {$recentDays} DAY) THEN 1 ELSE 0 END) * 15) +
                         (SUM(CASE WHEN ubs.status_id = {$readingStatusId} THEN 1 ELSE 0 END) * 8) -
-                        (DATEDIFF(NOW(), MAX(ub.added_at)) * 0.1)
+                        (DATEDIFF(NOW(), MAX(ube.added_at)) * 0.1)
                     ) as trending_score
-                FROM books b
-                INNER JOIN user_books ub ON b.isbn = ub.book_isbn
-                LEFT JOIN user_book_statuses ubs ON ub.user_id = ubs.user_id AND ub.book_isbn = ubs.book_isbn
-                WHERE ub.added_at >= DATE_SUB(NOW(), INTERVAL {$daysWindow} DAY)
-                GROUP BY b.isbn
+                FROM user_book_editions ube
+                INNER JOIN book_editions be ON ube.edition_id = be.edition_id
+                INNER JOIN book_works w ON be.work_id = w.work_id
+                LEFT JOIN user_book_statuses ubs ON ube.id = ubs.user_edition_id
+                WHERE ube.added_at >= DATE_SUB(NOW(), INTERVAL {$daysWindow} DAY)
+                GROUP BY w.work_id, COALESCE(be.isbn_13, be.isbn_10), w.title, be.publisher, be.pages,
+                         be.cover_url_large, be.cover_url_medium, be.cover_url_small
                 HAVING user_count >= 2
                 ORDER BY trending_score DESC
                 LIMIT :limit

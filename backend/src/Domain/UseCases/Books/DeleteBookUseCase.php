@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\UseCases\Books;
 
 use App\Domain\Repository\User\UserRepositoryInterface;
-use App\Domain\Repository\Book\UserBookRepositoryInterface;
+use App\Domain\Repository\Book\UserBookEditionRepositoryInterface;
+use App\Domain\Repository\Book\EditionRepositoryInterface;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\DeleteBookCommand;
 use Psr\Log\LoggerInterface;
@@ -15,7 +16,8 @@ class DeleteBookUseCase extends AbstractUseCase
 {
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
-        private readonly UserBookRepositoryInterface $userBookRepository,
+        private readonly UserBookEditionRepositoryInterface $userBookEditionRepository,
+        private readonly EditionRepositoryInterface $editionRepository,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -33,13 +35,22 @@ class DeleteBookUseCase extends AbstractUseCase
             throw new InvalidArgumentException("User with ID {$command->userId} not found");
         }
 
-        // Check if user has this book in their library
-        if (!$this->userBookRepository->hasBook($command->userId, $command->isbn->toString())) {
+        // Find edition by ISBN
+        $isbn = $command->isbn->toString();
+        $edition = $this->editionRepository->findByIsbn($isbn);
+        
+        if (!$edition) {
+            throw new InvalidArgumentException("Book with ISBN {$isbn} not found in database.");
+        }
+
+        // Check if user has this edition in their library
+        if (!$this->userBookEditionRepository->hasEdition($command->userId, $edition->getEditionId())) {
             throw new InvalidArgumentException('Book not found in your library.');
         }
 
-        // Remove the book from user's library
-        return $this->userBookRepository->remove($command->userId, $command->isbn->toString());
+        // Remove the edition from user's library
+        // This will CASCADE delete related data (statuses, notes, progress)
+        return $this->userBookEditionRepository->remove($command->userId, $edition->getEditionId());
     }
 
     protected function getLogContext(): string

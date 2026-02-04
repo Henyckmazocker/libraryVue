@@ -18,12 +18,12 @@
 
 <script setup>
 import { computed, onMounted, watch } from 'vue';
-import axios from 'axios';
 import { useRouter } from 'vue-router';
 import GenericSearch from '@/components/shared/GenericSearch.vue';
 import TrendingCarousel from '@/components/TrendingCarousel.vue';
 import BookCarouselItem from '@/components/Books/BookCarouselItem.vue';
 import { useBooks } from '@/composables/useBooks';
+import { useWorkSearch } from '@/composables/useWorkSearch';
 import { useTrending } from '@/composables/useTrending';
 import { useAuthStore } from '@/store/auth';
 import { useBooksStore } from '@/store/books';
@@ -36,6 +36,7 @@ const router = useRouter();
 
 // Composables & Stores
 const booksComposable = useBooks();
+const { searchWorks } = useWorkSearch();
 const authStore = useAuthStore();
 const booksStore = useBooksStore();
 const uiStore = useUIStore();
@@ -91,152 +92,50 @@ const detectSearchType = (query) => {
 const getBookCoverUrl = (cover_i) => {
   if (!cover_i) return '';
   
-  if (cover_i.startsWith('https://')) {
-    return cover_i; // Google Books URL
+  // Convertir a string si es número
+  const coverStr = String(cover_i);
+  
+  if (coverStr.startsWith('https://') || coverStr.startsWith('http://')) {
+    return coverStr; // Google Books URL
   } else {
-    return `https://covers.openlibrary.org/b/id/${cover_i}-L.jpg`; // OpenLibrary ID
+    return `https://covers.openlibrary.org/b/id/${coverStr}-L.jpg`; // OpenLibrary ID
   }
 };
-
-// Handler de búsqueda para libros
+// Handler de búsqueda para libros usando el composable
 const searchBooks = async (query, searchType) => {
   if (searchType === 'name') {
-    // Búsqueda por nombre usando Google Books y OpenLibrary
     try {
-      Logger.debug("Searching by name with Google Books API...");
-      const googleApiUrl = `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(query)}&maxResults=10`;
-      const response = await axios.get(googleApiUrl);
-      const data = response.data;
-
-      if (data.items && data.items.length > 0) {
-        const booksPromises = data.items.map(async (item) => {
-          try {
-            const detailsResponse = await axios.get(`https://www.googleapis.com/books/v1/volumes/${item.id}`);
-            const book = detailsResponse.data.volumeInfo;
-            const isbn = book.industryIdentifiers?.find(id => id.type === 'ISBN_13')?.identifier ||
-                        book.industryIdentifiers?.find(id => id.type === 'ISBN_10')?.identifier ||
-                        '';
-            
-            return {
-              isbn: isbn,
-              title: book.title || 'Title not available',
-              author: book.authors || ['Author not available'],
-              cover_i: book.imageLinks?.large?.replace('http:', 'https:') ||
-                      book.imageLinks?.medium?.replace('http:', 'https:') ||
-                      book.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
-              publisher: book.publisher ? [book.publisher] : [],
-              pages: book.pageCount || null,
-              genres: book.categories || [],
-              key: item.id
-            };
-          } catch (error) {
-            Logger.warn(`Failed to get details for book ${item.id}:`, error.message);
-            const book = item.volumeInfo;
-            const isbn = book.industryIdentifiers?.find(id => id.type === 'ISBN_13')?.identifier ||
-                        book.industryIdentifiers?.find(id => id.type === 'ISBN_10')?.identifier ||
-                        '';
-            
-            return {
-              isbn: isbn,
-              title: book.title || 'Title not available',
-              author: book.authors || ['Author not available'],
-              cover_i: book.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
-              publisher: book.publisher ? [book.publisher] : [],
-              pages: book.pageCount || null,
-              genres: book.categories || [],
-              key: item.id
-            };
-          }
-        });
-        
-        const books = await Promise.all(booksPromises);
-        Logger.debug(`Found ${books.length} books with Google Books API`);
-        return books;
-      }
+      Logger.debug("Searching works by name using composable...");
+      
+      // Usar el composable para la búsqueda
+      const works = await searchWorks(query, { 
+        limit: 20, 
+        enrich: false // No enriquecer con Google Books en búsqueda inicial
+      });
+      
+      Logger.debug(`Found ${works.length} works from composable`);
+      
+      // Transform works to the format expected by GenericSearch
+      return works.map(work => ({
+        isbn: work.sample_isbn || work.work_key, 
+        title: work.title || 'Title not available',
+        author: Array.isArray(work.authors) ? work.authors : [work.authors_display || 'Author not available'],
+        cover_i: work.cover_url || work.cover_id || '', // Use cover_url (Google Books) or cover_id (OpenLibrary)
+        coverUrl: work.cover_url || '',
+        publisher: [],
+        pages: null,
+        genres: work.subjects || [],
+        key: work.work_key,
+        // Additional work metadata
+        work_key: work.work_key,
+        editions_count: work.editions_count || 0,
+        first_publish_year: work.first_publish_year || null,
+        languages: work.languages || []
+      }));
+      
     } catch (error) {
-      Logger.warn("Google Books name search failed, trying OpenLibrary fallback:", error.message);
-    }
-
-    // Fallback a OpenLibrary
-    try {
-      Logger.debug("Searching by name with OpenLibrary as fallback...");
-      const apiUrl = `https://openlibrary.org/search.json?title=${encodeURIComponent(query)}`;
-      const response = await axios.get(apiUrl);
-      let docs = response.data.docs || [];
-      
-      if (docs.length === 0) {
-        return [];
-      }
-      
-      docs = docs.slice(0, 10);
-      const books = [];
-      
-      for (const doc of docs) {
-        try {
-          let authors = [];
-          let isbnSearch = (Array.isArray(doc.isbn) && doc.isbn.length > 0) ? doc.isbn[0] : '';
-          
-          if (isbnSearch && isbnSearch.length > 0) {
-            try {
-              const apiUrl = `https://openlibrary.org/isbn/${isbnSearch}.json`;
-              const response = await axios.get(apiUrl);
-              const data = response.data;
-              
-              if(data.authors && data.authors.length > 0) {
-                for (const author of data.authors) {
-                  if (author.key) {
-                    try {
-                      const authorData = await axios.get(`https://openlibrary.org${author.key}.json`);
-                      authors.push(authorData.data.name);
-                    } catch (e) {
-                      Logger.warn(`Failed to get author data for ${author.key}`);
-                    }
-                  }
-                }
-              }
-              
-              books.push({
-                isbn: isbnSearch,
-                title: data.title || doc.title,
-                author: authors.length > 0 ? authors : [doc.author_name?.[0] || 'Author not available'],
-                cover_i: (Array.isArray(doc.cover_i) && doc.cover_i.length > 0) ? doc.cover_i[0] : "",
-                publisher: data.publishers || (doc.publisher ? [doc.publisher[0]] : []),
-                pages: data.number_of_pages || null,
-                key: doc.key || `ol-${Date.now()}-${Math.random()}`
-              });
-            } catch (error) {
-              Logger.warn(`Failed to get ISBN details for ${isbnSearch}:`, error.message);
-              books.push({
-                isbn: isbnSearch,
-                title: doc.title,
-                author: doc.author_name || ['Author not available'],
-                cover_i: (Array.isArray(doc.cover_i) && doc.cover_i.length > 0) ? doc.cover_i[0] : "",
-                publisher: doc.publisher ? [doc.publisher[0]] : [],
-                pages: null,
-                key: doc.key || `ol-${Date.now()}-${Math.random()}`
-              });
-            }
-          } else {
-            books.push({
-              isbn: '',
-              title: doc.title,
-              author: doc.author_name || ['Author not available'],
-              cover_i: (Array.isArray(doc.cover_i) && doc.cover_i.length > 0) ? doc.cover_i[0] : "",
-              publisher: doc.publisher ? [doc.publisher[0]] : [],
-              pages: null,
-              key: doc.key || `ol-${Date.now()}-${Math.random()}`
-            });
-          }
-        } catch (error) {
-          Logger.warn(`Failed to process OpenLibrary doc:`, error.message);
-        }
-      }
-      
-      Logger.debug(`Found ${books.length} books with OpenLibrary fallback`);
-      return books;
-    } catch (error) {
-      Logger.error("Both name search APIs failed:", error);
-      throw new Error("Error searching books by name in all available databases.");
+      Logger.error("Work search failed:", error);
+      throw new Error("Error searching books. Please try again.");
     }
   }
   

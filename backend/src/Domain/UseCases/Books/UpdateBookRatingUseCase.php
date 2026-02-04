@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\UseCases\Books;
 
 use App\Domain\Repository\User\UserRepositoryInterface;
-use App\Domain\Repository\Book\UserBookRepositoryInterface;
+use App\Domain\Repository\Book\UserBookEditionRepositoryInterface;
+use App\Domain\Repository\Book\EditionRepositoryInterface;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\UpdateBookRatingCommand;
 use Psr\Log\LoggerInterface;
@@ -15,7 +16,8 @@ class UpdateBookRatingUseCase extends AbstractUseCase
 {
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
-        private readonly UserBookRepositoryInterface $userBookRepository,
+        private readonly UserBookEditionRepositoryInterface $userBookEditionRepository,
+        private readonly EditionRepositoryInterface $editionRepository,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -34,16 +36,25 @@ class UpdateBookRatingUseCase extends AbstractUseCase
             throw new InvalidArgumentException("User with ID {$command->userId} not found");
         }
 
-        // Check if user has this book in their library
-        if (!$this->userBookRepository->hasBook($command->userId, $command->isbn->toString())) {
+        // Find edition by ISBN
+        $isbn = $command->isbn->toString();
+        $edition = $this->editionRepository->findByIsbn($isbn);
+        
+        if (!$edition) {
+            throw new InvalidArgumentException("Book with ISBN {$isbn} not found in database.");
+        }
+
+        // Check if user has this edition in their library
+        if (!$this->userBookEditionRepository->hasEdition($command->userId, $edition->getEditionId())) {
             throw new InvalidArgumentException('Book not found in your library.');
         }
 
-        // Update the user's rating (Rating VO already validated in constructor)
-        $this->userBookRepository->updateRating(
-            $command->userId, 
-            $command->isbn->toString(), 
-            $command->rating->toFloat()
+        // Update the user's work rating (Rating VO already validated in constructor)
+        $this->userBookEditionRepository->updateRating(
+            $command->userId,
+            $edition->getEditionId(),
+            $command->rating->toFloat(), // work_rating
+            null // edition_rating - could be added as optional parameter
         );
         
         return true;

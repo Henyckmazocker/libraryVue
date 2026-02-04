@@ -1,25 +1,33 @@
 <?php
 namespace App\Controllers;
 
-use App\Domain\Repository\Book\UserBookRepositoryInterface;
+use App\Domain\Repository\Book\UserBookEditionRepositoryInterface;
+use App\Domain\Repository\Book\EditionRepositoryInterface;
+use App\Domain\Repository\Book\WorkRepositoryInterface;
 use App\Domain\Repository\Movie\UserMovieRepositoryInterface;
 use App\Domain\Repository\Book\ReadingProgressRepositoryInterface;
 use App\Infrastructure\Middleware\AuthMiddleware;
 
 class StatsController extends BaseController
 {
-    private UserBookRepositoryInterface $userBookRepository;
+    private UserBookEditionRepositoryInterface $userBookEditionRepository;
+    private EditionRepositoryInterface $editionRepository;
+    private WorkRepositoryInterface $workRepository;
     private UserMovieRepositoryInterface $userMovieRepository;
     private ReadingProgressRepositoryInterface $readingProgressRepository;
     private AuthMiddleware $authMiddleware;
 
     public function __construct(
-        UserBookRepositoryInterface $userBookRepository,
+        UserBookEditionRepositoryInterface $userBookEditionRepository,
+        EditionRepositoryInterface $editionRepository,
+        WorkRepositoryInterface $workRepository,
         UserMovieRepositoryInterface $userMovieRepository,
         ReadingProgressRepositoryInterface $readingProgressRepository,
         AuthMiddleware $authMiddleware
     ) {
-        $this->userBookRepository = $userBookRepository;
+        $this->userBookEditionRepository = $userBookEditionRepository;
+        $this->editionRepository = $editionRepository;
+        $this->workRepository = $workRepository;
         $this->userMovieRepository = $userMovieRepository;
         $this->readingProgressRepository = $readingProgressRepository;
         $this->authMiddleware = $authMiddleware;
@@ -31,15 +39,38 @@ class StatsController extends BaseController
     public function getBookStats(int $userId): array
     {
         try {
-            // Obtener todos los libros del usuario
-            $books = $this->userBookRepository->findByUser($userId);
+            // Obtener todas las ediciones del usuario con datos completos
+            $userEditions = $this->userBookEditionRepository->findByUser($userId);
+            
+            // Enriquecer con datos de Work para géneros y otros campos
+            $enrichedBooks = [];
+            foreach ($userEditions as $userEdition) {
+                $edition = $this->editionRepository->findById($userEdition->getEditionId());
+                if ($edition) {
+                    $work = $this->workRepository->findById($edition->getWorkId());
+                    if ($work) {
+                        // Combinar datos de UserBookEdition + Edition + Work
+                        $enrichedBooks[] = (object)[
+                            'userRating' => $userEdition->getWorkRating(),
+                            'userStatuses' => $this->userBookEditionRepository->getStatusesForEdition(
+                                $userId, 
+                                $userEdition->getEditionId()
+                            ),
+                            'genres' => $work->getSubjects() ?? [],
+                            'addedAt' => $userEdition->getAddedAt(),
+                            'consumedAt' => $userEdition->getConsumedAt(),
+                            'pages' => $edition->getPages()
+                        ];
+                    }
+                }
+            }
             
             $stats = [
-                'totalBooks' => count($books),
-                'genreStats' => $this->calculateBookGenreStats($books),
-                'statusStats' => $this->calculateBookStatusStats($books),
-                'ratingStats' => $this->calculateBookRatingStats($books),
-                'monthlyStats' => $this->calculateBookMonthlyStats($books),
+                'totalBooks' => count($userEditions),
+                'genreStats' => $this->calculateBookGenreStats($enrichedBooks),
+                'statusStats' => $this->calculateBookStatusStats($enrichedBooks),
+                'ratingStats' => $this->calculateBookRatingStats($enrichedBooks),
+                'monthlyStats' => $this->calculateBookMonthlyStats($enrichedBooks),
                 'monthlyPagesStats' => $this->calculateMonthlyPagesStats($userId)
             ];
 
@@ -76,7 +107,7 @@ class StatsController extends BaseController
         $totalWithGenres = 0;
 
         foreach ($books as $book) {
-            $genres = $book->getGenres();
+            $genres = $book->genres ?? [];
             if (!empty($genres) && is_array($genres)) {
                 $totalWithGenres++;
                 foreach ($genres as $genre) {
@@ -132,7 +163,7 @@ class StatsController extends BaseController
     {
         $statusCounts = [];
         foreach ($books as $book) {
-            $statuses = $book->getUserStatuses();
+            $statuses = $book->userStatuses ?? [];
             foreach ($statuses as $status) {
                 $statusCounts[$status] = ($statusCounts[$status] ?? 0) + 1;
             }
@@ -159,9 +190,9 @@ class StatsController extends BaseController
         $sumRatings = 0;
 
         foreach ($books as $book) {
-            $rating = $book->getUserRating();
+            $rating = $book->userRating ?? null;
             if ($rating !== null) {
-                $ratingValue = $rating->toFloat();
+                $ratingValue = is_object($rating) ? $rating->toFloat() : (float)$rating;
                 if ($ratingValue > 0) {
                     // Redondear a 0.5 más cercano para agrupar medios puntos
                     $roundedRating = round($ratingValue * 2) / 2;
@@ -224,9 +255,10 @@ class StatsController extends BaseController
         $currentYear = date('Y');
 
         foreach ($books as $book) {
-            $timestamp = $book->getAddedTimestamp();
+            $timestamp = $book->addedAt ?? null;
             if ($timestamp) {
-                $month = date('Y-m', $timestamp->toUnixTimestamp());
+                $unixTime = is_object($timestamp) ? $timestamp->toUnixTimestamp() : strtotime($timestamp);
+                $month = date('Y-m', $unixTime);
                 $monthlyCounts[$month] = ($monthlyCounts[$month] ?? 0) + 1;
             }
         }

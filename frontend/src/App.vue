@@ -23,6 +23,18 @@ onMounted(() => {
 <style>
 @import '@/assets/styles/variables.css';
 
+/* Reset completo para eliminar scroll no deseado */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow-x: hidden; /* Prevenir scroll horizontal */
+}
+
+html {
+  overflow-y: auto; /* Solo permitir scroll vertical cuando sea necesario */
+}
+
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -30,16 +42,17 @@ onMounted(() => {
   color: var(--color-text);
   background: var(--color-background);
   min-height: 100vh;
+  height: 100%;
 }
 
 /* Reset de estilos base */
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  margin: 0;
-  padding: 0;
   background: var(--color-background);
   color: var(--color-text);
   font-family: Avenir, Helvetica, Arial, sans-serif;

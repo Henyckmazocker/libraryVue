@@ -31,6 +31,8 @@ use App\Domain\DTO\Queries\GetAllowedStatusesQuery;
 use App\Domain\DTO\Queries\GetAllBooksQuery;
 use App\Domain\DTO\Queries\GetReadingSessionQuery;
 use App\Domain\DTO\Queries\GetUserReadingStatsQuery;
+use App\Domain\DTO\Queries\GetTrendingBooksQuery;
+use App\Domain\DTO\Queries\GetTrendingMoviesQuery;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 
@@ -192,6 +194,16 @@ class ActionRouter
             'get_library' => $controller->getBooks(
                 new GetBooksByUserQuery($userId)
             ),
+            'get_trending_books' => $controller->getTrendingBooks(
+                GetTrendingBooksQuery::fromArray($data)
+            ),
+            
+            // WORKS - Work search endpoints (no DTOs needed)
+            'search_works' => $controller->searchWorks($data),
+            'get_work' => $controller->getWork($data),
+            'get_work_editions' => $controller->getWorkEditions($data),
+            'validate_isbn' => $controller->validateISBN($data),
+            'search_google_books_isbn' => $controller->searchGoogleBooksByISBN($data),
             
             // MOVIES - Use Command DTOs
             'add_movie' => $controller->addMovie(
@@ -212,6 +224,9 @@ class ActionRouter
             'get_movie_allowed_statuses' => $controller->getMovieAllowedStatuses(),
             'get_movies' => $controller->getMovies(
                 new GetMoviesByUserQuery($userId)
+            ),
+            'get_trending_movies' => $controller->getTrendingMovies(
+                GetTrendingMoviesQuery::fromArray($data)
             ),
             
             // LIBRARY - No DTOs (complex operations handled internally)

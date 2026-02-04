@@ -136,6 +136,18 @@ const selectedUserStatuses = ref(props.book.userStatuses || []);
 const rating = ref(props.book.user_rating || 0);
 const currentPage = ref(props.book.currentPage || 0);
 
+// Log inicial para debug
+Logger.debug('[LibraryBookItem] Component initialized with:', {
+  bookIsbn: props.book.isbn,
+  bookTitle: props.book.title,
+  userStatuses: props.book.userStatuses,
+  user_rating: props.book.user_rating,
+  currentPage: props.book.currentPage,
+  allowedUserStatuses: props.allowedUserStatuses,
+  editable: props.editable,
+  readonly: props.readonly
+});
+
 // Estado del botón de guardar
 const saveButtonState = ref('idle'); // 'idle', 'success', 'error'
 
@@ -251,14 +263,22 @@ const onUpdateProgress = async (currentPageValue) => {
 };
 
 watch(() => props.book.user_rating, (newRating) => {
+  Logger.debug('[LibraryBookItem] user_rating changed:', { old: rating.value, new: newRating });
   rating.value = newRating || 0;
 });
 
 watch(() => props.book.currentPage, (newPage) => {
+  Logger.debug('[LibraryBookItem] currentPage changed:', { old: currentPage.value, new: newPage });
   currentPage.value = newPage || 0;
 });
 
-watch(() => props.book.userStatuses, (newStatuses) => {
+watch(() => props.book.userStatuses, (newStatuses, oldStatuses) => {
+  Logger.debug('[LibraryBookItem] userStatuses changed:', { 
+    old: oldStatuses, 
+    new: newStatuses,
+    isArray: Array.isArray(newStatuses),
+    length: newStatuses?.length
+  });
   selectedUserStatuses.value = newStatuses || [];
 }, { deep: true });
 </script>

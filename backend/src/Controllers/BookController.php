@@ -12,6 +12,7 @@ use App\Domain\UseCases\Books\GetBooksUseCase;
 use App\Domain\UseCases\Books\GetAllBooksUseCase;
 use App\Domain\UseCases\Books\GetBookAllowedStatusesUseCase;
 use App\Domain\UseCases\Books\EditUserBookUseCase;
+use App\Domain\UseCases\Books\GetTrendingBooksUseCase;
 use App\Domain\DTO\Commands\AddBookCommand;
 use App\Domain\DTO\Commands\DeleteBookCommand;
 use App\Domain\DTO\Commands\UpdateBookRatingCommand;
@@ -24,11 +25,16 @@ use App\Domain\DTO\Commands\ManageReadingSessionCommand;
 use App\Domain\DTO\Queries\GetBooksByUserQuery;
 use App\Domain\DTO\Queries\GetReadingSessionQuery;
 use App\Domain\DTO\Queries\GetUserReadingStatsQuery;
+use App\Domain\DTO\Queries\GetTrendingBooksQuery;
 use App\Domain\Repository\Book\BookRepositoryInterface;
 use App\Domain\Repository\Book\BookTagRepositoryInterface;
 use App\Domain\Repository\Book\ReadingSessionRepositoryInterface;
 use App\Domain\Repository\Book\ReadingProgressRepositoryInterface;
+use App\Domain\Repository\Book\WorkRepositoryInterface;
+use App\Domain\Services\WorkSearchService;
+use App\Domain\Services\GoogleBooksService;
 use App\Infrastructure\Middleware\AuthMiddleware;
+use Psr\Log\LoggerInterface;
 
 class BookController extends BaseController implements Contracts\BookControllerInterface
 {
@@ -46,6 +52,11 @@ class BookController extends BaseController implements Contracts\BookControllerI
     private ReadingProgressRepositoryInterface $readingProgressRepository;
     private AuthMiddleware $authMiddleware;
     private EditUserBookUseCase $editUserBookUseCase;
+    private GetTrendingBooksUseCase $getTrendingBooksUseCase;
+    private WorkSearchService $workSearchService;
+    private WorkRepositoryInterface $workRepository;
+    private GoogleBooksService $googleBooksService;
+    private LoggerInterface $logger;
 
     public function __construct(
         AddBookUseCase $addBookUseCase,
@@ -60,7 +71,12 @@ class BookController extends BaseController implements Contracts\BookControllerI
         ReadingSessionRepositoryInterface $readingSessionRepository,
         ReadingProgressRepositoryInterface $readingProgressRepository,
         AuthMiddleware $authMiddleware,
-        EditUserBookUseCase $editUserBookUseCase
+        EditUserBookUseCase $editUserBookUseCase,
+        GetTrendingBooksUseCase $getTrendingBooksUseCase,
+        WorkSearchService $workSearchService,
+        WorkRepositoryInterface $workRepository,
+        GoogleBooksService $googleBooksService,
+        LoggerInterface $logger
     ) {
         $this->addBookUseCase = $addBookUseCase;
         $this->deleteBookUseCase = $deleteBookUseCase;
@@ -75,6 +91,11 @@ class BookController extends BaseController implements Contracts\BookControllerI
         $this->readingProgressRepository = $readingProgressRepository;
         $this->authMiddleware = $authMiddleware;
         $this->editUserBookUseCase = $editUserBookUseCase;
+        $this->getTrendingBooksUseCase = $getTrendingBooksUseCase;
+        $this->workSearchService = $workSearchService;
+        $this->workRepository = $workRepository;
+        $this->googleBooksService = $googleBooksService;
+        $this->logger = $logger;
     }
 
     /**
@@ -86,7 +107,8 @@ class BookController extends BaseController implements Contracts\BookControllerI
     public function addBook(AddBookCommand $command): array
     {
         $addedBook = $this->addBookUseCase->execute($command);
-        return $this->successResponse('Book added: ' . $addedBook->getTitle(), $addedBook->toArray(), 201);
+        $title = $addedBook['title'] ?? 'Unknown';
+        return $this->successResponse('Book added: ' . $title, $addedBook, 201);
     }
 
     /**
@@ -353,7 +375,6 @@ class BookController extends BaseController implements Contracts\BookControllerI
             return $this->errorResponse('Error al obtener estadísticas: ' . $e->getMessage());
         }
     }
-
     public function getCurrentReadingSessions(GetUserReadingStatsQuery $query): array
     {
         try {
@@ -363,4 +384,240 @@ class BookController extends BaseController implements Contracts\BookControllerI
             return $this->errorResponse('Error al obtener sesiones actuales: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Get trending books based on user activity
+     * 
+     * @param GetTrendingBooksQuery $query Query containing limit and daysWindow
+     * @return array Success response with trending books data
+     */
+    public function getTrendingBooks(GetTrendingBooksQuery $query): array
+    {
+        // Get authenticated user ID from session
+        $userId = $_SESSION['user_data']['id'] ?? null;
+        
+        // Create query with userId
+        $queryWithUser = GetTrendingBooksQuery::create(
+            $query->limit,
+            $query->daysWindow,
+            $userId
+        );
+        
+        $trendingBooks = $this->getTrendingBooksUseCase->execute($queryWithUser);
+        return $this->successResponse('Trending books retrieved.', $trendingBooks);
+    }
+
+    /**
+     * Search for works by title
+     * Uses OpenLibrary as primary source with optional Google Books enrichment
+     * 
+     * @param array $data Request data containing 'q' (query), 'limit', and 'enrich'
+     * @return array Success response with works data
+     */
+    public function searchWorks(array $data): array
+    {
+        try {
+            $query = $data['q'] ?? '';
+            $limit = isset($data['limit']) ? (int)$data['limit'] : 20;
+            $enrichWithGoogle = isset($data['enrich']) ? 
+                filter_var($data['enrich'], FILTER_VALIDATE_BOOLEAN) : false;
+
+            if (empty($query)) {
+                return $this->errorResponse('Search query is required', 400);
+            }
+
+            $limit = min($limit, 50);
+
+            $this->logger->info("BookController: Searching works", [
+                'query' => $query,
+                'limit' => $limit,
+                'enrich' => $enrichWithGoogle
+            ]);
+
+            $works = $this->workSearchService->searchWorks($query, $limit, $enrichWithGoogle);
+
+            return $this->successResponse('Works search completed', [
+                'works' => $works,
+                'total' => count($works),
+                'query' => $query,
+                'enriched' => $enrichWithGoogle
+            ]);
+
+        } catch (\Exception $e) {
+            $this->logger->error("BookController: Search works failed", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return $this->errorResponse('Failed to search works: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Get detailed information about a specific work
+     * 
+     * @param array $data Request data containing 'workKey' and 'enrich'
+     * @return array Success response with work details
+     */
+    public function getWork(array $data): array
+    {
+        try {
+            $workKey = $data['workKey'] ?? '';
+            $enrichWithGoogle = isset($data['enrich']) ? 
+                filter_var($data['enrich'], FILTER_VALIDATE_BOOLEAN) : true;
+
+            if (empty($workKey)) {
+                return $this->errorResponse('Work key is required', 400);
+            }
+
+            $this->logger->info("BookController: Getting work details", [
+                'work_key' => $workKey,
+                'enrich' => $enrichWithGoogle
+            ]);
+
+            $work = $this->workSearchService->getWorkDetails($workKey, $enrichWithGoogle);
+
+            if (!$work) {
+                return $this->errorResponse('Work not found', 404);
+            }
+
+            return $this->successResponse('Work details retrieved', $work);
+
+        } catch (\Exception $e) {
+            $this->logger->error("BookController: Get work failed", [
+                'work_key' => $data['workKey'] ?? '',
+                'error' => $e->getMessage()
+            ]);
+
+            return $this->errorResponse('Failed to get work details: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Get all editions for a specific work with filters
+     * 
+     * @param array $data Request data with filters
+     * @return array Success response with editions
+     */
+    public function getWorkEditions(array $data): array
+    {
+        try {
+            $workKey = $data['workKey'] ?? '';
+
+            if (empty($workKey)) {
+                return $this->errorResponse('Work key is required', 400);
+            }
+
+            $page = isset($data['page']) ? max(1, (int)$data['page']) : 1;
+            $limit = isset($data['limit']) ? min(100, max(1, (int)$data['limit'])) : 20;
+
+            $filters = [];
+            if (!empty($data['format'])) {
+                $filters['format'] = $data['format'];
+            }
+            if (!empty($data['language'])) {
+                $filters['language'] = $data['language'];
+            }
+            if (!empty($data['year_from'])) {
+                $filters['year_from'] = (int)$data['year_from'];
+            }
+            if (!empty($data['year_to'])) {
+                $filters['year_to'] = (int)$data['year_to'];
+            }
+            if (!empty($data['has_isbn'])) {
+                $filters['has_isbn'] = filter_var($data['has_isbn'], FILTER_VALIDATE_BOOLEAN);
+            }
+
+            $this->logger->info("BookController: Getting work editions", [
+                'work_key' => $workKey,
+                'page' => $page,
+                'limit' => $limit,
+                'filters' => $filters
+            ]);
+
+            $result = $this->workSearchService->getWorkEditions($workKey, $filters, $page, $limit);
+
+            return $this->successResponse('Work editions retrieved', $result);
+
+        } catch (\Exception $e) {
+            $this->logger->error("BookController: Get work editions failed", [
+                'work_key' => $data['workKey'] ?? '',
+                'error' => $e->getMessage()
+            ]);
+
+            return $this->errorResponse('Failed to get work editions: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Validate ISBN and get associated work
+     * 
+     * @param array $data Request data containing 'isbn'
+     * @return array Success response with validation result
+     */
+    public function validateISBN(array $data): array
+    {
+        try {
+            $isbn = $data['isbn'] ?? '';
+
+            if (empty($isbn)) {
+                return $this->errorResponse('ISBN is required', 400);
+            }
+
+            $this->logger->info("BookController: Validating ISBN", ['isbn' => $isbn]);
+
+            $result = $this->workSearchService->validateAndGetWorkFromISBN($isbn);
+
+            if (!$result) {
+                return $this->errorResponse('ISBN not found in any database', 404);
+            }
+
+            return $this->successResponse('ISBN validated', $result);
+
+        } catch (\Exception $e) {
+            $this->logger->error("BookController: Validate ISBN failed", [
+                'isbn' => $data['isbn'] ?? '',
+                'error' => $e->getMessage()
+            ]);
+
+            return $this->errorResponse('Failed to validate ISBN: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Search book details by ISBN using Google Books API
+     * This proxies requests to avoid quota issues from direct client calls
+     * 
+     * @param array $data Request data containing 'isbn'
+     * @return array Success response with book details or error
+     */
+    public function searchGoogleBooksByISBN(array $data): array
+    {
+        try {
+            $isbn = $data['isbn'] ?? '';
+
+            if (empty($isbn)) {
+                return $this->errorResponse('ISBN is required', 400);
+            }
+
+            $this->logger->info("BookController: Searching Google Books by ISBN", ['isbn' => $isbn]);
+
+            $bookData = $this->googleBooksService->searchByISBN($isbn);
+
+            if (!$bookData) {
+                return $this->errorResponse('Book not found in Google Books', 404);
+            }
+
+            return $this->successResponse('Book details retrieved from Google Books', $bookData);
+
+        } catch (\Exception $e) {
+            $this->logger->error("BookController: Google Books search failed", [
+                'isbn' => $data['isbn'] ?? '',
+                'error' => $e->getMessage()
+            ]);
+
+            return $this->errorResponse('Failed to search Google Books: ' . $e->getMessage(), 500);
+        }
+    }
 }
+

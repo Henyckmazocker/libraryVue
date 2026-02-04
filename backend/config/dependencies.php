@@ -19,6 +19,13 @@ use App\Infrastructure\Persistence\Book\MySqlBookNoteRepository;
 use App\Infrastructure\Persistence\Book\MySqlReadingSessionRepository;
 use App\Infrastructure\Persistence\Book\MySqlReadingProgressRepository;
 use App\Infrastructure\Persistence\Book\Mappers\BookDataMapper;
+// New Work/Edition architecture
+use App\Infrastructure\Persistence\Book\MySqlWorkRepository;
+use App\Infrastructure\Persistence\Book\MySqlEditionRepository;
+use App\Infrastructure\Persistence\Book\MySqlUserBookEditionRepository;
+use App\Infrastructure\Persistence\Book\Mappers\WorkDataMapper;
+use App\Infrastructure\Persistence\Book\Mappers\EditionDataMapper;
+use App\Infrastructure\Persistence\Book\Mappers\UserBookEditionDataMapper;
 use App\Infrastructure\Logging\LoggingService;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Services\UserLibraryStatisticsService;
@@ -32,6 +39,11 @@ use App\Domain\Repository\Book\BookTagRepositoryInterface;
 use App\Domain\Repository\Book\BookNoteRepositoryInterface;
 use App\Domain\Repository\Book\ReadingSessionRepositoryInterface;
 use App\Domain\Repository\Book\ReadingProgressRepositoryInterface;
+// New Work/Edition architecture
+use App\Domain\Repository\Book\WorkRepositoryInterface;
+use App\Domain\Repository\Book\EditionRepositoryInterface;
+use App\Domain\Repository\Book\UserBookEditionRepositoryInterface;
+use App\Domain\Service\BookImportService;
 use App\Controllers\LibraryXController;
 
 return [
@@ -45,8 +57,8 @@ return [
     // Repositories - User Module
     UserRepositoryInterface::class => DI\autowire(MySqlUserRepository::class),
     MySqlUserRepository::class => DI\autowire()
-        ->constructorParameter('database', DI\get(PDO::class))
-        ->constructorParameter('logger', DI\get('Logger')),
+        ->constructorParameter('db', DI\get(PDO::class))
+        ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
     
     UserLibraryStatisticsService::class => DI\autowire()
         ->constructorParameter('bookRepository', DI\get(UserBookRepositoryInterface::class))
@@ -59,25 +71,25 @@ return [
     MySqlMovieRepository::class => DI\autowire()
         ->constructorParameter('db', DI\get(PDO::class))
         ->constructorParameter('mapper', DI\get(MovieDataMapper::class))
-        ->constructorParameter('logger', DI\get('Logger')),
+        ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
     
     UserMovieRepositoryInterface::class => DI\autowire(MySqlUserMovieRepository::class),
     MySqlUserMovieRepository::class => DI\autowire()
         ->constructorParameter('db', DI\get(PDO::class))
         ->constructorParameter('mapper', DI\get(MovieDataMapper::class))
-        ->constructorParameter('logger', DI\get('Logger')),
+        ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
     
     MovieTagRepositoryInterface::class => DI\autowire(MySqlMovieTagRepository::class),
     MySqlMovieTagRepository::class => DI\autowire()
         ->constructorParameter('db', DI\get(PDO::class))
-        ->constructorParameter('logger', DI\get('Logger')),
+        ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
     
     MovieNoteRepositoryInterface::class => DI\autowire(MySqlMovieNoteRepository::class),
     MySqlMovieNoteRepository::class => DI\autowire()
         ->constructorParameter('db', DI\get(PDO::class))
-        ->constructorParameter('logger', DI\get('Logger')),
+        ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
     
-    // Repositories - Book Module
+    // Repositories - Book Module (Legacy)
     BookDataMapper::class => DI\autowire(),
     
     BookRepositoryInterface::class => DI\autowire(MySqlBookRepository::class),
@@ -93,25 +105,67 @@ return [
         ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class))
         ->constructorParameter('bookRepository', DI\get(MySqlBookRepository::class)),
     
+    // Repositories - Book Module (New Work/Edition Architecture)
+    WorkDataMapper::class => DI\autowire(),
+    EditionDataMapper::class => DI\autowire(),
+    UserBookEditionDataMapper::class => DI\autowire(),
+    
+    WorkRepositoryInterface::class => DI\autowire(MySqlWorkRepository::class),
+    MySqlWorkRepository::class => DI\autowire()
+        ->constructorParameter('db', DI\get(PDO::class))
+        ->constructorParameter('mapper', DI\get(WorkDataMapper::class))
+        ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
+    
+    EditionRepositoryInterface::class => DI\autowire(MySqlEditionRepository::class),
+    MySqlEditionRepository::class => DI\autowire()
+        ->constructorParameter('db', DI\get(PDO::class))
+        ->constructorParameter('mapper', DI\get(EditionDataMapper::class))
+        ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
+    
+    UserBookEditionRepositoryInterface::class => DI\autowire(MySqlUserBookEditionRepository::class),
+    MySqlUserBookEditionRepository::class => DI\autowire()
+        ->constructorParameter('db', DI\get(PDO::class))
+        ->constructorParameter('mapper', DI\get(UserBookEditionDataMapper::class))
+        ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
+    
+    // Services - External APIs
+    App\Domain\Services\OpenLibraryService::class => DI\autowire()
+        ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
+    
+    App\Domain\Services\GoogleBooksService::class => DI\autowire()
+        ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
+    
+    App\Domain\Services\WorkSearchService::class => DI\autowire()
+        ->constructorParameter('openLibraryService', DI\get(App\Domain\Services\OpenLibraryService::class))
+        ->constructorParameter('googleBooksService', DI\get(App\Domain\Services\GoogleBooksService::class))
+        ->constructorParameter('editionRepository', DI\get(EditionRepositoryInterface::class))
+        ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
+    
+    // Services - Domain
+    BookImportService::class => DI\autowire()
+        ->constructorParameter('workRepository', DI\get(WorkRepositoryInterface::class))
+        ->constructorParameter('editionRepository', DI\get(EditionRepositoryInterface::class))
+        ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
+    
     BookTagRepositoryInterface::class => DI\autowire(MySqlBookTagRepository::class),
     MySqlBookTagRepository::class => DI\autowire()
         ->constructorParameter('db', DI\get(PDO::class))
-        ->constructorParameter('logger', DI\get('Logger')),
+        ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
     
     BookNoteRepositoryInterface::class => DI\autowire(MySqlBookNoteRepository::class),
     MySqlBookNoteRepository::class => DI\autowire()
         ->constructorParameter('db', DI\get(PDO::class))
-        ->constructorParameter('logger', DI\get('Logger')),
+        ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
     
     ReadingSessionRepositoryInterface::class => DI\autowire(MySqlReadingSessionRepository::class),
     MySqlReadingSessionRepository::class => DI\autowire()
         ->constructorParameter('db', DI\get(PDO::class))
-        ->constructorParameter('logger', DI\get('Logger')),
+        ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
     
     ReadingProgressRepositoryInterface::class => DI\autowire(MySqlReadingProgressRepository::class),
     MySqlReadingProgressRepository::class => DI\autowire()
         ->constructorParameter('db', DI\get(PDO::class))
-        ->constructorParameter('logger', DI\get('Logger')),
+        ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
     
     // Services
     SessionManager::class => DI\autowire(),
@@ -149,17 +203,20 @@ return [
 
     // Book Use Cases
     App\Domain\UseCases\Books\AddBookUseCase::class => DI\autowire()
-        ->constructorParameter('bookRepository', DI\get(BookRepositoryInterface::class))
+        ->constructorParameter('bookImportService', DI\get(BookImportService::class))
+        ->constructorParameter('editionRepository', DI\get(EditionRepositoryInterface::class))
         ->constructorParameter('userRepository', DI\get(UserRepositoryInterface::class))
-        ->constructorParameter('userBookRepository', DI\get(UserBookRepositoryInterface::class)),
+        ->constructorParameter('userBookEditionRepository', DI\get(UserBookEditionRepositoryInterface::class)),
 
     App\Domain\UseCases\Books\DeleteBookUseCase::class => DI\autowire()
         ->constructorParameter('userRepository', DI\get(UserRepositoryInterface::class))
-        ->constructorParameter('userBookRepository', DI\get(UserBookRepositoryInterface::class)),
+        ->constructorParameter('userBookEditionRepository', DI\get(UserBookEditionRepositoryInterface::class))
+        ->constructorParameter('editionRepository', DI\get(EditionRepositoryInterface::class)),
 
     App\Domain\UseCases\Books\UpdateBookRatingUseCase::class => DI\autowire()
         ->constructorParameter('userRepository', DI\get(UserRepositoryInterface::class))
-        ->constructorParameter('userBookRepository', DI\get(UserBookRepositoryInterface::class)),
+        ->constructorParameter('userBookEditionRepository', DI\get(UserBookEditionRepositoryInterface::class))
+        ->constructorParameter('editionRepository', DI\get(EditionRepositoryInterface::class)),
 
     App\Domain\UseCases\Books\UpdateBookUserStatusesUseCase::class => DI\autowire()
         ->constructorParameter('userRepository', DI\get(UserRepositoryInterface::class))
@@ -167,7 +224,9 @@ return [
 
     App\Domain\UseCases\Books\GetBooksUseCase::class => DI\autowire()
         ->constructorParameter('userRepository', DI\get(UserRepositoryInterface::class))
-        ->constructorParameter('userBookRepository', DI\get(UserBookRepositoryInterface::class)),
+        ->constructorParameter('userBookEditionRepository', DI\get(UserBookEditionRepositoryInterface::class))
+        ->constructorParameter('editionRepository', DI\get(EditionRepositoryInterface::class))
+        ->constructorParameter('workRepository', DI\get(WorkRepositoryInterface::class)),
 
     App\Domain\UseCases\Books\GetAllBooksUseCase::class => DI\autowire()
         ->constructorParameter('bookRepository', DI\get(BookRepositoryInterface::class)),
@@ -180,6 +239,9 @@ return [
         ->constructorParameter('userBookRepository', DI\get(UserBookRepositoryInterface::class))
         ->constructorParameter('bookTagRepository', DI\get(BookTagRepositoryInterface::class))
         ->constructorParameter('bookNoteRepository', DI\get(BookNoteRepositoryInterface::class)),
+
+    App\Domain\UseCases\Books\GetTrendingBooksUseCase::class => DI\autowire()
+        ->constructorParameter('userBookRepository', DI\get(UserBookRepositoryInterface::class)),
 
     // Movie Use Cases
     App\Domain\UseCases\Movies\AddMovieUseCase::class => DI\autowire()
@@ -211,6 +273,9 @@ return [
         ->constructorParameter('movieTagRepository', DI\get(MovieTagRepositoryInterface::class))
         ->constructorParameter('movieNoteRepository', DI\get(MovieNoteRepositoryInterface::class)),
 
+    App\Domain\UseCases\Movies\GetTrendingMoviesUseCase::class => DI\autowire()
+        ->constructorParameter('userMovieRepository', DI\get(UserMovieRepositoryInterface::class)),
+
     // General Use Cases
     App\Domain\UseCases\GetLibraryUseCase::class => DI\autowire()
         ->constructorParameter('bookRepository', DI\get(BookRepositoryInterface::class)),
@@ -234,7 +299,11 @@ return [
         ->constructorParameter('readingSessionRepository', DI\get(App\Domain\Repository\Book\ReadingSessionRepositoryInterface::class))
         ->constructorParameter('readingProgressRepository', DI\get(App\Domain\Repository\Book\ReadingProgressRepositoryInterface::class))
         ->constructorParameter('authMiddleware', DI\get(AuthMiddleware::class))
-        ->constructorParameter('editUserBookUseCase', DI\get(App\Domain\UseCases\Books\EditUserBookUseCase::class)),
+        ->constructorParameter('editUserBookUseCase', DI\get(App\Domain\UseCases\Books\EditUserBookUseCase::class))
+        ->constructorParameter('getTrendingBooksUseCase', DI\get(App\Domain\UseCases\Books\GetTrendingBooksUseCase::class))
+        ->constructorParameter('workSearchService', DI\get(App\Domain\Services\WorkSearchService::class))
+        ->constructorParameter('workRepository', DI\get(App\Domain\Repository\Book\WorkRepositoryInterface::class))
+        ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
 
     App\Controllers\MovieController::class => DI\autowire()
         ->constructorParameter('addMovieUseCase', DI\get(App\Domain\UseCases\Movies\AddMovieUseCase::class))
@@ -246,7 +315,8 @@ return [
         ->constructorParameter('editUserMovieUseCase', DI\get(App\Domain\UseCases\Movies\EditUserMovieUseCase::class))
         ->constructorParameter('movieTagRepository', DI\get(App\Domain\Repository\Movie\MovieTagRepositoryInterface::class))
         ->constructorParameter('movieNoteRepository', DI\get(App\Domain\Repository\Movie\MovieNoteRepositoryInterface::class))
-        ->constructorParameter('authMiddleware', DI\get(AuthMiddleware::class)),
+        ->constructorParameter('authMiddleware', DI\get(AuthMiddleware::class))
+        ->constructorParameter('getTrendingMoviesUseCase', DI\get(App\Domain\UseCases\Movies\GetTrendingMoviesUseCase::class)),
 
     App\Controllers\LibraryController::class => DI\autowire()
         ->constructorParameter('getLibraryUseCase', DI\get(App\Domain\UseCases\GetLibraryUseCase::class))
@@ -264,7 +334,9 @@ return [
         ->constructorParameter('authMiddleware', DI\get(AuthMiddleware::class)),
 
     App\Controllers\StatsController::class => DI\autowire()
-        ->constructorParameter('userBookRepository', DI\get(App\Domain\Repository\Book\UserBookRepositoryInterface::class))
+        ->constructorParameter('userBookEditionRepository', DI\get(App\Domain\Repository\Book\UserBookEditionRepositoryInterface::class))
+        ->constructorParameter('editionRepository', DI\get(App\Domain\Repository\Book\EditionRepositoryInterface::class))
+        ->constructorParameter('workRepository', DI\get(App\Domain\Repository\Book\WorkRepositoryInterface::class))
         ->constructorParameter('userMovieRepository', DI\get(App\Domain\Repository\Movie\UserMovieRepositoryInterface::class))
         ->constructorParameter('readingProgressRepository', DI\get(App\Domain\Repository\Book\ReadingProgressRepositoryInterface::class))
         ->constructorParameter('authMiddleware', DI\get(AuthMiddleware::class)),

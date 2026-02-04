@@ -19,16 +19,18 @@
     
     <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
 
-    <!-- Lista de resultados -->
-    <div v-if="results && results.length" class="results-list">
-      <component
-        :is="config.itemComponent"
-        v-for="result in results"
-        :key="getResultKey(result)"
-        :[config.itemProp]="result"
-        :allowedStatuses="allowedStatuses"
-        @click="(item) => handleItemClick(item)"
-      />
+    <!-- Resultados en carrusel horizontal -->
+    <div v-if="results && results.length" class="results-section">
+      <h2 class="results-title">Resultados de búsqueda ({{ results.length }})</h2>
+      <HorizontalCarousel>
+        <component
+          :is="config.carouselItemComponent"
+          v-for="result in results"
+          :key="getResultKey(result)"
+          :[config.itemProp]="result"
+          @click="(item) => handleItemClick(item)"
+        />
+      </HorizontalCarousel>
     </div>
   </div>
 </template>
@@ -36,6 +38,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import HorizontalCarousel from '@/components/shared/HorizontalCarousel.vue';
 import Logger from '@/utils/logger';
 
 // Props
@@ -48,7 +51,7 @@ const props = defineProps({
       return (
         config.title &&
         Array.isArray(config.inputs) &&
-        config.itemComponent &&
+        config.carouselItemComponent &&
         config.itemProp &&
         typeof config.searchHandler === 'function' &&
         typeof config.transformResult === 'function' &&
@@ -80,16 +83,29 @@ const handleSearch = async (input, index) => {
   }
   
   try {
-    Logger.debug(`[GenericSearch] Searching with query: ${query}, type: ${input.type}`);
+    // Detectar automáticamente el tipo de búsqueda si hay una función de detección
+    let searchType = input.type;
+    let shouldNavigateDirect = false;
     
-    // Si el tipo es 'direct' (como ISBN), navega directamente sin búsqueda
-    if (input.type === 'direct') {
-      props.config.navigateToDetail(router, { [input.idField]: query });
+    if (props.config.detectSearchType) {
+      const detection = props.config.detectSearchType(query);
+      searchType = detection.type;
+      shouldNavigateDirect = detection.isDirect;
+      
+      Logger.debug(`[GenericSearch] Auto-detected search type: ${searchType}, direct: ${shouldNavigateDirect}`);
+    }
+    
+    Logger.debug(`[GenericSearch] Searching with query: ${query}, type: ${searchType}`);
+    
+    // Si es navegación directa (ISBN o IMDb ID válido), navegar sin búsqueda
+    if (shouldNavigateDirect || input.type === 'direct') {
+      const navData = input.idField ? { [input.idField]: query } : { id: query };
+      props.config.navigateToDetail(router, navData);
       return;
     }
     
     // Para búsquedas normales, usar el handler de búsqueda
-    const searchResults = await props.config.searchHandler(query, input.type);
+    const searchResults = await props.config.searchHandler(query, searchType);
     
     if (!searchResults || searchResults.length === 0) {
       errorMessage.value = 'No se encontraron resultados.';
@@ -135,8 +151,7 @@ onMounted(async () => {
   align-items: center;
   padding: 30px;
   width: 100%;
-  max-width: 600px;
-  margin: auto;
+  max-width: 100%;
 }
 
 .title {
@@ -149,6 +164,7 @@ onMounted(async () => {
 .input-group {
   display: flex;
   width: 100%;
+  max-width: 600px;
   margin-bottom: 30px;
 }
 
@@ -208,13 +224,19 @@ onMounted(async () => {
   background-color: var(--color-error-bg);
 }
 
-.results-list {
+.results-section {
   width: 100%;
-  max-width: 600px;
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  max-width: 100%;
+  margin-top: 30px;
+}
+
+.results-title {
+  font-size: 1.3rem;
+  color: var(--color-heading);
+  margin-bottom: 15px;
+  font-weight: 600;
+  text-align: left;
+  padding: 0 20px;
 }
 
 /* Responsive design */
@@ -235,6 +257,11 @@ onMounted(async () => {
   
   .button-text {
     display: none;
+  }
+  
+  .results-title {
+    font-size: 1.1rem;
+    padding: 0 10px;
   }
 }
 </style>

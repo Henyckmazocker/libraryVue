@@ -4,21 +4,28 @@ declare(strict_types=1);
 
 namespace App\Domain\UseCases\Books;
 
-use App\Domain\Model\Book;
-use App\Domain\Repository\Book\BookRepositoryInterface;
+use App\Domain\Model\Edition;
+use App\Domain\Model\Work;
+use App\Domain\Model\UserBookEdition;
+use App\Domain\Repository\Book\EditionRepositoryInterface;
+use App\Domain\Repository\Book\WorkRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
-use App\Domain\Repository\Book\UserBookRepositoryInterface;
+use App\Domain\Repository\Book\UserBookEditionRepositoryInterface;
+use App\Domain\Service\BookImportService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\AddBookCommand;
 use Psr\Log\LoggerInterface;
 use InvalidArgumentException;
+use RuntimeException;
 
 class AddBookUseCase extends AbstractUseCase
 {
     public function __construct(
-        private readonly BookRepositoryInterface $bookRepository,
+        private readonly BookImportService $bookImportService,
+        private readonly EditionRepositoryInterface $editionRepository,
+        private readonly WorkRepositoryInterface $workRepository,
         private readonly UserRepositoryInterface $userRepository,
-        private readonly UserBookRepositoryInterface $userBookRepository,
+        private readonly UserBookEditionRepositoryInterface $userBookEditionRepository,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -26,8 +33,11 @@ class AddBookUseCase extends AbstractUseCase
 
     /**
      * Execute with AddBookCommand
+     * Imports book from OpenLibrary and adds to user's library
+     *
+     * @return array Legacy format for frontend compatibility
      */
-    protected function doExecute($command): Book
+    protected function doExecute($command): array
     {
         // Validate command is AddBookCommand
         if (!$command instanceof AddBookCommand) {
@@ -40,40 +50,128 @@ class AddBookUseCase extends AbstractUseCase
             throw new InvalidArgumentException("User with ID {$command->userId} not found");
         }
 
-        // Check if user already has this book
-        if ($this->userBookRepository->hasBook($command->userId, $command->isbn->toString())) {
-            throw new InvalidArgumentException('You already have this book in your library.');
-        }
+        // Check if edition exists by ISBN
+        $isbn = $command->isbn->toString();
+        $edition = $this->editionRepository->findByIsbn($isbn);
+        $work = null;
 
-        // Check if book exists in the system
-        $existingBook = $this->bookRepository->findById($command->isbn->toString());
-        
-        if (!$existingBook) {
-            // Book doesn't exist, create it first
-            // Get allowed statuses from repository for validation
-            $bookData = $command->toArray();
-            $bookData['allowedStatuses'] = $this->bookRepository->fetchAllowedStatuses();
+        if ($edition) {
+            // Edition already exists in database
+            $this->logger->info('Edition found in database', ['edition_id' => $edition->getEditionId()]);
             
-            $book = Book::fromArray($bookData);
-            $this->bookRepository->save($book);
+            // Check if user already has this edition
+            if ($this->userBookEditionRepository->hasEdition($command->userId, $edition->getEditionId())) {
+                throw new InvalidArgumentException('You already have this book in your library.');
+            }
+            
+            // Get the associated work
+            $work = $this->workRepository->findById($edition->getWorkId());
         } else {
-            // Book exists, use existing book data
-            $book = $existingBook;
+            // Edition not found - use BookImportService to handle import/creation
+            $this->logger->info('Edition not found, using BookImportService', ['isbn' => $isbn]);
+            
+            try {
+                // BookImportService handles:
+                // 1. Checking for existing Work/Edition by OpenLibrary keys
+                // 2. Avoiding duplicates by ISBN
+                // 3. Proper data mapping from APIs
+                // 4. Transactional saves to database
+                $result = $this->bookImportService->importFromOpenLibrary([
+                    'title' => $command->title,
+                    'authors' => !empty($command->author) ? [['name' => $command->author]] : [],
+                    'isbn_13' => strlen($isbn) === 13 ? [$isbn] : [],
+                    'isbn_10' => strlen($isbn) === 10 ? [$isbn] : [],
+                    'publishers' => !empty($command->publisher) ? [$command->publisher] : [],
+                    'publish_date' => $command->publicationYear ? (string)$command->publicationYear : null,
+                    'number_of_pages' => $command->pages,
+                    'description' => $command->description,
+                    'covers' => []
+                ]);
+                
+                $work = $result['work'];
+                $edition = $result['edition'];
+                
+                $this->logger->info('BookImportService created work and edition', [
+                    'work_id' => $work->getWorkId(),
+                    'edition_id' => $edition->getEditionId()
+                ]);
+                
+            } catch (\Exception $e) {
+                // If BookImportService fails, fall back to manual creation
+                $this->logger->warning('BookImportService failed, falling back to manual creation', [
+                    'error' => $e->getMessage()
+                ]);
+                
+                // Create or find work manually
+                $authors = !empty($command->author) ? [$command->author] : [];
+                
+                if (!empty($command->title) && !empty($authors)) {
+                    $work = $this->workRepository->findByTitleAndAuthors($command->title, $authors);
+                }
+                
+                if (!$work) {
+                    $syntheticWorkKey = 'synthetic_' . md5($command->title . implode('', $authors));
+                    
+                    $work = Work::fromArray([
+                        'title' => $command->title,
+                        'authors' => $authors,
+                        'subjects' => [],
+                        'first_publish_year' => $command->publicationYear,
+                        'synthetic_work_key' => $syntheticWorkKey
+                    ]);
+                    
+                    $work->markAsSynthetic($syntheticWorkKey);
+                    $work = $this->workRepository->save($work);
+                }
+
+                // Create edition manually
+                $syntheticEditionKey = 'synthetic_' . $isbn;
+                
+                $edition = Edition::fromArray([
+                    'work_id' => $work->getWorkId(),
+                    'openlibrary_edition_key' => $syntheticEditionKey,
+                    'isbn_13' => strlen($isbn) === 13 ? $isbn : null,
+                    'isbn_10' => strlen($isbn) === 10 ? $isbn : null,
+                    'title' => $command->title,
+                    'description' => $command->description,
+                    'publisher' => $command->publisher,
+                    'publish_year' => $command->publicationYear,
+                    'pages' => $command->pages,
+                    'languages' => $command->language ? [$command->language] : [],
+                    'cover_url_large' => $command->coverUrl
+                ]);
+                
+                $edition = $this->editionRepository->save($edition);
+            }
         }
 
-        // Add the book to user's library with their specific statuses
-        $this->userBookRepository->add($command->userId, $command->isbn->toString(), $command->statuses);
-        
-        // Update user's personal rating if provided
+        // Add edition to user's library
+        $userBookEdition = $this->userBookEditionRepository->add(
+            $command->userId,
+            $edition->getEditionId(),
+            $command->statuses ?? []
+        );
+
+        // Update user's work rating if provided
         if ($command->userRating !== null) {
-            $this->userBookRepository->updateRating(
-                $command->userId, 
-                $command->isbn->toString(), 
-                $command->userRating->toFloat()
+            $this->userBookEditionRepository->updateRating(
+                $command->userId,
+                $edition->getEditionId(),
+                $command->userRating->toFloat(), // work_rating
+                null // edition_rating not provided in this context
             );
         }
-        
-        return $book;
+
+        // Ensure we have the work (should always be set at this point)
+        if (!$work) {
+            $work = $this->workRepository->findById($edition->getWorkId());
+            if (!$work) {
+                throw new RuntimeException("Work not found for edition");
+            }
+        }
+
+        // Return in legacy format for frontend compatibility
+        return $edition->toLegacyFormat($work);
     }
 
     protected function getLogContext(): string

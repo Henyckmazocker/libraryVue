@@ -47,6 +47,9 @@ export const useBooksStore = defineStore('books', {
     getBookByIsbn: (state) => (isbn) => 
       state.books.find(book => book.isbn === isbn),
     
+    isBookInLibrary: (state) => (isbn) => 
+      state.books.some(book => book.isbn === isbn),
+    
     bookCountByStatus: (state) => {
       const counts = {}
       state.books.forEach(book => {

@@ -111,4 +111,13 @@ interface UserBookRepositoryInterface
      * @return int Books count for status
      */
     public function countByStatus(int $userId, string $statusName): int;
+
+    /**
+     * Get trending books based on user activity and ratings
+     * 
+     * @param int $limit Maximum number of results
+     * @param int $daysWindow Time window in days to consider for trending
+     * @return array Array of book data with trending scores
+     */
+    public function getTrendingBooks(int $limit = 20, int $daysWindow = 90, ?int $userId = null): array;
 }

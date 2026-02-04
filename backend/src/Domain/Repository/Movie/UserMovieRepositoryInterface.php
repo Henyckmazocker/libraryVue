@@ -111,4 +111,13 @@ interface UserMovieRepositoryInterface
      * @return array Array with status => count pairs
      */
     public function countByStatus(int $userId): array;
+
+    /**
+     * Get trending movies based on user activity and ratings
+     * 
+     * @param int $limit Maximum number of results
+     * @param int $daysWindow Time window in days to consider for trending
+     * @return array Array of movie data with trending scores
+     */
+    public function getTrendingMovies(int $limit = 20, int $daysWindow = 90, ?int $userId = null): array;
 }

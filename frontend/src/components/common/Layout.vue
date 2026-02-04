@@ -71,6 +71,8 @@ onMounted(async () => {
   min-height: 100vh;
   background: var(--color-background);
   color: var(--color-text);
+  display: flex;
+  flex-direction: column;
 }
 
 .app-layout__main {
@@ -80,6 +82,7 @@ onMounted(async () => {
   min-height: calc(100vh - 70px);
   position: relative;
   z-index: 10; /* Menor z-index que el sidebar */
+  flex: 1;
 }
 
 .app-layout__main--sidebar-collapsed {
@@ -90,6 +93,7 @@ onMounted(async () => {
   padding: 20px;
   max-width: 1600px; /* Aumentado de 1200px a 1600px para consistencia */
   margin: 0 auto;
+  width: 100%;
 }
 
 /* Responsive */

@@ -46,15 +46,30 @@ final class MySqlBookTagRepository implements BookTagRepositoryInterface
     public function getByBook(int $userId, string $isbn): array
     {
         try {
+            // First find the edition_id from ISBN
+            $stmtEdition = $this->db->prepare("
+                SELECT edition_id FROM book_editions 
+                WHERE isbn_13 = :isbn OR isbn_10 = :isbn2 
+                LIMIT 1
+            ");
+            $stmtEdition->execute([':isbn' => $isbn, ':isbn2' => $isbn]);
+            $edition = $stmtEdition->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$edition) {
+                return [];
+            }
+            
+            $editionId = (int) $edition['edition_id'];
+            
             $stmt = $this->db->prepare("
                 SELECT ubt.id, ubt.name, ubt.color 
                 FROM user_book_tags ubt
                 INNER JOIN user_book_tag_assignments ubta 
                     ON ubt.id = ubta.tag_id
-                WHERE ubt.user_id = :userId AND ubta.book_isbn = :isbn
+                WHERE ubt.user_id = :userId AND ubta.edition_id = :editionId
                 ORDER BY ubt.name ASC
             ");
-            $stmt->execute([':userId' => $userId, ':isbn' => $isbn]);
+            $stmt->execute([':userId' => $userId, ':editionId' => $editionId]);
 
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -106,13 +121,28 @@ final class MySqlBookTagRepository implements BookTagRepositoryInterface
     public function assign(int $userId, string $isbn, int $tagId): void
     {
         try {
+            // First find the edition_id from ISBN
+            $stmtEdition = $this->db->prepare("
+                SELECT edition_id FROM book_editions 
+                WHERE isbn_13 = :isbn OR isbn_10 = :isbn2 
+                LIMIT 1
+            ");
+            $stmtEdition->execute([':isbn' => $isbn, ':isbn2' => $isbn]);
+            $edition = $stmtEdition->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$edition) {
+                throw new RuntimeException("Edition not found for ISBN: {$isbn}");
+            }
+            
+            $editionId = (int) $edition['edition_id'];
+            
             $stmt = $this->db->prepare("
-                INSERT INTO user_book_tag_assignments (user_id, book_isbn, tag_id) 
-                VALUES (:userId, :isbn, :tagId)
+                INSERT INTO user_book_tag_assignments (user_id, edition_id, tag_id) 
+                VALUES (:userId, :editionId, :tagId)
             ");
             $stmt->execute([
                 ':userId' => $userId,
-                ':isbn' => $isbn,
+                ':editionId' => $editionId,
                 ':tagId' => $tagId
             ]);
 
@@ -130,11 +160,28 @@ final class MySqlBookTagRepository implements BookTagRepositoryInterface
     public function removeAll(int $userId, string $isbn): void
     {
         try {
+            // First find the edition_id from ISBN
+            $stmtEdition = $this->db->prepare("
+                SELECT edition_id FROM book_editions 
+                WHERE isbn_13 = :isbn OR isbn_10 = :isbn2 
+                LIMIT 1
+            ");
+            $stmtEdition->execute([':isbn' => $isbn, ':isbn2' => $isbn]);
+            $edition = $stmtEdition->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$edition) {
+                // If no edition found, nothing to remove
+                $this->logInfo('No edition found for ISBN, nothing to remove', ['userId' => $userId, 'isbn' => $isbn]);
+                return;
+            }
+            
+            $editionId = (int) $edition['edition_id'];
+            
             $stmt = $this->db->prepare("
                 DELETE FROM user_book_tag_assignments 
-                WHERE user_id = :userId AND book_isbn = :isbn
+                WHERE user_id = :userId AND edition_id = :editionId
             ");
-            $stmt->execute([':userId' => $userId, ':isbn' => $isbn]);
+            $stmt->execute([':userId' => $userId, ':editionId' => $editionId]);
 
             $this->logInfo('All tags removed from book', ['userId' => $userId, 'isbn' => $isbn]);
 

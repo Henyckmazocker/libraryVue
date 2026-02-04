@@ -41,6 +41,7 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - LOG_PATH=/var/www/html/storage/logs
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_BOOKS_API_KEY=${GOOGLE_BOOKS_API_KEY}
     command: >
       bash -c "cd /var/www/html && 
                cp .env.docker-development .env &&

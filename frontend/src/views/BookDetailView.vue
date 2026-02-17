@@ -671,25 +671,42 @@ const formatDescription = (description) => {
 const loadBookData = async () => {
   Logger.debug('[BookDetailView] Loading book data');
   
-  // Cargar libros y estados permitidos
-  await Promise.all([
-    booksComposable.books.value.length === 0 ? booksComposable.fetchBooks() : Promise.resolve(),
-    allowedStatuses.value.length === 0 ? booksComposable.fetchAllowedStatuses() : Promise.resolve()
-  ]);
+  isLoading.value = true;
+  
+  // Solo cargar estados permitidos (es rápido y necesario)
+  if (allowedStatuses.value.length === 0) {
+    await booksComposable.fetchAllowedStatuses();
+  }
 
-  Logger.debug('[BookDetailView] After loading:', {
-    totalBooksInStore: booksComposable.books.value.length,
+  Logger.debug('[BookDetailView] Allowed statuses loaded:', {
     allowedStatusesCount: allowedStatuses.value.length,
     allowedStatuses: allowedStatuses.value
   });
 
-  // Si hay datos en el state del router, usarlos
+  // Si hay datos en el state del router, usarlos directamente (más rápido)
   if (route.state && route.state.book) {
     Logger.debug('[BookDetailView] Using book data from router state');
     book.value = route.state.book;
+    
+    // Solo buscar el libro en la biblioteca si no está en el state
+    // Esto evita cargar TODA la biblioteca
+    if (booksComposable.books.value.length > 0) {
+      const existing = booksComposable.books.value.find(b => b.isbn === route.state.book.isbn);
+      if (existing) {
+        // Mezclar datos del libro existente
+        book.value = {
+          ...book.value,
+          user_rating: existing.user_rating,
+          userStatuses: existing.userStatuses || [],
+          currentPage: existing.currentPage,
+          totalPages: existing.totalPages || book.value.pages,
+        };
+      }
+    }
+    
     isLoading.value = false;
   } else {
-    // Si no, buscar el libro por ISBN
+    // Si no hay state, buscar el libro por ISBN
     await fetchBookDetails(route.params.isbn);
   }
   

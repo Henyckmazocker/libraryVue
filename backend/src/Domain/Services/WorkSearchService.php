@@ -331,7 +331,9 @@ class WorkSearchService
         $offset = ($page - 1) * $limit;
 
         // Get editions from OpenLibrary
-        $result = $this->openLibraryService->getWorkEditions($workKey, $limit * 3, 0);
+        // Fetch 1.5x more to allow for filtering while minimizing API calls
+        $fetchLimit = (int)ceil($limit * 1.5);
+        $result = $this->openLibraryService->getWorkEditions($workKey, $fetchLimit, 0);
         $allEditions = $result['editions'] ?? [];
 
         // Apply filters

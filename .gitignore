@@ -1,41 +1,166 @@
-.DS_Store
-node_modules
-/dist
+# ============================================================================
+# LibraryVue - Git Ignore Configuration
+# ============================================================================
 
-# Composer
+# ----------------------------------------------------------------------------
+# System Files
+# ----------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# ----------------------------------------------------------------------------
+# Dependencies
+# ----------------------------------------------------------------------------
+node_modules/
+/dist
 /vendor/
 /src/vendor/
 composer.lock
 
-# Environment files
+# ----------------------------------------------------------------------------
+# Environment Files - CRITICAL: Never commit these!
+# ----------------------------------------------------------------------------
 .env
+.env.*
+!.env.example
+!.env.*.example
 .env.local
-.env.*.local
 .env.production
 .env.development
 .env.prod
+.env.dev
 .env.docker
-backend/.env.docker-production
-backend/.env.docker-development
+.env.docker-development
+.env.docker-production
+backend/.env
+backend/.env.*
+!backend/.env.example
+!backend/.env.*.example
 backend/.env.docker
+backend/.env.docker-development
+backend/.env.docker-production
 
-# Log files
+# ----------------------------------------------------------------------------
+# Credentials & Secrets - CRITICAL: Never commit these!
+# ----------------------------------------------------------------------------
+*_secret*
+*_password*
+*_credentials*
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+*.gpg
+secrets/
+credentials/
+
+# ----------------------------------------------------------------------------
+# Logs
+# ----------------------------------------------------------------------------
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+*.log
+logs/
+*.log.*
 
-# Editor directories and files
-.idea
-.vscode
+# ----------------------------------------------------------------------------
+# Backend Storage (User Data & Generated Files)
+# ----------------------------------------------------------------------------
+backend/storage/logs/
+backend/storage/cache/
+backend/storage/sessions/
+backend/storage/uploads/
+backend/storage/*.json
+!backend/storage/.gitkeep
+
+# ----------------------------------------------------------------------------
+# Database Files
+# ----------------------------------------------------------------------------
+*.sqlite
+*.sqlite3
+*.db
+database/*.sqlite
+database/*.db
+*.sql.gz
+*.dump
+
+# ----------------------------------------------------------------------------
+# Editor & IDE Files
+# ----------------------------------------------------------------------------
+.idea/
+.vscode/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+.project
+.settings/
+.classpath
+*.iml
+.history/
 
-# Backend storage files (logs, cache, sessions, uploads)
-backend/storage/logs/
-backend/storage/cache/
-backend/storage/sessions/
-backend/storage/uploads/
+# ----------------------------------------------------------------------------
+# Build & Distribution
+# ----------------------------------------------------------------------------
+/dist/
+/build/
+/.nuxt/
+/.output/
+/.cache/
+
+# ----------------------------------------------------------------------------
+# Testing
+# ----------------------------------------------------------------------------
+coverage/
+.nyc_output/
+*.lcov
+.phpunit.result.cache
+
+# ----------------------------------------------------------------------------
+# Docker (optional - uncomment if needed)
+# ----------------------------------------------------------------------------
+# docker-compose.override.yml
+# .docker/
+
+# ----------------------------------------------------------------------------
+# OS Generated Files
+# ----------------------------------------------------------------------------
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ----------------------------------------------------------------------------
+# Temporary Files
+# ----------------------------------------------------------------------------
+*.tmp
+*.temp
+*.bak
+*.backup
+*~
+
+# ============================================================================
+# SECURITY REMINDER
+# ============================================================================
+# Always review staged files before committing:
+#   git status
+#   git diff --cached
+# 
+# Never commit:
+#   - .env files (contain credentials)
+#   - Database passwords
+#   - API keys and tokens
+#   - Private keys and certificates
+#   - User uploaded files
+#   - Session data
+# ============================================================================

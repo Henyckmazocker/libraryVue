@@ -18,9 +18,7 @@ export function useGoogleAuth() {
   // Google OAuth configuration
   const GOOGLE_CLIENT_ID = process.env.VUE_APP_GOOGLE_CLIENT_ID;
   
-  if (!GOOGLE_CLIENT_ID) {
-    console.warn('Google Client ID not found. Google authentication will be disabled.');
-  }
+  // Silently disable Google auth if client ID not configured
 
   /**
    * Verifica si Google SDK está disponible

@@ -56,8 +56,7 @@ const handleSidebarToggle = (collapsed) => {
 };
 
 const handleLogout = () => {
-  // Aquí podríamos añadir lógica adicional si es necesario
-  console.log('User logged out from layout');
+  // Additional logout logic can be added here if needed
 };
 
 // Initialize auth on mount

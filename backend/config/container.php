@@ -86,11 +86,27 @@ return function (): ContainerInterface {
         // DOMAIN SERVICES
         // ===========================
         
-        \App\Domain\Service\BookImportService::class => DI\autowire(),
-        \App\Domain\Services\OpenLibraryService::class => DI\autowire(),
-        \App\Domain\Services\GoogleBooksService::class => DI\autowire(),
-        \App\Domain\Services\WorkSearchService::class => DI\autowire(),
+        \App\Infrastructure\Cache\CacheService::class => function(ContainerInterface $c) {
+            $cacheDir = __DIR__ . '/../storage/cache';
+            return new \App\Infrastructure\Cache\CacheService($cacheDir, $c->get(LoggerInterface::class));
+        },
         
+        \App\Domain\Service\BookImportService::class => DI\autowire(),
+        
+        \App\Domain\Services\OpenLibraryService::class => DI\autowire()
+            ->constructorParameter('cache', DI\get(\App\Infrastructure\Cache\CacheService::class))
+            ->constructorParameter('logger', DI\get(LoggerInterface::class)),
+            
+        \App\Domain\Services\GoogleBooksService::class => DI\autowire()
+            ->constructorParameter('cache', DI\get(\App\Infrastructure\Cache\CacheService::class))
+            ->constructorParameter('logger', DI\get(LoggerInterface::class)),
+            
+        \App\Domain\Services\WorkSearchService::class => DI\autowire()
+            ->constructorParameter('openLibraryService', DI\get(\App\Domain\Services\OpenLibraryService::class))
+            ->constructorParameter('googleBooksService', DI\get(\App\Domain\Services\GoogleBooksService::class))
+            ->constructorParameter('editionRepository', DI\get(\App\Domain\Repository\Book\EditionRepositoryInterface::class))
+            ->constructorParameter('logger', DI\get(LoggerInterface::class)),
+
         // ===========================
         // USE CASES - Auth
         // ===========================

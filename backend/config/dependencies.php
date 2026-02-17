@@ -6,6 +6,8 @@ use Psr\Container\ContainerInterface;
 use App\Infrastructure\Database\DatabaseConnector;
 use App\Infrastructure\Session\SessionManager;
 use App\Infrastructure\Middleware\AuthMiddleware;
+use App\Infrastructure\Auth\GoogleOAuthVerifier;
+use App\Infrastructure\Cache\CacheService;
 use App\Infrastructure\Persistence\User\MySqlUserRepository;
 use App\Infrastructure\Persistence\Movie\MySqlMovieRepository;
 use App\Infrastructure\Persistence\Movie\MySqlUserMovieRepository;
@@ -53,6 +55,10 @@ return [
     }),
 
     DatabaseConnector::class => DI\autowire(),
+
+    // Authentication Services
+    GoogleOAuthVerifier::class => DI\autowire()
+        ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
 
     // Repositories - User Module
     UserRepositoryInterface::class => DI\autowire(MySqlUserRepository::class),
@@ -128,11 +134,18 @@ return [
         ->constructorParameter('mapper', DI\get(UserBookEditionDataMapper::class))
         ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
     
+    // Infrastructure - Cache
+    CacheService::class => DI\autowire()
+        ->constructorParameter('cacheDir', __DIR__ . '/../storage/cache')
+        ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
+    
     // Services - External APIs
     App\Domain\Services\OpenLibraryService::class => DI\autowire()
+        ->constructorParameter('cache', DI\get(CacheService::class))
         ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
     
     App\Domain\Services\GoogleBooksService::class => DI\autowire()
+        ->constructorParameter('cache', DI\get(CacheService::class))
         ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),
     
     App\Domain\Services\WorkSearchService::class => DI\autowire()
@@ -284,7 +297,8 @@ return [
     App\Controllers\AuthController::class => DI\autowire()
         ->constructorParameter('loginUserUseCase', DI\get(App\Domain\UseCases\Auth\LoginUserUseCase::class))
         ->constructorParameter('sessionManager', DI\get(SessionManager::class))
-        ->constructorParameter('authMiddleware', DI\get(AuthMiddleware::class)),
+        ->constructorParameter('authMiddleware', DI\get(AuthMiddleware::class))
+        ->constructorParameter('googleVerifier', DI\get(GoogleOAuthVerifier::class)),
 
     App\Controllers\BookController::class => DI\autowire()
         ->constructorParameter('addBookUseCase', DI\get(App\Domain\UseCases\Books\AddBookUseCase::class))

@@ -54,6 +54,7 @@
 <script setup>
 import { computed, ref, watch, defineExpose } from 'vue';
 import { defineProps, defineEmits } from 'vue';
+import Logger from '@/utils/logger';
 
 const props = defineProps({
   currentPage: {
@@ -135,7 +136,7 @@ const saveProgress = async () => {
   } catch (error) {
     // En caso de error, restaurar el valor anterior
     localCurrentPage.value = props.currentPage || 0;
-    console.error('Error updating progress:', error);
+    Logger.error('Error updating reading progress:', error);
   } finally {
     saving.value = false;
   }

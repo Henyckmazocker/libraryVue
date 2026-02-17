@@ -7,6 +7,7 @@ namespace App\Domain\Services;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Psr\Log\LoggerInterface;
+use App\Infrastructure\Cache\CacheService;
 
 /**
  * Service for interacting with OpenLibrary API
@@ -16,10 +17,12 @@ class OpenLibraryService
 {
     private Client $client;
     private LoggerInterface $logger;
+    private CacheService $cache;
     private const BASE_URL = 'https://openlibrary.org';
     private const COVERS_URL = 'https://covers.openlibrary.org/b';
+    private const CACHE_TTL_EDITIONS = 86400; // 24 hours
 
-    public function __construct(LoggerInterface $logger)
+    public function __construct(CacheService $cache, LoggerInterface $logger)
     {
         $this->client = new Client([
             'base_uri' => self::BASE_URL,
@@ -30,6 +33,7 @@ class OpenLibraryService
                 'Accept' => 'application/json'
             ]
         ]);
+        $this->cache = $cache;
         $this->logger = $logger;
     }
 
@@ -51,7 +55,7 @@ class OpenLibraryService
 
             $response = $this->client->get('/search.json', [
                 'query' => [
-                    'title' => $query, // Search specifically in title field for better relevance
+                    'q' => $query, // Use general search 'q' instead of 'title' for better results
                     'limit' => $fetchLimit,
                     'fields' => 'key,title,author_name,first_publish_year,edition_count,cover_i,subject,language,isbn,has_fulltext,ratings_average'
                 ]
@@ -121,7 +125,21 @@ class OpenLibraryService
         try {
             $workKey = $this->normalizeWorkKey($workKey);
             
-            $this->logger->info("OpenLibrary: Getting work editions", [
+            // Generate cache key
+            $cacheKey = "work_editions_{$workKey}_limit{$limit}_offset{$offset}";
+            
+            // Try to get from cache
+            $cached = $this->cache->get($cacheKey, 'openlibrary');
+            if ($cached !== null) {
+                $this->logger->info("OpenLibrary: Returning cached work editions", [
+                    'work_key' => $workKey,
+                    'limit' => $limit,
+                    'offset' => $offset
+                ]);
+                return $cached;
+            }
+            
+            $this->logger->info("OpenLibrary: Fetching work editions from API", [
                 'work_key' => $workKey,
                 'limit' => $limit,
                 'offset' => $offset
@@ -145,12 +163,17 @@ class OpenLibraryService
                 }
             }
 
-            return [
+            $result = [
                 'editions' => $editions,
                 'total' => $data['size'] ?? count($editions),
                 'offset' => $offset,
                 'limit' => $limit
             ];
+            
+            // Store in cache for 24 hours
+            $this->cache->set($cacheKey, $result, self::CACHE_TTL_EDITIONS, 'openlibrary');
+
+            return $result;
 
         } catch (GuzzleException $e) {
             $this->logger->error("OpenLibrary get editions failed", [

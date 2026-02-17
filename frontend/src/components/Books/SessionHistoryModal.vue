@@ -140,6 +140,7 @@
 <script setup>
 import { ref, computed, watch, defineProps, defineEmits, onMounted } from 'vue'
 import { useReadingSessions } from '@/composables/useReadingSessions'
+import Logger from '@/utils/logger'
 import Dialog from 'primevue/dialog'
 import Timeline from 'primevue/timeline'
 import Card from 'primevue/card'
@@ -201,7 +202,7 @@ const loadSessionHistory = async () => {
       calculateStatistics()
     }
   } catch (error) {
-    console.error('Error al cargar historial de sesiones:', error)
+    Logger.error('Error loading session history:', error)
   } finally {
     isLoading.value = false
   }

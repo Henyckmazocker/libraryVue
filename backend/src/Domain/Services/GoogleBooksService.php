@@ -7,6 +7,7 @@ namespace App\Domain\Services;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Psr\Log\LoggerInterface;
+use App\Infrastructure\Cache\CacheService;
 
 /**
  * Service for interacting with Google Books API
@@ -16,10 +17,12 @@ class GoogleBooksService
 {
     private Client $client;
     private LoggerInterface $logger;
+    private CacheService $cache;
     private ?string $apiKey;
     private const BASE_URL = 'https://www.googleapis.com/books/v1';
+    private const CACHE_TTL_ISBN = 604800; // 7 days
 
-    public function __construct(LoggerInterface $logger)
+    public function __construct(CacheService $cache, LoggerInterface $logger)
     {
         // Get API key from environment
         $this->apiKey = $_ENV['GOOGLE_BOOKS_API_KEY'] ?? null;
@@ -32,6 +35,7 @@ class GoogleBooksService
                 'Accept' => 'application/json'
             ]
         ]);
+        $this->cache = $cache;
         $this->logger = $logger;
         
         if (empty($this->apiKey)) {
@@ -59,8 +63,64 @@ class GoogleBooksService
                 'maxResults' => $maxResults
             ]);
 
+            // Strategy: Try exact title match first, fallback to broad search
+            $exactResults = $this->performSearch("intitle:\"{$query}\"", $maxResults, $filters);
+            
+            // If exact search found enough results, use only them
+            if (count($exactResults) >= $maxResults) {
+                $this->logger->info("GoogleBooks: Using exact match results", ['count' => count($exactResults)]);
+                return $exactResults;
+            }
+            
+            // Otherwise, keep exact results and complement with broad search
+            $this->logger->info("GoogleBooks: Complementing exact results with broad search", [
+                'exact_count' => count($exactResults)
+            ]);
+            
+            $remaining = $maxResults - count($exactResults);
+            $broadResults = $this->performSearch("intitle:{$query}", $remaining, $filters);
+            
+            // Merge results, exact matches first
+            $merged = $exactResults;
+            $seenIds = [];
+            foreach ($exactResults as $result) {
+                $id = is_array($result) ? ($result['id'] ?? uniqid()) : uniqid();
+                $seenIds[$id] = true;
+            }
+            
+            foreach ($broadResults as $result) {
+                $id = is_array($result) ? ($result['id'] ?? uniqid()) : uniqid();
+                if (!isset($seenIds[$id])) {
+                    $merged[] = $result;
+                    $seenIds[$id] = true;
+                }
+            }
+            
+            $this->logger->info("GoogleBooks: Returning merged results", [
+                'exact' => count($exactResults),
+                'broad' => count($broadResults),
+                'merged' => count($merged)
+            ]);
+            
+            return $merged;
+
+        } catch (GuzzleException $e) {
+            $this->logger->error("GoogleBooks search failed", [
+                'query' => $query,
+                'error' => $e->getMessage()
+            ]);
+            return [];
+        }
+    }
+    
+    /**
+     * Perform actual search against Google Books API
+     */
+    private function performSearch(string $queryString, int $maxResults, array $filters): array
+    {
+        try {
             $queryParams = [
-                'q' => "intitle:{$query}",
+                'q' => $queryString,
                 'maxResults' => min($maxResults, 40), // Google Books max is 40
                 'printType' => $filters['printType'] ?? 'books',
                 'orderBy' => $filters['orderBy'] ?? 'relevance',
@@ -83,7 +143,6 @@ class GoogleBooksService
 
             // Return raw items if requested
             if (!empty($filters['raw'])) {
-                $this->logger->info("GoogleBooks: Returning raw items", ['count' => count($items)]);
                 return $items;
             }
 
@@ -96,12 +155,11 @@ class GoogleBooksService
                 }
             }
 
-            $this->logger->info("GoogleBooks: Found books", ['count' => count($books)]);
             return $books;
 
         } catch (GuzzleException $e) {
-            $this->logger->error("GoogleBooks search failed", [
-                'query' => $query,
+            $this->logger->error("GoogleBooks performSearch failed", [
+                'query' => $queryString,
                 'error' => $e->getMessage()
             ]);
             return [];
@@ -145,7 +203,17 @@ class GoogleBooksService
     public function searchByISBN(string $isbn): ?array
     {
         try {
-            $this->logger->info("GoogleBooks: Searching by ISBN", [
+            // Generate cache key
+            $cacheKey = "isbn_{$isbn}";
+            
+            // Try to get from cache
+            $cached = $this->cache->get($cacheKey, 'googlebooks');
+            if ($cached !== null) {
+                $this->logger->info("GoogleBooks: Returning cached ISBN search", ['isbn' => $isbn]);
+                return $cached;
+            }
+            
+            $this->logger->info("GoogleBooks: Searching by ISBN from API", [
                 'isbn' => $isbn,
                 'has_api_key' => !empty($this->apiKey)
             ]);
@@ -168,10 +236,17 @@ class GoogleBooksService
             $items = $data['items'] ?? [];
 
             if (empty($items)) {
+                // Cache null result for shorter time (1 hour) to avoid repeated failed lookups
+                $this->cache->set($cacheKey, null, 3600, 'googlebooks');
                 return null;
             }
 
-            return $this->transformBook($items[0]);
+            $result = $this->transformBook($items[0]);
+            
+            // Store in cache for 7 days
+            $this->cache->set($cacheKey, $result, self::CACHE_TTL_ISBN, 'googlebooks');
+
+            return $result;
 
         } catch (GuzzleException $e) {
             $this->logger->warning("GoogleBooks search by ISBN failed", [

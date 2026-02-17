@@ -4,21 +4,25 @@ namespace App\Controllers;
 use App\Domain\UseCases\Auth\LoginUserUseCase;
 use App\Infrastructure\Session\SessionManager;
 use App\Infrastructure\Middleware\AuthMiddleware;
+use App\Infrastructure\Auth\GoogleOAuthVerifier;
 
 class AuthController extends BaseController implements Contracts\AuthControllerInterface
 {
     private LoginUserUseCase $loginUserUseCase;
     private SessionManager $sessionManager;
     private AuthMiddleware $authMiddleware;
+    private GoogleOAuthVerifier $googleVerifier;
 
     public function __construct(
         LoginUserUseCase $loginUserUseCase,
         SessionManager $sessionManager,
-        AuthMiddleware $authMiddleware
+        AuthMiddleware $authMiddleware,
+        GoogleOAuthVerifier $googleVerifier
     ) {
         $this->loginUserUseCase = $loginUserUseCase;
         $this->sessionManager = $sessionManager;
         $this->authMiddleware = $authMiddleware;
+        $this->googleVerifier = $googleVerifier;
     }
 
     public function login(array $inputData): array
@@ -27,23 +31,10 @@ class AuthController extends BaseController implements Contracts\AuthControllerI
             throw new \InvalidArgumentException('Google token is required for login.');
         }
         
-        // TEMPORAL: Simple verification of Google JWT token header
-        // This will be replaced with Google Client library verification later
-        $tokenParts = explode('.', $inputData['google_token']);
-        if (count($tokenParts) !== 3) {
-            throw new \InvalidArgumentException('Invalid Google token format.');
-        }
+        // Properly verify Google ID token with cryptographic signature validation
+        $payload = $this->googleVerifier->verifyToken($inputData['google_token']);
         
-        $header = json_decode(base64_decode($tokenParts[0]), true);
-        $payload = json_decode(base64_decode($tokenParts[1]), true);
-        
-        if (!$payload || !isset($payload['sub'], $payload['email'], $payload['name'])) {
-            throw new \InvalidArgumentException('Invalid Google token payload.');
-        }
-        
-        // For now, we'll accept the payload without cryptographic verification
-        // In production, you MUST verify the signature with Google's public keys
-        
+        // Create login command from verified payload
         $command = \App\Domain\DTO\Commands\LoginUserCommand::fromGoogleToken($payload);
         $user = $this->loginUserUseCase->execute($command);
         $this->sessionManager->login($user);

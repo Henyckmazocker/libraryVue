@@ -30,11 +30,18 @@ if (file_exists($envFile)) {
 
 // Set default environment variables
 $_ENV['APP_ENV'] = $_ENV['APP_ENV'] ?? 'development';
-$_ENV['DB_HOST'] = $_ENV['DB_HOST'] ?? 'mysql';
-$_ENV['DB_PORT'] = $_ENV['DB_PORT'] ?? '3306';
-$_ENV['DB_DATABASE'] = $_ENV['DB_DATABASE'] ?? 'library_db';
-$_ENV['DB_USERNAME'] = $_ENV['DB_USERNAME'] ?? 'library_user';
-$_ENV['DB_PASSWORD'] = $_ENV['DB_PASSWORD'] ?? 'library_pass';
+// Database configuration - MUST be set in environment
+if (!isset($_ENV['DB_HOST'])) $_ENV['DB_HOST'] = 'mysql';
+if (!isset($_ENV['DB_PORT'])) $_ENV['DB_PORT'] = '3306';
+if (!isset($_ENV['DB_DATABASE'])) {
+    throw new RuntimeException('DB_DATABASE must be set in environment variables');
+}
+if (!isset($_ENV['DB_USERNAME'])) {
+    throw new RuntimeException('DB_USERNAME must be set in environment variables');
+}
+if (!isset($_ENV['DB_PASSWORD'])) {
+    throw new RuntimeException('DB_PASSWORD must be set in environment variables');
+}
 
 // Error reporting configuration
 if ($_ENV['APP_ENV'] === 'development') {

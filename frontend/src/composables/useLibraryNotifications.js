@@ -36,8 +36,6 @@ export function useLibraryNotifications() {
    * @deprecated Usar useUIStore.addNotification() o showSuccess/showError/etc
    */
   const showMessage = (message, type = 'info', duration = 3000) => {
-    console.warn('[useLibraryNotifications] DEPRECATED: Use useUIStore directly')
-    
     const typeMapping = {
       'info': 'info',
       'success': 'success',
@@ -56,7 +54,6 @@ export function useLibraryNotifications() {
    * @deprecated Usar useUIStore.clearAllNotifications()
    */
   const clearMessage = () => {
-    console.warn('[useLibraryNotifications] DEPRECATED: Use useUIStore.clearAllNotifications()')
     uiStore.clearAllNotifications()
   }
   
@@ -64,7 +61,6 @@ export function useLibraryNotifications() {
    * @deprecated Usar useUIStore.showSuccess()
    */
   const showSuccess = (message) => {
-    console.warn('[useLibraryNotifications] DEPRECATED: Use useUIStore.showSuccess()')
     uiStore.showSuccess(message)
   }
   
@@ -72,7 +68,6 @@ export function useLibraryNotifications() {
    * @deprecated Usar useUIStore.showError()
    */
   const showError = (message) => {
-    console.warn('[useLibraryNotifications] DEPRECATED: Use useUIStore.showError()')
     uiStore.showError(message)
   }
   

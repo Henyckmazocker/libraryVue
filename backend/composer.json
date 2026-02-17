@@ -5,9 +5,10 @@
   "require": {
     "php": ">=7.4",
     "firebase/php-jwt": "^6.0",
-    "monolog/monolog": "^2.10",
+    "monolog/monolog": "^3.0",
     "php-di/php-di": "^7.0",
-    "guzzlehttp/guzzle": "^7.0"
+    "guzzlehttp/guzzle": "^7.0",
+    "google/apiclient": "^2.15"
   },
   "autoload": {
     "psr-4": {

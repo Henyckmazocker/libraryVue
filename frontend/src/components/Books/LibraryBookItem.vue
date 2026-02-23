@@ -52,9 +52,9 @@
         <div class="book-actions">
 
           <!-- Save button for new books -->
-          <button 
+          <button
             v-if="isNewBook"
-            @click="onSaveBook" 
+            @click="onSaveBook"
             :class="['action-button', 'save-button', `save-button--${saveButtonState}`]"
             :disabled="!canSave"
             title="Guardar libro"
@@ -64,11 +64,22 @@
             <i v-else-if="saveButtonState === 'error'" class="fas fa-times"></i>
             <span>Guardar</span>
           </button>
-          
-          <!-- Edit button -->
-          <button 
+
+          <!-- View History button -->
+          <button
             v-if="!isNewBook"
-            @click="onEditBook" 
+            @click="onShowHistory"
+            class="action-button history-button"
+            title="Ver historial de lectura"
+          >
+            <i class="fas fa-history"></i>
+            <span>Historial</span>
+          </button>
+
+          <!-- Edit button -->
+          <button
+            v-if="!isNewBook"
+            @click="onEditBook"
             :class="['action-button', 'edit-button', `edit-button--${editButtonState}`]"
             :disabled="editButtonState !== 'idle'"
             title="Editar libro"
@@ -78,12 +89,12 @@
             <i v-else-if="editButtonState === 'error'" class="fas fa-times"></i>
             <span>Editar</span>
           </button>
-          
+
           <!-- Delete button -->
-          <button 
+          <button
             v-if="!isNewBook && canDelete"
-            @click="onDeleteBook" 
-            class="action-button delete-button" 
+            @click="onDeleteBook"
+            class="action-button delete-button"
             title="Eliminar libro"
           >
             <i class="fas fa-trash"></i>
@@ -124,7 +135,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['delete-book', 'update-progress', 'edit-item', 'update-rating', 'update-statuses', 'save-book']);
+const emit = defineEmits(['delete-book', 'update-progress', 'edit-item', 'update-rating', 'update-statuses', 'save-book', 'show-session-history']);
 
 // Composables
 const { 
@@ -225,6 +236,11 @@ defineExpose({
 // Methods
 const onEditBook = () => {
   emit('edit-item', props.book, 'book');
+};
+
+const onShowHistory = () => {
+  Logger.debug('[LibraryBookItem] Showing session history for book:', props.book.isbn);
+  emit('show-session-history', { book: props.book });
 };
 
 const onDeleteBook = () => {
@@ -468,6 +484,18 @@ watch(() => props.book.userStatuses, (newStatuses, oldStatuses) => {
 .edit-button--error {
   background: linear-gradient(135deg, #dc3545, #ff6b6b) !important;
   animation: shake 0.5s ease;
+}
+
+.history-button {
+  background: linear-gradient(135deg, #6c757d, #5a6268);
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.history-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5a6268, #495057);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .delete-button {

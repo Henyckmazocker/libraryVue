@@ -13,6 +13,7 @@ use App\Domain\UseCases\Books\GetAllBooksUseCase;
 use App\Domain\UseCases\Books\GetBookAllowedStatusesUseCase;
 use App\Domain\UseCases\Books\EditUserBookUseCase;
 use App\Domain\UseCases\Books\GetTrendingBooksUseCase;
+use App\Domain\UseCases\Books\UpdateReadingProgressUseCase;
 use App\Domain\DTO\Commands\AddBookCommand;
 use App\Domain\DTO\Commands\DeleteBookCommand;
 use App\Domain\DTO\Commands\UpdateBookRatingCommand;
@@ -53,6 +54,7 @@ class BookController extends BaseController implements Contracts\BookControllerI
     private AuthMiddleware $authMiddleware;
     private EditUserBookUseCase $editUserBookUseCase;
     private GetTrendingBooksUseCase $getTrendingBooksUseCase;
+    private UpdateReadingProgressUseCase $updateReadingProgressUseCase;
     private WorkSearchService $workSearchService;
     private WorkRepositoryInterface $workRepository;
     private GoogleBooksService $googleBooksService;
@@ -73,6 +75,7 @@ class BookController extends BaseController implements Contracts\BookControllerI
         AuthMiddleware $authMiddleware,
         EditUserBookUseCase $editUserBookUseCase,
         GetTrendingBooksUseCase $getTrendingBooksUseCase,
+        UpdateReadingProgressUseCase $updateReadingProgressUseCase,
         WorkSearchService $workSearchService,
         WorkRepositoryInterface $workRepository,
         GoogleBooksService $googleBooksService,
@@ -92,6 +95,7 @@ class BookController extends BaseController implements Contracts\BookControllerI
         $this->authMiddleware = $authMiddleware;
         $this->editUserBookUseCase = $editUserBookUseCase;
         $this->getTrendingBooksUseCase = $getTrendingBooksUseCase;
+        $this->updateReadingProgressUseCase = $updateReadingProgressUseCase;
         $this->workSearchService = $workSearchService;
         $this->workRepository = $workRepository;
         $this->googleBooksService = $googleBooksService;
@@ -273,14 +277,14 @@ class BookController extends BaseController implements Contracts\BookControllerI
     public function updateReadingProgressWithSession(UpdateReadingProgressCommand $command): array
     {
         try {
-            $this->readingProgressRepository->updateWithSession($command->userId, $command->isbn, $command->currentPage, 'advance');
-            return $this->successResponse('Progreso actualizado con sesión', [
-                'userId' => $command->userId,
-                'isbn' => $command->isbn,
-                'currentPage' => $command->currentPage,
-                'sessionId' => $command->sessionId
-            ]);
+            $result = $this->updateReadingProgressUseCase->execute($command);
+            return $this->successResponse('Progreso actualizado correctamente', $result);
         } catch (\Exception $e) {
+            $this->logger->error('Error updating reading progress', [
+                'error' => $e->getMessage(),
+                'userId' => $command->userId,
+                'isbn' => $command->isbn
+            ]);
             return $this->errorResponse('Error al actualizar progreso: ' . $e->getMessage());
         }
     }
@@ -292,6 +296,21 @@ class BookController extends BaseController implements Contracts\BookControllerI
             return $this->successResponse('Historial de sesiones obtenido', $history);
         } catch (\Exception $e) {
             return $this->errorResponse('Error al obtener historial: ' . $e->getMessage());
+        }
+    }
+
+    public function getProgressHistory(int $userId, string $isbn): array
+    {
+        try {
+            $history = $this->readingProgressRepository->getHistory($userId, $isbn);
+            return $this->successResponse('Historial de progreso obtenido correctamente', $history);
+        } catch (\Exception $e) {
+            $this->logger->error('Error getting progress history', [
+                'error' => $e->getMessage(),
+                'userId' => $userId,
+                'isbn' => $isbn
+            ]);
+            return $this->errorResponse('Error al obtener historial de progreso: ' . $e->getMessage());
         }
     }
 

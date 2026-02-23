@@ -183,9 +183,8 @@
 
       <!-- Session History Modal -->
       <SessionHistoryModal
-        :is-visible="sessionHistoryModal.isVisible"
+        :visible="sessionHistoryModal.isVisible"
         :book="sessionHistoryModal.book"
-        :history="sessionHistoryModal.history"
         @close="closeSessionHistoryModal"
       />
   </div>
@@ -672,15 +671,22 @@ const loadBookData = async () => {
   Logger.debug('[BookDetailView] Loading book data');
   
   isLoading.value = true;
-  
+
   // Solo cargar estados permitidos (es rápido y necesario)
   if (allowedStatuses.value.length === 0) {
     await booksComposable.fetchAllowedStatuses();
   }
 
+  // IMPORTANTE: Cargar libros del usuario para poder detectar si ya existe
+  if (booksComposable.books.value.length === 0) {
+    Logger.debug('[BookDetailView] Loading user books to check if book exists');
+    await booksComposable.fetchBooks();
+  }
+
   Logger.debug('[BookDetailView] Allowed statuses loaded:', {
     allowedStatusesCount: allowedStatuses.value.length,
-    allowedStatuses: allowedStatuses.value
+    allowedStatuses: allowedStatuses.value,
+    userBooksCount: booksComposable.books.value.length
   });
 
   // Si hay datos en el state del router, usarlos directamente (más rápido)

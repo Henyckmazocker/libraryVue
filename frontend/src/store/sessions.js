@@ -120,7 +120,7 @@ export const useSessionsStore = defineStore('sessions', {
       try {
         Logger.debug('[SessionsStore] Loading session history for book:', bookId)
         const authStore = useAuthStore()
-        
+
         const response = await authStore.authenticatedApiCall('get_reading_session_history', {
           isbn: bookId
         })
@@ -133,6 +133,29 @@ export const useSessionsStore = defineStore('sessions', {
       } catch (err) {
         Logger.error('[SessionsStore] Error loading history:', err)
         this.sessionHistories[bookId] = []
+        return { success: false, message: err.message }
+      }
+    },
+
+    /**
+     * Carga el historial detallado de progreso de páginas de un libro
+     */
+    async loadProgressHistory(bookId) {
+      try {
+        Logger.debug('[SessionsStore] Loading progress history for book:', bookId)
+        const authStore = useAuthStore()
+
+        const response = await authStore.authenticatedApiCall('get_progress_history', {
+          isbn: bookId
+        })
+
+        if (response.data.status === 'success') {
+          const progressHistory = response.data.data || []
+          Logger.debug('[SessionsStore] Progress history loaded:', progressHistory.length, 'entries')
+          return { success: true, history: progressHistory }
+        }
+      } catch (err) {
+        Logger.error('[SessionsStore] Error loading progress history:', err)
         return { success: false, message: err.message }
       }
     },

@@ -85,17 +85,18 @@ class AddBookUseCase extends AbstractUseCase
                     'publish_date' => $command->publicationYear ? (string)$command->publicationYear : null,
                     'number_of_pages' => $command->pages,
                     'description' => $command->description,
+                    'subjects' => $command->genres, // Pass genres from command
                     'covers' => []
                 ]);
-                
+
                 $work = $result['work'];
                 $edition = $result['edition'];
-                
+
                 $this->logger->info('BookImportService created work and edition', [
                     'work_id' => $work->getWorkId(),
                     'edition_id' => $edition->getEditionId()
                 ]);
-                
+
             } catch (\Exception $e) {
                 // If BookImportService fails, fall back to manual creation
                 $this->logger->warning('BookImportService failed, falling back to manual creation', [
@@ -111,15 +112,15 @@ class AddBookUseCase extends AbstractUseCase
                 
                 if (!$work) {
                     $syntheticWorkKey = 'synthetic_' . md5($command->title . implode('', $authors));
-                    
+
                     $work = Work::fromArray([
                         'title' => $command->title,
                         'authors' => $authors,
-                        'subjects' => [],
+                        'subjects' => $command->genres, // Pass genres from command
                         'first_publish_year' => $command->publicationYear,
                         'synthetic_work_key' => $syntheticWorkKey
                     ]);
-                    
+
                     $work->markAsSynthetic($syntheticWorkKey);
                     $work = $this->workRepository->save($work);
                 }

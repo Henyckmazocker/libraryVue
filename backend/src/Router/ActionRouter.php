@@ -253,12 +253,16 @@ class ActionRouter
             'complete_reading_session' => $controller->completeReadingSession(
                 CompleteReadingSessionCommand::fromArray($data)
             ),
+            'update_reading_progress' => $controller->updateReadingProgressWithSession(
+                UpdateReadingProgressCommand::fromArray($data, $userId)
+            ),
             'update_reading_progress_with_session' => $controller->updateReadingProgressWithSession(
                 UpdateReadingProgressCommand::fromArray($data, $userId)
             ),
             'get_reading_session_history' => $controller->getReadingSessionHistory(
                 GetReadingSessionQuery::fromArray($data, $userId)
             ),
+            'get_progress_history' => $controller->getProgressHistory($userId, $data['isbn'] ?? ''),
             'get_session_progress' => $controller->getSessionProgress(
                 ManageReadingSessionCommand::fromArray($data)
             ),

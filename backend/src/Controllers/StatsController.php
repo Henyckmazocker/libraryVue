@@ -41,7 +41,7 @@ class StatsController extends BaseController
         try {
             // Obtener todas las ediciones del usuario con datos completos
             $userEditions = $this->userBookEditionRepository->findByUser($userId);
-            
+
             // Enriquecer con datos de Work para géneros y otros campos
             $enrichedBooks = [];
             foreach ($userEditions as $userEdition) {
@@ -53,7 +53,7 @@ class StatsController extends BaseController
                         $enrichedBooks[] = (object)[
                             'userRating' => $userEdition->getWorkRating(),
                             'userStatuses' => $this->userBookEditionRepository->getStatusesForEdition(
-                                $userId, 
+                                $userId,
                                 $userEdition->getEditionId()
                             ),
                             'genres' => $work->getSubjects() ?? [],
@@ -64,7 +64,7 @@ class StatsController extends BaseController
                     }
                 }
             }
-            
+
             $stats = [
                 'totalBooks' => count($userEditions),
                 'genreStats' => $this->calculateBookGenreStats($enrichedBooks),
@@ -76,6 +76,7 @@ class StatsController extends BaseController
 
             return $this->successResponse('Book statistics retrieved successfully', $stats);
         } catch (\Exception $e) {
+            error_log('[StatsController] Error getting book stats: ' . $e->getMessage());
             return $this->errorResponse('Failed to retrieve book statistics: ' . $e->getMessage(), 500);
         }
     }
@@ -321,7 +322,21 @@ class StatsController extends BaseController
     {
         try {
             $stats = $this->readingProgressRepository->getMonthlyStats($userId, 12);
-            return $stats;
+
+            // Transformar el resultado de array de objetos a objeto simple mes => páginas
+            $monthlyPages = [];
+            foreach ($stats as $stat) {
+                $monthlyPages[$stat['month']] = (int)$stat['pages_read'];
+            }
+
+            // Generar datos para los últimos 12 meses (incluir meses sin datos con 0)
+            $result = [];
+            for ($i = 11; $i >= 0; $i--) {
+                $month = date('Y-m', strtotime("-$i months"));
+                $result[$month] = $monthlyPages[$month] ?? 0;
+            }
+
+            return $result;
         } catch (\Exception $e) {
             // En caso de error, devolver array vacío para evitar que falle toda la respuesta
             return [];

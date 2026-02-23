@@ -9,6 +9,7 @@ use App\Domain\Repository\Book\UserBookEditionRepositoryInterface;
 use App\Infrastructure\Persistence\Book\Mappers\UserBookEditionDataMapper;
 use App\Infrastructure\Persistence\Concerns\LoggableTrait;
 use App\Infrastructure\Persistence\Concerns\StatusManagementTrait;
+use InvalidArgumentException;
 use PDO;
 use PDOException;
 use Psr\Log\LoggerInterface;
@@ -363,15 +364,18 @@ final class MySqlUserBookEditionRepository implements UserBookEditionRepositoryI
 
     public function updateStatuses(int $userId, int $editionId, array $statuses): void
     {
+        // Get user_book_edition id
+        $userBookEdition = $this->findByUserAndEdition($userId, $editionId);
+        if (!$userBookEdition) {
+            throw new RuntimeException("User book edition not found");
+        }
+
+        // Validar lógica de estados excluyentes
+        $this->validateStatusLogic($statuses);
+
+        $userEditionId = $userBookEdition->getId();
+
         try {
-            // Get user_book_edition id
-            $userBookEdition = $this->findByUserAndEdition($userId, $editionId);
-            if (!$userBookEdition) {
-                throw new RuntimeException("User book edition not found");
-            }
-
-            $userEditionId = $userBookEdition->getId();
-
             // Delete old statuses
             $this->db->prepare('DELETE FROM user_book_statuses WHERE user_edition_id = :user_edition_id')
                 ->execute([':user_edition_id' => $userEditionId]);
@@ -379,7 +383,7 @@ final class MySqlUserBookEditionRepository implements UserBookEditionRepositoryI
             // Insert new statuses
             if (!empty($statuses)) {
                 $stmt = $this->db->prepare(
-                    'INSERT INTO user_book_statuses (user_edition_id, status_id) 
+                    'INSERT INTO user_book_statuses (user_edition_id, status_id)
                      VALUES (:user_edition_id, :status_id)'
                 );
 
@@ -406,6 +410,41 @@ final class MySqlUserBookEditionRepository implements UserBookEditionRepositoryI
                 'edition_id' => $editionId
             ]);
             throw new RuntimeException("Could not update statuses: " . $e->getMessage(), 0, $e);
+        }
+    }
+
+    /**
+     * Valida que los estados sean lógicamente compatibles
+     *
+     * Reglas:
+     * - 'read' puede coexistir con cualquier otro estado (es histórico)
+     * - Solo uno de: 'to-read', 'reading', 're-reading', 'paused', 'abandoned' (estado actual de lectura)
+     * - Solo uno de: 'owned', 'want-to-buy' (estado de propiedad)
+     *
+     * @throws InvalidArgumentException si hay estados incompatibles
+     */
+    private function validateStatusLogic(array $statuses): void
+    {
+        // Categorías de estados
+        $readingStates = ['to-read', 'reading', 're-reading', 'paused', 'abandoned'];
+        $ownershipStates = ['owned', 'want-to-buy'];
+
+        // Validar estados de lectura (solo uno permitido)
+        $selectedReadingStates = array_intersect($statuses, $readingStates);
+        if (count($selectedReadingStates) > 1) {
+            throw new InvalidArgumentException(
+                "Solo se permite un estado de actividad de lectura simultáneamente. " .
+                "Recibidos: " . implode(', ', $selectedReadingStates)
+            );
+        }
+
+        // Validar estados de propiedad (solo uno permitido)
+        $selectedOwnershipStates = array_intersect($statuses, $ownershipStates);
+        if (count($selectedOwnershipStates) > 1) {
+            throw new InvalidArgumentException(
+                "Solo se permite un estado de propiedad simultáneamente. " .
+                "Recibidos: " . implode(', ', $selectedOwnershipStates)
+            );
         }
     }
 

@@ -253,6 +253,12 @@ return [
         ->constructorParameter('bookTagRepository', DI\get(BookTagRepositoryInterface::class))
         ->constructorParameter('bookNoteRepository', DI\get(BookNoteRepositoryInterface::class)),
 
+    App\Domain\UseCases\Books\UpdateReadingProgressUseCase::class => DI\autowire()
+        ->constructorParameter('progressRepository', DI\get(ReadingProgressRepositoryInterface::class))
+        ->constructorParameter('sessionRepository', DI\get(ReadingSessionRepositoryInterface::class))
+        ->constructorParameter('userBookEditionRepository', DI\get(UserBookEditionRepositoryInterface::class))
+        ->constructorParameter('editionRepository', DI\get(EditionRepositoryInterface::class)),
+
     App\Domain\UseCases\Books\GetTrendingBooksUseCase::class => DI\autowire()
         ->constructorParameter('userBookRepository', DI\get(UserBookRepositoryInterface::class)),
 
@@ -315,6 +321,7 @@ return [
         ->constructorParameter('authMiddleware', DI\get(AuthMiddleware::class))
         ->constructorParameter('editUserBookUseCase', DI\get(App\Domain\UseCases\Books\EditUserBookUseCase::class))
         ->constructorParameter('getTrendingBooksUseCase', DI\get(App\Domain\UseCases\Books\GetTrendingBooksUseCase::class))
+        ->constructorParameter('updateReadingProgressUseCase', DI\get(App\Domain\UseCases\Books\UpdateReadingProgressUseCase::class))
         ->constructorParameter('workSearchService', DI\get(App\Domain\Services\WorkSearchService::class))
         ->constructorParameter('workRepository', DI\get(App\Domain\Repository\Book\WorkRepositoryInterface::class))
         ->constructorParameter('logger', DI\get(\Psr\Log\LoggerInterface::class)),

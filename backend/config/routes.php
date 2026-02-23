@@ -367,6 +367,17 @@ return [
         'validation' => ['sessionId', 'endPage']
     ],
 
+    'update_reading_progress' => [
+        'controller' => ['BookController', 'updateReadingProgressWithSession'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['isbn', 'currentPage']]]
+        ],
+        'validation' => ['isbn', 'currentPage']
+    ],
+
     'update_reading_progress_with_session' => [
         'controller' => ['BookController', 'updateReadingProgressWithSession'],
         'middleware' => [
@@ -385,6 +396,16 @@ return [
             AuthenticationMiddleware::class
         ],
         'validation' => []
+    ],
+
+    'get_progress_history' => [
+        'controller' => ['BookController', 'getProgressHistory'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['isbn']]]
+        ],
+        'validation' => ['isbn']
     ],
 
     'get_session_progress' => [

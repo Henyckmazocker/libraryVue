@@ -1,151 +1,165 @@
 <template>
-  <Dialog
-    v-model:visible="dialogVisible"
-    :header="`Historial de lectura - ${book.title}`"
-    :modal="true"
-    :closable="true"
-    :draggable="false"
-    class="session-history-modal"
-    :style="{ width: '90vw', maxWidth: '800px' }"
-    @hide="handleClose"
-  >
-    <!-- Estadísticas generales -->
-    <div v-if="statistics" class="statistics-section">
-      <div class="stat-card">
-        <i class="pi pi-check-circle stat-icon"></i>
-        <div class="stat-content">
-          <span class="stat-value">{{ statistics.totalCompleted }}</span>
-          <span class="stat-label">Completadas</span>
-        </div>
+  <!-- Modal Overlay -->
+  <div v-if="dialogVisible" class="modal-overlay" @click="handleClose">
+    <div class="modal-content" @click.stop>
+      <!-- Header -->
+      <div class="modal-header">
+        <h2><i class="fas fa-history"></i> Historial de lectura - {{ book.title }}</h2>
+        <button @click="handleClose" class="close-button">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
-      
-      <div class="stat-card">
-        <i class="pi pi-clock stat-icon"></i>
-        <div class="stat-content">
-          <span class="stat-value">{{ statistics.averageDuration }}</span>
-          <span class="stat-label">Promedio</span>
-        </div>
-      </div>
-      
-      <div class="stat-card">
-        <i class="pi pi-book stat-icon"></i>
-        <div class="stat-content">
-          <span class="stat-value">{{ statistics.totalPagesRead }}</span>
-          <span class="stat-label">Páginas leídas</span>
-        </div>
-      </div>
-    </div>
 
-    <!-- Timeline de sesiones -->
-    <div v-if="sessions && sessions.length > 0" class="timeline-container">
-      <Timeline :value="timelineEvents" align="alternate" class="sessions-timeline">
-        <template #marker="{ item }">
-          <div class="timeline-marker" :class="getMarkerClass(item.status)">
-            <i :class="getMarkerIcon(item.status)"></i>
+      <div class="modal-body">
+        <!-- Estadísticas generales -->
+        <div v-if="statistics" class="statistics-section">
+          <div class="stat-item">
+            <span class="stat-label">Sesiones completadas:</span>
+            <span class="stat-value">{{ statistics.totalCompleted }}</span>
           </div>
-        </template>
+          <div class="stat-item">
+            <span class="stat-label">Duración promedio:</span>
+            <span class="stat-value">{{ statistics.averageDuration }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Páginas totales leídas:</span>
+            <span class="stat-value">{{ statistics.totalPagesRead }}</span>
+          </div>
+        </div>
 
-        <template #content="{ item }">
-          <Card class="session-card" :class="getCardClass(item.status)">
-            <!-- Encabezado de la sesión -->
-            <template #title>
-              <div class="session-header">
-                <span class="session-number">Sesión #{{ item.sessionNumber }}</span>
-                <Tag :value="getStatusLabel(item.status)" :severity="getStatusSeverity(item.status)" />
-              </div>
-            </template>
-
-            <!-- Contenido de la sesión -->
-            <template #content>
-              <div class="session-details">
-                <!-- Fechas -->
-                <div class="detail-row">
-                  <i class="pi pi-calendar detail-icon"></i>
-                  <div class="detail-content">
-                    <span class="detail-label">Inicio:</span>
-                    <span class="detail-value">{{ formatDate(item.startedAt) }}</span>
+        <!-- Acordeón de sesiones -->
+        <div v-if="sessions && sessions.length > 0" class="sessions-container">
+          <Accordion :multiple="false">
+            <AccordionTab
+              v-for="item in timelineEvents"
+              :key="item.sessionId"
+            >
+              <template #header>
+                <div class="session-accordion-header">
+                  <div class="session-title-group">
+                    <i :class="getMarkerIcon(item.status)" class="session-icon" :style="{ color: getStatusColor(item.status) }"></i>
+                    <span class="session-number">Sesión #{{ item.sessionNumber }}</span>
                   </div>
+                  <span class="session-badge" :class="getBadgeClass(item.status)">
+                    {{ getStatusLabel(item.status) }}
+                  </span>
+                </div>
+              </template>
+
+              <!-- Contenido de la sesión -->
+              <div class="session-content">
+                <!-- Información principal en líneas -->
+                <div class="info-line">
+                  <i class="fas fa-calendar-alt info-icon"></i>
+                  <span class="info-label">Inicio:</span>
+                  <span class="info-value">{{ formatDate(item.startedAt) }}</span>
                 </div>
 
-                <div v-if="item.completedAt" class="detail-row">
-                  <i class="pi pi-calendar-times detail-icon"></i>
-                  <div class="detail-content">
-                    <span class="detail-label">Fin:</span>
-                    <span class="detail-value">{{ formatDate(item.completedAt) }}</span>
-                  </div>
+                <div v-if="item.completedAt" class="info-line">
+                  <i class="fas fa-calendar-check info-icon"></i>
+                  <span class="info-label">Fin:</span>
+                  <span class="info-value">{{ formatDate(item.completedAt) }}</span>
                 </div>
 
-                <!-- Duración -->
-                <div v-if="item.duration" class="detail-row">
-                  <i class="pi pi-clock detail-icon"></i>
-                  <div class="detail-content">
-                    <span class="detail-label">Duración:</span>
-                    <span class="detail-value">{{ item.duration }}</span>
-                  </div>
+                <div v-if="item.duration" class="info-line">
+                  <i class="fas fa-clock info-icon"></i>
+                  <span class="info-label">Duración:</span>
+                  <span class="info-value">{{ item.duration }}</span>
                 </div>
 
-                <!-- Progreso -->
-                <div v-if="item.finalPage" class="detail-row">
-                  <i class="pi pi-bookmark detail-icon"></i>
-                  <div class="detail-content">
-                    <span class="detail-label">Progreso:</span>
-                    <span class="detail-value">
-                      {{ item.finalPage }} / {{ book.total_pages }} páginas ({{ item.progressPercentage }}%)
-                    </span>
-                  </div>
+                <div v-if="item.finalPage" class="info-line">
+                  <i class="fas fa-bookmark info-icon"></i>
+                  <span class="info-label">Progreso:</span>
+                  <span class="info-value">{{ item.finalPage }} / {{ book.total_pages }} páginas ({{ item.progressPercentage }}%)</span>
                 </div>
 
-                <!-- Barra de progreso visual -->
-                <div v-if="item.progressPercentage" class="progress-bar-container">
-                  <div 
-                    class="progress-bar" 
-                    :class="getProgressBarClass(item.status)"
-                    :style="{ width: item.progressPercentage + '%' }"
-                  ></div>
+                <!-- Barra de progreso -->
+                <div v-if="item.progressPercentage" class="progress-bar-wrapper">
+                  <div class="progress-bar-bg">
+                    <div
+                      class="progress-bar-fill"
+                      :class="getProgressBarClass(item.status)"
+                      :style="{ width: item.progressPercentage + '%' }"
+                    ></div>
+                  </div>
                 </div>
 
                 <!-- Notas de sesión -->
-                <div v-if="item.sessionNotes" class="detail-row notes-row">
-                  <i class="pi pi-comment detail-icon"></i>
-                  <div class="detail-content">
-                    <span class="detail-label">Notas:</span>
-                    <p class="session-notes">{{ item.sessionNotes }}</p>
+                <div v-if="item.sessionNotes" class="session-notes-section">
+                  <div class="notes-header">
+                    <i class="fas fa-comment-alt"></i>
+                    <span>Notas</span>
+                  </div>
+                  <p class="notes-content">{{ item.sessionNotes }}</p>
+                </div>
+
+                <!-- Actualizaciones de progreso -->
+                <div v-if="item.progressUpdates && item.progressUpdates.length > 0" class="progress-updates-section">
+                  <div class="updates-header">
+                    <i class="fas fa-list-ul"></i>
+                    <span>Actualizaciones de progreso ({{ item.progressUpdates.length }})</span>
+                  </div>
+                  <div class="updates-list">
+                    <div
+                      v-for="(update, index) in item.progressUpdates"
+                      :key="index"
+                      class="update-item"
+                    >
+                      <div class="update-line">
+                        <i class="fas fa-clock update-icon"></i>
+                        <span class="update-date">{{ formatDate(update.logged_at) }}</span>
+                        <span class="update-badge" :class="getProgressTypeBadgeClass(update.progress_type)">
+                          {{ getProgressTypeLabel(update.progress_type) }}
+                        </span>
+                      </div>
+                      <div class="update-pages-line">
+                        <span class="page-info">
+                          <span class="page-label">Pág. anterior:</span>
+                          <span class="page-number">{{ update.previous_page }}</span>
+                        </span>
+                        <i class="fas fa-arrow-right arrow-icon"></i>
+                        <span class="page-info">
+                          <span class="page-label">Pág. actual:</span>
+                          <span class="page-number highlight">{{ update.current_page }}</span>
+                        </span>
+                        <span v-if="update.progress_type === 'advance'" class="pages-diff advance">
+                          +{{ update.current_page - update.previous_page }}
+                        </span>
+                        <span v-else class="pages-diff other">
+                          {{ update.current_page - update.previous_page }}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </template>
-          </Card>
-        </template>
-      </Timeline>
-    </div>
+            </AccordionTab>
+          </Accordion>
+        </div>
 
-    <!-- Estado vacío -->
-    <div v-else class="empty-state">
-      <i class="pi pi-book empty-icon"></i>
-      <p class="empty-message">No hay sesiones de lectura registradas para este libro</p>
-    </div>
+        <!-- Estado vacío -->
+        <div v-else class="empty-state">
+          <i class="fas fa-book empty-icon"></i>
+          <p class="empty-message">No hay sesiones de lectura registradas para este libro</p>
+        </div>
+      </div>
 
-    <!-- Footer del diálogo -->
-    <template #footer>
-      <Button 
-        label="Cerrar" 
-        icon="pi pi-times" 
-        @click="handleClose" 
-        class="p-button-text"
-      />
-    </template>
-  </Dialog>
+      <!-- Footer -->
+      <div class="modal-footer">
+        <button @click="handleClose" class="cancel-button">
+          <i class="fas fa-times"></i> Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, defineProps, defineEmits, onMounted } from 'vue'
 import { useReadingSessions } from '@/composables/useReadingSessions'
 import Logger from '@/utils/logger'
-import Dialog from 'primevue/dialog'
-import Timeline from 'primevue/timeline'
-import Card from 'primevue/card'
-import Tag from 'primevue/tag'
-import Button from 'primevue/button'
+import Accordion from 'primevue/accordion'
+import AccordionTab from 'primevue/accordiontab'
 
 const props = defineProps({
   book: {
@@ -163,11 +177,9 @@ const emit = defineEmits(['close'])
 // Estado local
 const dialogVisible = ref(props.visible)
 const sessions = ref([])
+const progressHistory = ref([])
 const statistics = ref(null)
 const isLoading = ref(false)
-
-// Composable
-const { loadHistory } = useReadingSessions(props.book.isbn)
 
 // Watchers
 watch(() => props.visible, (newValue) => {
@@ -179,33 +191,124 @@ watch(() => props.visible, (newValue) => {
 
 // Computed properties
 const timelineEvents = computed(() => {
-  return sessions.value.map(session => ({
-    sessionNumber: session.session_number,
-    status: session.status,
-    startedAt: session.started_at,
-    completedAt: session.completed_at,
-    finalPage: session.final_page,
-    sessionNotes: session.session_notes,
-    duration: calculateDuration(session.started_at, session.completed_at),
-    progressPercentage: calculateProgressPercentage(session.final_page)
-  }))
+  return sessions.value.map(session => {
+    // Get progress updates for this session
+    const updates = getProgressUpdatesForSession(session.id)
+
+    // Calculate the actual final page from progress updates
+    // The most recent update (first in the sorted array) has the current page
+    let actualFinalPage = session.final_page
+    if (updates && updates.length > 0) {
+      // Get the latest current_page from progress updates
+      actualFinalPage = updates[0].current_page || session.final_page
+    }
+
+    const progressPercentage = calculateProgressPercentage(actualFinalPage)
+
+    Logger.debug(`[SessionHistoryModal] Session ${session.session_number}:`, {
+      sessionId: session.id,
+      end_page_from_db: session.final_page,
+      actualFinalPage,
+      total_pages: props.book.total_pages,
+      progressPercentage,
+      updates_count: updates.length
+    })
+
+    return {
+      sessionId: session.id,
+      sessionNumber: session.session_number,
+      status: session.status,
+      startedAt: session.started_at,
+      completedAt: session.completed_at,
+      finalPage: actualFinalPage,
+      sessionNotes: session.session_notes,
+      duration: calculateDuration(session.started_at, session.completed_at),
+      progressPercentage,
+      progressUpdates: updates
+    }
+  })
+})
+
+// Computed property to group progress by session
+const progressBySession = computed(() => {
+  const grouped = {}
+  progressHistory.value.forEach(progress => {
+    const sessionId = progress.reading_session_id
+    if (!grouped[sessionId]) {
+      grouped[sessionId] = []
+    }
+    grouped[sessionId].push(progress)
+  })
+  // Sort each session's progress by date (newest first)
+  Object.keys(grouped).forEach(sessionId => {
+    grouped[sessionId].sort((a, b) => new Date(b.logged_at) - new Date(a.logged_at))
+  })
+
+  Logger.debug('[SessionHistoryModal] progressBySession grouped:', {
+    sessionIds: Object.keys(grouped),
+    totalGroups: Object.keys(grouped).length,
+    grouped
+  })
+
+  return grouped
 })
 
 // Métodos
 const loadSessionHistory = async () => {
   try {
-    isLoading.value = true
-    const history = await loadHistory()
-    
-    if (history && Array.isArray(history)) {
-      sessions.value = history.sort((a, b) => b.session_number - a.session_number)
-      calculateStatistics()
+    if (!props.book?.isbn) {
+      Logger.error('[SessionHistoryModal] No ISBN available for book')
+      return
     }
+
+    Logger.debug('[SessionHistoryModal] Book data:', {
+      isbn: props.book.isbn,
+      title: props.book.title,
+      total_pages: props.book.total_pages
+    })
+
+    isLoading.value = true
+
+    // Create composable with current book ISBN
+    const { loadHistory, loadProgressHistory } = useReadingSessions(props.book.isbn)
+
+    // Load both session history and progress history in parallel
+    const [historyResult, progressResult] = await Promise.all([
+      loadHistory(),
+      loadProgressHistory()
+    ])
+
+    Logger.debug('[SessionHistoryModal] History result:', historyResult)
+    Logger.debug('[SessionHistoryModal] Progress result:', progressResult)
+
+    if (historyResult && historyResult.success && Array.isArray(historyResult.history)) {
+      sessions.value = historyResult.history.sort((a, b) => b.session_number - a.session_number)
+      Logger.debug('[SessionHistoryModal] Sessions loaded:', sessions.value.length)
+      Logger.debug('[SessionHistoryModal] First session data:', sessions.value[0])
+    } else {
+      Logger.warn('[SessionHistoryModal] No sessions found or invalid format')
+    }
+
+    if (progressResult && progressResult.success) {
+      progressHistory.value = progressResult.history || []
+      Logger.debug('[SessionHistoryModal] Progress history loaded:', progressHistory.value.length, 'entries')
+      if (progressHistory.value.length > 0) {
+        Logger.debug('[SessionHistoryModal] First progress entry:', progressHistory.value[0])
+        Logger.debug('[SessionHistoryModal] Progress session IDs:', progressHistory.value.map(p => p.reading_session_id))
+      }
+    }
+
+    calculateStatistics()
   } catch (error) {
-    Logger.error('Error loading session history:', error)
+    Logger.error('[SessionHistoryModal] Error loading session history:', error)
   } finally {
     isLoading.value = false
   }
+}
+
+const getProgressUpdatesForSession = (sessionId) => {
+  if (!sessionId) return []
+  return progressBySession.value[sessionId] || []
 }
 
 const calculateStatistics = () => {
@@ -223,13 +326,14 @@ const calculateStatistics = () => {
       const days = calculateDurationInDays(session.started_at, session.completed_at)
       return sum + days
     }, 0)
-    
+
     const avgDays = Math.round(totalDays / completedSessions.length)
     averageDuration = `${avgDays} día${avgDays !== 1 ? 's' : ''}`
   }
 
-  const totalPagesRead = sessions.value.reduce((sum, session) => {
-    return sum + (session.final_page || 0)
+  // Calculate total pages read using the actual final pages from timeline events
+  const totalPagesRead = timelineEvents.value.reduce((sum, event) => {
+    return sum + (event.finalPage || 0)
   }, 0)
 
   statistics.value = {
@@ -257,8 +361,18 @@ const calculateDuration = (startDate, endDate) => {
 }
 
 const calculateProgressPercentage = (finalPage) => {
-  if (!finalPage || !props.book.total_pages || props.book.total_pages === 0) return 0
-  return Math.round((finalPage / props.book.total_pages) * 100)
+  const totalPages = props.book?.total_pages
+
+  Logger.debug('[SessionHistoryModal] calculateProgressPercentage:', {
+    finalPage,
+    totalPages,
+    finalPageType: typeof finalPage,
+    totalPagesType: typeof totalPages,
+    result: finalPage && totalPages && totalPages !== 0 ? Math.round((finalPage / totalPages) * 100) : 0
+  })
+
+  if (!finalPage || !totalPages || totalPages === 0) return 0
+  return Math.round((finalPage / totalPages) * 100)
 }
 
 const formatDate = (dateString) => {
@@ -273,44 +387,43 @@ const formatDate = (dateString) => {
   })
 }
 
-const getMarkerClass = (status) => {
-  const classes = {
-    'completed': 'marker-completed',
-    'active': 'marker-active',
-    'paused': 'marker-paused',
-    'abandoned': 'marker-abandoned'
-  }
-  return classes[status] || 'marker-default'
-}
-
 const getMarkerIcon = (status) => {
   const icons = {
-    'completed': 'pi pi-check',
-    'active': 'pi pi-play',
-    'paused': 'pi pi-pause',
-    'abandoned': 'pi pi-times'
+    'completed': 'fas fa-check-circle',
+    'active': 'fas fa-play-circle',
+    'paused': 'fas fa-pause-circle',
+    'abandoned': 'fas fa-times-circle'
   }
-  return icons[status] || 'pi pi-circle'
+  return icons[status] || 'fas fa-circle'
 }
 
-const getCardClass = (status) => {
-  const classes = {
-    'completed': 'card-completed',
-    'active': 'card-active',
-    'paused': 'card-paused',
-    'abandoned': 'card-abandoned'
+const getStatusColor = (status) => {
+  const colors = {
+    'completed': '#28a745',
+    'active': '#007bff',
+    'paused': '#ffc107',
+    'abandoned': '#dc3545'
   }
-  return classes[status] || ''
+  return colors[status] || '#6c757d'
 }
 
-const getProgressBarClass = (status) => {
+const getBadgeClass = (status) => {
   const classes = {
-    'completed': 'progress-completed',
-    'active': 'progress-active',
-    'paused': 'progress-paused',
-    'abandoned': 'progress-abandoned'
+    'completed': 'badge-success',
+    'active': 'badge-info',
+    'paused': 'badge-warning',
+    'abandoned': 'badge-danger'
   }
-  return classes[status] || ''
+  return classes[status] || 'badge-default'
+}
+
+const getProgressTypeBadgeClass = (progressType) => {
+  const classes = {
+    'advance': 'badge-success',
+    'backtrack': 'badge-warning',
+    'restart': 'badge-danger'
+  }
+  return classes[progressType] || 'badge-default'
 }
 
 const getStatusLabel = (status) => {
@@ -323,14 +436,23 @@ const getStatusLabel = (status) => {
   return labels[status] || status
 }
 
-const getStatusSeverity = (status) => {
-  const severities = {
-    'completed': 'success',
-    'active': 'info',
-    'paused': 'warning',
-    'abandoned': 'danger'
+const getProgressTypeLabel = (progressType) => {
+  const labels = {
+    'advance': 'Avance',
+    'backtrack': 'Retroceso',
+    'restart': 'Reinicio'
   }
-  return severities[status] || null
+  return labels[progressType] || progressType
+}
+
+const getProgressBarClass = (status) => {
+  const classes = {
+    'completed': 'progress-completed',
+    'active': 'progress-active',
+    'paused': 'progress-paused',
+    'abandoned': 'progress-abandoned'
+  }
+  return classes[status] || ''
 }
 
 const handleClose = () => {
@@ -346,225 +468,481 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.session-history-modal .statistics-section {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
-  padding: 1rem;
-  background: var(--surface-50);
-  border-radius: 8px;
-}
-
-.session-history-modal .stat-card {
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: white;
-  border-radius: 8px;
-  border: 1px solid var(--surface-200);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  z-index: 1000;
+  backdrop-filter: blur(2px);
 }
 
-.session-history-modal .stat-card .stat-icon {
-  font-size: 2rem;
-  color: var(--primary-500);
-}
-
-.session-history-modal .stat-card .stat-content {
+.modal-content {
+  background: #2c2c2c;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
 }
 
-.session-history-modal .stat-card .stat-content .stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-color);
-}
-
-.session-history-modal .stat-card .stat-content .stat-label {
-  font-size: 0.875rem;
-  color: var(--text-color-secondary);
-}
-
-.session-history-modal .timeline-container {
-  padding: 1rem 0;
-}
-
-.session-history-modal .sessions-timeline .timeline-marker {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 1.25rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-}
-
-.session-history-modal .sessions-timeline .timeline-marker.marker-completed {
-  background: var(--green-500);
-}
-
-.session-history-modal .sessions-timeline .timeline-marker.marker-active {
-  background: var(--blue-500);
-}
-
-.session-history-modal .sessions-timeline .timeline-marker.marker-paused {
-  background: var(--orange-500);
-}
-
-.session-history-modal .sessions-timeline .timeline-marker.marker-abandoned {
-  background: var(--red-500);
-}
-
-.session-history-modal .sessions-timeline .timeline-marker.marker-default {
-  background: var(--surface-400);
-}
-
-.session-history-modal .session-card.card-completed {
-  border-left: 4px solid var(--green-500);
-}
-
-.session-history-modal .session-card.card-active {
-  border-left: 4px solid var(--blue-500);
-}
-
-.session-history-modal .session-card.card-paused {
-  border-left: 4px solid var(--orange-500);
-}
-
-.session-history-modal .session-card.card-abandoned {
-  border-left: 4px solid var(--red-500);
-}
-
-.session-history-modal .session-header {
+/* Modal Header */
+.modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 25px 30px;
+  border-bottom: 1px solid #444;
+  background: #333;
 }
 
-.session-history-modal .session-header .session-number {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--primary-700);
-}
-
-.session-history-modal .session-details {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.session-history-modal .detail-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-}
-
-.session-history-modal .detail-row .detail-icon {
-  color: var(--primary-500);
-  font-size: 1rem;
-  margin-top: 0.125rem;
-}
-
-.session-history-modal .detail-row .detail-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.session-history-modal .detail-row .detail-content .detail-label {
-  font-size: 0.75rem;
+.modal-header h2 {
+  color: #e0e0e0;
+  font-size: 1.5rem;
   font-weight: 600;
-  color: var(--text-color-secondary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 5px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.close-button:hover {
+  color: #e0e0e0;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Modal Body */
+.modal-body {
+  padding: 25px 30px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Estadísticas Section */
+.statistics-section {
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 25px;
+  border: 1px solid #444;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #333;
+}
+
+.stat-item:last-child {
+  border-bottom: none;
+}
+
+.stat-label {
+  color: #aaa;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.stat-value {
+  color: #e0e0e0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+/* Sessions Container */
+.sessions-container {
+  margin-top: 20px;
+}
+
+/* Accordion Header Customization */
+.session-accordion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 15px;
+}
+
+.session-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.session-icon {
+  font-size: 1.2rem;
+}
+
+.session-number {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+/* Badges */
+.session-badge,
+.update-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge-success {
+  background: #28a745;
+  color: white;
+}
+
+.badge-info {
+  background: #007bff;
+  color: white;
+}
+
+.badge-warning {
+  background: #ffc107;
+  color: #212529;
+}
+
+.badge-danger {
+  background: #dc3545;
+  color: white;
+}
+
+.badge-default {
+  background: #6c757d;
+  color: white;
+}
+
+/* Session Content */
+.session-content {
+  padding: 20px;
+  background: #1a1a1a;
+  border-radius: 8px;
+}
+
+/* Info Lines */
+.info-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #333;
+}
+
+.info-line:last-of-type {
+  border-bottom: none;
+}
+
+.info-icon {
+  color: #007bff;
+  font-size: 1rem;
+  min-width: 20px;
+}
+
+.info-label {
+  color: #aaa;
+  font-size: 0.9rem;
+  font-weight: 600;
+  min-width: 80px;
+}
+
+.info-value {
+  color: #e0e0e0;
+  font-size: 0.95rem;
+  flex: 1;
+}
+
+/* Progress Bar */
+.progress-bar-wrapper {
+  margin: 15px 0;
+  padding: 10px 0;
+}
+
+.progress-bar-bg {
+  height: 10px;
+  background: #444;
+  border-radius: 5px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+.progress-bar-fill.progress-completed {
+  background: linear-gradient(90deg, #28a745, #20c997);
+}
+
+.progress-bar-fill.progress-active {
+  background: linear-gradient(90deg, #007bff, #0dcaf0);
+}
+
+.progress-bar-fill.progress-paused {
+  background: linear-gradient(90deg, #ffc107, #fd7e14);
+}
+
+.progress-bar-fill.progress-abandoned {
+  background: linear-gradient(90deg, #dc3545, #e35d6a);
+}
+
+/* Session Notes */
+.session-notes-section {
+  margin-top: 20px;
+  padding: 15px;
+  background: #252525;
+  border-radius: 8px;
+  border-left: 4px solid #007bff;
+}
+
+.notes-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: #007bff;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.notes-content {
+  margin: 0;
+  color: #ccc;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+/* Progress Updates Section */
+.progress-updates-section {
+  margin-top: 20px;
+  padding: 15px;
+  background: #252525;
+  border-radius: 8px;
+}
+
+.updates-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 15px;
+  color: #ffc107;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.updates-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.update-item {
+  padding: 12px;
+  background: #1a1a1a;
+  border-radius: 8px;
+  border: 1px solid #333;
+}
+
+.update-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.update-icon {
+  color: #aaa;
+  font-size: 0.85rem;
+}
+
+.update-date {
+  color: #999;
+  font-size: 0.85rem;
+  flex: 1;
+}
+
+.update-pages-line {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  padding: 8px 0;
+}
+
+.page-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.page-label {
+  color: #888;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.session-history-modal .detail-row .detail-content .detail-value {
-  font-size: 0.875rem;
-  color: var(--text-color);
+.page-number {
+  color: #e0e0e0;
+  font-size: 1.2rem;
+  font-weight: 700;
 }
 
-.session-history-modal .detail-row.notes-row .session-notes {
-  margin: 0;
-  padding: 0.75rem;
-  background: var(--surface-50);
-  border-radius: 6px;
-  font-size: 0.875rem;
-  color: var(--text-color);
-  line-height: 1.5;
-  border-left: 3px solid var(--primary-300);
+.page-number.highlight {
+  color: #007bff;
 }
 
-.session-history-modal .progress-bar-container {
-  height: 8px;
-  background: var(--surface-300);
-  border-radius: 4px;
-  overflow: hidden;
-  margin-top: 0.5rem;
+.arrow-icon {
+  color: #555;
+  font-size: 1rem;
 }
 
-.session-history-modal .progress-bar-container .progress-bar {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.3s ease;
+.pages-diff {
+  margin-left: auto;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
-.session-history-modal .progress-bar-container .progress-bar.progress-completed {
-  background: linear-gradient(90deg, var(--green-400), var(--green-600));
+.pages-diff.advance {
+  background: #28a745;
+  color: white;
 }
 
-.session-history-modal .progress-bar-container .progress-bar.progress-active {
-  background: linear-gradient(90deg, var(--blue-400), var(--blue-600));
+.pages-diff.other {
+  background: #6c757d;
+  color: white;
 }
 
-.session-history-modal .progress-bar-container .progress-bar.progress-paused {
-  background: linear-gradient(90deg, var(--orange-400), var(--orange-600));
+/* Modal Footer */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  padding: 20px 30px;
+  border-top: 1px solid #444;
+  background: #333;
 }
 
-.session-history-modal .progress-bar-container .progress-bar.progress-abandoned {
-  background: linear-gradient(90deg, var(--red-400), var(--red-600));
+.cancel-button {
+  padding: 10px 20px;
+  font-size: 1rem;
+  background: transparent;
+  color: #888;
+  border: 1px solid #555;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.session-history-modal .empty-state {
+.cancel-button:hover {
+  color: #e0e0e0;
+  border-color: #888;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Empty State */
+.empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem 1rem;
+  padding: 60px 20px;
   text-align: center;
 }
 
-.session-history-modal .empty-state .empty-icon {
+.empty-icon {
   font-size: 4rem;
-  color: var(--surface-400);
-  margin-bottom: 1rem;
+  color: #555;
+  margin-bottom: 20px;
 }
 
-.session-history-modal .empty-state .empty-message {
-  font-size: 1rem;
-  color: var(--text-color-secondary);
+.empty-message {
+  font-size: 1.1rem;
+  color: #888;
   margin: 0;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .session-history-modal .statistics-section {
-    grid-template-columns: 1fr;
+  .modal-content {
+    width: 95%;
+    max-width: none;
+    border-radius: 15px;
   }
 
-  .session-history-modal .stat-card .stat-icon {
-    font-size: 1.5rem;
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: 20px;
   }
 
-  .session-history-modal .stat-card .stat-value {
-    font-size: 1.25rem;
+  .modal-header h2 {
+    font-size: 1.2rem;
+  }
+
+  .session-accordion-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .info-line {
+    flex-wrap: wrap;
+  }
+
+  .info-label {
+    min-width: auto;
+  }
+
+  .update-pages-line {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .arrow-icon {
+    transform: rotate(90deg);
+  }
+
+  .pages-diff {
+    margin-left: 0;
   }
 }
 </style>

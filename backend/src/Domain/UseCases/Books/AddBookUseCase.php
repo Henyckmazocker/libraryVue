@@ -11,7 +11,7 @@ use App\Domain\Repository\Book\EditionRepositoryInterface;
 use App\Domain\Repository\Book\WorkRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Book\UserBookEditionRepositoryInterface;
-use App\Domain\Service\BookImportService;
+use App\Domain\Services\BookImportService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\AddBookCommand;
 use Psr\Log\LoggerInterface;

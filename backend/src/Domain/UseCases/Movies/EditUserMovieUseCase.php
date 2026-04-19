@@ -38,8 +38,8 @@ class EditUserMovieUseCase extends AbstractUseCase
             $this->userMovieRepository->edit($userId, $movieId, $updateData);
         }
 
-        // Update statuses if provided
-        if (!empty($command->statuses)) {
+        // Update statuses (allow clearing all statuses with empty array)
+        if ($command->statuses !== null) {
             $this->userMovieRepository->updateStatuses($userId, $movieId, $command->statuses);
         }
 

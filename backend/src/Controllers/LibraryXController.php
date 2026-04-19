@@ -2,9 +2,10 @@
 
 namespace App\Controllers;
 
+use App\Controllers\Contracts\LibraryXControllerInterface;
 use App\Infrastructure\Middleware\AuthMiddleware;
 
-class LibraryXController extends BaseController
+class LibraryXController extends BaseController implements LibraryXControllerInterface
 {
     private const AUTHORIZED_EMAIL = 'david.carvajal.abellan@gmail.com';
     private const URLS_FILE_PATH = __DIR__ . '/../../storage/libraryx-urls.json';

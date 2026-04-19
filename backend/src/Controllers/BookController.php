@@ -14,6 +14,11 @@ use App\Domain\UseCases\Books\GetBookAllowedStatusesUseCase;
 use App\Domain\UseCases\Books\EditUserBookUseCase;
 use App\Domain\UseCases\Books\GetTrendingBooksUseCase;
 use App\Domain\UseCases\Books\UpdateReadingProgressUseCase;
+use App\Domain\UseCases\Books\AddEditionNoteUseCase;
+use App\Domain\UseCases\Books\UpdateEditionNoteUseCase;
+use App\Domain\UseCases\Books\DeleteEditionNoteUseCase;
+use App\Domain\UseCases\Books\GetEditionNotesUseCase;
+use App\Domain\UseCases\Books\GetEditionNoteUseCase;
 use App\Domain\DTO\Commands\AddBookCommand;
 use App\Domain\DTO\Commands\DeleteBookCommand;
 use App\Domain\DTO\Commands\UpdateBookRatingCommand;
@@ -23,7 +28,12 @@ use App\Domain\DTO\Commands\CreateReadingSessionCommand;
 use App\Domain\DTO\Commands\CompleteReadingSessionCommand;
 use App\Domain\DTO\Commands\UpdateReadingProgressCommand;
 use App\Domain\DTO\Commands\ManageReadingSessionCommand;
+use App\Domain\DTO\Commands\AddEditionNoteCommand;
+use App\Domain\DTO\Commands\UpdateEditionNoteCommand;
+use App\Domain\DTO\Commands\DeleteEditionNoteCommand;
 use App\Domain\DTO\Queries\GetBooksByUserQuery;
+use App\Domain\DTO\Queries\GetEditionNotesQuery;
+use App\Domain\DTO\Queries\GetEditionNoteQuery;
 use App\Domain\DTO\Queries\GetReadingSessionQuery;
 use App\Domain\DTO\Queries\GetUserReadingStatsQuery;
 use App\Domain\DTO\Queries\GetTrendingBooksQuery;
@@ -58,6 +68,11 @@ class BookController extends BaseController implements Contracts\BookControllerI
     private WorkSearchService $workSearchService;
     private WorkRepositoryInterface $workRepository;
     private GoogleBooksService $googleBooksService;
+    private AddEditionNoteUseCase $addEditionNoteUseCase;
+    private UpdateEditionNoteUseCase $updateEditionNoteUseCase;
+    private DeleteEditionNoteUseCase $deleteEditionNoteUseCase;
+    private GetEditionNotesUseCase $getEditionNotesUseCase;
+    private GetEditionNoteUseCase $getEditionNoteUseCase;
     private LoggerInterface $logger;
 
     public function __construct(
@@ -79,6 +94,11 @@ class BookController extends BaseController implements Contracts\BookControllerI
         WorkSearchService $workSearchService,
         WorkRepositoryInterface $workRepository,
         GoogleBooksService $googleBooksService,
+        AddEditionNoteUseCase $addEditionNoteUseCase,
+        UpdateEditionNoteUseCase $updateEditionNoteUseCase,
+        DeleteEditionNoteUseCase $deleteEditionNoteUseCase,
+        GetEditionNotesUseCase $getEditionNotesUseCase,
+        GetEditionNoteUseCase $getEditionNoteUseCase,
         LoggerInterface $logger
     ) {
         $this->addBookUseCase = $addBookUseCase;
@@ -99,6 +119,11 @@ class BookController extends BaseController implements Contracts\BookControllerI
         $this->workSearchService = $workSearchService;
         $this->workRepository = $workRepository;
         $this->googleBooksService = $googleBooksService;
+        $this->addEditionNoteUseCase = $addEditionNoteUseCase;
+        $this->updateEditionNoteUseCase = $updateEditionNoteUseCase;
+        $this->deleteEditionNoteUseCase = $deleteEditionNoteUseCase;
+        $this->getEditionNotesUseCase = $getEditionNotesUseCase;
+        $this->getEditionNoteUseCase = $getEditionNoteUseCase;
         $this->logger = $logger;
     }
 
@@ -226,6 +251,30 @@ class BookController extends BaseController implements Contracts\BookControllerI
             return $this->successResponse('Tags del libro obtenidos correctamente', $tags);
         } catch (\Exception $e) {
             return $this->errorResponse('Error al obtener tags del libro: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Actualiza los tags de un libro
+     * @param int $userId User ID
+     * @param string $isbn Book ISBN
+     * @param array $tagIds Array of tag IDs to assign
+     * @return array Response
+     */
+    public function updateBookTags(int $userId, string $isbn, array $tagIds): array
+    {
+        try {
+            // Remove all current tags
+            $this->bookTagRepository->removeAll($userId, $isbn);
+            
+            // Assign new tags
+            foreach ($tagIds as $tagId) {
+                $this->bookTagRepository->assign($userId, $isbn, (int)$tagId);
+            }
+            
+            return $this->successResponse('Tags del libro actualizados correctamente');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error al actualizar tags del libro: ' . $e->getMessage());
         }
     }
 
@@ -638,5 +687,139 @@ class BookController extends BaseController implements Contracts\BookControllerI
             return $this->errorResponse('Failed to search Google Books: ' . $e->getMessage(), 500);
         }
     }
-}
 
+    /**
+     * Add a note to a book edition
+     * 
+     * @param array $data Request data
+     * @return array Success or error response
+     */
+    public function addEditionNote(array $data): array
+    {
+        try {
+            $userId = $this->authMiddleware->getCurrentUserId();
+            $command = AddEditionNoteCommand::fromArray($data, $userId);
+            
+            $result = $this->addEditionNoteUseCase->execute($command);
+            
+            return $this->successResponse('Note added successfully', $result);
+            
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse($e->getMessage(), 400);
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to add edition note', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->errorResponse('Failed to add note: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Update an edition note
+     * 
+     * @param array $data Request data
+     * @return array Success or error response
+     */
+    public function updateEditionNote(array $data): array
+    {
+        try {
+            $userId = $this->authMiddleware->getCurrentUserId();
+            $command = UpdateEditionNoteCommand::fromArray($data, $userId);
+            
+            $result = $this->updateEditionNoteUseCase->execute($command);
+            
+            return $this->successResponse('Note updated successfully', $result);
+            
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse($e->getMessage(), 400);
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to update edition note', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->errorResponse('Failed to update note: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Delete an edition note
+     * 
+     * @param array $data Request data
+     * @return array Success or error response
+     */
+    public function deleteEditionNote(array $data): array
+    {
+        try {
+            $userId = $this->authMiddleware->getCurrentUserId();
+            $command = DeleteEditionNoteCommand::fromArray($data, $userId);
+            
+            $result = $this->deleteEditionNoteUseCase->execute($command);
+            
+            return $this->successResponse($result['message'], $result);
+            
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse($e->getMessage(), 400);
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to delete edition note', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->errorResponse('Failed to delete note: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Get all notes for a user edition
+     * 
+     * @param array $data Request data
+     * @return array Success or error response
+     */
+    public function getEditionNotes(array $data): array
+    {
+        try {
+            $userId = $this->authMiddleware->getCurrentUserId();
+            $query = GetEditionNotesQuery::fromArray($data, $userId);
+            
+            $result = $this->getEditionNotesUseCase->execute($query);
+            
+            return $this->successResponse('Notes retrieved successfully', $result);
+            
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse($e->getMessage(), 400);
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to get edition notes', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->errorResponse('Failed to get notes: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Get a single edition note by ID
+     * 
+     * @param array $data Request data
+     * @return array Success or error response
+     */
+    public function getEditionNote(array $data): array
+    {
+        try {
+            $userId = $this->authMiddleware->getCurrentUserId();
+            $query = GetEditionNoteQuery::fromArray($data, $userId);
+            
+            $result = $this->getEditionNoteUseCase->execute($query);
+            
+            return $this->successResponse('Note retrieved successfully', $result);
+            
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse($e->getMessage(), 400);
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to get edition note', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->errorResponse('Failed to get note: ' . $e->getMessage(), 500);
+        }
+    }
+}

@@ -12,7 +12,6 @@ use RuntimeException;
  */
 class DatabaseConnector
 {
-    private ?PDO $pdoInstance = null;
     private array $config;
 
     public function __construct()
@@ -29,19 +28,18 @@ class DatabaseConnector
 
     /**
      * Get database connection
+     * NOTE: Creates a NEW connection each time to avoid transaction conflicts in concurrent requests
      */
     public function getConnection(): PDO
     {
-        if ($this->pdoInstance === null) {
-            $this->connect();
-        }
-        return $this->pdoInstance;
+        return $this->connect();
     }
 
     /**
      * Establish database connection
+     * @return PDO New database connection
      */
-    private function connect(): void
+    private function connect(): PDO
     {
         $dsn = sprintf(
             "mysql:host=%s;port=%s;dbname=%s;charset=%s",
@@ -58,7 +56,7 @@ class DatabaseConnector
         ];
 
         try {
-            $this->pdoInstance = new PDO(
+            $pdo = new PDO(
                 $dsn, 
                 $this->config['username'], 
                 $this->config['password'], 
@@ -78,6 +76,8 @@ class DatabaseConnector
                     error_log("Logging error in DatabaseConnector: " . $e->getMessage());
                 }
             }
+            
+            return $pdo;
             
         } catch (PDOException $e) {
             // Log error de conexión

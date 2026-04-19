@@ -7,6 +7,7 @@ namespace App\Router;
 use App\Controllers\AuthController;
 use App\Controllers\BookController;
 use App\Controllers\MovieController;
+use App\Controllers\GameController;
 use App\Controllers\LibraryController;
 use App\Controllers\LibraryXController;
 use App\Controllers\StatsController;
@@ -21,6 +22,15 @@ use App\Domain\DTO\Commands\DeleteMovieCommand;
 use App\Domain\DTO\Commands\UpdateMovieRatingCommand;
 use App\Domain\DTO\Commands\UpdateMovieStatusesCommand;
 use App\Domain\DTO\Commands\EditUserMovieCommand;
+use App\Domain\DTO\Commands\AddMovieNoteCommand;
+use App\Domain\DTO\Commands\UpdateMovieNoteCommand;
+use App\Domain\DTO\Commands\DeleteMovieNoteCommand;
+use App\Domain\DTO\Queries\GetMovieNotesQuery;
+use App\Domain\DTO\Commands\AddGameCommand;
+use App\Domain\DTO\Commands\DeleteGameCommand;
+use App\Domain\DTO\Commands\UpdateGameRatingCommand;
+use App\Domain\DTO\Commands\UpdateGameStatusesCommand;
+use App\Domain\DTO\Commands\EditUserGameCommand;
 use App\Domain\DTO\Commands\CreateReadingSessionCommand;
 use App\Domain\DTO\Commands\CompleteReadingSessionCommand;
 use App\Domain\DTO\Commands\UpdateReadingProgressCommand;
@@ -33,6 +43,7 @@ use App\Domain\DTO\Queries\GetReadingSessionQuery;
 use App\Domain\DTO\Queries\GetUserReadingStatsQuery;
 use App\Domain\DTO\Queries\GetTrendingBooksQuery;
 use App\Domain\DTO\Queries\GetTrendingMoviesQuery;
+use App\Domain\DTO\Queries\GetTrendingGamesQuery;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 
@@ -56,6 +67,7 @@ class ActionRouter
     private ?AuthController $authController = null;
     private ?BookController $bookController = null;
     private ?MovieController $movieController = null;
+    private ?GameController $gameController = null;
     private ?LibraryController $libraryController = null;
     private ?LibraryXController $libraryXController = null;
     private ?StatsController $statsController = null;
@@ -172,6 +184,7 @@ class ActionRouter
             'logout' => $controller->logout(),
             'check_auth' => $controller->checkAuth(),
             'log_frontend' => $controller->logFrontend($data['log_data'] ?? []),
+            'log_frontend_batch' => $controller->logFrontendBatch($data['logs'] ?? []),
             
             // BOOKS - Use Command DTOs
             'add_book' => $controller->addBook(
@@ -205,6 +218,23 @@ class ActionRouter
             'validate_isbn' => $controller->validateISBN($data),
             'search_google_books_isbn' => $controller->searchGoogleBooksByISBN($data),
             
+            // BOOK TAGS - Tag management endpoints
+            'get_user_book_tags' => $controller->getUserBookTags($userId),
+            'create_user_book_tag' => $controller->createUserBookTag(
+                $userId,
+                $data['name'] ?? '',
+                $data['color'] ?? '#1976d2'
+            ),
+            'get_book_tags' => $controller->getBookTags($userId, $data['isbn'] ?? ''),
+            'update_book_tags' => $controller->updateBookTags($userId, $data['isbn'] ?? '', $data['tag_ids'] ?? []),
+            
+            // EDITION NOTES - Note management endpoints
+            'add_edition_note' => $controller->addEditionNote($data),
+            'update_edition_note' => $controller->updateEditionNote($data),
+            'delete_edition_note' => $controller->deleteEditionNote($data),
+            'get_edition_notes' => $controller->getEditionNotes($data),
+            'get_edition_note' => $controller->getEditionNote($data),
+            
             // MOVIES - Use Command DTOs
             'add_movie' => $controller->addMovie(
                 AddMovieCommand::fromArray($data['movie'] ?? [], $userId)
@@ -229,6 +259,102 @@ class ActionRouter
                 GetTrendingMoviesQuery::fromArray($data)
             ),
             
+            // MOVIE TAGS - Tag management endpoints
+            'get_user_movie_tags' => $controller->getUserMovieTags($userId),
+            'create_user_movie_tag' => $controller->createUserMovieTag(
+                $userId,
+                $data['name'] ?? '',
+                $data['color'] ?? '#1976d2'
+            ),
+            'get_movie_tags' => $controller->getMovieTags($userId, $data['isbn'] ?? ''),
+            'update_movie_tags' => $controller->updateMovieTags($userId, $data['isbn'] ?? '', $data['tag_ids'] ?? []),
+            
+            // MOVIE NOTES - Use Command/Query DTOs
+            'get_movie_notes' => $controller->getMovieNotes(
+                GetMovieNotesQuery::fromArray($data, $userId)
+            ),
+            'add_movie_note' => $controller->addMovieNote(
+                AddMovieNoteCommand::fromArray($data, $userId)
+            ),
+            'update_movie_note' => $controller->updateMovieNote(
+                UpdateMovieNoteCommand::fromArray($data, $userId)
+            ),
+            'delete_movie_note' => $controller->deleteMovieNote(
+                DeleteMovieNoteCommand::fromArray($data, $userId)
+            ),
+            
+            // GAMES - Use Command DTOs
+            'add_game' => $controller->addGame(
+                AddGameCommand::fromArray($data['game'] ?? [], $userId)
+            ),
+            'delete_game' => $controller->deleteGame(
+                DeleteGameCommand::fromArray($data, $userId)
+            ),
+            'update_game_rating' => $controller->updateGameRating(
+                UpdateGameRatingCommand::fromArray($data, $userId)
+            ),
+            'update_game_user_statuses' => $controller->updateGameUserStatuses(
+                UpdateGameStatusesCommand::fromArray($data, $userId)
+            ),
+            'edit_user_game' => $controller->editUserGame(
+                EditUserGameCommand::fromArray($data, $userId)
+            ),
+            'get_game_allowed_statuses' => $controller->getGameAllowedStatuses(),
+            'get_games' => $controller->getGames([
+                'userId' => $userId,
+                'filters' => $data['filters'] ?? []
+            ]),
+            'get_trending_games' => $controller->getTrendingGames(
+                GetTrendingGamesQuery::fromArray($data)
+            ),
+            'get_user_game_tags' => $controller->getUserGameTags($userId),
+            'create_user_game_tag' => $controller->createUserGameTag(
+                $userId,
+                $data['name'] ?? '',
+                $data['color'] ?? '#1976d2'
+            ),
+            'delete_user_game_tag' => $controller->deleteUserGameTag($userId, $data['tagId'] ?? 0),
+            'get_game_tags' => $controller->getGameTags($userId, $data['gameId'] ?? 0),
+            'assign_tag_to_game' => $controller->assignTagToGame(
+                $userId,
+                $data['gameId'] ?? 0,
+                $data['tagId'] ?? 0
+            ),
+            'remove_tag_from_game' => $controller->removeTagFromGame(
+                $userId,
+                $data['gameId'] ?? 0,
+                $data['tagId'] ?? 0
+            ),
+            'update_game_tags' => $controller->updateGameTags(
+                $userId,
+                $data['gameId'] ?? 0,
+                $data['tag_ids'] ?? []
+            ),
+            'get_game_notes' => $controller->getGameNotes($userId, $data['gameId'] ?? 0),
+            'add_game_note' => $controller->addGameNote(
+                $userId,
+                $data['gameId'] ?? 0,
+                $data['noteText'] ?? $data['note_text'] ?? '',
+                $data['noteType'] ?? $data['note_type'] ?? 'note',
+                (bool)($data['isPrivate'] ?? $data['is_private'] ?? true)
+            ),
+            'update_game_note' => $controller->updateGameNote(
+                $data['noteId'] ?? $data['note_id'] ?? 0,
+                $userId,
+                $data['noteText'] ?? $data['note_text'] ?? '',
+                $data['noteType'] ?? $data['note_type'] ?? 'note',
+                (bool)($data['isPrivate'] ?? $data['is_private'] ?? true)
+            ),
+            'delete_game_note' => $controller->deleteGameNote(
+                $data['noteId'] ?? $data['note_id'] ?? 0,
+                $userId
+            ),
+            'get_igdb_config' => $controller->getIGDBConfig(),
+            'get_igdb_token' => $controller->getIGDBToken(),
+            'search_igdb_games' => $controller->searchIGDBGames($data),
+            'get_igdb_game_by_id' => $controller->getIGDBGameById($data),
+            'get_igdb_game_details' => $controller->getIGDBGameDetails($data),
+            
             // LIBRARY - No DTOs (complex operations handled internally)
             'get_library_items' => $controller->getLibraryItems($userId),
             'save_library' => $controller->saveLibrary($userId),
@@ -242,6 +368,7 @@ class ActionRouter
             // STATISTICS - No DTOs (simple read operations)
             'get_book_stats' => $controller->getBookStats($userId),
             'get_movie_stats' => $controller->getMovieStats($userId),
+            'get_game_stats' => $controller->getGameStats($userId),
             
             // READING SESSIONS - Use Command/Query DTOs
             'create_reading_session' => $controller->createReadingSession(
@@ -308,6 +435,7 @@ class ActionRouter
             'AuthController' => $this->authController ??= $this->container->get(AuthController::class),
             'BookController' => $this->bookController ??= $this->container->get(BookController::class),
             'MovieController' => $this->movieController ??= $this->container->get(MovieController::class),
+            'GameController' => $this->gameController ??= $this->container->get(GameController::class),
             'LibraryController' => $this->libraryController ??= $this->container->get(LibraryController::class),
             'LibraryXController' => $this->libraryXController ??= $this->container->get(LibraryXController::class),
             'StatsController' => $this->statsController ??= $this->container->get(StatsController::class),

@@ -15,8 +15,7 @@
         <!-- Rating Component -->
         <RatingComponent
           :rating="rating"
-          :editable="editable"
-          @rating-changed="onRatingChange"
+          :editable="false"
         />
         
         <!-- Status Selector Component -->
@@ -24,10 +23,9 @@
           v-model="selectedUserStatuses"
           :allowed-statuses="allowedUserStatuses"
           :multiple="true"
-          :readonly="readonly"
+          :readonly="true"
           label="Status"
-          :subtitle="readonly ? '(solo lectura - usa el modal para editar)' : 'Selecciona estados'"
-          @status-changed="onStatusesChange"
+          subtitle="(solo lectura - usa el modal para editar)"
         />
         
         <!-- Direct action buttons -->
@@ -93,14 +91,10 @@ const props = defineProps({
   editable: {
     type: Boolean,
     default: false
-  },
-  readonly: {
-    type: Boolean,
-    default: false
   }
 });
 
-const emit = defineEmits(['delete-movie', 'update-rating', 'update-statuses', 'save-movie', 'edit-item']);
+const emit = defineEmits(['delete-movie', 'save-movie', 'edit-item']);
 
 // Estados seleccionados (editable)
 const getInitialStatuses = () => {
@@ -135,18 +129,6 @@ const canSave = computed(() => {
 });
 
 // Methods
-const onRatingChange = (newRating) => {
-  rating.value = newRating;
-  Logger.debug('Rating changed to:', newRating);
-  emit('update-rating', { isbn: props.movie.isbn, rating: newRating, itemType: 'movie' });
-};
-
-const onStatusesChange = (statuses) => {
-  selectedUserStatuses.value = statuses;
-  Logger.debug('Statuses changed to:', statuses);
-  emit('update-statuses', { isbn: props.movie.isbn, statuses: statuses, itemType: 'movie' });
-};
-
 const onDeleteMovie = () => {
   Logger.debug('Deleting movie:', props.movie.isbn);
   emit('delete-movie', { isbn: props.movie.isbn, imdbID: props.movie.isbn, itemType: 'movie' });

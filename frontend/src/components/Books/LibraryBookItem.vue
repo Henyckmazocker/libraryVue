@@ -18,17 +18,15 @@
         <!-- Rating Component -->
         <RatingComponent
           :rating="rating"
-          :editable="editable"
-          @rating-changed="onRatingChange"
+          :editable="false"
         />
         
         <!-- Reading Progress Bar -->
         <ReadingProgressBar
           :current-page="currentPage"
           :total-pages="book.pages || 0"
-          :editable="!readonly"
+          :editable="false"
           theme="blue"
-          @update-progress="onUpdateProgress"
         />
         
         <!-- Status Selector Component -->
@@ -36,10 +34,9 @@
           v-model="selectedUserStatuses"
           :allowed-statuses="allowedUserStatuses"
           :multiple="true"
-          :readonly="readonly"
+          :readonly="true"
           label="Status"
-          :subtitle="readonly ? '(solo lectura - usa el modal para editar)' : 'Selecciona estados'"
-          @status-changed="onStatusesChange"
+          subtitle="(solo lectura - usa el modal para editar)"
         />
         
         <!-- Reading Status Widget -->
@@ -112,7 +109,6 @@ import ReadingProgressBar from '@/components/common/ReadingProgressBar.vue';
 import RatingComponent from '@/components/common/RatingComponent.vue';
 import StatusSelector from '@/components/common/StatusSelector.vue';
 import ReadingStatusWidget from '@/components/Books/ReadingStatusWidget.vue';
-import { useBooks } from '@/composables/useBooks';
 import Logger from '@/utils/logger';
 
 const props = defineProps({
@@ -128,19 +124,10 @@ const props = defineProps({
   editable: {
     type: Boolean,
     default: false
-  },
-  readonly: {
-    type: Boolean,
-    default: false
   }
 });
 
-const emit = defineEmits(['delete-book', 'update-progress', 'edit-item', 'update-rating', 'update-statuses', 'save-book', 'show-session-history']);
-
-// Composables
-const { 
-  updateReadingProgress
-} = useBooks();
+const emit = defineEmits(['delete-book', 'edit-item', 'save-book', 'show-session-history']);
 
 // Estados seleccionados (locales para display)
 const selectedUserStatuses = ref(props.book.userStatuses || []);
@@ -155,8 +142,7 @@ Logger.debug('[LibraryBookItem] Component initialized with:', {
   user_rating: props.book.user_rating,
   currentPage: props.book.currentPage,
   allowedUserStatuses: props.allowedUserStatuses,
-  editable: props.editable,
-  readonly: props.readonly
+  editable: props.editable
 });
 
 // Estado del botón de guardar
@@ -177,23 +163,14 @@ const canSave = computed(() => {
 });
 
 // Methods
-const onRatingChange = (newRating) => {
-  rating.value = newRating;
-  Logger.debug('Rating changed:', { isbn: props.book.isbn, rating: newRating });
-  emit('update-rating', { isbn: props.book.isbn, rating: newRating, itemType: 'book' });
-};
-
-const onStatusesChange = (newStatuses) => {
-  selectedUserStatuses.value = newStatuses;
-  Logger.debug('Statuses changed:', { isbn: props.book.isbn, statuses: newStatuses });
-  emit('update-statuses', { isbn: props.book.isbn, statuses: newStatuses, itemType: 'book' });
-};
-
 const onSaveBook = () => {
-  // Emitir evento para guardar el libro
   Logger.debug('Saving book:', props.book.isbn);
-  saveButtonState.value = 'idle'; // Reset state
+  saveButtonState.value = 'idle';
   emit('save-book', { book: props.book, statuses: selectedUserStatuses.value, itemType: 'book' });
+};
+
+const onEditBook = () => {
+  emit('edit-item', props.book, 'book');
 };
 
 // Métodos públicos para actualizar el estado del botón
@@ -233,11 +210,6 @@ defineExpose({
   setEditError
 });
 
-// Methods
-const onEditBook = () => {
-  emit('edit-item', props.book, 'book');
-};
-
 const onShowHistory = () => {
   Logger.debug('[LibraryBookItem] Showing session history for book:', props.book.isbn);
   emit('show-session-history', { book: props.book });
@@ -251,32 +223,6 @@ const onDeleteBook = () => {
 // ===================================
 // HANDLERS DE EVENTOS DEL WIDGET DE SESIONES
 // ===================================
-
-
-
-// Maneja la actualización del progreso de lectura
-const onUpdateProgress = async (currentPageValue) => {
-  try {
-    Logger.debug('Updating reading progress:', { isbn: props.book.isbn, currentPage: currentPageValue });
-    
-    // Usar el método tradicional de actualización de progreso
-    const result = await updateReadingProgress(props.book.isbn, currentPageValue);
-    
-    if (result.success) {
-      currentPage.value = currentPageValue; // Actualiza el valor local
-      
-      // Emite evento para que el componente padre actualice el libro
-      emit('update-progress', { 
-        isbn: props.book.isbn, 
-        updates: { currentPage: currentPageValue } 
-      });
-    } else {
-      Logger.error('Error updating reading progress:', result.message);
-    }
-  } catch (error) {
-    Logger.error('Error updating reading progress:', error);
-  }
-};
 
 watch(() => props.book.user_rating, (newRating) => {
   Logger.debug('[LibraryBookItem] user_rating changed:', { old: rating.value, new: newRating });

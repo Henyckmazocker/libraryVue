@@ -63,7 +63,7 @@ final class MySqlMovieTagRepository implements MovieTagRepositoryInterface
         }
     }
 
-    public function create(int $userId, string $name, string $color = '#007bff'): int
+    public function create(int $userId, string $name, string $color): int
     {
         try {
             $sql = 'INSERT INTO user_movie_tags (user_id, name, color) VALUES (:userId, :name, :color)';

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\Persistence\Book;
 
 use App\Domain\Repository\Book\ReadingSessionRepositoryInterface;
+use App\Domain\Repository\Book\UserBookEditionRepositoryInterface;
 use App\Infrastructure\Persistence\Concerns\LoggableTrait;
 use PDO;
 use PDOException;
@@ -21,7 +22,8 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
 
     public function __construct(
         private readonly PDO $db,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly UserBookEditionRepositoryInterface $userBookEditionRepository
     ) {}
 
     public function create(
@@ -37,6 +39,19 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
             $editionId = $this->getEditionIdFromIsbn($isbn);
             if (!$editionId) {
                 throw new RuntimeException("Edition not found for ISBN: {$isbn}");
+            }
+
+            // ✅ PREVENCIÓN: Verificar que no haya otra sesión activa
+            $existingActive = $this->getActive($userId, $isbn);
+            if ($existingActive !== null) {
+                $this->logError('Attempted to create duplicate active session', null, [
+                    'userId' => $userId,
+                    'isbn' => $isbn,
+                    'existingSessionId' => $existingActive['id']
+                ]);
+                throw new RuntimeException(
+                    "Cannot create session: User already has an active reading session for this book (Session ID: {$existingActive['id']})"
+                );
             }
 
             $sessionNumber = $sessionNumber ?? $this->getNextSessionNumber($userId, $isbn);
@@ -550,17 +565,59 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
     {
         try {
             $userId = (int) $userId;
+            
+            // Get edition_id from ISBN
+            $editionId = $this->getEditionIdFromIsbn($isbn);
+            if (!$editionId) {
+                $this->logError('Cannot update statuses: edition not found', null, [
+                    'userId' => $userId,
+                    'isbn' => $isbn
+                ]);
+                return; // Salida silenciosa si no se encuentra la edición
+            }
+
             $hasCompleted = $this->hasCompletedBook($userId, $isbn);
             $hasActive = $this->getActive($userId, $isbn) !== null;
 
-            // This would interact with UserBookRepository to update statuses
-            // Implementation depends on status management strategy
-            $this->logInfo('Book statuses update requested', [
+            // Obtener estados actuales
+            $currentStatuses = $this->userBookEditionRepository->getStatusesForEdition($userId, $editionId);
+            
+            // Estados de propiedad que siempre se mantienen
+            $ownershipStates = ['owned', 'want-to-buy'];
+            $ownershipStatuses = array_intersect($currentStatuses, $ownershipStates);
+
+            // Determinar nuevos estados basados en sesiones
+            $newStatuses = $ownershipStatuses; // Mantener siempre ownership
+
+            if ($hasActive) {
+                // Hay sesión activa → debe estar en 'reading' o 're-reading'
+                if ($hasCompleted) {
+                    $newStatuses[] = 're-reading'; // Ya completó antes, es relectura
+                } else {
+                    $newStatuses[] = 'reading'; // Primera lectura
+                }
+            }
+
+            if ($hasCompleted) {
+                // Ha completado al menos una vez → añadir 'read'
+                $newStatuses[] = 'read';
+            }
+
+            // Eliminar duplicados y actualizar
+            $newStatuses = array_unique($newStatuses);
+
+            $this->logInfo('Updating book statuses based on sessions', [
                 'userId' => $userId,
                 'isbn' => $isbn,
+                'editionId' => $editionId,
                 'hasCompleted' => $hasCompleted,
-                'hasActive' => $hasActive
+                'hasActive' => $hasActive,
+                'previousStatuses' => $currentStatuses,
+                'newStatuses' => $newStatuses
             ]);
+
+            // Actualizar estados en la base de datos
+            $this->userBookEditionRepository->updateStatuses($userId, $editionId, $newStatuses);
 
         } catch (PDOException $e) {
             $this->logError('Error updating book statuses', $e, [
@@ -568,6 +625,12 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
                 'isbn' => $isbn
             ]);
             throw new RuntimeException("Could not update book statuses: " . $e->getMessage(), 0, $e);
+        } catch (\Exception $e) {
+            $this->logError('Unexpected error updating book statuses', $e, [
+                'userId' => $userId,
+                'isbn' => $isbn
+            ]);
+            throw new RuntimeException("Unexpected error updating book statuses: " . $e->getMessage(), 0, $e);
         }
     }
 

@@ -1,27 +1,52 @@
 <template>
   <AppLayout>
-    <router-view />
+    <div v-if="showLoading" class="app-loading">
+      <i class="pi pi-spin pi-spinner app-loading__spinner"></i>
+    </div>
+    <router-view v-else v-slot="{ Component }">
+      <Transition name="page-fade" mode="out-in">
+        <component :is="Component" :key="$route.path" />
+      </Transition>
+    </router-view>
   </AppLayout>
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import AppLayout from '@/components/common/Layout.vue';
 import { useUIStore } from '@/store/ui';
+import { useAuthStore } from '@/store/auth';
+import { useRoute } from 'vue-router';
 
-// Inicializar el tema al montar la aplicación
 const uiStore = useUIStore();
+const authStore = useAuthStore();
+const route = useRoute();
+
+// Mostrar loading solo mientras se verifica auth en rutas protegidas
+const showLoading = computed(() => {
+  return route.meta.requiresAuth && !authStore._authChecked;
+});
 
 onMounted(() => {
-  // Cargar y aplicar el tema guardado o detectar preferencia del sistema
   uiStore.loadTheme();
-  // Inicializar listener de cambios del sistema
   uiStore.initSystemThemeListener();
 });
 </script>
 
 <style>
 @import '@/assets/styles/variables.css';
+
+.app-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 70px);
+}
+
+.app-loading__spinner {
+  font-size: 2.5rem;
+  color: var(--color-secondary);
+}
 
 /* Reset completo para eliminar scroll no deseado */
 html, body {
@@ -118,6 +143,20 @@ a:hover {
 .mt-2 { margin-top: 1rem; }
 .mt-3 { margin-top: 1.5rem; }
 .mt-4 { margin-top: 2rem; }
+
+/* Page transition — fade suave entre páginas */
+.page-fade-enter-active {
+  transition: opacity 0.15s ease;
+}
+
+.page-fade-leave-active {
+  transition: opacity 0.1s ease;
+}
+
+.page-fade-enter-from,
+.page-fade-leave-to {
+  opacity: 0;
+}
 
 /* Global z-index fix for PrimeVue dropdowns in modals */
 .p-multiselect-panel,

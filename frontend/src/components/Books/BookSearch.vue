@@ -189,7 +189,7 @@ const navigateToDetail = (router, book) => {
   router.push({
     name: 'BookDetail',
     params: { isbn: isbn },
-    state: { book: bookData }
+    state: { book: JSON.parse(JSON.stringify(bookData)) }
   });
 };
 
@@ -216,7 +216,7 @@ const handleTrendingClick = (book) => {
   router.push({
     name: 'BookDetail',
     params: { isbn: book.isbn },
-    state: { book: bookData }
+    state: { book: JSON.parse(JSON.stringify(bookData)) }
   });
 };
 

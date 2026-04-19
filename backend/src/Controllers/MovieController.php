@@ -12,16 +12,23 @@ use App\Domain\UseCases\Movies\GetMoviesUseCase;
 use App\Domain\UseCases\Movies\GetMovieAllowedStatusesUseCase;
 use App\Domain\UseCases\Movies\EditUserMovieUseCase;
 use App\Domain\UseCases\Movies\GetTrendingMoviesUseCase;
+use App\Domain\UseCases\Movies\AddMovieNoteUseCase;
+use App\Domain\UseCases\Movies\GetMovieNotesUseCase;
+use App\Domain\UseCases\Movies\UpdateMovieNoteUseCase;
+use App\Domain\UseCases\Movies\DeleteMovieNoteUseCase;
 use App\Domain\DTO\Commands\AddMovieCommand;
 use App\Domain\DTO\Commands\DeleteMovieCommand;
 use App\Domain\DTO\Commands\UpdateMovieRatingCommand;
 use App\Domain\DTO\Commands\UpdateMovieStatusesCommand;
 use App\Domain\DTO\Commands\EditUserMovieCommand;
+use App\Domain\DTO\Commands\AddMovieNoteCommand;
+use App\Domain\DTO\Commands\UpdateMovieNoteCommand;
+use App\Domain\DTO\Commands\DeleteMovieNoteCommand;
 use App\Domain\DTO\Queries\GetMoviesByUserQuery;
+use App\Domain\DTO\Queries\GetMovieNotesQuery;
 use App\Domain\DTO\Queries\GetTrendingMoviesQuery;
 use App\Infrastructure\Middleware\AuthMiddleware;
 use App\Domain\Repository\Movie\MovieTagRepositoryInterface;
-use App\Domain\Repository\Movie\MovieNoteRepositoryInterface;
 
 class MovieController extends BaseController implements Contracts\MovieControllerInterface
 {
@@ -35,8 +42,11 @@ class MovieController extends BaseController implements Contracts\MovieControlle
     private AuthMiddleware $authMiddleware;
     private EditUserMovieUseCase $editUserMovieUseCase;
     private MovieTagRepositoryInterface $movieTagRepository;
-    private MovieNoteRepositoryInterface $movieNoteRepository;
     private GetTrendingMoviesUseCase $getTrendingMoviesUseCase;
+    private AddMovieNoteUseCase $addMovieNoteUseCase;
+    private GetMovieNotesUseCase $getMovieNotesUseCase;
+    private UpdateMovieNoteUseCase $updateMovieNoteUseCase;
+    private DeleteMovieNoteUseCase $deleteMovieNoteUseCase;
 
     public function __construct(
         AddMovieUseCase $addMovieUseCase,
@@ -48,8 +58,11 @@ class MovieController extends BaseController implements Contracts\MovieControlle
         AuthMiddleware $authMiddleware,
         EditUserMovieUseCase $editUserMovieUseCase,
         MovieTagRepositoryInterface $movieTagRepository,
-        MovieNoteRepositoryInterface $movieNoteRepository,
-        GetTrendingMoviesUseCase $getTrendingMoviesUseCase
+        GetTrendingMoviesUseCase $getTrendingMoviesUseCase,
+        AddMovieNoteUseCase $addMovieNoteUseCase,
+        GetMovieNotesUseCase $getMovieNotesUseCase,
+        UpdateMovieNoteUseCase $updateMovieNoteUseCase,
+        DeleteMovieNoteUseCase $deleteMovieNoteUseCase
     ) {
         $this->addMovieUseCase = $addMovieUseCase;
         $this->deleteMovieUseCase = $deleteMovieUseCase;
@@ -60,8 +73,11 @@ class MovieController extends BaseController implements Contracts\MovieControlle
         $this->editUserMovieUseCase = $editUserMovieUseCase;
         $this->authMiddleware = $authMiddleware;
         $this->movieTagRepository = $movieTagRepository;
-        $this->movieNoteRepository = $movieNoteRepository;
         $this->getTrendingMoviesUseCase = $getTrendingMoviesUseCase;
+        $this->addMovieNoteUseCase = $addMovieNoteUseCase;
+        $this->getMovieNotesUseCase = $getMovieNotesUseCase;
+        $this->updateMovieNoteUseCase = $updateMovieNoteUseCase;
+        $this->deleteMovieNoteUseCase = $deleteMovieNoteUseCase;
     }
 
     /**
@@ -193,6 +209,30 @@ class MovieController extends BaseController implements Contracts\MovieControlle
     }
 
     /**
+     * Actualiza los tags de una película
+     * @param int $userId User ID
+     * @param string $movieIsbn Movie ISBN/ID
+     * @param array $tagIds Array of tag IDs to assign
+     * @return array Response
+     */
+    public function updateMovieTags(int $userId, string $movieIsbn, array $tagIds): array
+    {
+        try {
+            // Remove all current tags
+            $this->movieTagRepository->removeAll($userId, $movieIsbn);
+            
+            // Assign new tags
+            foreach ($tagIds as $tagId) {
+                $this->movieTagRepository->assign($userId, $movieIsbn, (int)$tagId);
+            }
+            
+            return $this->successResponse('Tags de la película actualizados correctamente');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error al actualizar tags de la película: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Get trending movies based on user activity
      * 
      * @param GetTrendingMoviesQuery $query Query containing limit and daysWindow
@@ -212,5 +252,53 @@ class MovieController extends BaseController implements Contracts\MovieControlle
         
         $trendingMovies = $this->getTrendingMoviesUseCase->execute($queryWithUser);
         return $this->successResponse('Trending movies retrieved.', $trendingMovies);
+    }
+
+    /**
+     * Get notes for a specific movie
+     * 
+     * @param GetMovieNotesQuery $query
+     * @return array Success response with movie notes
+     */
+    public function getMovieNotes(GetMovieNotesQuery $query): array
+    {
+        $notes = $this->getMovieNotesUseCase->execute($query);
+        return $this->successResponse('Movie notes retrieved successfully', $notes);
+    }
+
+    /**
+     * Add a note to a movie
+     * 
+     * @param AddMovieNoteCommand $command
+     * @return array Success response with created note data
+     */
+    public function addMovieNote(AddMovieNoteCommand $command): array
+    {
+        $noteData = $this->addMovieNoteUseCase->execute($command);
+        return $this->successResponse('Movie note added successfully', ['note' => $noteData]);
+    }
+
+    /**
+     * Update a movie note
+     * 
+     * @param UpdateMovieNoteCommand $command
+     * @return array Success response
+     */
+    public function updateMovieNote(UpdateMovieNoteCommand $command): array
+    {
+        $this->updateMovieNoteUseCase->execute($command);
+        return $this->successResponse('Movie note updated successfully');
+    }
+
+    /**
+     * Delete a movie note
+     * 
+     * @param DeleteMovieNoteCommand $command
+     * @return array Success response
+     */
+    public function deleteMovieNote(DeleteMovieNoteCommand $command): array
+    {
+        $this->deleteMovieNoteUseCase->execute($command);
+        return $this->successResponse('Movie note deleted successfully');
     }
 }

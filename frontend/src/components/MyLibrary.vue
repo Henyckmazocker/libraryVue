@@ -6,6 +6,7 @@
       <div class="filter-checkboxes filter-checkboxes-row">
         <label class="filter-checkbox-pill"><input type="checkbox" v-model="showBooks" /> <i class="fas fa-book"></i></label>
         <label class="filter-checkbox-pill"><input type="checkbox" v-model="showMovies" /> <i class="fas fa-film"></i></label>
+        <label class="filter-checkbox-pill"><input type="checkbox" v-model="showGames" /> <i class="fas fa-gamepad"></i></label>
         <button @click="openImportModal" class="import-button">
           <i class="fas fa-folder-open"></i>
         </button>
@@ -60,7 +61,7 @@
     </div>
 
     <div v-if="displayedItems.length > 0" class="book-list">
-      <template v-for="item in displayedItems" :key="item.itemType + '-' + (item.isbn || item.imdbID)">
+      <template v-for="item in displayedItems" :key="item.itemType + '-' + (item.isbn || item.imdbID || item.id || item.rawgId)">
         <BookListItem
           v-if="item.itemType === 'book'"
           :book="item"
@@ -73,6 +74,13 @@
           :movie="item"
           :allowedStatuses="allowedUserStatusesList('movie')"
           @click="navigateToMovieDetail(item)"
+          class="book-item"
+        />
+        <GameListItem
+          v-else-if="item.itemType === 'game'"
+          :game="item"
+          :allowedStatuses="allowedUserStatusesList('game')"
+          @click="navigateToGameDetail(item)"
           class="book-item"
         />
       </template>
@@ -92,12 +100,14 @@ import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useBooks } from '@/composables/useBooks';
 import { useMovies } from '@/composables/useMovies';
+import { useGames } from '@/composables/useGames';
 import { useSearch } from '@/composables/useSearch';
 import { useUIStore } from '@/store/ui';
 import { useAuth } from '@/composables/useAuth';
 import Logger from '@/utils/logger';
 import BookListItem from './Books/BookListItem.vue';
 import MovieListItem from './Movies/MovieListItem.vue';
+import GameListItem from './Games/GameListItem.vue';
 import ImportModal from './ImportModal.vue';
 
 // Composables
@@ -105,6 +115,7 @@ const router = useRouter();
 const { isAuthenticated } = useAuth();
 const booksComposable = useBooks();
 const moviesComposable = useMovies();
+const gamesComposable = useGames();
 const uiStore = useUIStore();
 
 // Configurar búsqueda con debouncing
@@ -116,6 +127,7 @@ const searchSystem = useSearch({
 // Estados locales del componente
 const showBooks = ref(true);
 const showMovies = ref(true);
+const showGames = ref(true);
 const fetchError = ref("");
 const sortField = ref('date');
 const sortDirection = ref('desc');
@@ -139,37 +151,42 @@ const toggleSort = (field) => {
 
 // Estados computados combinados
 const isLoading = computed(() => 
-  booksComposable.isLoading.value || moviesComposable.isLoading.value
+  booksComposable.isLoading.value || moviesComposable.isLoading.value || gamesComposable.isLoading.value
 );
 
 const items = computed(() => {
   const books = booksComposable.books.value.map(book => ({ ...book, itemType: 'book' }));
   const movies = moviesComposable.movies.value.map(movie => ({ ...movie, itemType: 'movie' }));
-  return [...books, ...movies];
+  const games = gamesComposable.games.value.map(game => ({ ...game, itemType: 'game' }));
+  return [...books, ...movies, ...games];
 });
 
 const allowedBookUserStatuses = computed(() => booksComposable.allowedStatuses.value);
 const allowedMovieUserStatuses = computed(() => moviesComposable.allowedStatuses.value);
+const allowedGameUserStatuses = computed(() => gamesComposable.allowedStatuses.value);
 
 const allowedUserStatusesList = (itemType) => {
   if (itemType === 'movie') return allowedMovieUserStatuses.value;
+  if (itemType === 'game') return allowedGameUserStatuses.value;
   return allowedBookUserStatuses.value;
 };
 
 const fetchLibrary = async () => {
   fetchError.value = "";
   try {
-    // Cargar libros y películas en paralelo usando los composables
+    // Cargar libros, películas y juegos en paralelo usando los composables
     await Promise.all([
       booksComposable.fetchBooks(),
       moviesComposable.fetchMovies(),
+      gamesComposable.fetchGames(),
       booksComposable.fetchAllowedStatuses(),
-      moviesComposable.fetchAllowedStatuses()
+      moviesComposable.fetchAllowedStatuses(),
+      gamesComposable.fetchAllowedStatuses()
     ]);
 
     // Verificar errores de los composables
-    if (booksComposable.error.value || moviesComposable.error.value) {
-      const errors = [booksComposable.error.value, moviesComposable.error.value].filter(Boolean);
+    if (booksComposable.error.value || moviesComposable.error.value || gamesComposable.error.value) {
+      const errors = [booksComposable.error.value, moviesComposable.error.value, gamesComposable.error.value].filter(Boolean);
       fetchError.value = errors.join('; ');
     }
   } catch (error) {
@@ -185,6 +202,7 @@ const displayedItems = computed(() => {
   processed = processed.filter(item => {
     if (item.itemType === 'book' && !showBooks.value) return false;
     if (item.itemType === 'movie' && !showMovies.value) return false;
+    if (item.itemType === 'game' && !showGames.value) return false;
     return true;
   });
   
@@ -193,8 +211,10 @@ const displayedItems = computed(() => {
     const lowerSearchQuery = searchSystem.query.value.toLowerCase();
     processed = processed.filter(item =>
       (item.title && item.title.toLowerCase().includes(lowerSearchQuery)) ||
+      (item.name && item.name.toLowerCase().includes(lowerSearchQuery)) ||
       (item.author && item.author.toLowerCase().includes(lowerSearchQuery)) ||
-      (item.director && item.director.toLowerCase().includes(lowerSearchQuery))
+      (item.director && item.director.toLowerCase().includes(lowerSearchQuery)) ||
+      (item.developer && item.developer.toLowerCase().includes(lowerSearchQuery))
     );
   }
   
@@ -208,10 +228,10 @@ const displayedItems = computed(() => {
       processed.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
       break;
     case 'author-asc':
-      processed.sort((a, b) => (a.author || a.director || '').localeCompare(b.author || b.director || ''));
+      processed.sort((a, b) => (a.author || a.director || a.developer || '').localeCompare(b.author || b.director || b.developer || ''));
       break;
     case 'author-desc':
-      processed.sort((a, b) => (b.author || b.director || '').localeCompare(a.author || a.director || ''));
+      processed.sort((a, b) => (b.author || b.director || b.developer || '').localeCompare(a.author || a.director || a.developer || ''));
       break;
     case 'rating-desc':
       processed.sort((a, b) => {
@@ -244,7 +264,7 @@ const navigateToBookDetail = (book) => {
   router.push({
     name: 'BookDetail',
     params: { isbn: book.isbn },
-    state: { book }
+    state: { book: JSON.parse(JSON.stringify(book)) }
   });
 };
 
@@ -253,7 +273,16 @@ const navigateToMovieDetail = (movie) => {
   router.push({
     name: 'MovieDetail',
     params: { imdbId: movie.imdbID },
-    state: { movie }
+    state: { movie: JSON.parse(JSON.stringify(movie)) }
+  })
+};
+
+// Navigate to game detail page
+const navigateToGameDetail = (game) => {
+  router.push({
+    name: 'GameDetail',
+    params: { gameId: game.id || game.rawgId || game.gameId },
+    state: { game: JSON.parse(JSON.stringify(game)) }
   })
 };
 

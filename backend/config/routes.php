@@ -47,6 +47,12 @@ return [
         'validation' => []
     ],
 
+    'log_frontend_batch' => [
+        'controller' => ['AuthController', 'logFrontendBatch'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => []
+    ],
+
     // ============================================================================
     // BOOKS ROUTES - Write operations require Auth + CSRF
     // ============================================================================
@@ -169,6 +175,102 @@ return [
         'validation' => []
     ],
 
+    // BOOKS - Edition Notes (Auth + CSRF for write operations)
+    'add_edition_note' => [
+        'controller' => ['BookController', 'addEditionNote'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['userEditionId', 'pageNumber']]]
+        ],
+        'validation' => ['userEditionId', 'pageNumber']
+    ],
+
+    'update_edition_note' => [
+        'controller' => ['BookController', 'updateEditionNote'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['noteId']]]
+        ],
+        'validation' => ['noteId']
+    ],
+
+    'delete_edition_note' => [
+        'controller' => ['BookController', 'deleteEditionNote'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['noteId']]]
+        ],
+        'validation' => ['noteId']
+    ],
+
+    'get_edition_notes' => [
+        'controller' => ['BookController', 'getEditionNotes'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['userEditionId']]]
+        ],
+        'validation' => ['userEditionId']
+    ],
+
+    'get_edition_note' => [
+        'controller' => ['BookController', 'getEditionNote'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['noteId']]]
+        ],
+        'validation' => ['noteId']
+    ],
+
+    // BOOK TAGS ROUTES
+    'get_user_book_tags' => [
+        'controller' => ['BookController', 'getUserBookTags'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
+    'create_user_book_tag' => [
+        'controller' => ['BookController', 'createUserBookTag'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['name']]]
+        ],
+        'validation' => ['name']
+    ],
+
+    'get_book_tags' => [
+        'controller' => ['BookController', 'getBookTags'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['isbn']]]
+        ],
+        'validation' => ['isbn']
+    ],
+
+    'update_book_tags' => [
+        'controller' => ['BookController', 'updateBookTags'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['isbn', 'tag_ids']]]
+        ],
+        'validation' => ['isbn', 'tag_ids']
+    ],
+
     // ============================================================================
     // MOVIES ROUTES - Write operations require Auth + CSRF
     // ============================================================================
@@ -252,6 +354,91 @@ return [
         'validation' => []
     ],
 
+    // MOVIE TAGS ROUTES
+    'get_user_movie_tags' => [
+        'controller' => ['MovieController', 'getUserMovieTags'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
+    'create_user_movie_tag' => [
+        'controller' => ['MovieController', 'createUserMovieTag'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['name']]]
+        ],
+        'validation' => ['name']
+    ],
+
+    'get_movie_tags' => [
+        'controller' => ['MovieController', 'getMovieTags'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['isbn']]]
+        ],
+        'validation' => ['isbn']
+    ],
+
+    'update_movie_tags' => [
+        'controller' => ['MovieController', 'updateMovieTags'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['isbn', 'tag_ids']]]
+        ],
+        'validation' => ['isbn', 'tag_ids']
+    ],
+
+    // MOVIE NOTES ROUTES
+    'get_movie_notes' => [
+        'controller' => ['MovieController', 'getMovieNotes'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
+    'add_movie_note' => [
+        'controller' => ['MovieController', 'addMovieNote'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['movieIsbn', 'noteText']]]
+        ],
+        'validation' => ['movieIsbn', 'noteText']
+    ],
+
+    'update_movie_note' => [
+        'controller' => ['MovieController', 'updateMovieNote'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['noteId', 'noteText']]]
+        ],
+        'validation' => ['noteId', 'noteText']
+    ],
+
+    'delete_movie_note' => [
+        'controller' => ['MovieController', 'deleteMovieNote'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['noteId']]]
+        ],
+        'validation' => ['noteId']
+    ],
+
     // ============================================================================
     // LIBRARY ROUTES
     // ============================================================================
@@ -333,6 +520,15 @@ return [
         'validation' => []
     ],
 
+    'get_game_stats' => [
+        'controller' => ['StatsController', 'getGameStats'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
     // ============================================================================
     // READING SESSIONS ROUTES
     // ============================================================================
@@ -368,17 +564,6 @@ return [
     ],
 
     'update_reading_progress' => [
-        'controller' => ['BookController', 'updateReadingProgressWithSession'],
-        'middleware' => [
-            LoggingMiddleware::class,
-            AuthenticationMiddleware::class,
-            CSRFMiddleware::class,
-            [ValidationMiddleware::class, ['required' => ['isbn', 'currentPage']]]
-        ],
-        'validation' => ['isbn', 'currentPage']
-    ],
-
-    'update_reading_progress_with_session' => [
         'controller' => ['BookController', 'updateReadingProgressWithSession'],
         'middleware' => [
             LoggingMiddleware::class,
@@ -495,4 +680,236 @@ return [
         ],
         'validation' => []
     ],
+
+    // ============================================================================
+    // GAMES ROUTES - Write operations require Auth + CSRF
+    // ============================================================================
+    'add_game' => [
+        'controller' => ['GameController', 'addGame'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['game']]]
+        ],
+        'validation' => ['game']
+    ],
+    
+    'delete_game' => [
+        'controller' => ['GameController', 'deleteGame'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['gameId']]]
+        ],
+        'validation' => ['gameId']
+    ],
+    
+    'update_game_rating' => [
+        'controller' => ['GameController', 'updateGameRating'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['gameId', 'rating']]]
+        ],
+        'validation' => ['gameId', 'rating']
+    ],
+    
+    'update_game_user_statuses' => [
+        'controller' => ['GameController', 'updateGameUserStatuses'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['gameId', 'statuses']]]
+        ],
+        'validation' => ['gameId', 'statuses']
+    ],
+    
+    'edit_user_game' => [
+        'controller' => ['GameController', 'editUserGame'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['gameId']]]
+        ],
+        'validation' => ['gameId']
+    ],
+    
+    // GAMES - Read operations (Auth only, no CSRF)
+    'get_game_allowed_statuses' => [
+        'controller' => ['GameController', 'getGameAllowedStatuses'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => []
+    ],
+    
+    'get_games' => [
+        'controller' => ['GameController', 'getGames'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
+    'get_trending_games' => [
+        'controller' => ['GameController', 'getTrendingGames'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
+    // GAME TAGS ROUTES
+    'get_user_game_tags' => [
+        'controller' => ['GameController', 'getUserGameTags'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
+    'create_user_game_tag' => [
+        'controller' => ['GameController', 'createUserGameTag'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['name']]]
+        ],
+        'validation' => ['name']
+    ],
+
+    'delete_user_game_tag' => [
+        'controller' => ['GameController', 'deleteUserGameTag'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['tagId']]]
+        ],
+        'validation' => ['tagId']
+    ],
+
+    'get_game_tags' => [
+        'controller' => ['GameController', 'getGameTags'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
+    'assign_tag_to_game' => [
+        'controller' => ['GameController', 'assignTagToGame'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['gameId', 'tagId']]]
+        ],
+        'validation' => ['gameId', 'tagId']
+    ],
+
+    'remove_tag_from_game' => [
+        'controller' => ['GameController', 'removeTagFromGame'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['gameId', 'tagId']]]
+        ],
+        'validation' => ['gameId', 'tagId']
+    ],
+
+    'update_game_tags' => [
+        'controller' => ['GameController', 'updateGameTags'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['gameId', 'tag_ids']]]
+        ],
+        'validation' => ['gameId', 'tag_ids']
+    ],
+
+    // GAME NOTES ROUTES
+    'get_game_notes' => [
+        'controller' => ['GameController', 'getGameNotes'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
+    'add_game_note' => [
+        'controller' => ['GameController', 'addGameNote'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['gameId', 'noteText']]]
+        ],
+        'validation' => ['gameId', 'noteText']
+    ],
+
+    'update_game_note' => [
+        'controller' => ['GameController', 'updateGameNote'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['noteId', 'noteText']]]
+        ],
+        'validation' => ['noteId', 'noteText']
+    ],
+
+    'delete_game_note' => [
+        'controller' => ['GameController', 'deleteGameNote'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['noteId']]]
+        ],
+        'validation' => ['noteId']
+    ],
+
+    // IGDB API CONFIGURATION (Public endpoints - no auth required)
+    'get_igdb_config' => [
+        'controller' => ['GameController', 'getIGDBConfig'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => []
+    ],
+
+    'get_igdb_token' => [
+        'controller' => ['GameController', 'getIGDBToken'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => []
+    ],
+
+    // IGDB API PROXY ENDPOINTS (Public - to avoid CORS issues)
+    'search_igdb_games' => [
+        'controller' => ['GameController', 'searchIGDBGames'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => ['query']
+    ],
+
+    'get_igdb_game_by_id' => [
+        'controller' => ['GameController', 'getIGDBGameById'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => ['gameId']
+    ],
+
+    'get_igdb_game_details' => [
+        'controller' => ['GameController', 'getIGDBGameDetails'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => ['gameId']
+    ]
 ];

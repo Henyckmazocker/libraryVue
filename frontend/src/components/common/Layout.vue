@@ -34,18 +34,14 @@ export default {
 </script>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 import AppHeader from './Header.vue';
 import AppSidebar from './Sidebar.vue';
 import ConfirmationModal from './ConfirmationModal.vue';
 import { useConfirmationModal } from '@/composables/useConfirmationModal';
-import { useAuth } from '@/composables/useAuth';
 
 // Estado del sidebar
 const sidebarCollapsed = ref(false);
-
-// Auth composable
-const { initializeAuth } = useAuth();
 
 // Modal de confirmación
 const { modalState, handleConfirm, handleCancel } = useConfirmationModal();
@@ -58,11 +54,6 @@ const handleSidebarToggle = (collapsed) => {
 const handleLogout = () => {
   // Additional logout logic can be added here if needed
 };
-
-// Initialize auth on mount
-onMounted(async () => {
-  await initializeAuth();
-});
 </script>
 
 <style scoped>

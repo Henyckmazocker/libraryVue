@@ -434,8 +434,26 @@ export const useSessionsStore = defineStore('sessions', {
         })
 
         if (response.data.status === 'success') {
+          const result = response.data.data || {}
+          
+          // ✅ Si vienen estados actualizados, actualizar el libro en el store
+          if (result.updatedStatuses && Array.isArray(result.updatedStatuses)) {
+            // Usar import dinámico para evitar dependencias circulares
+            import('./books').then(({ useBooksStore }) => {
+              const bookStore = useBooksStore()
+              const book = bookStore.books.find(b => b.isbn === bookId)
+              
+              if (book) {
+                book.userStatuses = result.updatedStatuses
+                Logger.debug('[SessionsStore] Book statuses updated in store:', result.updatedStatuses)
+              }
+            }).catch(err => {
+              Logger.error('[SessionsStore] Error updating book statuses:', err)
+            })
+          }
+          
           Logger.debug('[SessionsStore] Progress updated successfully')
-          return { success: true }
+          return { success: true, data: result }
         } else {
           throw new Error(response.data.message || 'Failed to update progress')
         }

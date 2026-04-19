@@ -93,7 +93,7 @@ const searchMovies = async (query, searchType) => {
   if (searchType === 'title') {
     try {
       Logger.debug('[MovieSearch] Searching movies:', query);
-      const apiKey = 'f03583fd';
+      const apiKey = process.env.VUE_APP_OMDB_API_KEY;
       const url = `https://www.omdbapi.com/?apikey=${apiKey}&s=${encodeURIComponent(query)}`;
       const response = await axios.get(url);
       
@@ -153,7 +153,7 @@ const navigateToDetail = (router, movie) => {
   router.push({
     name: 'MovieDetail',
     params: { imdbId: movie.imdbID },
-    state: { movie: movieData }
+    state: { movie: JSON.parse(JSON.stringify(movieData)) }
   });
 };
 
@@ -178,7 +178,7 @@ const handleTrendingClick = (movie) => {
   router.push({
     name: 'MovieDetail',
     params: { imdbId: movie.isbn },
-    state: { movie: movieData }
+    state: { movie: JSON.parse(JSON.stringify(movieData)) }
   });
 };
 

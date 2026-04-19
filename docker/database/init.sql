@@ -597,9 +597,189 @@ CREATE INDEX idx_user_editions_completed_sessions ON user_book_editions(user_id,
 CREATE INDEX idx_user_editions_rating_filter ON user_book_editions(user_id, edition_rating);
 
 -- ============================================================================
+-- SISTEMA DE VIDEOJUEGOS
+-- ============================================================================
+
+-- Tabla principal de videojuegos
+CREATE TABLE IF NOT EXISTS games (
+    id INT UNSIGNED PRIMARY KEY,  -- ID de RAWG API
+    slug VARCHAR(255) NOT NULL UNIQUE, -- Identificador único tipo "the-witcher-3"
+    title VARCHAR(255) NOT NULL,
+    release_date DATE DEFAULT NULL,
+    developer VARCHAR(255) DEFAULT NULL,  -- Desarrollador principal
+    publisher VARCHAR(255) DEFAULT NULL,  -- Distribuidor/Editorial
+    coverUrl VARCHAR(1024) DEFAULT NULL,  -- URL de imagen de portada
+    backgroundUrl VARCHAR(1024) DEFAULT NULL, -- URL de imagen de fondo
+    rating DECIMAL(2,1) DEFAULT NULL, -- Rating general (0.5-5.0)
+    description TEXT DEFAULT NULL, -- Sinopsis del juego
+    platforms JSON DEFAULT NULL, -- Array de plataformas ["PC", "PS4", "Xbox One"]
+    genres JSON DEFAULT NULL, -- Array de géneros ["Action", "RPG", "Adventure"]
+    esrb_rating VARCHAR(20) DEFAULT NULL, -- Clasificación ESRB (E, T, M, AO)
+    playtime INT UNSIGNED DEFAULT NULL, -- Tiempo de juego en horas (estimado)
+    metacritic_score INT UNSIGNED DEFAULT NULL, -- Puntuación Metacritic (0-100)
+    tags JSON DEFAULT NULL, -- Tags adicionales ["Singleplayer", "Multiplayer", "Open World"]
+    addedTimestamp INT UNSIGNED DEFAULT NULL, -- Timestamp de cuándo se añadió a la biblioteca
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    CONSTRAINT check_game_rating CHECK (rating IS NULL OR (rating >= 0.5 AND rating <= 5.0 AND MOD(rating * 2, 1) = 0)),
+    CONSTRAINT check_game_metacritic CHECK (metacritic_score IS NULL OR (metacritic_score >= 0 AND metacritic_score <= 100)),
+    CONSTRAINT check_game_playtime CHECK (playtime IS NULL OR playtime >= 0)
+);
+
+-- Índices optimizados para búsquedas y filtros
+CREATE INDEX idx_games_title ON games(title);
+CREATE INDEX idx_games_slug ON games(slug);
+CREATE INDEX idx_games_developer ON games(developer);
+CREATE INDEX idx_games_publisher ON games(publisher);
+CREATE INDEX idx_games_release_date ON games(release_date);
+CREATE INDEX idx_games_rating ON games(rating);
+CREATE INDEX idx_games_esrb_rating ON games(esrb_rating);
+CREATE INDEX idx_games_metacritic ON games(metacritic_score);
+CREATE INDEX idx_games_added_timestamp ON games(addedTimestamp);
+CREATE INDEX idx_games_title_developer ON games(title, developer);
+CREATE INDEX idx_games_created_at ON games(created_at);
+
+-- Tabla de estados permitidos para videojuegos
+CREATE TABLE IF NOT EXISTS game_statuses (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE
+);
+
+-- Insertar estados predefinidos para videojuegos (kebab-case)
+INSERT INTO game_statuses (name) VALUES 
+('owned'),          -- Usuario posee el juego
+('played'),         -- Ha jugado al juego
+('completed'),      -- Ha completado el juego (historia principal)
+('100-completed'),  -- Ha completado el juego al 100%
+('playing'),        -- Jugando actualmente
+('in-wishlist'),    -- En lista de deseos
+('abandoned'),      -- Juego abandonado
+('want-to-buy'),    -- Quiere comprarlo
+('backlog');        -- En lista de pendientes
+
+-- Tabla de relación muchos a muchos entre juegos y estados
+CREATE TABLE IF NOT EXISTS game_has_statuses (
+    game_id INT UNSIGNED NOT NULL,
+    status_id INT NOT NULL,
+    PRIMARY KEY (game_id, status_id),
+    FOREIGN KEY (game_id) 
+        REFERENCES games(id) 
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    FOREIGN KEY (status_id) 
+        REFERENCES game_statuses(id) 
+        ON DELETE CASCADE
+);
+
+CREATE INDEX idx_game_has_statuses_status_id ON game_has_statuses(status_id);
+CREATE INDEX idx_game_has_statuses_game_status ON game_has_statuses(game_id, status_id);
+
+-- Relación users -> games (cada usuario tiene su propia biblioteca de videojuegos)
+CREATE TABLE IF NOT EXISTS user_games (
+    user_id INT NOT NULL,
+    game_id INT UNSIGNED NOT NULL,
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP NULL DEFAULT NULL,   -- Fecha cuando el usuario completó el juego
+    date_started DATE NULL DEFAULT NULL,        -- Fecha cuando empezó a jugar
+    date_finished DATE NULL DEFAULT NULL,       -- Fecha cuando terminó el juego
+    personal_rating DECIMAL(2,1) DEFAULT NULL,  -- Rating personal del usuario
+    personal_notes TEXT DEFAULT NULL,           -- Notas personales sobre el juego
+    hours_played DECIMAL(8,2) DEFAULT 0,        -- Horas jugadas con 2 decimales
+    platform_played VARCHAR(100) DEFAULT NULL,  -- Plataforma en la que jugó
+    PRIMARY KEY (user_id, game_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE,
+    INDEX idx_user_games_user_added (user_id, added_at),
+    INDEX idx_user_games_completed (user_id, completed_at),
+    INDEX idx_user_games_date_started (user_id, date_started),
+    INDEX idx_user_games_date_finished (user_id, date_finished),
+    INDEX idx_user_games_rating (user_id, personal_rating),
+    INDEX idx_user_games_hours (user_id, hours_played),
+    CONSTRAINT check_user_game_rating CHECK (personal_rating IS NULL OR (personal_rating >= 0.5 AND personal_rating <= 5.0 AND MOD(personal_rating * 2, 1) = 0)),
+    CONSTRAINT check_user_game_hours CHECK (hours_played >= 0)
+);
+
+-- Estados personales de videojuegos por usuario
+CREATE TABLE IF NOT EXISTS user_game_statuses (
+    user_id INT NOT NULL,
+    game_id INT UNSIGNED NOT NULL,
+    status_id INT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, game_id, status_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE,
+    FOREIGN KEY (status_id) REFERENCES game_statuses(id) ON DELETE CASCADE,
+    INDEX idx_user_game_statuses_user_status (user_id, status_id),
+    INDEX idx_user_game_statuses_updated (user_id, updated_at)
+);
+
+-- Tags personalizados para videojuegos
+CREATE TABLE IF NOT EXISTS user_game_tags (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    color VARCHAR(7) DEFAULT '#007bff',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_user_game_tag (user_id, name),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_game_tags_user (user_id),
+    INDEX idx_user_game_tags_name (user_id, name)
+);
+
+-- Relación muchos a muchos: user_games -> user_game_tags
+CREATE TABLE IF NOT EXISTS user_game_tag_assignments (
+    user_id INT NOT NULL,
+    game_id INT UNSIGNED NOT NULL,
+    tag_id INT NOT NULL,
+    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, game_id, tag_id),
+    FOREIGN KEY (user_id, game_id) REFERENCES user_games(user_id, game_id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES user_game_tags(id) ON DELETE CASCADE,
+    INDEX idx_game_tag_assignments_tag (tag_id),
+    INDEX idx_game_tag_assignments_game (user_id, game_id),
+    INDEX idx_game_tag_assignments_user (user_id)
+);
+
+-- Notas detalladas para videojuegos
+CREATE TABLE IF NOT EXISTS user_game_notes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    game_id INT UNSIGNED NOT NULL,
+    note_text TEXT NOT NULL,
+    note_type VARCHAR(20) DEFAULT 'note',
+    is_private TINYINT(1) DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE,
+    INDEX idx_user_game_notes_user_game (user_id, game_id),
+    INDEX idx_user_game_notes_created (created_at)
+);
+
+-- Notas detalladas para películas
+CREATE TABLE IF NOT EXISTS user_movie_notes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    movie_isbn VARCHAR(20) NOT NULL,
+    page_number INT DEFAULT NULL,
+    note_text TEXT NOT NULL,
+    note_type VARCHAR(20) DEFAULT 'note',
+    is_private TINYINT(1) DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (movie_isbn) REFERENCES movie(isbn) ON DELETE CASCADE,
+    INDEX idx_user_movie_notes_user_movie (user_id, movie_isbn),
+    INDEX idx_user_movie_notes_created (created_at)
+);
+
+-- ============================================================================
 -- COMENTARIOS FINALES Y DOCUMENTACIÓN
 -- ============================================================================
 
 -- Añadir comentarios a las nuevas tablas
 ALTER TABLE reading_sessions COMMENT = 'Sesiones de lectura independientes - permite relecturas y seguimiento detallado';
 ALTER TABLE reading_progress_history COMMENT = 'Historial completo de progreso incluyendo retrocesos y reinicios por sesión';
+ALTER TABLE games COMMENT = 'Videojuegos con datos de RAWG API';
+ALTER TABLE user_games COMMENT = 'Biblioteca personal de videojuegos de cada usuario';

@@ -187,10 +187,7 @@
             :movie="movie"
             :allowedUserStatuses="allowedStatuses"
             :editable="!!existingMovie"
-            :readonly="false"
             @delete-movie="handleDeleteMovie"
-            @update-rating="handleUpdateRating"
-            @update-statuses="handleUpdateStatuses"
             @save-movie="handleSaveMovie"
             @edit-item="handleEditItem"
           />
@@ -203,6 +200,17 @@
         <p>No se encontró información de la película</p>
         <button @click="goBack" class="action-button">Volver a búsqueda</button>
       </div>
+
+      <!-- Edit Item Modal -->
+      <EditItemModal
+        v-if="editModal.isVisible"
+        :item="editModal.item"
+        :item-type="editModal.itemType"
+        :allowed-statuses="allowedStatuses"
+        :is-visible="editModal.isVisible"
+        @close="closeEditModal"
+        @saved="handleModalSaved"
+      />
   </div>
 </template>
 
@@ -211,6 +219,7 @@ import { ref, onMounted, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
 import LibraryMovieItem from '@/components/Movies/LibraryMovieItem.vue';
+import EditItemModal from '@/components/EditItemModal.vue';
 import { useMovies } from '@/composables/useMovies';
 import { useAuth } from '@/composables/useAuth';
 import Logger from '@/utils/logger';
@@ -221,10 +230,16 @@ const { isAuthenticated } = useAuth();
 const moviesComposable = useMovies();
 
 // Estados
-const movie = ref(null);
-const isLoading = ref(true);
+const movie = ref((history.state && history.state.movie) ? history.state.movie : null);
+// Si venimos con datos en el router state, no mostrar spinner (transición seamless)
+const isLoading = ref(!movie.value);
 const error = ref(null);
 const libraryMovieItemRef = ref(null);
+const editModal = ref({
+  isVisible: false,
+  item: null,
+  itemType: 'movie'
+});
 
 // Computed
 const allowedStatuses = computed(() => 
@@ -290,13 +305,17 @@ const transformMovieData = (omdbMovie) => {
 };
 
 const fetchMovieDetails = async (imdbId) => {
-  isLoading.value = true;
+  // Solo mostrar spinner si no hay datos previos (evitar flash en enrichment)
+  const isBackgroundEnrichment = !!movie.value;
+  if (!isBackgroundEnrichment) {
+    isLoading.value = true;
+  }
   error.value = null;
 
   try {
     Logger.debug(`[MovieDetailView] Fetching details for IMDb ID: ${imdbId}`);
     
-    const apiKey = 'f03583fd';
+    const apiKey = process.env.VUE_APP_OMDB_API_KEY;
     const url = `https://www.omdbapi.com/?apikey=${apiKey}&i=${imdbId}&plot=full`;
     const response = await axios.get(url);
     
@@ -311,24 +330,13 @@ const fetchMovieDetails = async (imdbId) => {
     error.value = 'No se pudo obtener información de la película. Verifica el IMDb ID.';
     Logger.error(`[MovieDetailView] Error fetching movie details:`, err);
   } finally {
-    isLoading.value = false;
+    if (!isBackgroundEnrichment) {
+      isLoading.value = false;
+    }
   }
 };
 
 const handleDeleteMovie = async () => {
-  Logger.warn('[MovieDetailView] Delete movie called from detail view - should not happen for new movies');
-};
-
-const handleUpdateRating = async ({ rating }) => {
-  if (movie.value) {
-    movie.value.user_rating = rating;
-  }
-};
-
-const handleUpdateStatuses = async ({ statuses }) => {
-  if (movie.value) {
-    movie.value.userStatuses = [...statuses];
-  }
 };
 
 const handleSaveMovie = async (data) => {
@@ -362,40 +370,61 @@ const handleSaveMovie = async (data) => {
 };
 
 const handleEditItem = async (movieData) => {
+  Logger.debug('[MovieDetailView] Opening edit modal for movie:', movieData);
+  
+  editModal.value = {
+    isVisible: true,
+    item: movie.value,
+    itemType: 'movie'
+  };
+};
+
+const closeEditModal = () => {
+  editModal.value = {
+    isVisible: false,
+    item: null,
+    itemType: 'movie'
+  };
+};
+
+const handleModalSaved = async (updatedItem) => {
+  Logger.debug('[MovieDetailView] Movie saved from modal, updating local data', updatedItem);
+  
+  // Cerrar el modal
+  closeEditModal();
+  
   try {
-    Logger.debug('[MovieDetailView] Editing movie in library:', movieData);
-    
-    // Prepare the data object with current values
-    const data = {
-      personalRating: movie.value.user_rating,
-      statuses: movie.value.userStatuses
-    };
-    
-    // Call editUserMovie with separate parameters: movieId, userId, data, tags, notes
-    const result = await moviesComposable.editUserMovie(
-      movie.value.imdbID, // Using imdbID as identifier
-      null, // userId will be taken from auth on backend
-      data,
-      [], // tags
-      []  // notes
-    );
-    
-    if (result.success) {
-      // Llamar al método de éxito del componente hijo
-      if (libraryMovieItemRef.value) {
-        libraryMovieItemRef.value.setEditSuccess();
-      }
-      Logger.debug('[MovieDetailView] Movie edited successfully');
-    } else {
-      // Llamar al método de error del componente hijo
-      if (libraryMovieItemRef.value) {
-        libraryMovieItemRef.value.setEditError();
-      }
-      Logger.error('[MovieDetailView] Failed to edit movie:', result.message);
+    // Actualizar inmediatamente con datos del evento (optimista)
+    if (movie.value && updatedItem) {
+      movie.value = {
+        ...movie.value,
+        ...updatedItem,
+        user_rating: updatedItem.user_rating,
+        userStatuses: updatedItem.userStatuses
+      };
     }
+    
+    // Actualizar en el store local de movies también
+    const movieInStore = moviesComposable.findMovieByTMDBId(movie.value.imdbID || movie.value.tmdbId);
+    if (movieInStore) {
+      Object.assign(movieInStore, updatedItem);
+    }
+    
+    // Llamar al método de éxito del componente hijo
+    if (libraryMovieItemRef.value) {
+      libraryMovieItemRef.value.setEditSuccess();
+    }
+    
+    Logger.info('[MovieDetailView] Movie data updated successfully');
+    
+    // Opcional: Recargar en segundo plano para sincronizar (sin bloquear UI)
+    setTimeout(() => {
+      moviesComposable.fetchMovies().catch(err => {
+        Logger.error('[MovieDetailView] Background refresh failed:', err);
+      });
+    }, 500);
   } catch (err) {
-    Logger.error('[MovieDetailView] Error editing movie:', err);
-    // Llamar al método de error del componente hijo
+    Logger.error('[MovieDetailView] Error updating movie data:', err);
     if (libraryMovieItemRef.value) {
       libraryMovieItemRef.value.setEditError();
     }
@@ -405,32 +434,50 @@ const handleEditItem = async (movieData) => {
 // Helper function to load movie data
 const loadMovieData = async () => {
   Logger.debug('[MovieDetailView] Loading movie data');
-  
-  // Cargar películas y estados permitidos
-  await Promise.all([
-    moviesComposable.movies.value.length === 0 ? moviesComposable.fetchMovies() : Promise.resolve(),
-    allowedStatuses.value.length === 0 ? moviesComposable.fetchAllowedStatuses() : Promise.resolve()
-  ]);
 
-  // Si hay datos en el state del router, usarlos
-  if (route.state && route.state.movie) {
-    Logger.debug('[MovieDetailView] Using movie data from router state');
-    movie.value = route.state.movie;
+  // Datos ya cargados eagerly desde history.state, o via route.state
+  const hasEagerData = !!movie.value;
+
+  if (hasEagerData || (route.state && route.state.movie)) {
+    if (!hasEagerData && route.state.movie) {
+      movie.value = route.state.movie;
+    }
     isLoading.value = false;
+    Logger.debug('[MovieDetailView] Using pre-loaded movie data (seamless)');
+
+    // Cargar datos de biblioteca en segundo plano
+    await Promise.all([
+      moviesComposable.movies.value.length === 0 ? moviesComposable.fetchMovies() : Promise.resolve(),
+      allowedStatuses.value.length === 0 ? moviesComposable.fetchAllowedStatuses() : Promise.resolve()
+    ]);
+
+    // Enriquecer con datos completos de la API en segundo plano (sin mostrar spinner)
+    fetchMovieDetails(route.params.imdbId)
+      .then(() => _mergeExistingMovieData())
+      .catch(err =>
+        Logger.warn('[MovieDetailView] Background enrichment failed:', err)
+      );
   } else {
-    // Si no, buscar la película por IMDb ID
+    // Sin state: acceso directo por URL — mostrar spinner
+    await Promise.all([
+      moviesComposable.movies.value.length === 0 ? moviesComposable.fetchMovies() : Promise.resolve(),
+      allowedStatuses.value.length === 0 ? moviesComposable.fetchAllowedStatuses() : Promise.resolve()
+    ]);
     await fetchMovieDetails(route.params.imdbId);
   }
-  
-  // Si la película ya existe en la biblioteca, mezclar los datos
-  if (existingMovie.value && movie.value) {
-    Logger.debug('[MovieDetailView] Merging with existing movie data');
-    movie.value = {
-      ...movie.value,
-      user_rating: existingMovie.value.user_rating,
-      userStatuses: existingMovie.value.userStatuses || []
-    };
-  }
+
+  _mergeExistingMovieData();
+};
+
+const _mergeExistingMovieData = () => {
+  if (!existingMovie.value || !movie.value) return;
+
+  Logger.debug('[MovieDetailView] Merging with existing movie data');
+  movie.value = {
+    ...movie.value,
+    user_rating: existingMovie.value.user_rating,
+    userStatuses: existingMovie.value.userStatuses || []
+  };
 };
 
 // Lifecycle

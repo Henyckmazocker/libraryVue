@@ -7,4 +7,5 @@ interface AuthControllerInterface
     public function logout();
     public function checkAuth();
     public function logFrontend(array $logData);
+    public function logFrontendBatch(array $logs);
 }

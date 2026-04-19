@@ -23,7 +23,7 @@ final readonly class EditUserMovieCommand
         public MovieIdentifier $id,
         public int $userId,
         public ?Rating $userRating = null,
-        public array $statuses = [],
+        public ?array $statuses = null,
         public array $tags = []
     ) {}
 
@@ -40,7 +40,7 @@ final readonly class EditUserMovieCommand
                 : (isset($movieData['personalRating']) && is_numeric($movieData['personalRating']) && (float)$movieData['personalRating'] > 0
                     ? Rating::fromNullableFloat((float)$movieData['personalRating'])
                     : null),
-            statuses: $movieData['statuses'] ?? $data['statuses'] ?? [],
+            statuses: $movieData['statuses'] ?? $data['statuses'] ?? null,
             tags: $data['tags'] ?? []
         );
     }

@@ -8,40 +8,35 @@
           "path": "/library",
           "icon": "fas fa-bookmark",
           "description": "Tu biblioteca personal"
+        },
+        {
+          "name": "Estadísticas",
+          "path": "/dashboard",
+          "icon": "fas fa-chart-bar",
+          "description": "Estadísticas de tu biblioteca"
         }
       ]
     },
     {
-      "title": "Libros",
+      "title": "Buscar",
       "items": [
         {
           "name": "Buscar Libros",
           "path": "/books",
-          "icon": "fas fa-search",
+          "icon": "fas fa-book",
           "description": "Buscar nuevos libros"
         },
         {
-          "name": "Mis Libros",
-          "path": "/dashboard/books",
-          "icon": "fas fa-book",
-          "description": "Dashboard de tus libros"
-        }
-      ]
-    },
-    {
-      "title": "Películas",
-      "items": [
-        {
           "name": "Buscar Películas",
           "path": "/movies",
-          "icon": "fas fa-search",
+          "icon": "fas fa-film",
           "description": "Buscar nuevas películas"
         },
         {
-          "name": "Mis Películas",
-          "path": "/dashboard/movies",
-          "icon": "fas fa-film",
-          "description": "Dashboard de tus películas"
+          "name": "Buscar Videojuegos",
+          "path": "/games",
+          "icon": "fas fa-gamepad",
+          "description": "Buscar nuevos videojuegos"
         }
       ]
     },

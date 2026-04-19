@@ -82,7 +82,7 @@ final class MySqlMovieNoteRepository implements MovieNoteRepositoryInterface
         }
     }
 
-    public function delete(int $userId, int $noteId): bool
+    public function delete(int $noteId, int $userId): bool
     {
         try {
             $sql = 'DELETE FROM user_movie_notes WHERE id = :noteId AND user_id = :userId';

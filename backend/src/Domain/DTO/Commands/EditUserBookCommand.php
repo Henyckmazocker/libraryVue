@@ -26,7 +26,7 @@ final readonly class EditUserBookCommand
         public ISBN $isbn,
         public int $userId,
         public ?Rating $userRating = null,
-        public array $statuses = [],
+        public ?array $statuses = null,
         public array $tags = [],
         public ?int $currentPage = null,
         public ?string $personalNotes = null,
@@ -46,7 +46,7 @@ final readonly class EditUserBookCommand
                 : (isset($bookData['personalRating']) && is_numeric($bookData['personalRating']) && (float)$bookData['personalRating'] > 0
                     ? Rating::fromNullableFloat((float)$bookData['personalRating'])
                     : null),
-            statuses: $bookData['statuses'] ?? $data['statuses'] ?? [],
+            statuses: $bookData['statuses'] ?? $data['statuses'] ?? null,
             tags: $data['tags'] ?? [],
             currentPage: isset($bookData['current_page']) && is_numeric($bookData['current_page']) 
                 ? (int)$bookData['current_page'] 

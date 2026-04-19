@@ -20,6 +20,7 @@
           :is="itemComponent"
           :book="type === 'books' ? item : undefined"
           :movie="type === 'movies' ? item : undefined"
+          :game="type === 'games' ? item : undefined"
           @click="handleItemClick(item)"
         />
       </HorizontalCarousel>
@@ -53,7 +54,7 @@ const props = defineProps({
   type: {
     type: String,
     required: true,
-    validator: (value) => ['books', 'movies'].includes(value)
+    validator: (value) => ['books', 'movies', 'games'].includes(value)
   },
   
   itemComponent: {
@@ -86,6 +87,8 @@ const emit = defineEmits(['item-click']);
 const getItemKey = (item) => {
   if (props.type === 'books') {
     return item.isbn;
+  } else if (props.type === 'games') {
+    return item.igdbId || item.gameId || item.id || item.title;
   } else {
     // Para películas, el campo es 'isbn' (que es el imdb_id)
     return item.isbn || item.imdb_id || item.title;

@@ -8,7 +8,8 @@ export const useAuthStore = defineStore('auth', {
     isAuthenticated: false,
     csrfToken: null,
     isLoading: false,
-    jwtToken: null
+    jwtToken: null,
+    _authChecked: false
   }),
 
   getters: {
@@ -48,6 +49,7 @@ export const useAuthStore = defineStore('auth', {
         await this.logout()
       } finally {
         this.isLoading = false
+        this._authChecked = true
         Logger.auth('Final state - isAuthenticated:', this.isAuthenticated, 'user:', this.user?.name || 'null')
       }
     },
@@ -135,9 +137,15 @@ export const useAuthStore = defineStore('auth', {
       const protectedActions = [
         'add_book', 'delete_book', 'update_book_rating', 'update_book_user_statuses',
         'add_movie', 'delete_movie', 'update_movie_rating', 'update_movie_user_statuses',
-        'import_data', 'edit_user_book','edit_user_movie', 'create_user_book_tag', 'create_user_movie_tag',
+        'add_game', 'delete_game', 'update_game_rating', 'update_game_user_statuses',
+        'import_data', 'edit_user_book','edit_user_movie', 'edit_user_game', 
+        'create_user_book_tag', 'create_user_movie_tag', 'create_user_game_tag',
+        'delete_user_game_tag', 'assign_tag_to_game', 'remove_tag_from_game',
+        'add_game_note', 'update_game_note', 'delete_game_note',
+        'add_edition_note', 'update_edition_note', 'delete_edition_note',
+        'add_movie_note', 'update_movie_note', 'delete_movie_note',
         // Sesiones de lectura
-        'create_reading_session', 'complete_reading_session', 'update_reading_progress', 'update_reading_progress_with_session',
+        'create_reading_session', 'complete_reading_session', 'update_reading_progress',
         'pause_reading_session', 'resume_reading_session', 'delete_reading_session'
       ]
 

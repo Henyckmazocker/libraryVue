@@ -74,54 +74,22 @@ class UpdateReadingProgressUseCase extends AbstractUseCase
                 'isbn' => $isbn
             ]);
 
-            // Determinar si es primera lectura o relectura
-            $statuses = $this->userBookEditionRepository->getStatusesForEdition($userId, $editionId);
-            $hasBeenRead = in_array('read', $statuses);
-
             $sessionId = $this->sessionRepository->create(
                 $userId,
                 $isbn,
-                null, // end_page (null = no definido aún)
+                null, // session_number (auto-generated)
                 $currentPage // start_page
             );
+
+            // ✅ Actualizar estados basados en la nueva sesión activa
+            $this->sessionRepository->updateBookStatusesBasedOnSessions($userId, $isbn);
 
             $activeSession = $this->sessionRepository->getActive($userId, $isbn);
         } else {
             $sessionId = $activeSession['id'];
         }
 
-        // 5. Verificar estado actual de lectura
-        $currentStatuses = $this->userBookEditionRepository->getStatusesForEdition($userId, $editionId);
-        $hasBeenRead = in_array('read', $currentStatuses);
-        $isReading = in_array('reading', $currentStatuses);
-        $isRereading = in_array('re-reading', $currentStatuses);
-
-        // Si NO está en reading o re-reading, ajustar estado
-        if (!$isReading && !$isRereading) {
-            $this->logger->info('Book not in reading state, updating status', [
-                'userId' => $userId,
-                'isbn' => $isbn,
-                'hasBeenRead' => $hasBeenRead,
-                'currentStatuses' => $currentStatuses
-            ]);
-
-            // Determinar nuevo estado basado en si ya leyó el libro
-            $newReadingStatus = $hasBeenRead ? 're-reading' : 'reading';
-
-            // Mantener 'read' y estados de propiedad, cambiar estado de lectura
-            $readingStates = ['to-read', 'reading', 're-reading', 'paused', 'abandoned'];
-            $ownershipStates = ['owned', 'want-to-buy'];
-
-            // Filtrar estados actuales: mantener 'read' y ownership, quitar otros reading states
-            $newStatuses = array_merge(
-                array_intersect($currentStatuses, array_merge(['read'], $ownershipStates)),
-                [$newReadingStatus]
-            );
-
-            $this->userBookEditionRepository->updateStatuses($userId, $editionId, $newStatuses);
-        }
-
-        // 6. Actualizar el progreso
+        // 5. Actualizar el progreso
         $this->progressRepository->updateWithSession(
             $userId,
             $isbn,
@@ -130,7 +98,7 @@ class UpdateReadingProgressUseCase extends AbstractUseCase
             null
         );
 
-        // 7. Verificar si llegó al 100%
+        // 6. Verificar si llegó al 100%
         $percentage = ($currentPage / $totalPages) * 100;
         $isComplete = $percentage >= 100;
 
@@ -146,39 +114,25 @@ class UpdateReadingProgressUseCase extends AbstractUseCase
             if ($sessionId) {
                 $this->sessionRepository->complete(
                     $sessionId,
-                    $currentPage, // end_page
-                    null // duration_minutes (calculado automáticamente)
+                    $currentPage // end_page
                 );
             }
 
-            // Actualizar estados: añadir 'read', quitar 'reading'/'re-reading'
-            $currentStatuses = $this->userBookEditionRepository->getStatusesForEdition($userId, $editionId);
-            $ownershipStates = ['owned', 'want-to-buy'];
-
-            // Mantener solo 'read' y estados de propiedad
-            $finalStatuses = array_merge(
-                ['read'],
-                array_intersect($currentStatuses, $ownershipStates)
-            );
-
-            $this->userBookEditionRepository->updateStatuses($userId, $editionId, $finalStatuses);
-
-            // Actualizar consumed_at si es la primera vez que completa
-            if (!$hasBeenRead) {
-                // Aquí podrías actualizar consumed_at, pero eso lo maneja el repositorio
-                $this->logger->info('First time completing book', [
-                    'userId' => $userId,
-                    'isbn' => $isbn
-                ]);
-            }
+            // ✅ Actualizar estados basados en la sesión completada
+            // Esto añadirá 'read' y quitará 'reading'/'re-reading' automáticamente
+            $this->sessionRepository->updateBookStatusesBasedOnSessions($userId, $isbn);
         }
+
+        // Obtener estados actualizados para devolverlos en la respuesta
+        $updatedStatuses = $this->userBookEditionRepository->getStatusesForEdition($userId, $editionId);
 
         return [
             'currentPage' => $currentPage,
             'totalPages' => $totalPages,
             'percentage' => round($percentage, 2),
             'isComplete' => $isComplete,
-            'sessionId' => $sessionId
+            'sessionId' => $sessionId,
+            'updatedStatuses' => $updatedStatuses // ✅ Incluir estados actualizados
         ];
     }
 

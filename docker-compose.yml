@@ -17,6 +17,7 @@ services:
       - NODE_ENV=development
       - VUE_APP_API_URL=http://127.0.0.1:8888/index.php
       - VUE_APP_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - VUE_APP_OMDB_API_KEY=${OMDB_API_KEY}
     depends_on:
       - backend
     restart: unless-stopped

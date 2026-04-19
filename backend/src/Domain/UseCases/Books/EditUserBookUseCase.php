@@ -69,8 +69,8 @@ class EditUserBookUseCase extends AbstractUseCase
             $this->userBookRepository->edit($userId, $isbn, $editData);
         }
 
-        // Update statuses if provided
-        if (!empty($command->statuses)) {
+        // Update statuses (allow clearing all statuses with empty array)
+        if ($command->statuses !== null) {
             $this->userBookRepository->updateStatuses($userId, $isbn, $command->statuses);
         }
 

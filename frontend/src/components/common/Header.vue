@@ -103,8 +103,9 @@ onMounted(async () => {
 });
 
 // Watch para renderizar el botón y mostrar One Tap cuando Google esté listo
-watch(isGoogleReady, (ready) => {
-  if (ready) {
+// Y la autenticación haya terminado de verificarse
+watch([isGoogleReady, isLoading], ([ready, loading]) => {
+  if (ready && !loading) {
     const signInButton = document.getElementById('g_id_signin');
     if (signInButton) {
       renderGoogleButton('g_id_signin', {
@@ -115,10 +116,13 @@ watch(isGoogleReady, (ready) => {
         logo_alignment: 'left'
       });
     }
-    // Mostrar One Tap para auto-login si no está autenticado
+    // Mostrar One Tap SOLO después de verificar completamente el estado de auth
+    // Esto evita race conditions donde Google se inicializa antes que check_auth responda
     if (!isAuthenticated.value) {
-      Logger.auth('[Header] Showing Google One Tap for auto-login');
+      Logger.auth('[Header] Showing Google One Tap - user confirmed not authenticated');
       showGoogleOneTap();
+    } else {
+      Logger.auth('[Header] User already authenticated, skipping Google One Tap');
     }
   }
 });

@@ -6,6 +6,7 @@ Una aplicación web completa para gestionar tu biblioteca personal de libros y p
 
 - **📚 Gestión de Libros**: Añadir, buscar, calificar y gestionar el estado de tus libros
 - **🎬 Gestión de Películas**: Organizar y calificar tu colección de películas
+- **🎮 Gestión de Videojuegos**: Administra tu biblioteca de juegos con información de IGDB
 - **🔍 Búsqueda Avanzada**: Buscar por título, autor, género y más
 - **📊 Importación de Datos**: Importar libros desde archivos CSV
 - **🔐 Autenticación Google OAuth**: Login seguro con tu cuenta de Google
@@ -74,6 +75,38 @@ CREATE DATABASE library_db;
 2. Habilitar Google+ API
 3. Crear credenciales OAuth 2.0
 4. Configurar las variables `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` en `.env`
+
+### 6. Configurar IGDB API (para Videojuegos)
+La aplicación utiliza IGDB (Internet Game Database), la base de datos de videojuegos de Twitch, para obtener información de juegos.
+
+1. **Crear cuenta de Twitch Developer**
+   - Ve a [dev.twitch.tv](https://dev.twitch.tv/) y regístrate/inicia sesión
+
+2. **Registrar una aplicación**
+   - En el panel de Twitch Developer, ve a "Your Console"
+   - Click en "Register Your Application"
+   - Nombre: `Library Vue` (o el que prefieras)
+   - OAuth Redirect URL: `http://localhost` (no se usa para client credentials)
+   - Category: `Application Integration`
+   - Click en "Create"
+
+3. **Obtener credenciales**
+   - Una vez creada la app, verás tu **Client ID**
+   - Click en "New Secret" para generar un **Client Secret**
+   - Guarda ambos valores de forma segura
+
+4. **Configurar en el backend (seguro)**
+   - Abre `backend/.env`
+   - Configura las siguientes variables:
+   ```bash
+   IGDB_CLIENT_ID=tu_client_id_aqui
+   IGDB_CLIENT_SECRET=tu_client_secret_aqui
+   ```
+   - El backend generará automáticamente los tokens de acceso cuando sea necesario
+
+**Nota:** Las credenciales se almacenan de forma segura en el backend y nunca se exponen en el frontend. El backend gestiona automáticamente la generación y renovación de tokens de acceso.
+
+Para más información, consulta la [documentación oficial de IGDB API](https://api-docs.igdb.com/).
 
 ## 🏃‍♂️ Desarrollo
 

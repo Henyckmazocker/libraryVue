@@ -34,7 +34,7 @@ export class FileProcessorService {
           
           const movies = xmlDoc.querySelectorAll('pelicula');
           const processedMovies = [];
-          const apiKey = 'f03583fd'; // API key de OMDb
+          const apiKey = process.env.VUE_APP_OMDB_API_KEY;
           
           Logger.debug(`Found ${movies.length} movies in Palomitacas XML`);
           
@@ -172,7 +172,7 @@ export class FileProcessorService {
               director: movie['Director'] || '',
               rating: movie['Rating'] && movie['Rating'] !== '' ? parseFloat(movie['Rating']) : null,
               user_rating: movie['Rating'] && movie['Rating'] !== '' ? parseFloat(movie['Rating']) : null,
-              userStatuses: movie['Watched Date'] ? ['watched'] : ['in watchlist'],
+              userStatuses: movie['Watched Date'] ? ['viewed'] : ['in-watchlist'],
               addedTimestamp: movie['Watched Date'] ? new Date(movie['Watched Date']).getTime() : Date.now()
             };
             
@@ -208,23 +208,62 @@ export class FileProcessorService {
       reader.onload = (e) => {
         try {
           const csvData = e.target.result;
+
+          // Parse CSV properly handling quoted values with commas
           const lines = csvData.split('\n');
-          const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
-          
+          const headers = this.parseCSVLine(lines[0]);
+
           const processedBooks = [];
-          
+
           for (let i = 1; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
-            
-            const values = line.split(',').map(v => v.replace(/"/g, '').trim());
+
+            const values = this.parseCSVLine(line);
+            if (values.length !== headers.length) {
+              Logger.warn(`Line ${i} has ${values.length} values but expected ${headers.length}, skipping`);
+              continue;
+            }
+
             const book = {};
-            
             headers.forEach((header, index) => {
               book[header] = values[index] || '';
             });
-            
+
             // Mapear campos de Goodreads a nuestro formato
+            // Mapear estados de Goodreads a nuestro sistema
+            let userStatuses = ['owned']; // Default status
+            if (book['Exclusive Shelf']) {
+              const goodreadsShelf = book['Exclusive Shelf'].toLowerCase().trim();
+              const statusMap = {
+                'to-read': ['to-read'],
+                'currently-reading': ['reading'],
+                'read': ['read'],
+                'owned': ['owned'],
+                'want-to-read': ['to-read']
+              };
+              userStatuses = statusMap[goodreadsShelf] || ['owned'];
+            }
+
+            // Extraer bookshelves personalizadas como tags
+            const customTags = [];
+            if (book['Bookshelves'] && book['Bookshelves'].trim() !== '') {
+              // Goodreads separa las bookshelves con comas
+              const shelves = book['Bookshelves'].split(',').map(s => s.trim());
+              shelves.forEach(shelf => {
+                if (shelf && shelf !== '') {
+                  // Normalizar el nombre del tag (lowercase, trim)
+                  const normalizedShelf = shelf.toLowerCase().trim();
+
+                  // Solo agregar si no es una shelf exclusiva (que ya se maneja como status)
+                  const exclusiveShelves = ['to-read', 'currently-reading', 'read', 'owned', 'want-to-read'];
+                  if (!exclusiveShelves.includes(normalizedShelf)) {
+                    customTags.push(shelf); // Mantener capitalización original
+                  }
+                }
+              });
+            }
+
             const processedBook = {
               isbn: book['ISBN13'] || book['ISBN'] || `goodreads_${book['Book Id']}`,
               title: book['Title'] || '',
@@ -234,31 +273,68 @@ export class FileProcessorService {
               pages: book['Number of Pages'] ? parseInt(book['Number of Pages']) : null,
               rating: book['My Rating'] && book['My Rating'] !== '0' ? parseFloat(book['My Rating']) : null,
               user_rating: book['My Rating'] && book['My Rating'] !== '0' ? parseFloat(book['My Rating']) : null,
-              userStatuses: book['Exclusive Shelf'] ? [book['Exclusive Shelf']] : ['owned'],
+              userStatuses: userStatuses,
+              customTags: customTags, // Nuevo campo para tags personalizados
               addedTimestamp: book['Date Added'] ? new Date(book['Date Added']).getTime() : Date.now()
             };
-            
+
             if (processedBook.title) {
               processedBooks.push(processedBook);
             }
           }
-          
+
           if (processedBooks.length === 0) {
             throw new Error('No se encontraron libros válidos en el archivo CSV');
           }
-          
+
           resolve(processedBooks);
         } catch (error) {
           reject(new Error(`Error al procesar archivo de Goodreads: ${error.message}`));
         }
       };
-      
+
       reader.onerror = () => {
         reject(new Error('Error al leer el archivo'));
       };
-      
+
       reader.readAsText(file);
     });
+  }
+
+  /**
+   * Parse a CSV line correctly handling quoted values
+   */
+  static parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          // Escaped quote
+          current += '"';
+          i++; // Skip next quote
+        } else {
+          // Toggle quote mode
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        // End of field
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+
+    // Add last field
+    result.push(current.trim());
+
+    return result;
   }
 
   /**
@@ -309,13 +385,13 @@ export class FileProcessorService {
    */
   static mapPalomitacasStatus(estadoCode) {
     const statusMap = {
-      '0': ['in watchlist'],        // No vista / Quiere ver -> in watchlist
-      '1': ['owned'],               // Tengo / En biblioteca -> owned  
+      '0': ['in-watchlist'],        // No vista / Quiere ver -> in-watchlist
+      '1': ['owned'],               // Tengo / En biblioteca -> owned
       '3': ['viewed'],              // Vista -> viewed
-      '4': ['in watchlist']         // Abandonada -> in watchlist
+      '4': ['in-watchlist']         // Abandonada -> in-watchlist
     };
-    
-    return statusMap[estadoCode] || ['in watchlist'];
+
+    return statusMap[estadoCode] || ['in-watchlist'];
   }
 
   /**

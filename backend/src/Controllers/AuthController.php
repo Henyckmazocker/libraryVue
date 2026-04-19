@@ -125,6 +125,32 @@ class AuthController extends BaseController implements Contracts\AuthControllerI
     }
 
     /**
+     * Handle batched frontend log entries.
+     * Accepts an array of log entries and processes them in one request.
+     *
+     * @param array $logs Array of log entry objects
+     * @return array Success or error response
+     */
+    public function logFrontendBatch(array $logs): array
+    {
+        if (empty($logs)) {
+            return $this->errorResponse('No log entries provided.');
+        }
+
+        $count = 0;
+        foreach ($logs as $logData) {
+            if (!is_array($logData) || empty($logData)) {
+                continue;
+            }
+            // Re-use the single-entry logic
+            $this->logFrontend($logData);
+            $count++;
+        }
+
+        return $this->successResponse("Recorded {$count} log entries.");
+    }
+
+    /**
      * Handle HTTP request for auth endpoints
      */
 }

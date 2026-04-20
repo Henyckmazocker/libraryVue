@@ -88,7 +88,8 @@ Per-entity custom tags:
 |---|---|---|
 | `user_edition_notes` | Per page in book edition | page_number, note_text, note_type ENUM (note, quote, highlight, bookmark) |
 | `user_game_notes` | Per game | note_text, note_type, is_private |
-| `user_movies.personal_notes` | Per movie (inline column) | TEXT field in user_movies |
+| `user_movie_notes` | Per movie | note_text, note_type, is_private |
+| `user_movies.personal_notes` | Per movie (inline column) | TEXT field in user_movies (legacy, kept alongside separate notes table) |
 
 ### Reading Progress Tracking
 

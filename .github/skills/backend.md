@@ -37,16 +37,16 @@ backend/
 │   │   │   └── ValueObjects/      # Email, ISBN, Rating, Genre, Status, Timestamp, etc.
 │   │   ├── Repository/            # Interfaces organized by entity (Book/, Movie/, Game/, User/)
 │   │   ├── DTO/
-│   │   │   ├── Commands/          # 27 write DTOs (final readonly class + fromArray())
+│   │   │   ├── Commands/          # 26 write DTOs (final readonly class + fromArray())
 │   │   │   └── Queries/           # 14 read DTOs
 │   │   ├── Services/              # External: IGDBService, GoogleBooksService, OpenLibraryService
-│   │   ├── Service/               # Domain: WorkSearchService, BookImportService, UserLibraryStatisticsService
-│   │   └── UseCases/              # 38+ use cases organized by entity
+│   │   │                          # Domain: WorkSearchService, BookImportService, UserLibraryStatisticsService
+│   │   └── UseCases/              # 37 use cases organized by entity
 │   │       ├── Books/ (15)
 │   │       ├── Movies/ (12)
 │   │       ├── Games/ (8)
 │   │       ├── Auth/ (1)
-│   │       └── Users/ (1)
+│   │       └── Users/ (empty)
 │   ├── Infrastructure/
 │   │   ├── Persistence/           # MySQL repositories + Mappers/ per entity
 │   │   │   ├── Book/ (10 repos + 4 mappers)
@@ -62,11 +62,10 @@ backend/
 │   ├── Router/ActionRouter.php    # Maps actions → controller methods via match()
 │   └── Services/ApplicationService.php
 ├── config/
-│   ├── container.php              # DI container factory (returns closure)
-│   ├── dependencies.php           # Detailed DI bindings
+│   ├── container.php              # DI container factory (returns closure) + all DI bindings
 │   ├── routes.php                 # ~80 route definitions with middleware stacks
 │   ├── logging.php                # Monolog configuration
-│   └── helpers.php                # Helper functions
+│   └── helpers.php                # Helper functions (env(), config())
 └── storage/
     ├── cache/                     # googlebooks/, openlibrary/, igdb_access_token.json
     ├── logs/                      # {channel}-YYYY-MM-DD.log
@@ -167,7 +166,7 @@ final readonly class GetGamesByUserQuery
 
 ### Complete DTO Inventory
 
-**Commands (27)**: AddBook, DeleteBook, UpdateBookRating, UpdateBookStatuses, EditUserBook, AddEditionNote, UpdateEditionNote, DeleteEditionNote, AddMovie, DeleteMovie, UpdateMovieRating, UpdateMovieStatuses, EditUserMovie, AddMovieNote, UpdateMovieNote, DeleteMovieNote, AddGame, DeleteGame, UpdateGameRating, UpdateGameStatuses, EditUserGame, CreateReadingSession, CompleteReadingSession, UpdateReadingProgress, ManageReadingSession, LoginUser, AddBookToUser
+**Commands (26)**: AddBook, DeleteBook, UpdateBookRating, UpdateBookStatuses, EditUserBook, AddEditionNote, UpdateEditionNote, DeleteEditionNote, AddMovie, DeleteMovie, UpdateMovieRating, UpdateMovieStatuses, EditUserMovie, AddMovieNote, UpdateMovieNote, DeleteMovieNote, AddGame, DeleteGame, UpdateGameRating, UpdateGameStatuses, EditUserGame, CreateReadingSession, CompleteReadingSession, UpdateReadingProgress, ManageReadingSession, LoginUser
 
 **Queries (14)**: GetBooksByUser, GetMoviesByUser, GetAllBooks, GetAllowedStatuses, GetTrendingBooks, GetTrendingMovies, GetTrendingGames, GetReadingSession, GetUserReadingStats, GetEditionNotes, GetEditionNote, GetMovieNotes, GetLibraryItems, GetLibrary
 
@@ -467,6 +466,158 @@ When adding a field to an entity, update **every layer**:
 6. **Use Case**: Pass new field from command to repository
 7. **Frontend store**: Include in API payload
 8. **Frontend component**: Create ref, watcher with `{ immediate: true }`
+
+## Testing
+
+### Overview
+
+- **Framework**: PHPUnit 11.5, PHP 8.2, Docker
+- **Test attributes**: `#[Test]` (NOT `@test` annotations)
+- **Config**: `backend/phpunit.xml` (suites: Unit, Integration)
+- **Current stats**: 743 tests, 2,071 assertions, 74 test files — ALL PASSING
+
+### Running Tests
+
+```bash
+# Full test suite
+docker compose exec -T backend vendor/bin/phpunit --testdox
+
+# Specific test class
+docker compose exec -T backend vendor/bin/phpunit --filter="AddBookUseCaseTest"
+
+# Tests in a directory
+docker compose exec -T backend vendor/bin/phpunit tests/Unit/Domain/UseCases/Books/
+
+# Coverage (requires Xdebug)
+docker compose exec -T backend vendor/bin/phpunit --coverage-text
+```
+
+### Test Directory Structure
+
+```
+backend/tests/Unit/
+├── Domain/
+│   ├── Model/                   # 8 entity tests (Book, Movie, Game, User, Work, Edition, etc.)
+│   │   └── ValueObjects/        # 9 VO tests (Email, ISBN, Rating, Genre, Status, Timestamp, etc.)
+│   ├── DTO/
+│   │   ├── Commands/            # 6 command tests (BookCommands, GameCommands, MovieCommands, etc.)
+│   │   └── Queries/             # 5 query tests (BookQueries, MovieQueries, EditionQueries, etc.)
+│   └── UseCases/                # 38 use case tests organized by entity
+│       ├── Books/ (15)          # CRUD + EditionNotes + ReadingProgress
+│       ├── Games/ (8)           # CRUD + Rating + Statuses
+│       ├── Movies/ (12)         # CRUD + MovieNotes + Rating + Statuses
+│       ├── Auth/ (1)            # LoginUserUseCase
+│       └── Library/ (2)         # GetLibrary, GetLibraryItems
+└── Infrastructure/
+    └── Persistence/             # 8 mapper tests (Book 5, Game 1, Movie 1, User 1)
+```
+
+### Testing Patterns by Layer
+
+#### Value Object Tests
+- Construction with valid and invalid data
+- Validation rules (ISBN format, rating range 0-5, email format)
+- Equality and immutability
+
+#### Domain Model Tests
+- Constructor validation
+- `toArray()` / `fromArray()` round-trips
+- Both camelCase and snake_case key support
+- Edge cases and null handling
+
+#### DTO Tests (Commands & Queries)
+- `fromArray(array $data, int $userId)` — requires 2 arguments
+- Readonly properties verified
+- Both camelCase and snake_case input keys
+
+#### UseCase Tests
+Mock all repositories with `createMock()`, use `NullLogger`:
+
+```php
+class AddGameUseCaseTest extends TestCase
+{
+    private AddGameUseCase $useCase;
+    private GameRepositoryInterface $gameRepo;
+
+    protected function setUp(): void
+    {
+        $this->gameRepo = $this->createMock(GameRepositoryInterface::class);
+        $this->useCase = new AddGameUseCase($this->gameRepo, new NullLogger());
+    }
+
+    #[Test]
+    public function throws_on_invalid_command(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->useCase->execute(new \stdClass());
+    }
+}
+```
+
+**Standard test cases per UseCase**:
+1. Throws `InvalidArgumentException` on wrong command type
+2. Success path with expected return value
+3. Validation failures (not found, duplicates, etc.)
+
+#### Mocking UseCases with Final `execute()`
+When a UseCase depends on another UseCase, `createMock()` won't work because `execute()` is `final`. Use Reflection:
+
+```php
+$mock = $this->getMockBuilder(GetBooksUseCase::class)
+    ->disableOriginalConstructor()
+    ->onlyMethods(['doExecute', 'getLogContext'])
+    ->getMock();
+$mock->method('doExecute')->willReturn([]);
+$mock->method('getLogContext')->willReturn('Test');
+
+$ref = new \ReflectionProperty(AbstractUseCase::class, 'logger');
+$ref->setValue($mock, new NullLogger());
+```
+
+#### Mocking Final Classes
+Final classes (e.g., `BookImportService`) cannot be mocked. Extract an interface first:
+- `BookImportService` → `BookImportServiceInterface`
+- UseCases depend on the interface, tests mock the interface
+
+#### Mapper Tests
+- `toDomain()` and `toDatabase()` conversions
+- All fields mapped correctly
+- Null/optional field handling
+- Round-trip preservation (toDomain → toDatabase → toDomain)
+
+### Test Maintenance Rules
+
+**CRITICAL**: When modifying backend code, always ensure existing tests still pass:
+
+| Change | Required Test Action |
+|--------|---------------------|
+| New UseCase | Create test in `tests/Unit/Domain/UseCases/{Entity}/` |
+| New DTO | Add tests in corresponding Commands/Queries test file |
+| New Value Object | Create test in `tests/Unit/Domain/Model/ValueObjects/` |
+| Modified Domain Model | Update model test + verify mapper tests |
+| Changed constructor | Update ALL tests that construct that class |
+| New repository method | Mock in affected UseCase tests |
+| Changed `fromArray()` | Verify signature: most use `fromArray(array $data, int $userId)` |
+| Any change | Run: `docker compose exec -T backend vendor/bin/phpunit --testdox` |
+
+### Test Pitfalls
+
+1. **Edition constructor order**: `new Edition(int $workId, ?string $openlibraryEditionKey, string $title, ?int $editionId)` — NOT `(title, workId)`
+2. **`fromArray()` requires 2 args**: `fromArray(array $data, int $userId)` — userId is a separate param
+3. **Game/Movie `fromArray()` requires `userStatuses`**: Must be a non-empty array
+4. **Final `execute()`**: Cannot mock — mock `doExecute()` + set logger via Reflection
+5. **Final classes**: Cannot mock — extract interface first (e.g., `BookImportServiceInterface`)
+6. **NullLogger**: Always use `Psr\Log\NullLogger` for logger dependencies in tests
+
+### Adding a New Feature (with Tests)
+
+After creating DTO + UseCase + Controller + Route (steps 1-6 above):
+
+7. **Create UseCase test**: `tests/Unit/Domain/UseCases/{Entity}/{ActionName}UseCaseTest.php`
+8. **Add DTO tests**: In `tests/Unit/Domain/DTO/Commands/` or `Queries/`
+9. **If new Value Object**: Create test in `tests/Unit/Domain/Model/ValueObjects/`
+10. **If mapper modified**: Verify mapper tests pass
+11. **Run full suite**: `docker compose exec -T backend vendor/bin/phpunit --testdox`
 
 ## Logging
 

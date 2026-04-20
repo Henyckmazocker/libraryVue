@@ -44,7 +44,7 @@ class AddMovieNoteUseCase extends AbstractUseCase
         // Add note
         $noteId = $this->movieNoteRepository->add(
             userId: $command->userId,
-            movieId: $command->movieIsbn,
+            movieIsbn: $command->movieIsbn,
             noteText: $command->noteText,
             noteType: $command->noteType,
             isPrivate: $command->isPrivate

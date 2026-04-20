@@ -102,6 +102,7 @@ return function (): ContainerInterface {
             return new \App\Infrastructure\Cache\CacheService($cacheDir, $c->get(LoggerInterface::class));
         },
         
+        \App\Domain\Services\BookImportServiceInterface::class => DI\get(\App\Domain\Services\BookImportService::class),
         \App\Domain\Services\BookImportService::class => DI\autowire(),
         
         \App\Domain\Services\OpenLibraryService::class => DI\autowire()

@@ -11,7 +11,7 @@ use App\Domain\Repository\Book\EditionRepositoryInterface;
 use App\Domain\Repository\Book\WorkRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Book\UserBookEditionRepositoryInterface;
-use App\Domain\Services\BookImportService;
+use App\Domain\Services\BookImportServiceInterface;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\AddBookCommand;
 use Psr\Log\LoggerInterface;
@@ -21,7 +21,7 @@ use RuntimeException;
 class AddBookUseCase extends AbstractUseCase
 {
     public function __construct(
-        private readonly BookImportService $bookImportService,
+        private readonly BookImportServiceInterface $bookImportService,
         private readonly EditionRepositoryInterface $editionRepository,
         private readonly WorkRepositoryInterface $workRepository,
         private readonly UserRepositoryInterface $userRepository,

@@ -17,6 +17,7 @@ Always reference the actual project architecture:
 - **Backend**: Use cases, DTOs (Commands/Queries), repositories, services
 - **Frontend**: Pinia stores, composables, PrimeVue components
 - **Patterns**: CQRS, DI container, action-based routing, middleware pipeline
+- **Testing**: PHPUnit tests (743 tests, 74 files) — every backend change must include test updates
 
 **Example:**
 - Instead of: "Add a button to delete books"
@@ -30,7 +31,7 @@ Structure multi-step work into numbered, dependency-aware steps:
 **Improved:**
 1. Create `UpdateGameRatingCommand` DTO in `backend/src/Domain/DTO/Commands/`
 2. Implement `UpdateGameRatingUseCase` with validation (1-10 scale)
-3. Register use case in `config/dependencies.php`
+3. Register use case in `config/container.php`
 4. Add `update_game_rating` action to `GameController`
 5. Add route in `config/routes.php` with `AuthenticationMiddleware` and `ValidationMiddleware`
 6. Update `useGames` composable with `updateRating` method
@@ -63,6 +64,8 @@ Before implementing, validate requirements:
 - [ ] Input validation needed? (Define required fields)
 - [ ] External API involved? (Use appropriate service + caching)
 - [ ] UI placement? (Which component, dashboard, or modal)
+- [ ] Tests affected? (Which existing tests need updating? What new tests are needed?)
+- [ ] Constructor changes? (Update ALL tests that construct modified classes)
 
 ## Architecture-Specific Patterns
 
@@ -86,7 +89,7 @@ To add [feature name]:
    - Use BaseController::jsonResponse() for output
 
 4. **Configuration**
-   - Register use case in `config/dependencies.php`
+   - Register use case in `config/container.php`
    - Add route in `config/routes.php` with middleware:
      - AuthenticationMiddleware (if auth required)
      - CSRFMiddleware (for state-changing operations)
@@ -95,6 +98,13 @@ To add [feature name]:
 
 5. **Router**
    - Map action in `src/Router/ActionRouter.php`
+
+6. **Testing**
+   - Create UseCase test in `tests/Unit/Domain/UseCases/[Entity]/[Action]UseCaseTest.php`
+   - Add DTO tests in `tests/Unit/Domain/DTO/Commands/` or `Queries/`
+   - If new Value Object: add test in `tests/Unit/Domain/Model/ValueObjects/`
+   - If mapper modified: verify mapper tests in `tests/Unit/Infrastructure/Persistence/`
+   - Run full suite: `docker compose exec -T backend vendor/bin/phpunit --testdox`
 ```
 
 ### Frontend Feature Implementation
@@ -143,12 +153,12 @@ When integrating external APIs:
 - "Add Vuex store" → Use Pinia stores
 - "New instance of BookRepository" → Use DI container
 - "Install local Node.js and PHP" → Use Docker only
-- "Add JWT authentication" → Use session-based auth (SessionManager)
+- "Add JWT authentication" → Use hybrid session+JWT auth (SessionManager + JWT in localStorage)
 
 ### ✅ Do Say:
 - "Add action `get_books` with `GetBooksByUserQuery`"
 - "Update Pinia `useBooksStore` with new getter"
-- "Register in `config/dependencies.php` with autowiring"
+- "Register in `config/container.php` with autowiring"
 - "Run `docker-compose up -d` to start services"
 - "Check session via `AuthenticationMiddleware`"
 
@@ -165,9 +175,17 @@ Backend:
 1. Create `AddBookToWishlistCommand` (userId, bookId) in Domain/DTO/Commands/
 2. Create `AddBookToWishlistUseCase` validating book exists via BookRepositoryInterface
 3. Add to multi-status system using existing status 'wishlist'
-4. Register in dependencies.php
+4. Register in container.php
 5. Add action `add_book_to_wishlist` to BookController
 6. Configure route with AuthenticationMiddleware + ValidationMiddleware
+
+Testing:
+1. Add command test in tests/Unit/Domain/DTO/Commands/BookCommandsTest.php
+2. Create tests/Unit/Domain/UseCases/Books/AddBookToWishlistUseCaseTest.php
+   - Test invalid command type throws InvalidArgumentException
+   - Test success path with mocked BookRepositoryInterface
+   - Test book not found scenario
+3. Run: docker compose exec -T backend vendor/bin/phpunit --testdox
 
 Frontend:
 1. Update useBooksStore with `addToWishlist(bookId)` action
@@ -240,13 +258,16 @@ Before presenting an improved prompt, verify:
 
 - [ ] All file paths reference actual project structure
 - [ ] Class/method names match codebase conventions
-- [ ] Dependencies are registered in config/dependencies.php
+- [ ] Dependencies are registered in config/container.php
 - [ ] Routes include appropriate middleware stack
 - [ ] Frontend uses correct store + composable pattern
 - [ ] External APIs use caching mechanism
 - [ ] No mention of local npm/php commands (Docker only)
 - [ ] CQRS pattern followed (Commands for writes, Queries for reads)
 - [ ] Error handling and logging considered
+- [ ] **Tests included**: New UseCase → new test file; modified DTO → updated DTO tests
+- [ ] **Existing tests verified**: Constructor/signature changes don't break existing tests
+- [ ] **Test command included**: `docker compose exec -T backend vendor/bin/phpunit --testdox`
 
 ## Final Output Format
 
@@ -255,8 +276,8 @@ Present improved prompts with:
 1. **Clear Objective**: What feature/fix is being implemented
 2. **Backend Changes**: List files, classes, methods with specifics
 3. **Frontend Changes**: Components, composables, stores affected
-4. **Configuration Updates**: dependencies.php, routes.php changes
-5. **Testing Approach**: How to verify the implementation
-6. **Expected Outcome**: What the user should experience
+4. **Configuration Updates**: container.php, routes.php changes
+5. **Testing**: Specific test files to create/update, mocking strategy, test commands to run
+6. **Expected Outcome**: What the user should experience (including all 743+ tests passing)
 
 Then ask: **"¿Deseas que proceda con esta implementación?"**

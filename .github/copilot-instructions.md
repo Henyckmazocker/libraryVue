@@ -104,33 +104,47 @@ backend/src/
 
 ### Dependency Injection Pattern
 
-**Critical**: All dependencies are resolved via `config/dependencies.php`:
+**Critical**: All dependencies are resolved via `config/container.php`:
 
 ```php
-// Repositories bind to interfaces
-UserRepositoryInterface::class => DI\autowire(MySqlUserRepository::class)
+// Repositories: MUST have BOTH entries (interface mapping + implementation autowire)
+GameRepositoryInterface::class => DI\get(MySqlGameRepository::class),
+MySqlGameRepository::class => DI\autowire(),
 
 // Use cases autowire their dependencies
-AddBookUseCase::class => DI\autowire()
-    ->constructorParameter('bookRepository', DI\get(BookRepositoryInterface::class))
+AddGameUseCase::class => DI\autowire()
+    ->constructorParameter('gameRepository', DI\get(GameRepositoryInterface::class))
 ```
 
 **Never instantiate controllers/use cases manually** - let the DI container resolve them.
 
 ### Use Case Pattern
 
-All business logic lives in **use cases** with a single `execute()` method:
+All business logic lives in **use cases** extending `AbstractUseCase` (Template Method pattern):
 
 ```php
-class AddBookUseCase {
-    public function execute(array $bookData, int $userId): Book {
-        // 1. Validate
+class AddGameUseCase extends AbstractUseCase {
+    public function __construct(
+        private GameRepositoryInterface $gameRepository,
+        private UserGameRepositoryInterface $userGameRepository,
+        LoggerInterface $logger
+    ) {
+        parent::__construct($logger);
+    }
+
+    // REQUIRED — missing this causes silent DI failure
+    protected function getLogContext(): string { return 'AddGame'; }
+
+    protected function doExecute(mixed ...$args): mixed {
+        $command = $args[0]; // AddGameCommand DTO
+        // 1. Validate command
         // 2. Execute business logic
         // 3. Return domain entity or throw exception
     }
 }
 ```
 
+**Note**: `execute()` is `final` in AbstractUseCase — override `doExecute()` instead.
 Controllers call use cases, not repositories directly.
 
 ### CQRS Pattern with DTOs
@@ -141,10 +155,17 @@ The backend uses **Command Query Responsibility Segregation** via readonly DTOs:
 ```php
 final readonly class AddBookCommand {
     public function __construct(
-        public array $bookData,
+        public ISBN $isbn,
+        public string $title,
         public int $userId,
-        public array $statuses = []
+        public array $statuses = [],
+        public ?Rating $userRating = null,
+        // ... typed properties with Value Objects
     ) {}
+
+    public static function fromArray(array $data, int $userId): self {
+        // Handles both camelCase and snake_case keys
+    }
 }
 ```
 
@@ -155,7 +176,8 @@ final readonly class GetBooksByUserQuery {
 }
 ```
 
-Use cases accept DTOs, not raw arrays - ensures type safety and immutability.
+Use cases accept DTOs, not raw arrays — ensures type safety and immutability.
+Commands use Value Objects (`ISBN`, `Rating`, `Genre`) for validation, not plain arrays.
 
 ### Cache System
 
@@ -231,13 +253,24 @@ Config: `config/logging.php` (environment-specific settings)
 ```
 frontend/src/
 ├── components/
-│   ├── Books/          # BookSearch.vue, BookCard.vue
-│   ├── Movies/         # MovieSearch.vue
-│   ├── Dashboard/      # BooksDashboard.vue, MoviesDashboard.vue
-│   └── LibraryX.vue    # Main library view
-├── composables/        # Vue composables (NO stores/ folder)
+│   ├── Books/          # BookSearch.vue, EditionSelector.vue, EditionNotes.vue, etc.
+│   ├── Movies/         # MovieSearch.vue, MovieNotes.vue, etc.
+│   ├── Games/          # GameSearch.vue, GameNotes.vue, etc.
+│   ├── Dashboard/      # UnifiedDashboard.vue, *Dashboard.vue, *DashboardContent.vue
+│   │   └── shared/     # ChartCard.vue, StatCard.vue, DashboardHeader.vue
+│   ├── common/         # Header.vue, Sidebar.vue, Layout.vue, StatusSelector.vue, TagSelector.vue
+│   ├── shared/         # GenericSearch.vue, HorizontalCarousel.vue
+│   ├── import/         # FileUploader.vue, ImportStatus.vue, ServiceSelector.vue
+│   ├── EditItemModal.vue   # Shared edit modal for ALL entity types
+│   ├── ImportModal.vue     # CSV/XML import
+│   ├── MyLibrary.vue       # Unified library view
+│   └── HomePage.vue        # Landing page
+├── composables/        # 24 composables (UI wrappers around stores)
+├── store/              # 8 Pinia stores (auth, books, movies, games, sessions, ui, menu)
+├── views/              # BookDetailView.vue, MovieDetailView.vue, GameDetailView.vue, NotFoundView.vue
+├── services/           # StatsService.js, ImportService.js, FileProcessorService.js
+├── utils/              # logger.js, storeHelpers.js, languageConstants.js
 ├── router/index.js     # Routes with meta.requiresAuth
-├── services/           # API clients (axios)
 └── main.js             # App entry, PrimeVue setup with custom theme
 ```
 
@@ -290,6 +323,154 @@ Use PrimeVue components (MultiSelect, DataTable) - they're pre-configured.
 - **Queries**: `GetTrendingBooksQuery`, `GetTrendingMoviesQuery`, `GetTrendingGamesQuery`
 - **Frontend**: `useTrending` composable manages trending data
 
+## Testing
+
+### Test Suite Overview
+
+The backend has a comprehensive PHPUnit test suite: **743 tests, 2,071 assertions** across **74 test files**.
+
+- **Framework**: PHPUnit 11.5, PHP 8.2
+- **Test attributes**: Uses `#[Test]` attributes (not `@test` annotations)
+- **Config**: `backend/phpunit.xml`
+- **Suites**: `Unit` (`tests/Unit/`) and `Integration` (`tests/Integration/`)
+
+### Test Directory Structure
+
+```
+backend/tests/
+├── Unit/
+│   ├── Domain/
+│   │   ├── Model/              # 12 tests: Book, Movie, Game, User, Work, Edition, EditionNote, UserBookEdition
+│   │   │   └── ValueObjects/    # 9 tests: Email, ISBN, Rating, Genre, Status, GoogleId, GameIdentifier, MovieIdentifier, Timestamp
+│   │   ├── DTO/
+│   │   │   ├── Commands/        # 6 tests: BookCommands, GameCommands, MovieCommands, NoteCommands, ReadingSessionCommands, LoginUserCommand
+│   │   │   └── Queries/         # 5 tests: BookQueries, MovieQueries, EditionQueries, ReadingQueries, LibraryQueries
+│   │   └── UseCases/            # 38 tests organized by entity:
+│   │       ├── Books/ (15)      # Add, Delete, Edit, Get, GetAll, GetAllowedStatuses, GetTrending, UpdateRating, UpdateStatuses
+│   │       │                    # + EditionNotes (Add, Delete, Update, Get, GetAll) + UpdateReadingProgress
+│   │       ├── Games/ (8)       # Add, Delete, Edit, Get, GetAllowedStatuses, GetTrending, UpdateRating, UpdateStatuses
+│   │       ├── Movies/ (12)     # Add, Delete, Edit, Get, GetAllowedStatuses, GetTrending, UpdateRating, UpdateStatuses
+│   │       │                    # + MovieNotes (Add, Delete, Update, GetNotes)
+│   │       ├── Auth/ (1)        # LoginUserUseCase
+│   │       └── Library/ (2)     # GetLibraryUseCase, GetLibraryItemsUseCase
+│   └── Infrastructure/
+│       └── Persistence/         # 8 mapper tests: Book (5 mappers), Game (1), Movie (1), User (1)
+└── Integration/                 # (placeholder for future integration tests)
+```
+
+### Running Tests
+
+```bash
+# Run full test suite inside Docker
+docker compose exec -T backend vendor/bin/phpunit --testdox
+
+# Run specific test class
+docker compose exec -T backend vendor/bin/phpunit --filter="AddBookUseCaseTest"
+
+# Run tests in a directory
+docker compose exec -T backend vendor/bin/phpunit tests/Unit/Domain/UseCases/Books/
+
+# Run with coverage (requires Xdebug)
+docker compose exec -T backend vendor/bin/phpunit --coverage-text
+```
+
+### Testing Patterns
+
+#### UseCase Tests (Mock Dependencies)
+
+UseCases follow Template Method pattern (`execute()` is `final`, override `doExecute()`).
+All repository interfaces are mocked, logger uses `NullLogger`:
+
+```php
+class AddGameUseCaseTest extends TestCase
+{
+    private AddGameUseCase $useCase;
+    private GameRepositoryInterface $gameRepo;
+
+    protected function setUp(): void
+    {
+        $this->gameRepo = $this->createMock(GameRepositoryInterface::class);
+        $this->useCase = new AddGameUseCase($this->gameRepo, new NullLogger());
+    }
+
+    #[Test]
+    public function throws_on_invalid_command(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->useCase->execute(new \stdClass());
+    }
+}
+```
+
+#### Testing UseCases that Depend on Other UseCases
+
+When a UseCase depends on another UseCase (e.g., `GetLibraryItemsUseCase` depends on `GetBooksUseCase`),
+you CANNOT use `createMock()` because `execute()` is `final`. Use Reflection to set the logger:
+
+```php
+$mock = $this->getMockBuilder(GetBooksUseCase::class)
+    ->disableOriginalConstructor()
+    ->onlyMethods(['doExecute', 'getLogContext'])
+    ->getMock();
+$mock->method('doExecute')->willReturn([]);
+$mock->method('getLogContext')->willReturn('Test');
+
+// Set logger via reflection so final execute() works
+$ref = new \ReflectionProperty(AbstractUseCase::class, 'logger');
+$ref->setValue($mock, new NullLogger());
+```
+
+#### Final Classes (e.g., BookImportService)
+
+Final classes cannot be mocked directly. They MUST have interfaces:
+- `BookImportService` → `BookImportServiceInterface`
+- UseCases depend on the interface, not the concrete class
+- Tests mock the interface
+
+#### Standard Test Cases per UseCase
+
+Every UseCase test should cover at minimum:
+1. **Invalid command** — throws `InvalidArgumentException` on wrong type
+2. **Success path** — happy path with expected return value
+3. **Validation failures** — user not found, entity not found, duplicates, etc.
+
+#### Domain Model / VO / DTO Tests
+
+These test pure logic without mocks:
+- Construction with valid/invalid data
+- Value Object validation rules (ISBN format, rating range, etc.)
+- `fromArray()` / `toArray()` round-trips
+- Edge cases (null handling, both camelCase and snake_case keys)
+
+#### Mapper Tests
+
+Test `toDomain()` and `toDatabase()` conversions:
+- All fields mapped correctly
+- Null/optional field handling
+- Round-trip (toDomain → toDatabase → toDomain preserves data)
+
+### Test Maintenance Rules
+
+**CRITICAL**: When modifying backend code, always ensure existing tests still pass:
+
+1. **After any change**, run: `docker compose exec -T backend vendor/bin/phpunit --testdox`
+2. **Adding a new UseCase** → Create corresponding test file in `tests/Unit/Domain/UseCases/{Entity}/`
+3. **Adding a new DTO** → Add tests in the corresponding Commands/Queries test file
+4. **Adding a new Value Object** → Create test in `tests/Unit/Domain/Model/ValueObjects/`
+5. **Modifying a Domain Model** → Update model test + verify mapper tests still pass
+6. **Changing constructor signatures** → Update ALL tests that construct that class
+7. **Adding repository methods** → Mock the new method in affected UseCase tests
+8. **Changing `fromArray()`** → Verify the method signature (most use `fromArray(array $data, int $userId)`)
+
+### Common Test Pitfalls
+
+1. **Edition constructor order**: `new Edition(int $workId, ?string $openlibraryEditionKey, string $title, ?int $editionId)` — NOT `(title, workId, editionId)`
+2. **`fromArray()` requires 2 args**: Most Command DTOs use `fromArray(array $data, int $userId)` — userId is the second parameter, not inside the array
+3. **Game/Movie `fromArray()` requires `userStatuses`**: Domain models `Game::fromArray()` and `Movie::fromArray()` require a non-empty `userStatuses` array
+4. **Final `execute()` method**: Cannot mock `execute()` on UseCases — mock `doExecute()` + set logger via Reflection
+5. **Final classes**: Cannot mock `final class` — extract interface first (e.g., `BookImportServiceInterface`)
+6. **NullLogger**: Always use `Psr\Log\NullLogger` for logger dependencies in tests
+
 ## Development Workflows
 
 ### Running the Application
@@ -330,10 +511,18 @@ composer install
 
 **Backend (Use Case Approach)**:
 
-1. Create use case in `Domain/UseCases/{Entity}/{ActionName}UseCase.php`
-2. Register in `config/dependencies.php`
-3. Add controller method in `Controllers/{Entity}Controller.php`
-4. Map action in `Router/ActionRouter.php`
+1. Create DTO in `Domain/DTO/Commands/` or `Domain/DTO/Queries/`
+2. Create use case in `Domain/UseCases/{Entity}/{ActionName}UseCase.php`
+3. Register in `config/container.php` (use case + any new repository bindings)
+4. Add controller method in `Controllers/{Entity}Controller.php`
+5. Add route in `config/routes.php` with appropriate middleware stack
+6. Map action in `Router/ActionRouter.php`
+7. **Create unit tests**:
+   - Add DTO tests in `tests/Unit/Domain/DTO/Commands/` or `Queries/`
+   - Add UseCase test in `tests/Unit/Domain/UseCases/{Entity}/{ActionName}UseCaseTest.php`
+   - If new Value Object created, add test in `tests/Unit/Domain/Model/ValueObjects/`
+   - If mapper modified, verify mapper tests pass
+8. **Run test suite**: `docker compose exec -T backend vendor/bin/phpunit --testdox`
 
 **Frontend (Component Approach)**:
 
@@ -349,7 +538,7 @@ composer install
 - **Response format**: Always JSON via `BaseController::jsonResponse()`
 - **Error handling**: Controllers catch exceptions, return `['error' => true, 'message' => ...]`
 - **Database**: PDO with prepared statements (lazy-loaded via DI)
-- **Session**: Session-based auth (not JWT) - `SessionManager` class
+- **Auth**: Hybrid session + JWT — PHP sessions (`SessionManager`) for backend state, JWT in `localStorage` + `Authorization` header for API calls
 - **DTOs**: Use readonly Command/Query objects for use case parameters
 - **Routes**: Define in `config/routes.php` with middleware stacks (not in ActionRouter)
 - **Controller interfaces**: Controllers implement interfaces in `Controllers/Contracts/`
@@ -378,7 +567,7 @@ composer install
 1. **Don't bypass DI container** - Use `$container->get(ClassName::class)` not `new ClassName()`
 2. **Don't use REST paths** - Backend expects `action` parameter, not URL paths
 3. **Don't forget logging setup** - Run `setup_logging.sh` or logs won't work
-4. **Check bootstrap.php errors** - If DI fails, check `config/dependencies.php` registrations
+4. **Check bootstrap.php errors** - If DI fails, check `config/container.php` registrations
 5. **AbstractUseCase requires `getLogContext()`** - Every UseCase extending `AbstractUseCase` MUST implement `protected function getLogContext(): string`. Missing this causes a **PHP Fatal Error** that silently prevents the entire controller from being instantiated via DI. The error won't show in normal logs — only in PHP CLI or Apache error.log.
 6. **DI bindings for repository interfaces** - Every `*RepositoryInterface` used by a UseCase must have TWO entries in `config/container.php`: (1) interface → implementation mapping via `DI\get()`, and (2) implementation autowire via `DI\autowire()`. Missing either causes the controller to fail silently.
 7. **PHP-DI resolves ALL constructor dependencies eagerly** - A broken dependency anywhere in the chain (e.g., a UseCase with a missing abstract method) kills the ENTIRE controller instantiation, not just the specific action that uses that UseCase.
@@ -683,11 +872,13 @@ When an API call from the frontend gets an error response but no useful backend 
 ## Key Files to Reference
 
 - `backend/bootstrap.php` - Application initialization
-- `backend/config/dependencies.php` - DI registrations
+- `backend/config/container.php` - DI registrations
 - `backend/config/routes.php` - Route definitions with middleware stacks
 - `backend/src/Router/ActionRouter.php` - Action → controller mapping
 - `backend/src/Domain/DTO/` - Commands and Queries for CQRS
 - `backend/src/Infrastructure/Cache/CacheService.php` - Caching implementation
+- `backend/phpunit.xml` - PHPUnit configuration
+- `backend/tests/Unit/` - All unit tests (74 files, 743 tests)
 - `frontend/src/main.js` - App setup, PrimeVue theme
 - `frontend/src/store/` - Pinia stores (books, games, movies, auth, sessions)
 - `frontend/src/composables/` - UI-specific wrappers and reusable logic

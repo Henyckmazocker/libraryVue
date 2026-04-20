@@ -16,7 +16,7 @@ use RuntimeException;
  * Service for importing book data from OpenLibrary API
  * Orchestrates creation/retrieval of Work and Edition entities
  */
-final class BookImportService
+final class BookImportService implements BookImportServiceInterface
 {
     public function __construct(
         private readonly WorkRepositoryInterface $workRepository,

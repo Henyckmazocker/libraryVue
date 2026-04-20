@@ -53,9 +53,9 @@ frontend/src/
 | `/library` | MyLibrary | Yes | Yes |
 | `/dashboard` | UnifiedDashboard | Yes | Yes |
 | `/dashboard/books` | Redirect → `/dashboard?tab=books` | — | — |
-| `/books/:isbn` | BookDetailView | Yes | No |
-| `/movies/:imdbId` | MovieDetailView | Yes | No |
-| `/games/:gameId` | GameDetailView | Yes | No |
+| `/books/:isbn` | BookDetailView | Yes | Yes |
+| `/movies/:imdbId` | MovieDetailView | Yes | Yes |
+| `/games/:gameId` | GameDetailView | Yes | Yes |
 
 Router `afterEach` hook applies dark mode theme from `ui` store.
 

@@ -69,6 +69,18 @@ class StatsService {
     }
   }
 
+  async getAlbumStats() {
+    try {
+      Logger.info('[StatsService] Fetching album statistics...');
+      const data = await this._apiCall('get_album_stats');
+      Logger.info('[StatsService] Album statistics fetched successfully');
+      return data;
+    } catch (error) {
+      Logger.error('[StatsService] Error fetching album statistics:', error);
+      throw error;
+    }
+  }
+
   /**
    * Transformar datos de géneros para Chart.js
    * @param {Object} genreStats - Estadísticas de géneros

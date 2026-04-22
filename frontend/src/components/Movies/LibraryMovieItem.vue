@@ -23,9 +23,9 @@
           v-model="selectedUserStatuses"
           :allowed-statuses="allowedUserStatuses"
           :multiple="true"
-          :readonly="true"
-          label="Status"
-          subtitle="(solo lectura - usa el modal para editar)"
+          :readonly="!isNewMovie"
+          :label="isNewMovie ? 'Añadir con estado' : 'Status'"
+          :subtitle="isNewMovie ? '' : '(solo lectura - usa el modal para editar)'"
         />
         
         <!-- Direct action buttons -->

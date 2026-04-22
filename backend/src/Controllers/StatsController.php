@@ -7,6 +7,7 @@ use App\Domain\Repository\Book\EditionRepositoryInterface;
 use App\Domain\Repository\Book\WorkRepositoryInterface;
 use App\Domain\Repository\Movie\UserMovieRepositoryInterface;
 use App\Domain\Repository\Game\UserGameRepositoryInterface;
+use App\Domain\Repository\Album\UserAlbumRepositoryInterface;
 use App\Domain\Repository\Book\ReadingProgressRepositoryInterface;
 use App\Infrastructure\Middleware\AuthMiddleware;
 
@@ -17,6 +18,7 @@ class StatsController extends BaseController implements StatsControllerInterface
     private WorkRepositoryInterface $workRepository;
     private UserMovieRepositoryInterface $userMovieRepository;
     private UserGameRepositoryInterface $userGameRepository;
+    private UserAlbumRepositoryInterface $userAlbumRepository;
     private ReadingProgressRepositoryInterface $readingProgressRepository;
     private AuthMiddleware $authMiddleware;
 
@@ -26,6 +28,7 @@ class StatsController extends BaseController implements StatsControllerInterface
         WorkRepositoryInterface $workRepository,
         UserMovieRepositoryInterface $userMovieRepository,
         UserGameRepositoryInterface $userGameRepository,
+        UserAlbumRepositoryInterface $userAlbumRepository,
         ReadingProgressRepositoryInterface $readingProgressRepository,
         AuthMiddleware $authMiddleware
     ) {
@@ -34,6 +37,7 @@ class StatsController extends BaseController implements StatsControllerInterface
         $this->workRepository = $workRepository;
         $this->userMovieRepository = $userMovieRepository;
         $this->userGameRepository = $userGameRepository;
+        $this->userAlbumRepository = $userAlbumRepository;
         $this->readingProgressRepository = $readingProgressRepository;
         $this->authMiddleware = $authMiddleware;
     }
@@ -516,6 +520,152 @@ class StatsController extends BaseController implements StatsControllerInterface
             'totalHours' => round($totalHours, 1),
             'gamesWithHours' => $gamesWithHours,
             'averageHours' => $gamesWithHours > 0 ? round($totalHours / $gamesWithHours, 1) : 0
+        ];
+    }
+
+    public function getAlbumStats(int $userId): array
+    {
+        try {
+            $albums = $this->userAlbumRepository->findByUser($userId);
+
+            $stats = [
+                'totalAlbums'    => count($albums),
+                'genreStats'     => $this->calculateAlbumGenreStats($albums),
+                'statusStats'    => $this->calculateAlbumStatusStats($albums),
+                'ratingStats'    => $this->calculateAlbumRatingStats($albums),
+                'monthlyStats'   => $this->calculateAlbumMonthlyStats($albums),
+                'albumTypeStats' => $this->calculateAlbumTypeStats($albums),
+                'listenStats'    => $this->calculateAlbumListenStats($albums),
+            ];
+
+            return $this->successResponse('Album statistics retrieved successfully', $stats);
+        } catch (\Exception $e) {
+            error_log('[StatsController] Error getting album stats: ' . $e->getMessage());
+            return $this->errorResponse('Failed to retrieve album statistics: ' . $e->getMessage(), 500);
+        }
+    }
+
+    private function calculateAlbumGenreStats(array $albums): array
+    {
+        $genreCounts = [];
+        $totalWithGenres = 0;
+
+        foreach ($albums as $album) {
+            $genres = $album->getGenres();
+            if (!empty($genres) && is_array($genres)) {
+                $totalWithGenres++;
+                foreach ($genres as $genre) {
+                    $genreName = is_string($genre)
+                        ? $genre
+                        : (method_exists($genre, 'toString') ? $genre->toString() : (string)$genre);
+                    if (!empty($genreName)) {
+                        $genreCounts[$genreName] = ($genreCounts[$genreName] ?? 0) + 1;
+                    }
+                }
+            }
+        }
+
+        arsort($genreCounts);
+        $topGenres = array_slice($genreCounts, 0, 10, true);
+
+        return [
+            'topGenres'           => $topGenres,
+            'totalGenres'         => count($genreCounts),
+            'albumsWithGenres'    => $totalWithGenres,
+            'albumsWithoutGenres' => count($albums) - $totalWithGenres,
+        ];
+    }
+
+    private function calculateAlbumStatusStats(array $albums): array
+    {
+        $statusCounts = [];
+        foreach ($albums as $album) {
+            foreach ($album->getUserStatuses() as $status) {
+                $statusCounts[$status] = ($statusCounts[$status] ?? 0) + 1;
+            }
+        }
+        return $statusCounts;
+    }
+
+    private function calculateAlbumRatingStats(array $albums): array
+    {
+        $ratingCounts = [];
+        $totalRated   = 0;
+        $sumRatings   = 0;
+
+        foreach ($albums as $album) {
+            $rating = $album->getUserRating();
+            if ($rating !== null) {
+                $ratingValue = $rating->toFloat();
+                if ($ratingValue > 0) {
+                    $rounded = round($ratingValue * 2) / 2;
+                    if ($rounded >= 1 && $rounded <= 5) {
+                        $key = (string)$rounded;
+                        $ratingCounts[$key] = ($ratingCounts[$key] ?? 0) + 1;
+                        $totalRated++;
+                        $sumRatings += $ratingValue;
+                    }
+                }
+            }
+        }
+
+        ksort($ratingCounts);
+
+        return [
+            'distribution'  => $ratingCounts,
+            'totalRated'    => $totalRated,
+            'averageRating' => $totalRated > 0 ? round($sumRatings / $totalRated, 1) : 0,
+        ];
+    }
+
+    private function calculateAlbumMonthlyStats(array $albums): array
+    {
+        $monthlyCounts = [];
+        foreach ($albums as $album) {
+            $ts = $album->getAddedTimestamp();
+            if ($ts) {
+                $month = date('Y-m', $ts->toUnixTimestamp());
+                $monthlyCounts[$month] = ($monthlyCounts[$month] ?? 0) + 1;
+            }
+        }
+
+        $monthlyData = [];
+        for ($i = 11; $i >= 0; $i--) {
+            $month = date('Y-m', strtotime("-$i months"));
+            $monthlyData[$month] = $monthlyCounts[$month] ?? 0;
+        }
+
+        return $monthlyData;
+    }
+
+    private function calculateAlbumTypeStats(array $albums): array
+    {
+        $typeCounts = [];
+        foreach ($albums as $album) {
+            $type = $album->getAlbumType() ?? 'unknown';
+            $typeCounts[$type] = ($typeCounts[$type] ?? 0) + 1;
+        }
+        arsort($typeCounts);
+        return $typeCounts;
+    }
+
+    private function calculateAlbumListenStats(array $albums): array
+    {
+        $totalListens      = 0;
+        $albumsWithListens = 0;
+
+        foreach ($albums as $album) {
+            $count = $album->getListenCount();
+            if ($count !== null && $count > 0) {
+                $totalListens += $count;
+                $albumsWithListens++;
+            }
+        }
+
+        return [
+            'totalListens'      => $totalListens,
+            'albumsWithListens' => $albumsWithListens,
+            'averageListens'    => $albumsWithListens > 0 ? round($totalListens / $albumsWithListens, 1) : 0,
         ];
     }
 }

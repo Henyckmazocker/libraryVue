@@ -144,25 +144,27 @@ const getRatingClass = (rating) => {
 
 .game-carousel-item {
   flex-shrink: 0;
-  width: 200px;
+  width: 160px;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface-card, #2a2d36);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
-  gap: 10px;
 }
 
 .game-carousel-item:hover {
-  transform: translateY(-5px);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 }
 
 .game-cover-wrapper {
   position: relative;
-  width: 200px;
-  height: 260px;
-  border-radius: 8px;
+  width: 160px;
+  height: 208px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  background: var(--surface-ground, #1e2127);
 }
 
 .game-cover {
@@ -182,16 +184,16 @@ const getRatingClass = (rating) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: linear-gradient(135deg, #1D4E4A, #2a5c58);
+  color: rgba(255, 255, 255, 0.4);
   font-size: 3rem;
 }
 
 .year-badge {
   position: absolute;
-  top: 8px;
-  left: 8px;
-  background: rgba(0, 0, 0, 0.7);
+  bottom: 6px;
+  left: 6px;
+  background: rgba(0, 0, 0, 0.72);
   color: white;
   padding: 4px 8px;
   border-radius: 4px;
@@ -220,13 +222,13 @@ const getRatingClass = (rating) => {
 
 .library-badge {
   position: absolute;
-  bottom: 8px;
-  right: 8px;
-  background: rgba(40, 167, 69, 0.95);
-  color: white;
-  padding: 6px 8px;
+  top: 6px;
+  left: 6px;
+  background: rgba(29, 78, 74, 0.9);
+  color: #4ade80;
+  padding: 3px 6px;
   border-radius: 4px;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
 }
 
 .status-badge {
@@ -254,27 +256,33 @@ const getRatingClass = (rating) => {
 .game-info {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
+  padding: 8px 10px;
 }
 
 .game-title {
-  font-size: 0.95rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  color: var(--text-primary, #333);
+  color: var(--text-color, #e0e0e0);
   margin: 0;
   line-height: 1.3;
   min-height: 2.6em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .igdb-score {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
 }
 
 .score-label {
-  color: var(--text-secondary, #666);
+  color: var(--text-color-secondary, #9ca3af);
 }
 
 .score-value {
@@ -301,11 +309,11 @@ const getRatingClass = (rating) => {
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   .game-title {
-    color: var(--text-primary, #e0e0e0);
+    color: var(--text-color, #e0e0e0);
   }
   
   .score-label {
-    color: var(--text-secondary, #aaa);
+    color: var(--text-color-secondary, #9ca3af);
   }
 }
 </style>

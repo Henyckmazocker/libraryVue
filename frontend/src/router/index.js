@@ -4,6 +4,8 @@ import { createRouter, createWebHistory } from 'vue-router';
 import BookDetailView from '../views/BookDetailView.vue';
 import MovieDetailView from '../views/MovieDetailView.vue';
 import GameDetailView from '../views/GameDetailView.vue';
+import AlbumDetailView from '../views/AlbumDetailView.vue';
+import UserProfileView from '../views/UserProfileView.vue';
 
 const routes = [
   {
@@ -25,6 +27,11 @@ const routes = [
     path: '/games',
     name: 'Games',
     component: () => import('../components/Games/GameSearch.vue')
+  },
+  {
+    path: '/albums',
+    name: 'Albums',
+    component: () => import('../components/Albums/AlbumSearch.vue')
   },
   {
     path: '/library',
@@ -51,6 +58,12 @@ const routes = [
     redirect: '/dashboard?tab=games'
   },
   {
+    path: '/profile',
+    name: 'UserProfile',
+    component: UserProfileView,
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/books/:isbn',
     name: 'BookDetail',
     component: BookDetailView,
@@ -68,6 +81,13 @@ const routes = [
     path: '/games/:gameId',
     name: 'GameDetail',
     component: GameDetailView,
+    props: true,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/albums/:albumId',
+    name: 'AlbumDetail',
+    component: AlbumDetailView,
     props: true,
     meta: { requiresAuth: true }
   },

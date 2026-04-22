@@ -10,12 +10,15 @@ export function useTrending() {
   const trendingBooks = ref([]);
   const trendingMovies = ref([]);
   const trendingGames = ref([]);
+  const trendingAlbums = ref([]);
   const isLoadingBooks = ref(false);
   const isLoadingMovies = ref(false);
   const isLoadingGames = ref(false);
+  const isLoadingAlbums = ref(false);
   const errorBooks = ref(null);
   const errorMovies = ref(null);
   const errorGames = ref(null);
+  const errorAlbums = ref(null);
   
   const authStore = useAuthStore();
 
@@ -135,11 +138,52 @@ export function useTrending() {
   };
 
   /**
+   * Obtiene álbumes trending
+   * @param {number} limit - Cantidad de álbumes a obtener (default: 20)
+   * @param {number} daysWindow - Ventana temporal en días (default: 90)
+   */
+  const fetchTrendingAlbums = async (limit = 20, daysWindow = 90) => {
+    isLoadingAlbums.value = true;
+    errorAlbums.value = null;
+
+    try {
+      Logger.info('Fetching trending albums', { limit, daysWindow });
+
+      const response = await authStore.authenticatedApiCall('get_trending_albums', {
+        limit,
+        daysWindow
+      });
+
+      if (response.data?.status === 'success' && response.data?.data) {
+        trendingAlbums.value = response.data.data;
+        Logger.info(`Trending albums loaded: ${trendingAlbums.value.length} items`);
+      } else {
+        throw new Error('Invalid response format');
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Error al cargar álbumes trending';
+      errorAlbums.value = errorMessage;
+      Logger.error('Error fetching trending albums:', error);
+      trendingAlbums.value = [];
+    } finally {
+      isLoadingAlbums.value = false;
+    }
+  };
+
+  /**
    * Limpia datos de juegos trending
    */
   const clearTrendingGames = () => {
     trendingGames.value = [];
     errorGames.value = null;
+  };
+
+  /**
+   * Limpia datos de álbumes trending
+   */
+  const clearTrendingAlbums = () => {
+    trendingAlbums.value = [];
+    errorAlbums.value = null;
   };
 
   /**
@@ -149,6 +193,7 @@ export function useTrending() {
     clearTrendingBooks();
     clearTrendingMovies();
     clearTrendingGames();
+    clearTrendingAlbums();
   };
 
   return {
@@ -156,20 +201,25 @@ export function useTrending() {
     trendingBooks,
     trendingMovies,
     trendingGames,
+    trendingAlbums,
     isLoadingBooks,
     isLoadingMovies,
     isLoadingGames,
+    isLoadingAlbums,
     errorBooks,
     errorMovies,
     errorGames,
-    
+    errorAlbums,
+
     // Methods
     fetchTrendingBooks,
     fetchTrendingMovies,
     fetchTrendingGames,
+    fetchTrendingAlbums,
     clearTrendingBooks,
     clearTrendingMovies,
     clearTrendingGames,
+    clearTrendingAlbums,
     clearAll
   };
 }

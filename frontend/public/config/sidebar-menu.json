@@ -14,6 +14,12 @@
           "path": "/dashboard",
           "icon": "fas fa-chart-bar",
           "description": "Estadísticas de tu biblioteca"
+        },
+        {
+          "name": "Mi Perfil",
+          "path": "/profile",
+          "icon": "fas fa-user-cog",
+          "description": "Configuración de tu perfil"
         }
       ]
     },
@@ -37,18 +43,12 @@
           "path": "/games",
           "icon": "fas fa-gamepad",
           "description": "Buscar nuevos videojuegos"
-        }
-      ]
-    },
-    {
-      "title": "Próximamente",
-      "items": [
+        },
         {
-          "name": "Música",
-          "path": "#",
+          "name": "Buscar Álbumes",
+          "path": "/albums",
           "icon": "fas fa-music",
-          "description": "Próximamente disponible",
-          "disabled": true
+          "description": "Buscar álbumes en Spotify"
         }
       ]
     }

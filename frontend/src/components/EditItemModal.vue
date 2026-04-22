@@ -121,6 +121,63 @@
             v-if="itemType === 'game' && item?.id"
             :game-id="item.id"
           />
+
+          <!-- Album-specific fields -->
+          <div v-if="itemType === 'album'" class="game-fields">
+            <div class="form-group">
+              <label for="favorite-track">Canción Favorita</label>
+              <select
+                v-if="albumTracks && albumTracks.length > 0"
+                id="favorite-track"
+                v-model="localFavoriteTrack"
+                class="game-input"
+              >
+                <option value="">— Ninguna —</option>
+                <option
+                  v-for="track in albumTracks"
+                  :key="track.id || track.track_number"
+                  :value="track.name"
+                >
+                  {{ track.track_number }}. {{ track.name }}
+                </option>
+              </select>
+              <input
+                v-else
+                id="favorite-track"
+                v-model="localFavoriteTrack"
+                type="text"
+                placeholder="Tu canción favorita del álbum"
+                class="game-input"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="album-date-started">Primera Escucha</label>
+              <input
+                id="album-date-started"
+                v-model="localDateStarted"
+                type="date"
+                class="game-input"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="album-personal-notes">Notas Personales</label>
+              <textarea
+                id="album-personal-notes"
+                v-model="localPersonalNotes"
+                rows="3"
+                placeholder="Tus notas sobre este álbum..."
+                class="game-textarea"
+              ></textarea>
+            </div>
+          </div>
+
+          <!-- Album Notes -->
+          <AlbumNotes
+            v-if="itemType === 'album' && item?.id"
+            :album-id="item.id"
+          />
         </div>
         
         <div class="save-btn-container">
@@ -143,9 +200,11 @@ import EditionNotes from '@/components/Books/EditionNotes.vue'
 import ReadingStatusWidget from '@/components/Books/ReadingStatusWidget.vue'
 import MovieNotes from '@/components/Movies/MovieNotes.vue'
 import GameNotes from '@/components/Games/GameNotes.vue'
+import AlbumNotes from '@/components/Albums/AlbumNotes.vue'
 import { useBooks } from '@/composables/useBooks'
 import { useMovies } from '@/composables/useMovies'
 import { useGames } from '@/composables/useGames'
+import { useAlbums } from '@/composables/useAlbums'
 import { useItemEdit } from '@/composables/useItemEdit'
 import Logger from '@/utils/logger'
 
@@ -157,7 +216,7 @@ const props = defineProps({
   itemType: {
     type: String,
     required: true,
-    validator: (value) => ['book', 'movie', 'game'].includes(value)
+    validator: (value) => ['book', 'movie', 'game', 'album'].includes(value)
   },
   allowedStatuses: {
     type: Array,
@@ -166,6 +225,10 @@ const props = defineProps({
   isVisible: {
     type: Boolean,
     default: true
+  },
+  albumTracks: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -179,6 +242,7 @@ const notifications = inject('notifications', null)
 const booksComposable = useBooks()
 const moviesComposable = useMovies()
 const gamesComposable = useGames()
+const albumsComposable = useAlbums()
 
 // Local state
 const localRating = ref(props.item?.user_rating ?? null)
@@ -192,6 +256,9 @@ const localPlatformPlayed = ref(props.item?.platformPlayed ?? props.item?.platfo
 const localDateStarted = ref(props.item?.dateStarted ?? props.item?.date_started ?? '')
 const localDateFinished = ref(props.item?.dateFinished ?? props.item?.date_finished ?? '')
 const localPersonalNotes = ref(props.item?.personalNotes ?? props.item?.personal_notes ?? '')
+
+// Album-specific local state
+const localFavoriteTrack = ref(props.item?.favoriteTrack ?? props.item?.favorite_track ?? '')
 
 const isSaving = ref(false)
 const progressBarRef = ref(null)
@@ -218,6 +285,8 @@ const userTags = computed(() => {
     return moviesComposable.userTags?.value || []
   } else if (props.itemType === 'game') {
     return gamesComposable.userTags?.value || []
+  } else if (props.itemType === 'album') {
+    return albumsComposable.userTags?.value || []
   }
   return []
 })
@@ -260,6 +329,16 @@ onMounted(async () => {
           localTags.value = gameTagsResult.data.map(tag => tag.id)
         }
       }
+    } else if (props.itemType === 'album') {
+      if (albumsComposable.fetchUserTags) {
+        await albumsComposable.fetchUserTags()
+      }
+      if (albumsComposable.getAlbumTags) {
+        const albumTagsResult = await albumsComposable.getAlbumTags(props.item.id)
+        if (albumTagsResult.success) {
+          localTags.value = albumTagsResult.data.map(tag => tag.id)
+        }
+      }
     }
   } catch (error) {
     Logger.error('Error loading tags:', error)
@@ -276,6 +355,8 @@ const handleAddTag = async (tagName) => {
       result = await moviesComposable.createUserTag(tagName)
     } else if (props.itemType === 'game' && gamesComposable.createUserTag) {
       result = await gamesComposable.createUserTag(tagName)
+    } else if (props.itemType === 'album' && albumsComposable.createUserTag) {
+      result = await albumsComposable.createUserTag(tagName)
     }
     
     if (result?.success) {
@@ -306,6 +387,8 @@ const handleSave = async () => {
       itemId = props.item.imdbID || props.item.tmdbId || props.item.isbn
     } else if (props.itemType === 'game') {
       itemId = props.item.id || props.item.rawgId
+    } else if (props.itemType === 'album') {
+      itemId = props.item.id
     }
     
     // Get current page from ReadingProgressBar component if it exists
@@ -344,6 +427,22 @@ const handleSave = async () => {
         data.personalNotes = localPersonalNotes.value
       }
     }
+
+    // Add album-specific fields
+    if (props.itemType === 'album') {
+      if (localFavoriteTrack.value) {
+        data.favoriteTrack = localFavoriteTrack.value
+      }
+      if (localDateStarted.value) {
+        data.dateStarted = localDateStarted.value
+      }
+      if (localDateFinished.value) {
+        data.dateFinished = localDateFinished.value
+      }
+      if (localPersonalNotes.value) {
+        data.personalNotes = localPersonalNotes.value
+      }
+    }
     
     Logger.debug('Saving item with data:', { itemType: props.itemType, itemId, data })
     
@@ -353,7 +452,7 @@ const handleSave = async () => {
     
     if (result.success) {
       // Show success message
-      const itemTypeName = props.itemType === 'book' ? 'Libro' : props.itemType === 'movie' ? 'Película' : 'Juego'
+      const itemTypeName = props.itemType === 'book' ? 'Libro' : props.itemType === 'movie' ? 'Película' : props.itemType === 'album' ? 'Álbum' : 'Juego'
       if (notifications) {
         notifications.showSuccess(`${itemTypeName} actualizado correctamente`)
       }
@@ -381,6 +480,12 @@ const handleSave = async () => {
         updatedItem.dateStarted = localDateStarted.value
         updatedItem.dateFinished = localDateFinished.value
         updatedItem.personalNotes = localPersonalNotes.value
+      } else if (props.itemType === 'album') {
+        updatedItem.id = props.item.id
+        updatedItem.favoriteTrack = localFavoriteTrack.value
+        updatedItem.dateStarted = localDateStarted.value
+        updatedItem.dateFinished = localDateFinished.value
+        updatedItem.personalNotes = localPersonalNotes.value
       }
       
       Logger.debug('Emitting saved event with updatedItem:', updatedItem)
@@ -388,14 +493,14 @@ const handleSave = async () => {
       emit('close')
     } else {
       // Show error message
-      const itemTypeName = props.itemType === 'book' ? 'el libro' : props.itemType === 'movie' ? 'la película' : 'el juego'
+      const itemTypeName = props.itemType === 'book' ? 'el libro' : props.itemType === 'movie' ? 'la película' : props.itemType === 'album' ? 'el álbum' : 'el juego'
       if (notifications) {
         notifications.showError(result.message || `Error al guardar ${itemTypeName}`)
       }
     }
   } catch (error) {
     Logger.error('Error saving item:', error)
-    const itemTypeName = props.itemType === 'book' ? 'el libro' : props.itemType === 'movie' ? 'la película' : 'el juego'
+    const itemTypeName = props.itemType === 'book' ? 'el libro' : props.itemType === 'movie' ? 'la película' : props.itemType === 'album' ? 'el álbum' : 'el juego'
     if (notifications) {
       notifications.showError(`Error al guardar ${itemTypeName}`)
     }

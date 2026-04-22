@@ -553,7 +553,7 @@ final class MySqlUserGameRepository implements UserGameRepositoryInterface
                 WHERE ug.added_at >= DATE_SUB(NOW(), INTERVAL {$daysWindow} DAY)
                 GROUP BY g.id, g.title, g.release_date, g.coverUrl, g.backgroundUrl, 
                          g.description, g.platforms, g.genres, g.developer, g.publisher, g.rating
-                HAVING user_count >= 2
+                HAVING user_count >= 1
                 ORDER BY trending_score DESC
                 LIMIT :limit
             ";

@@ -53,6 +53,16 @@ return [
         'validation' => []
     ],
 
+    'update_user_profile' => [
+        'controller' => ['AuthController', 'updateProfile'],
+        'middleware' => [
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            LoggingMiddleware::class
+        ],
+        'validation' => []
+    ],
+
     // ============================================================================
     // BOOKS ROUTES - Write operations require Auth + CSRF
     // ============================================================================
@@ -529,6 +539,15 @@ return [
         'validation' => []
     ],
 
+    'get_album_stats' => [
+        'controller' => ['StatsController', 'getAlbumStats'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
     // ============================================================================
     // READING SESSIONS ROUTES
     // ============================================================================
@@ -911,5 +930,223 @@ return [
         'controller' => ['GameController', 'getIGDBGameDetails'],
         'middleware' => [LoggingMiddleware::class],
         'validation' => ['gameId']
+    ],
+
+    // ============================================================================
+    // ALBUMS ROUTES - Write operations require Auth + CSRF
+    // ============================================================================
+    'add_album' => [
+        'controller' => ['AlbumController', 'addAlbum'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['album']]]
+        ],
+        'validation' => ['album']
+    ],
+
+    'delete_album' => [
+        'controller' => ['AlbumController', 'deleteAlbum'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['albumId']]]
+        ],
+        'validation' => ['albumId']
+    ],
+
+    'update_album_rating' => [
+        'controller' => ['AlbumController', 'updateAlbumRating'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['albumId', 'rating']]]
+        ],
+        'validation' => ['albumId', 'rating']
+    ],
+
+    'update_album_user_statuses' => [
+        'controller' => ['AlbumController', 'updateAlbumUserStatuses'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['albumId', 'statuses']]]
+        ],
+        'validation' => ['albumId', 'statuses']
+    ],
+
+    'edit_user_album' => [
+        'controller' => ['AlbumController', 'editUserAlbum'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['albumId']]]
+        ],
+        'validation' => ['albumId']
+    ],
+
+    // ALBUMS - Read operations (Auth only, no CSRF)
+    'get_album_allowed_statuses' => [
+        'controller' => ['AlbumController', 'getAlbumAllowedStatuses'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => []
+    ],
+
+    'get_albums' => [
+        'controller' => ['AlbumController', 'getAlbums'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
+    'get_trending_albums' => [
+        'controller' => ['AlbumController', 'getTrendingAlbums'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
+    // ALBUM TAGS ROUTES
+    'get_user_album_tags' => [
+        'controller' => ['AlbumController', 'getUserAlbumTags'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
+    'create_user_album_tag' => [
+        'controller' => ['AlbumController', 'createUserAlbumTag'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['name']]]
+        ],
+        'validation' => ['name']
+    ],
+
+    'delete_user_album_tag' => [
+        'controller' => ['AlbumController', 'deleteUserAlbumTag'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['tagId']]]
+        ],
+        'validation' => ['tagId']
+    ],
+
+    'get_album_tags' => [
+        'controller' => ['AlbumController', 'getAlbumTags'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
+    'update_album_tags' => [
+        'controller' => ['AlbumController', 'updateAlbumTags'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['albumId', 'tag_ids']]]
+        ],
+        'validation' => ['albumId', 'tag_ids']
+    ],
+
+    // ALBUM NOTES ROUTES
+    'get_album_notes' => [
+        'controller' => ['AlbumController', 'getAlbumNotes'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
+    'add_album_note' => [
+        'controller' => ['AlbumController', 'addAlbumNote'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['albumId', 'noteText']]]
+        ],
+        'validation' => ['albumId', 'noteText']
+    ],
+
+    'update_album_note' => [
+        'controller' => ['AlbumController', 'updateAlbumNote'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['noteId', 'noteText']]]
+        ],
+        'validation' => ['noteId', 'noteText']
+    ],
+
+    'delete_album_note' => [
+        'controller' => ['AlbumController', 'deleteAlbumNote'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['noteId']]]
+        ],
+        'validation' => ['noteId']
+    ],
+
+    // SPOTIFY API PROXY ENDPOINTS (Public - to avoid CORS issues)
+    'search_spotify_albums' => [
+        'controller' => ['AlbumController', 'searchSpotifyAlbums'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => ['query']
+    ],
+
+    'get_spotify_album' => [
+        'controller' => ['AlbumController', 'getSpotifyAlbum'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => ['spotifyId']
+    ],
+
+    'get_spotify_artist' => [
+        'controller' => ['AlbumController', 'getSpotifyArtist'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => ['artistId']
+    ],
+
+    'get_spotify_album_tracks' => [
+        'controller' => ['AlbumController', 'getSpotifyAlbumTracks'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => ['spotifyId']
+    ],
+
+    'get_spotify_new_releases' => [
+        'controller' => ['AlbumController', 'getSpotifyNewReleases'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => []
+    ],
+
+    'get_listening_stats' => [
+        'controller' => ['AlbumController', 'getListeningStats'],
+        'middleware' => [
+            AuthenticationMiddleware::class,
+            LoggingMiddleware::class
+        ],
+        'validation' => []
     ]
 ];

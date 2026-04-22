@@ -45,8 +45,14 @@ class AddGameUseCase extends AbstractUseCase
         $existingGame = $this->gameRepository->findById($command->id->toInt());
         
         if (!$existingGame) {
-            // Game doesn't exist, create it first
-            $game = Game::fromArray($command->toArray());
+            // Game doesn't exist, create it first.
+            // userStatuses must be non-empty for Game::fromArray(); use the command's statuses
+            // or fall back to a placeholder — actual user statuses are stored in user_game_statuses.
+            $gameData = $command->toArray();
+            if (empty($gameData['userStatuses'])) {
+                $gameData['userStatuses'] = ['library'];
+            }
+            $game = Game::fromArray($gameData);
             $this->gameRepository->save($game);
         } else {
             // Game exists, use existing game data

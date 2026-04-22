@@ -86,42 +86,43 @@ export const formatRating = (rating) => {
 export const createStatsCards = (stats, itemType = 'books') => {
   const isBooks = itemType === 'books';
   const isGames = itemType === 'games';
-  
-  // Determinar icono principal
+  const isAlbums = itemType === 'albums';
+
   let mainIcon = 'fas fa-book';
   if (isGames) mainIcon = 'fas fa-gamepad';
+  else if (isAlbums) mainIcon = 'fas fa-music';
   else if (!isBooks) mainIcon = 'fas fa-film';
-  
-  // Determinar número total
+
   let totalNumber = stats.totalBooks;
   if (isGames) totalNumber = stats.totalGames;
+  else if (isAlbums) totalNumber = stats.totalAlbums;
   else if (!isBooks) totalNumber = stats.totalMovies;
-  
-  // Determinar label total
+
   let totalLabel = 'Total de Libros';
   if (isGames) totalLabel = 'Total de Videojuegos';
+  else if (isAlbums) totalLabel = 'Total de Álbumes';
   else if (!isBooks) totalLabel = 'Total de Películas';
-  
-  // Determinar número completado
+
   let completedNumber = stats.readBooks;
   if (isGames) completedNumber = stats.completedGames;
+  else if (isAlbums) completedNumber = stats.listenedAlbums;
   else if (!isBooks) completedNumber = stats.watchedMovies;
-  
-  // Determinar label completado
+
   let completedLabel = 'Libros Leídos';
   if (isGames) completedLabel = 'Juegos Completados';
+  else if (isAlbums) completedLabel = 'Álbumes Escuchados';
   else if (!isBooks) completedLabel = 'Películas Vistas';
-  
-  // Determinar número pendiente
+
   let pendingNumber = stats.pendingBooks;
   if (isGames) pendingNumber = stats.pendingGames;
+  else if (isAlbums) pendingNumber = stats.wishlistAlbums;
   else if (!isBooks) pendingNumber = stats.pendingMovies;
-  
-  // Determinar label pendiente
+
   let pendingLabel = 'Por Leer';
   if (isGames) pendingLabel = 'Por Jugar';
+  else if (isAlbums) pendingLabel = 'En Lista de Deseos';
   else if (!isBooks) pendingLabel = 'Por Ver';
-  
+
   return [
     {
       icon: mainIcon,
@@ -175,22 +176,26 @@ export const getHorizontalBarChartOptions = () => ({
 export const createChartConfigs = (chartData, itemType = 'books') => {
   const isBooks = itemType === 'books';
   const isGames = itemType === 'games';
-  
-  // Determinar títulos según tipo
+  const isAlbums = itemType === 'albums';
+
   let statusTitle = 'Estado de Lectura';
   let monthlyTitle = 'Progreso Mensual de Páginas Leídas';
   let genreIcon = 'fas fa-book-open';
-  
+
   if (isGames) {
     statusTitle = 'Estado de Juego';
     monthlyTitle = 'Juegos Añadidos por Mes';
     genreIcon = 'fas fa-gamepad';
+  } else if (isAlbums) {
+    statusTitle = 'Estado de Escucha';
+    monthlyTitle = 'Álbumes Añadidos por Mes';
+    genreIcon = 'fas fa-music';
   } else if (!isBooks) {
     statusTitle = 'Estado de Visualización';
     monthlyTitle = 'Películas Vistas por Mes';
     genreIcon = 'fas fa-film';
   }
-  
+
   const charts = [
     {
       title: statusTitle,
@@ -214,7 +219,7 @@ export const createChartConfigs = (chartData, itemType = 'books') => {
       icon: genreIcon
     }
   ];
-  
+
   // Gráficas adicionales exclusivas de videojuegos
   if (isGames) {
     if (chartData.platformsData) {
@@ -236,7 +241,20 @@ export const createChartConfigs = (chartData, itemType = 'books') => {
       });
     }
   }
-  
+
+  // Gráficas adicionales exclusivas de álbumes
+  if (isAlbums) {
+    if (chartData.albumTypeData) {
+      charts.push({
+        title: 'Tipos de Álbum',
+        type: 'doughnut',
+        data: chartData.albumTypeData,
+        options: getChartOptions(),
+        icon: 'fas fa-record-vinyl'
+      });
+    }
+  }
+
   // Gráfica de línea al final
   charts.push({
     title: monthlyTitle,
@@ -245,7 +263,7 @@ export const createChartConfigs = (chartData, itemType = 'books') => {
     options: getLineChartOptions(),
     icon: 'fas fa-chart-line'
   });
-  
+
   return charts;
 };
 
@@ -276,6 +294,18 @@ export const extractMockStats = (rawStats, itemType = 'books') => {
         totalHoursPlayed: 0,
         averagePlayTime: 'N/A'
       };
+    } else if (itemType === 'albums') {
+      return {
+        totalAlbums: 0,
+        listenedAlbums: 0,
+        wishlistAlbums: 0,
+        listeningAlbums: 0,
+        averageRating: 0,
+        favoriteArtist: 'N/A',
+        favoriteGenre: 'N/A',
+        totalListens: 0,
+        averageListens: 'N/A'
+      };
     } else {
       return {
         totalMovies: 0,
@@ -294,7 +324,8 @@ export const extractMockStats = (rawStats, itemType = 'books') => {
   const statusStats = rawStats.statusStats || {};
   const isBooks = itemType === 'books';
   const isGames = itemType === 'games';
-  
+  const isAlbums = itemType === 'albums';
+
   if (isBooks) {
     return {
       totalBooks: rawStats.totalBooks || 0,
@@ -318,6 +349,18 @@ export const extractMockStats = (rawStats, itemType = 'books') => {
       favoriteGenre: rawStats.genreStats?.topGenres ? Object.keys(rawStats.genreStats.topGenres)[0] : 'N/A',
       totalHoursPlayed: rawStats.hoursPlayedStats?.totalHours || 0,
       averagePlayTime: rawStats.hoursPlayedStats?.averageHours ? `${rawStats.hoursPlayedStats.averageHours}h` : 'N/A'
+    };
+  } else if (isAlbums) {
+    return {
+      totalAlbums: rawStats.totalAlbums || 0,
+      listenedAlbums: statusStats.listened || statusStats.escuchado || 0,
+      wishlistAlbums: statusStats.wishlist || statusStats.deseado || 0,
+      listeningAlbums: statusStats.listening || statusStats.escuchando || 0,
+      averageRating: rawStats.ratingStats?.averageRating || 0,
+      favoriteArtist: 'Análisis en desarrollo',
+      favoriteGenre: rawStats.genreStats?.topGenres ? Object.keys(rawStats.genreStats.topGenres)[0] : 'N/A',
+      totalListens: rawStats.listenStats?.totalListens || 0,
+      averageListens: rawStats.listenStats?.averageListens ? `${rawStats.listenStats.averageListens}` : 'N/A'
     };
   } else {
     return {

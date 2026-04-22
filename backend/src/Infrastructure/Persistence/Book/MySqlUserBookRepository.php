@@ -505,7 +505,7 @@ final class MySqlUserBookRepository implements UserBookRepositoryInterface
                 WHERE ube.added_at >= DATE_SUB(NOW(), INTERVAL {$daysWindow} DAY)
                 GROUP BY w.work_id, COALESCE(be.isbn_13, be.isbn_10), w.title, be.publisher, be.pages,
                          be.cover_url_large, be.cover_url_medium, be.cover_url_small
-                HAVING user_count >= 2
+                HAVING user_count >= 1
                 ORDER BY trending_score DESC
                 LIMIT :limit
             ";

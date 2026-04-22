@@ -1,7 +1,9 @@
 <?php
 namespace App\Controllers;
 
+use App\Domain\DTO\Commands\UpdateUserProfileCommand;
 use App\Domain\UseCases\Auth\LoginUserUseCase;
+use App\Domain\UseCases\Auth\UpdateUserProfileUseCase;
 use App\Infrastructure\Session\SessionManager;
 use App\Infrastructure\Middleware\AuthMiddleware;
 use App\Infrastructure\Auth\GoogleOAuthVerifier;
@@ -9,17 +11,20 @@ use App\Infrastructure\Auth\GoogleOAuthVerifier;
 class AuthController extends BaseController implements Contracts\AuthControllerInterface
 {
     private LoginUserUseCase $loginUserUseCase;
+    private UpdateUserProfileUseCase $updateUserProfileUseCase;
     private SessionManager $sessionManager;
     private AuthMiddleware $authMiddleware;
     private GoogleOAuthVerifier $googleVerifier;
 
     public function __construct(
         LoginUserUseCase $loginUserUseCase,
+        UpdateUserProfileUseCase $updateUserProfileUseCase,
         SessionManager $sessionManager,
         AuthMiddleware $authMiddleware,
         GoogleOAuthVerifier $googleVerifier
     ) {
         $this->loginUserUseCase = $loginUserUseCase;
+        $this->updateUserProfileUseCase = $updateUserProfileUseCase;
         $this->sessionManager = $sessionManager;
         $this->authMiddleware = $authMiddleware;
         $this->googleVerifier = $googleVerifier;
@@ -61,6 +66,26 @@ class AuthController extends BaseController implements Contracts\AuthControllerI
                 'user' => $authResult['user'],
                 'csrf_token' => $this->authMiddleware->getCSRFToken()
             ]);
+        }
+    }
+
+    public function updateProfile(array $inputData): array
+    {
+        $userId = $inputData['userId'] ?? $inputData['user_id'] ?? null;
+
+        if (!$userId) {
+            return $this->errorResponse('User ID is required.');
+        }
+
+        try {
+            $command = UpdateUserProfileCommand::fromArray($inputData, (int) $userId);
+            $user = $this->updateUserProfileUseCase->execute($command);
+
+            return $this->successResponse('Profile updated successfully.', [
+                'user' => $user->toArray()
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse($e->getMessage());
         }
     }
 

@@ -7,6 +7,7 @@
         <label class="filter-checkbox-pill"><input type="checkbox" v-model="showBooks" /> <i class="fas fa-book"></i></label>
         <label class="filter-checkbox-pill"><input type="checkbox" v-model="showMovies" /> <i class="fas fa-film"></i></label>
         <label class="filter-checkbox-pill"><input type="checkbox" v-model="showGames" /> <i class="fas fa-gamepad"></i></label>
+        <label class="filter-checkbox-pill"><input type="checkbox" v-model="showAlbums" /> <i class="fas fa-music"></i></label>
         <button @click="openImportModal" class="import-button">
           <i class="fas fa-folder-open"></i>
         </button>
@@ -83,6 +84,13 @@
           @click="navigateToGameDetail(item)"
           class="book-item"
         />
+        <AlbumListItem
+          v-else-if="item.itemType === 'album'"
+          :album="item"
+          :allowedStatuses="allowedUserStatusesList('album')"
+          @click="navigateToAlbumDetail(item)"
+          class="book-item"
+        />
       </template>
     </div>
 
@@ -101,6 +109,7 @@ import { useRouter } from 'vue-router';
 import { useBooks } from '@/composables/useBooks';
 import { useMovies } from '@/composables/useMovies';
 import { useGames } from '@/composables/useGames';
+import { useAlbums } from '@/composables/useAlbums';
 import { useSearch } from '@/composables/useSearch';
 import { useUIStore } from '@/store/ui';
 import { useAuth } from '@/composables/useAuth';
@@ -108,6 +117,7 @@ import Logger from '@/utils/logger';
 import BookListItem from './Books/BookListItem.vue';
 import MovieListItem from './Movies/MovieListItem.vue';
 import GameListItem from './Games/GameListItem.vue';
+import AlbumListItem from './Albums/AlbumListItem.vue';
 import ImportModal from './ImportModal.vue';
 
 // Composables
@@ -115,10 +125,9 @@ const router = useRouter();
 const { isAuthenticated } = useAuth();
 const booksComposable = useBooks();
 const moviesComposable = useMovies();
-const gamesComposable = useGames();
-const uiStore = useUIStore();
-
-// Configurar búsqueda con debouncing
+  const gamesComposable = useGames();
+  const albumsComposable = useAlbums();
+  const uiStore = useUIStore();
 const searchSystem = useSearch({
   debounceDelay: 300,
   minQueryLength: 2
@@ -128,6 +137,7 @@ const searchSystem = useSearch({
 const showBooks = ref(true);
 const showMovies = ref(true);
 const showGames = ref(true);
+const showAlbums = ref(true);
 const fetchError = ref("");
 const sortField = ref('date');
 const sortDirection = ref('desc');
@@ -150,24 +160,27 @@ const toggleSort = (field) => {
 };
 
 // Estados computados combinados
-const isLoading = computed(() => 
-  booksComposable.isLoading.value || moviesComposable.isLoading.value || gamesComposable.isLoading.value
+const isLoading = computed(() =>
+  booksComposable.isLoading.value || moviesComposable.isLoading.value || gamesComposable.isLoading.value || albumsComposable.isLoading.value
 );
 
 const items = computed(() => {
   const books = booksComposable.books.value.map(book => ({ ...book, itemType: 'book' }));
   const movies = moviesComposable.movies.value.map(movie => ({ ...movie, itemType: 'movie' }));
   const games = gamesComposable.games.value.map(game => ({ ...game, itemType: 'game' }));
-  return [...books, ...movies, ...games];
+  const albums = albumsComposable.albums.value.map(album => ({ ...album, itemType: 'album' }));
+  return [...books, ...movies, ...games, ...albums];
 });
 
 const allowedBookUserStatuses = computed(() => booksComposable.allowedStatuses.value);
 const allowedMovieUserStatuses = computed(() => moviesComposable.allowedStatuses.value);
 const allowedGameUserStatuses = computed(() => gamesComposable.allowedStatuses.value);
+const allowedAlbumUserStatuses = computed(() => albumsComposable.allowedStatuses.value);
 
 const allowedUserStatusesList = (itemType) => {
   if (itemType === 'movie') return allowedMovieUserStatuses.value;
   if (itemType === 'game') return allowedGameUserStatuses.value;
+  if (itemType === 'album') return allowedAlbumUserStatuses.value;
   return allowedBookUserStatuses.value;
 };
 
@@ -179,14 +192,16 @@ const fetchLibrary = async () => {
       booksComposable.fetchBooks(),
       moviesComposable.fetchMovies(),
       gamesComposable.fetchGames(),
+      albumsComposable.fetchAlbums(),
       booksComposable.fetchAllowedStatuses(),
       moviesComposable.fetchAllowedStatuses(),
-      gamesComposable.fetchAllowedStatuses()
+      gamesComposable.fetchAllowedStatuses(),
+      albumsComposable.fetchAllowedStatuses()
     ]);
 
     // Verificar errores de los composables
-    if (booksComposable.error.value || moviesComposable.error.value || gamesComposable.error.value) {
-      const errors = [booksComposable.error.value, moviesComposable.error.value, gamesComposable.error.value].filter(Boolean);
+    if (booksComposable.error.value || moviesComposable.error.value || gamesComposable.error.value || albumsComposable.error.value) {
+      const errors = [booksComposable.error.value, moviesComposable.error.value, gamesComposable.error.value, albumsComposable.error.value].filter(Boolean);
       fetchError.value = errors.join('; ');
     }
   } catch (error) {
@@ -203,6 +218,7 @@ const displayedItems = computed(() => {
     if (item.itemType === 'book' && !showBooks.value) return false;
     if (item.itemType === 'movie' && !showMovies.value) return false;
     if (item.itemType === 'game' && !showGames.value) return false;
+    if (item.itemType === 'album' && !showAlbums.value) return false;
     return true;
   });
   
@@ -283,6 +299,15 @@ const navigateToGameDetail = (game) => {
     name: 'GameDetail',
     params: { gameId: game.id || game.rawgId || game.gameId },
     state: { game: JSON.parse(JSON.stringify(game)) }
+  })
+};
+
+// Navigate to album detail page
+const navigateToAlbumDetail = (album) => {
+  router.push({
+    name: 'AlbumDetail',
+    params: { albumId: album.spotify_id || album.id },
+    state: { album: JSON.parse(JSON.stringify(album)) }
   })
 };
 

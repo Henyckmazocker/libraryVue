@@ -573,6 +573,8 @@ composer install
 7. **PHP-DI resolves ALL constructor dependencies eagerly** - A broken dependency anywhere in the chain (e.g., a UseCase with a missing abstract method) kills the ENTIRE controller instantiation, not just the specific action that uses that UseCase.
 8. **Frontend sends nested `data` in edit payloads** - The frontend `EditItemModal` sends `{gameId, userId, data: {personalRating, statuses, ...}, tags, notes}`. Backend Commands' `fromArray()` must extract from `$data['data']` sub-array, not from `$data` directly.
 9. **Statuses nullable vs empty array** - Use `?array $statuses = null` (not `array $statuses = []`) in Commands to distinguish "user didn't send statuses" (null → don't touch) from "user cleared all statuses" (empty array → remove all).
+10. **CSRF token not sent for new entity actions** - `frontend/src/store/auth.js` has a hardcoded `protectedActions` list. When adding a new entity (e.g., albums), ALL its write actions (`add_album`, `delete_album`, `update_album_rating`, `edit_user_album`, etc.) must be added to this list. Missing them causes a `400 "Invalid CSRF token"` error even though the backend route has `CSRFMiddleware`. The pattern is: every action with `CSRFMiddleware` in `config/routes.php` must appear in `protectedActions` in `auth.js`.
+11. **Backend response shape for `get_spotify_album`** - Returns `{ data: { album: {...} } }`, not `{ data: {...} }`. Frontend `fetchAlbumDetails` must extract `response.data.data.album`, not `response.data.data`. Similarly, `get_spotify_album_tracks` returns `{ data: { tracks: [...], count: N } }` — use `response.data.data.tracks`.
 
 ## Data Flow & Debugging Guide
 

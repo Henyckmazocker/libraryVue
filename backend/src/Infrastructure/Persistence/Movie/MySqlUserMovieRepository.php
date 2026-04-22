@@ -487,7 +487,7 @@ final class MySqlUserMovieRepository implements UserMovieRepositoryInterface
                 LEFT JOIN user_movie_statuses ums ON um.user_id = ums.user_id AND um.movie_isbn = ums.movie_isbn
                 WHERE um.added_at >= DATE_SUB(NOW(), INTERVAL {$daysWindow} DAY)
                 GROUP BY m.isbn
-                HAVING user_count >= 2
+                HAVING user_count >= 1
                 ORDER BY trending_score DESC
                 LIMIT :limit
             ";

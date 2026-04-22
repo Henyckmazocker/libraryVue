@@ -24,6 +24,10 @@
           <i class="fas fa-gamepad"></i>
           <span>Videojuegos</span>
         </Tab>
+        <Tab value="albums">
+          <i class="fas fa-music"></i>
+          <span>Música</span>
+        </Tab>
       </TabList>
 
       <TabPanels>
@@ -35,6 +39,9 @@
         </TabPanel>
         <TabPanel value="games">
           <GamesDashboardContent />
+        </TabPanel>
+        <TabPanel value="albums">
+          <AlbumsDashboardContent />
         </TabPanel>
       </TabPanels>
     </Tabs>
@@ -52,6 +59,7 @@ import TabPanel from 'primevue/tabpanel';
 import BooksDashboardContent from './BooksDashboardContent.vue';
 import MoviesDashboardContent from './MoviesDashboardContent.vue';
 import GamesDashboardContent from './GamesDashboardContent.vue';
+import AlbumsDashboardContent from './AlbumsDashboardContent.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -59,7 +67,7 @@ const router = useRouter();
 // Determine initial tab from route query or default to 'books'
 const getInitialTab = () => {
   const tab = route.query.tab;
-  if (['books', 'movies', 'games'].includes(tab)) return tab;
+  if (['books', 'movies', 'games', 'albums'].includes(tab)) return tab;
   return 'books';
 };
 

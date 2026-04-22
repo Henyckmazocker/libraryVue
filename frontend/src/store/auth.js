@@ -18,7 +18,8 @@ export const useAuthStore = defineStore('auth', {
     getCSRFToken: (state) => state.csrfToken,
     userName: (state) => state.user?.name || '',
     userPicture: (state) => state.user?.picture || null,
-    userEmail: (state) => state.user?.email || ''
+    userEmail: (state) => state.user?.email || '',
+    userLastFmUsername: (state) => state.user?.lastfm_username || null
   },
 
   actions: {
@@ -144,6 +145,12 @@ export const useAuthStore = defineStore('auth', {
         'add_game_note', 'update_game_note', 'delete_game_note',
         'add_edition_note', 'update_edition_note', 'delete_edition_note',
         'add_movie_note', 'update_movie_note', 'delete_movie_note',
+        // Álbumes
+        'add_album', 'delete_album', 'update_album_rating', 'update_album_user_statuses',
+        'edit_user_album', 'create_user_album_tag', 'update_album_tags',
+        'add_album_note', 'update_album_note', 'delete_album_note',
+        // Perfil de usuario
+        'update_user_profile',
         // Sesiones de lectura
         'create_reading_session', 'complete_reading_session', 'update_reading_progress',
         'pause_reading_session', 'resume_reading_session', 'delete_reading_session'
@@ -194,6 +201,20 @@ export const useAuthStore = defineStore('auth', {
         return true
       }
       return false
+    },
+
+    async updateProfile(profileData) {
+      if (!this.isAuthenticated || !this.user?.id) {
+        throw new Error('User not authenticated')
+      }
+      const response = await this.authenticatedApiCall('update_user_profile', {
+        userId: this.user.id,
+        ...profileData
+      })
+      if (response.data.status === 'success') {
+        this.user = { ...this.user, ...response.data.data.user }
+      }
+      return response
     }
   }
 })

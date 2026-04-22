@@ -34,9 +34,9 @@
           v-model="selectedUserStatuses"
           :allowed-statuses="allowedUserStatuses"
           :multiple="true"
-          :readonly="true"
-          label="Status"
-          subtitle="(solo lectura - usa el modal para editar)"
+          :readonly="!isNewBook"
+          :label="isNewBook ? 'Añadir con estado' : 'Status'"
+          :subtitle="isNewBook ? '' : '(solo lectura - usa el modal para editar)'"
         />
         
         <!-- Reading Status Widget -->

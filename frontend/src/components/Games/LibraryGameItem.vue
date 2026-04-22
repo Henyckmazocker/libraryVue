@@ -43,9 +43,9 @@
           v-model="selectedUserStatuses"
           :allowed-statuses="allowedUserStatuses"
           :multiple="true"
-          :readonly="true"
-          label="Status"
-          subtitle="(solo lectura - usa el modal para editar)"
+          :readonly="!isNewGame"
+          :label="isNewGame ? 'Añadir con estado' : 'Status'"
+          :subtitle="isNewGame ? '' : '(solo lectura - usa el modal para editar)'"
         />
         
         <!-- Game-specific fields (read-only display) -->

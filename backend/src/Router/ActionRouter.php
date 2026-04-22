@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Router;
 
+use App\Controllers\AlbumController;
 use App\Controllers\AuthController;
 use App\Controllers\BookController;
 use App\Controllers\MovieController;
@@ -44,6 +45,13 @@ use App\Domain\DTO\Queries\GetUserReadingStatsQuery;
 use App\Domain\DTO\Queries\GetTrendingBooksQuery;
 use App\Domain\DTO\Queries\GetTrendingMoviesQuery;
 use App\Domain\DTO\Queries\GetTrendingGamesQuery;
+use App\Domain\DTO\Commands\AddAlbumCommand;
+use App\Domain\DTO\Commands\DeleteAlbumCommand;
+use App\Domain\DTO\Commands\UpdateAlbumRatingCommand;
+use App\Domain\DTO\Commands\UpdateAlbumStatusesCommand;
+use App\Domain\DTO\Commands\EditUserAlbumCommand;
+use App\Domain\DTO\Queries\GetTrendingAlbumsQuery;
+use App\Domain\DTO\Queries\GetLastFmStatsQuery;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 
@@ -64,6 +72,7 @@ class ActionRouter
     private LoggerInterface $logger;
     
     // Controller instances (lazy-loaded)
+    private ?AlbumController $albumController = null;
     private ?AuthController $authController = null;
     private ?BookController $bookController = null;
     private ?MovieController $movieController = null;
@@ -183,6 +192,7 @@ class ActionRouter
             'login' => $controller->login($data),
             'logout' => $controller->logout(),
             'check_auth' => $controller->checkAuth(),
+            'update_user_profile' => $controller->updateProfile($data),
             'log_frontend' => $controller->logFrontend($data['log_data'] ?? []),
             'log_frontend_batch' => $controller->logFrontendBatch($data['logs'] ?? []),
             
@@ -354,21 +364,87 @@ class ActionRouter
             'search_igdb_games' => $controller->searchIGDBGames($data),
             'get_igdb_game_by_id' => $controller->getIGDBGameById($data),
             'get_igdb_game_details' => $controller->getIGDBGameDetails($data),
-            
+
+            // ALBUMS - Use Command DTOs
+            'add_album' => $controller->addAlbum(
+                AddAlbumCommand::fromArray($data['album'] ?? [], $userId)
+            ),
+            'delete_album' => $controller->deleteAlbum(
+                DeleteAlbumCommand::fromArray($data, $userId)
+            ),
+            'update_album_rating' => $controller->updateAlbumRating(
+                UpdateAlbumRatingCommand::fromArray($data, $userId)
+            ),
+            'update_album_user_statuses' => $controller->updateAlbumUserStatuses(
+                UpdateAlbumStatusesCommand::fromArray($data, $userId)
+            ),
+            'edit_user_album' => $controller->editUserAlbum(
+                EditUserAlbumCommand::fromArray($data, $userId)
+            ),
+            'get_album_allowed_statuses' => $controller->getAlbumAllowedStatuses(),
+            'get_albums' => $controller->getAlbums([
+                'userId'  => $userId,
+                'filters' => $data['filters'] ?? []
+            ]),
+            'get_trending_albums' => $controller->getTrendingAlbums(
+                GetTrendingAlbumsQuery::fromArray($data)
+            ),
+            'get_user_album_tags' => $controller->getUserAlbumTags($userId),
+            'create_user_album_tag' => $controller->createUserAlbumTag(
+                $userId,
+                $data['name'] ?? '',
+                $data['color'] ?? '#1976d2'
+            ),
+            'delete_user_album_tag' => $controller->deleteUserAlbumTag($userId, $data['tagId'] ?? 0),
+            'get_album_tags' => $controller->getAlbumTags($userId, $data['albumId'] ?? 0),
+            'update_album_tags' => $controller->updateAlbumTags(
+                $userId,
+                $data['albumId'] ?? 0,
+                $data['tag_ids'] ?? []
+            ),
+            'get_album_notes' => $controller->getAlbumNotes($userId, $data['albumId'] ?? 0),
+            'add_album_note' => $controller->addAlbumNote(
+                $userId,
+                $data['albumId'] ?? 0,
+                $data['noteText'] ?? $data['note_text'] ?? '',
+                $data['noteType'] ?? $data['note_type'] ?? 'note',
+                (bool)($data['isPrivate'] ?? $data['is_private'] ?? true)
+            ),
+            'update_album_note' => $controller->updateAlbumNote(
+                $data['noteId'] ?? $data['note_id'] ?? 0,
+                $userId,
+                $data['noteText'] ?? $data['note_text'] ?? '',
+                $data['noteType'] ?? $data['note_type'] ?? 'note',
+                (bool)($data['isPrivate'] ?? $data['is_private'] ?? true)
+            ),
+            'delete_album_note' => $controller->deleteAlbumNote(
+                $data['noteId'] ?? $data['note_id'] ?? 0,
+                $userId
+            ),
+            'search_spotify_albums'    => $controller->searchSpotifyAlbums($data),
+            'get_spotify_album'        => $controller->getSpotifyAlbum($data),
+            'get_spotify_artist'       => $controller->getSpotifyArtist($data),
+            'get_spotify_album_tracks' => $controller->getSpotifyAlbumTracks($data),
+            'get_spotify_new_releases' => $controller->getSpotifyNewReleases($data),
+            'get_listening_stats'      => $controller->getListeningStats(
+                GetLastFmStatsQuery::fromArray($data, $userId)
+            ),
+
             // LIBRARY - No DTOs (complex operations handled internally)
             'get_library_items' => $controller->getLibraryItems($userId),
             'save_library' => $controller->saveLibrary($userId),
             'import_data' => $controller->importData($data['processedData'] ?? [], $userId),
             'ping' => $controller->ping(),
-            
+
             // LIBRARYX - No DTOs (legacy endpoints)
             'libraryx_get_urls' => $controller->getUrls($request['user'] ?? []),
             'libraryx_update_urls' => $controller->updateUrls($data, $request['user'] ?? []),
             
             // STATISTICS - No DTOs (simple read operations)
-            'get_book_stats' => $controller->getBookStats($userId),
+            'get_book_stats'  => $controller->getBookStats($userId),
             'get_movie_stats' => $controller->getMovieStats($userId),
-            'get_game_stats' => $controller->getGameStats($userId),
+            'get_game_stats'  => $controller->getGameStats($userId),
+            'get_album_stats' => $controller->getAlbumStats($userId),
             
             // READING SESSIONS - Use Command/Query DTOs
             'create_reading_session' => $controller->createReadingSession(
@@ -432,6 +508,7 @@ class ActionRouter
     private function getController(string $controllerName): object
     {
         return match ($controllerName) {
+            'AlbumController' => $this->albumController ??= $this->container->get(AlbumController::class),
             'AuthController' => $this->authController ??= $this->container->get(AuthController::class),
             'BookController' => $this->bookController ??= $this->container->get(BookController::class),
             'MovieController' => $this->movieController ??= $this->container->get(MovieController::class),

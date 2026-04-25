@@ -27,6 +27,7 @@ class Movie
     private ?array $allowedTags;
     /** @var Genre[]|null */
     private ?array $genres; // Géneros de la película
+    private ?array $ownershipFormat; // Formato de posesión (id, value, label)
 
     public function __construct(
         MovieIdentifier $id,
@@ -42,7 +43,8 @@ class Movie
         array $allowedStatuses = [],
         ?array $tags = null,
         ?array $allowedTags = null,
-        ?array $genres = null
+        ?array $genres = null,
+        ?array $ownershipFormat = null
     ) {
         $this->id = $id;
         $this->title = $title;
@@ -58,6 +60,7 @@ class Movie
         $this->tags = $tags;
         $this->allowedTags = $allowedTags;
         $this->genres = $genres;
+        $this->ownershipFormat = $ownershipFormat;
     }
 
     public static function fromArray(array $data): self
@@ -99,7 +102,8 @@ class Movie
             $data['allowedStatuses'] ?? [],
             $data['tags'] ?? null,
             $data['allowedTags'] ?? null,
-            $genres
+            $genres,
+            $data['ownership_format'] ?? $data['ownershipFormat'] ?? null
         );
     }
 
@@ -173,6 +177,9 @@ class Movie
         $this->allowedStatuses = $allowedStatuses; 
     }
 
+    public function getOwnershipFormat(): ?array { return $this->ownershipFormat; }
+    public function setOwnershipFormat(?array $ownershipFormat): void { $this->ownershipFormat = $ownershipFormat; }
+
     public function toArray(): array
     {
         $idString = $this->id->toString();
@@ -197,7 +204,11 @@ class Movie
             'allowedStatuses' => $this->allowedStatuses,
             'tags' => $this->tags,
             'allowedTags' => $this->allowedTags,
-            'genres' => $genres
+            'genres' => $genres,
+            'ownership_format'       => $this->ownershipFormat,
+            'ownershipFormat'        => $this->ownershipFormat,
+            'ownership_format_value' => $this->ownershipFormat['value'] ?? null,
+            'ownership_format_label' => $this->ownershipFormat['label'] ?? null,
         ];
     }
 }

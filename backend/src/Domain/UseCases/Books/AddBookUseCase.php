@@ -64,6 +64,16 @@ class AddBookUseCase extends AbstractUseCase
                 throw new InvalidArgumentException('You already have this book in your library.');
             }
             
+            // Backfill pages if missing in DB but provided in command
+            if ($edition->getPages() === null && $command->pages !== null) {
+                $this->editionRepository->updatePages($edition->getEditionId(), $command->pages);
+                $edition->setPages($command->pages);
+                $this->logger->info('Backfilled missing pages for existing edition', [
+                    'edition_id' => $edition->getEditionId(),
+                    'pages' => $command->pages
+                ]);
+            }
+            
             // Get the associated work
             $work = $this->workRepository->findById($edition->getWorkId());
         } else {
@@ -150,7 +160,8 @@ class AddBookUseCase extends AbstractUseCase
         $userBookEdition = $this->userBookEditionRepository->add(
             $command->userId,
             $edition->getEditionId(),
-            $command->statuses ?? []
+            $command->statuses ?? [],
+            $command->ownershipFormatId
         );
 
         // Update user's work rating if provided

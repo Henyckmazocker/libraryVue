@@ -45,11 +45,13 @@ final class MySqlUserAlbumRepository implements UserAlbumRepositoryInterface
                        ua.completed_at,
                        ua.date_started,
                        ua.date_finished,
+                       iof.id AS ownership_format_id, iof.value AS ownership_format_value, iof.label AS ownership_format_label,
                        GROUP_CONCAT(als.name SEPARATOR ', ') AS user_statuses
                 FROM albums a
                 INNER JOIN user_albums ua ON a.id = ua.album_id
                 LEFT JOIN user_album_statuses uas ON a.id = uas.album_id AND uas.user_id = ua.user_id
                 LEFT JOIN album_statuses als ON uas.status_id = als.id
+                LEFT JOIN item_owned_formats iof ON iof.id = ua.ownership_format_id
                 WHERE ua.user_id = :userId
             ";
 
@@ -79,7 +81,8 @@ final class MySqlUserAlbumRepository implements UserAlbumRepositoryInterface
                                a.release_date_precision, a.cover_url, a.genres, a.label, a.total_tracks,
                                a.album_type, a.duration_ms, a.popularity, a.external_url, a.upc, a.addedTimestamp,
                                ua.added_at, ua.personal_rating, ua.personal_notes, ua.listen_count,
-                               ua.favorite_track, ua.completed_at, ua.date_started, ua.date_finished
+                               ua.favorite_track, ua.completed_at, ua.date_started, ua.date_finished,
+                               iof.id, iof.value, iof.label
                       ORDER BY ua.added_at DESC";
 
             $stmt = $this->db->prepare($sql);
@@ -117,7 +120,8 @@ final class MySqlUserAlbumRepository implements UserAlbumRepositoryInterface
         ?string $personalNotes = null,
         ?string $completedAt = null,
         ?int $listenCount = null,
-        ?string $favoriteTrack = null
+        ?string $favoriteTrack = null,
+        ?int $ownershipFormatId = null
     ): void {
         try {
             $this->db->beginTransaction();
@@ -131,16 +135,17 @@ final class MySqlUserAlbumRepository implements UserAlbumRepositoryInterface
 
             $stmt = $this->db->prepare("
                 INSERT INTO user_albums
-                    (user_id, album_id, added_at, personal_rating, personal_notes, listen_count, favorite_track, completed_at)
+                    (user_id, album_id, added_at, personal_rating, personal_notes, listen_count, favorite_track, completed_at, ownership_format_id)
                 VALUES
-                    (:userId, :albumId, NOW(), :personalRating, :personalNotes, :listenCount, :favoriteTrack, :completedAt)
+                    (:userId, :albumId, NOW(), :personalRating, :personalNotes, :listenCount, :favoriteTrack, :completedAt, :ownershipFormatId)
                 ON DUPLICATE KEY UPDATE
                     added_at       = NOW(),
                     personal_rating = COALESCE(VALUES(personal_rating), personal_rating),
                     personal_notes  = COALESCE(VALUES(personal_notes), personal_notes),
                     listen_count    = COALESCE(VALUES(listen_count), listen_count),
                     favorite_track  = COALESCE(VALUES(favorite_track), favorite_track),
-                    completed_at    = COALESCE(VALUES(completed_at), completed_at)
+                    completed_at    = COALESCE(VALUES(completed_at), completed_at),
+                    ownership_format_id = COALESCE(VALUES(ownership_format_id), ownership_format_id)
             ");
             $stmt->execute([
                 ':userId'        => $userId,
@@ -150,6 +155,7 @@ final class MySqlUserAlbumRepository implements UserAlbumRepositoryInterface
                 ':listenCount'    => $listenCount,
                 ':favoriteTrack'  => $favoriteTrack,
                 ':completedAt'    => $completedAt,
+                ':ownershipFormatId' => $ownershipFormatId,
             ]);
 
             if (!empty($statuses)) {
@@ -217,13 +223,14 @@ final class MySqlUserAlbumRepository implements UserAlbumRepositoryInterface
             $params  = [':userId' => $userId, ':albumId' => $albumId];
 
             $fieldMap = [
-                'personal_rating' => [':personalRating', 'float'],
-                'personal_notes'  => [':personalNotes',  'string'],
-                'listen_count'    => [':listenCount',    'int'],
-                'favorite_track'  => [':favoriteTrack',  'string'],
-                'completed_at'    => [':completedAt',    'string'],
-                'date_started'    => [':dateStarted',    'string'],
-                'date_finished'   => [':dateFinished',   'string'],
+                'personal_rating'    => [':personalRating', 'float'],
+                'personal_notes'     => [':personalNotes',  'string'],
+                'listen_count'       => [':listenCount',    'int'],
+                'favorite_track'     => [':favoriteTrack',  'string'],
+                'completed_at'       => [':completedAt',    'string'],
+                'date_started'       => [':dateStarted',    'string'],
+                'date_finished'      => [':dateFinished',   'string'],
+                'ownership_format_id' => [':ownershipFormatId', 'int'],
             ];
 
             foreach ($fieldMap as $column => [$param, $type]) {

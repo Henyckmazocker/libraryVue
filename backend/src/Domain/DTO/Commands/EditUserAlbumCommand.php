@@ -26,7 +26,8 @@ final readonly class EditUserAlbumCommand
         public ?string $dateStarted = null,
         public ?string $dateFinished = null,
         public ?array $statuses = null,
-        public array $tags = []
+        public array $tags = [],
+        public ?int $ownershipFormatId = null
     ) {}
 
     public static function fromArray(array $data, int $userId): self
@@ -65,7 +66,8 @@ final readonly class EditUserAlbumCommand
                 ? $albumData['dateFinished']
                 : (!empty($albumData['date_finished']) ? $albumData['date_finished'] : null),
             statuses: $albumData['statuses'] ?? $data['statuses'] ?? null,
-            tags: $data['tags'] ?? []
+            tags: $data['tags'] ?? [],
+            ownershipFormatId: isset($albumData['ownership_format_id']) ? (int)$albumData['ownership_format_id'] : (isset($albumData['ownershipFormatId']) ? (int)$albumData['ownershipFormatId'] : null)
         );
     }
 
@@ -93,6 +95,9 @@ final readonly class EditUserAlbumCommand
         }
         if ($this->dateFinished !== null) {
             $data['date_finished'] = $this->dateFinished;
+        }
+        if ($this->ownershipFormatId !== null) {
+            $data['ownership_format_id'] = $this->ownershipFormatId;
         }
 
         return $data;

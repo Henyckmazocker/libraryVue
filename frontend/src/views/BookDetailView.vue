@@ -158,6 +158,7 @@
             {{ existingBook ? 'Editar en Mi Biblioteca' : 'Añadir a Mi Biblioteca' }}
           </h2>
           <LibraryBookItem
+            v-if="allowedStatuses.length > 0"
             ref="libraryBookItemRef"
             :book="book"
             :allowedUserStatuses="allowedStatuses"
@@ -366,7 +367,7 @@ const fetchFromOpenLibrary = async (isbn) => {
         : "",
       publicationDate: bookData.publish_date || "",
       coverUrl: bookData.cover?.large || bookData.cover?.medium || bookData.cover?.small || "",
-      pages: bookData.number_of_pages || null,
+      pages: bookData.number_of_pages || (bookData.pagination ? (parseInt(String(bookData.pagination)) || null) : null) || null,
       description: bookData.notes || "",
       genres: bookData.subjects ? bookData.subjects.slice(0, 5).map(s => s.name) : [],
       subjects: bookData.subjects || [],
@@ -434,6 +435,15 @@ const enrichWithOpenLibrary = async (isbn) => {
         book.value.classifications = {
           lc: olData.classifications.lc_classifications
         };
+      }
+
+      // Actualizar páginas desde OpenLibrary si Google Books no las tenía
+      if (!book.value.pages) {
+        const olPages = olData.number_of_pages
+          || (olData.pagination ? (parseInt(String(olData.pagination)) || null) : null);
+        if (olPages) {
+          book.value.pages = olPages;
+        }
       }
       
       Logger.debug('[BookDetailView] Successfully enriched with OpenLibrary data');

@@ -64,7 +64,8 @@ class AddAlbumUseCase extends AbstractUseCase
             $command->personalNotes,
             null, // completedAt — not supplied at add time
             $command->listenCount,
-            $command->favoriteTrack
+            $command->favoriteTrack,
+            $command->ownershipFormatId
         );
 
         return $album;

@@ -43,7 +43,8 @@ final readonly class AddBookCommand
         public ?int $pages = null,
         public ?string $description = null,
         public array $genres = [],
-        public ?string $language = null
+        public ?string $language = null,
+        public ?int $ownershipFormatId = null
     ) {}
 
     /**
@@ -84,7 +85,8 @@ final readonly class AddBookCommand
                 ? implode(' ', $data['description'])
                 : ($data['description'] ?? null),
             genres: $genres,
-            language: $data['language'] ?? null
+            language: $data['language'] ?? null,
+            ownershipFormatId: isset($data['ownership_format_id']) ? (int)$data['ownership_format_id'] : (isset($data['ownershipFormatId']) ? (int)$data['ownershipFormatId'] : null)
         );
     }
 

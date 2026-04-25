@@ -37,7 +37,8 @@ final readonly class AddMovieCommand
         public ?Rating $rating = null,
         public ?Rating $userRating = null,
         public ?string $description = null,
-        public ?array $genres = null
+        public ?array $genres = null,
+        public ?int $ownershipFormatId = null
     ) {}
 
     public static function fromArray(array $data, int $userId): self
@@ -66,7 +67,8 @@ final readonly class AddMovieCommand
                 ? Rating::fromNullableFloat((float)$data['user_rating'])
                 : null,
             description: $data['description'] ?? $data['Plot'] ?? null,
-            genres: $genres
+            genres: $genres,
+            ownershipFormatId: isset($data['ownership_format_id']) ? (int)$data['ownership_format_id'] : (isset($data['ownershipFormatId']) ? (int)$data['ownershipFormatId'] : null)
         );
     }
 

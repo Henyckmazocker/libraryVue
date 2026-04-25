@@ -136,16 +136,16 @@ const getStatusLabel = (statusKey) => {
   align-items: center;
   gap: 15px;
   padding: 12px 15px;
-  background: var(--color-background-soft);
+  background: #131d17;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  border: 1px solid transparent;
+  border: 1px solid #1a2d20;
 }
 
 .game-list-item:hover {
-  background: var(--color-background-mute);
-  border-color: var(--color-primary);
+  background: #172415;
+  border-color: #4ade80;
   transform: translateX(4px);
 }
 

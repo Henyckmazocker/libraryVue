@@ -292,4 +292,42 @@ class MovieCommandsTest extends TestCase
 
         $this->assertEquals([], $cmd->statuses);
     }
+
+    // ═══════════════════════════════════════
+    // Ownership Format
+    // ═══════════════════════════════════════
+
+    #[Test]
+    public function add_movie_ownership_format_id_snake_case(): void
+    {
+        $cmd = AddMovieCommand::fromArray([
+            'isbn' => 'tt1234567',
+            'title' => 'Film',
+            'ownership_format_id' => 4,
+        ], 1);
+
+        $this->assertSame(4, $cmd->ownershipFormatId);
+    }
+
+    #[Test]
+    public function add_movie_ownership_format_id_defaults_null(): void
+    {
+        $cmd = AddMovieCommand::fromArray([
+            'isbn' => 'tt1234567',
+            'title' => 'Film',
+        ], 1);
+
+        $this->assertNull($cmd->ownershipFormatId);
+    }
+
+    #[Test]
+    public function edit_movie_ownership_format_id_from_nested_data(): void
+    {
+        $cmd = EditUserMovieCommand::fromArray([
+            'isbn' => 'tt1234567',
+            'data' => ['ownership_format_id' => 7],
+        ], 1);
+
+        $this->assertSame(7, $cmd->ownershipFormatId);
+    }
 }

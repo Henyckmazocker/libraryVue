@@ -92,7 +92,8 @@ class GameDataMapper
             $this->extractString($row, 'platform_played', null), // 23: ?string $platformPlayed
             $this->extractString($row, 'date_started', null),    // 24: ?string $dateStarted
             $this->extractString($row, 'date_finished', null),    // 25: ?string $dateFinished
-            $this->extractString($row, 'personal_notes', null)    // 26: ?string $personalNotes
+            $this->extractString($row, 'personal_notes', null),   // 26: ?string $personalNotes
+            $this->buildOwnershipFormat($row)                     // 27: ?array $ownershipFormat
         );
     }
 

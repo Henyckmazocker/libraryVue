@@ -46,11 +46,12 @@
         />
 
         <!-- Album-specific fields (read-only display) -->
-        <div v-if="favoriteTrack || dateStarted || dateFinished || personalNotes" class="album-specific-fields readonly-fields">
+        <div v-if="favoriteTrack || dateStarted || dateFinished || personalNotes || ownershipFormatLabel" class="album-specific-fields readonly-fields">
           <p v-if="favoriteTrack" class="album-field"><strong>Canción favorita:</strong> {{ favoriteTrack }}</p>
           <p v-if="dateStarted" class="album-field"><strong>Primera escucha:</strong> {{ dateStarted }}</p>
           <p v-if="dateFinished" class="album-field"><strong>Última escucha:</strong> {{ dateFinished }}</p>
           <p v-if="personalNotes" class="album-field"><strong>Notas:</strong> {{ personalNotes }}</p>
+          <p v-if="ownershipFormatLabel" class="album-field"><strong>Formato:</strong> <span class="ownership-format-badge">{{ ownershipFormatLabel }}</span></p>
         </div>
 
         <!-- Action buttons -->
@@ -134,17 +135,21 @@ const props = defineProps({
 const emit = defineEmits(['save', 'edit', 'delete', 'update:rating', 'update:statuses']);
 
 // Local reactive state
+const getInitialStatuses = () => {
+  if (props.album?.userStatuses && props.album.userStatuses.length > 0) {
+    return [...props.album.userStatuses];
+  } else {
+    return props.allowedStatuses.includes('owned') ? ['owned'] : [];
+  }
+};
 const rating = ref(props.album?.user_rating ?? null);
-const selectedUserStatuses = ref(
-  Array.isArray(props.album?.userStatuses)
-    ? [...props.album.userStatuses]
-    : []
-);
+const selectedUserStatuses = ref(getInitialStatuses());
 const listenCount = ref(props.album?.listenCount ?? props.album?.listen_count ?? null);
 const favoriteTrack = ref(props.album?.favoriteTrack ?? props.album?.favorite_track ?? '');
 const dateStarted = ref(props.album?.dateStarted ?? props.album?.date_started ?? '');
 const dateFinished = ref(props.album?.dateFinished ?? props.album?.date_finished ?? '');
 const personalNotes = ref(props.album?.personalNotes ?? props.album?.personal_notes ?? '');
+const ownershipFormatLabel = ref(props.album?.ownershipFormat?.label ?? props.album?.ownership_format?.label ?? '');
 
 const saveButtonState = ref('idle');
 const editButtonState = ref('idle');
@@ -153,12 +158,15 @@ const editButtonState = ref('idle');
 watch(() => props.album, (newAlbum) => {
   if (newAlbum) {
     rating.value = newAlbum.user_rating ?? null;
-    selectedUserStatuses.value = Array.isArray(newAlbum.userStatuses) ? [...newAlbum.userStatuses] : [];
+    selectedUserStatuses.value = Array.isArray(newAlbum.userStatuses) && newAlbum.userStatuses.length > 0
+      ? [...newAlbum.userStatuses]
+      : (props.allowedStatuses.includes('owned') ? ['owned'] : []);
     listenCount.value = newAlbum.listenCount ?? newAlbum.listen_count ?? null;
     favoriteTrack.value = newAlbum.favoriteTrack ?? newAlbum.favorite_track ?? '';
     dateStarted.value = newAlbum.dateStarted ?? newAlbum.date_started ?? '';
     dateFinished.value = newAlbum.dateFinished ?? newAlbum.date_finished ?? '';
     personalNotes.value = newAlbum.personalNotes ?? newAlbum.personal_notes ?? '';
+    ownershipFormatLabel.value = newAlbum.ownershipFormat?.label ?? newAlbum.ownership_format?.label ?? '';
   }
 }, { immediate: true });
 

@@ -42,11 +42,13 @@ final class MySqlUserGameRepository implements UserGameRepositoryInterface
                 SELECT g.*, ug.added_at as user_added_at, ug.personal_rating as user_rating,
                        ug.personal_notes, ug.hours_played, ug.platform_played, ug.completed_at,
                        ug.date_started, ug.date_finished,
+                       iof.id AS ownership_format_id, iof.value AS ownership_format_value, iof.label AS ownership_format_label,
                        GROUP_CONCAT(gs.name SEPARATOR ', ') as user_statuses
                 FROM games g
                 INNER JOIN user_games ug ON g.id = ug.game_id
                 LEFT JOIN user_game_statuses ugs ON g.id = ugs.game_id AND ugs.user_id = ug.user_id
                 LEFT JOIN game_statuses gs ON ugs.status_id = gs.id
+                LEFT JOIN item_owned_formats iof ON iof.id = ug.ownership_format_id
                 WHERE ug.user_id = :userId
             ";
 
@@ -72,7 +74,7 @@ final class MySqlUserGameRepository implements UserGameRepositoryInterface
                 $params[':platform'] = '"' . $filters['platform'] . '"';
             }
 
-            $sql .= " GROUP BY g.id, g.slug, g.title, g.release_date, g.developer, g.publisher, g.rating, g.coverUrl, g.backgroundUrl, g.description, g.platforms, g.genres, g.esrb_rating, g.playtime, g.metacritic_score, g.addedTimestamp, ug.added_at, ug.personal_rating, ug.personal_notes, ug.hours_played, ug.platform_played, ug.completed_at, ug.date_started, ug.date_finished ORDER BY ug.added_at DESC";
+            $sql .= " GROUP BY g.id, g.slug, g.title, g.release_date, g.developer, g.publisher, g.rating, g.coverUrl, g.backgroundUrl, g.description, g.platforms, g.genres, g.esrb_rating, g.playtime, g.metacritic_score, g.addedTimestamp, ug.added_at, ug.personal_rating, ug.personal_notes, ug.hours_played, ug.platform_played, ug.completed_at, ug.date_started, ug.date_finished, iof.id, iof.value, iof.label ORDER BY ug.added_at DESC";
 
             $stmt = $this->db->prepare($sql);
             foreach ($params as $key => $value) {
@@ -120,7 +122,8 @@ final class MySqlUserGameRepository implements UserGameRepositoryInterface
         ?float $hoursPlayed = null,
         ?string $platformPlayed = null,
         ?string $dateStarted = null,
-        ?string $dateFinished = null
+        ?string $dateFinished = null,
+        ?int $ownershipFormatId = null
     ): void
     {
         try {
@@ -138,8 +141,8 @@ final class MySqlUserGameRepository implements UserGameRepositoryInterface
 
             // Add relationship between user and game
             $stmt = $this->db->prepare("
-                INSERT INTO user_games (user_id, game_id, added_at, personal_rating, personal_notes, hours_played, platform_played, completed_at, date_started, date_finished) 
-                VALUES (:userId, :gameId, NOW(), :personalRating, :personalNotes, :hoursPlayed, :platformPlayed, :completedAt, :dateStarted, :dateFinished)
+                INSERT INTO user_games (user_id, game_id, added_at, personal_rating, personal_notes, hours_played, platform_played, completed_at, date_started, date_finished, ownership_format_id) 
+                VALUES (:userId, :gameId, NOW(), :personalRating, :personalNotes, :hoursPlayed, :platformPlayed, :completedAt, :dateStarted, :dateFinished, :ownershipFormatId)
                 ON DUPLICATE KEY UPDATE 
                     added_at = NOW(),
                     personal_rating = COALESCE(VALUES(personal_rating), personal_rating),
@@ -148,7 +151,8 @@ final class MySqlUserGameRepository implements UserGameRepositoryInterface
                     platform_played = COALESCE(VALUES(platform_played), platform_played),
                     completed_at = COALESCE(VALUES(completed_at), completed_at),
                     date_started = COALESCE(VALUES(date_started), date_started),
-                    date_finished = COALESCE(VALUES(date_finished), date_finished)
+                    date_finished = COALESCE(VALUES(date_finished), date_finished),
+                    ownership_format_id = COALESCE(VALUES(ownership_format_id), ownership_format_id)
             ");
             $stmt->execute([
                 ':userId' => $userId,
@@ -159,7 +163,8 @@ final class MySqlUserGameRepository implements UserGameRepositoryInterface
                 ':platformPlayed' => $platformPlayed,
                 ':completedAt' => $completedAt,
                 ':dateStarted' => $dateStarted,
-                ':dateFinished' => $dateFinished
+                ':dateFinished' => $dateFinished,
+                ':ownershipFormatId' => $ownershipFormatId
             ]);
 
             // Add statuses if provided
@@ -286,6 +291,11 @@ final class MySqlUserGameRepository implements UserGameRepositoryInterface
             if (isset($data['date_finished'])) {
                 $updates[] = "date_finished = :dateFinished";
                 $params[':dateFinished'] = $data['date_finished'];
+            }
+
+            if (array_key_exists('ownership_format_id', $data)) {
+                $updates[] = "ownership_format_id = :ownershipFormatId";
+                $params[':ownershipFormatId'] = $data['ownership_format_id'] !== null ? (int) $data['ownership_format_id'] : null;
             }
 
             if (!empty($updates)) {

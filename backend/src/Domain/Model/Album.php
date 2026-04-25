@@ -41,6 +41,7 @@ class Album
     private ?string $dateStarted;
     private ?string $dateFinished;
     private ?string $completedAt;
+    private ?array $ownershipFormat; // Formato de posesión (id, value, label)
 
     public function __construct(
         int $id,
@@ -70,7 +71,8 @@ class Album
         ?string $favoriteTrack = null,
         ?string $dateStarted = null,
         ?string $dateFinished = null,
-        ?string $completedAt = null
+        ?string $completedAt = null,
+        ?array $ownershipFormat = null
     ) {
         if (empty($title)) {
             throw new InvalidArgumentException('Title cannot be empty.');
@@ -110,6 +112,7 @@ class Album
         $this->dateStarted = $dateStarted;
         $this->dateFinished = $dateFinished;
         $this->completedAt = $completedAt;
+        $this->ownershipFormat = $ownershipFormat;
     }
 
     public static function fromArray(array $data): self
@@ -192,7 +195,8 @@ class Album
             favoriteTrack: $data['favorite_track'] ?? $data['favoriteTrack'] ?? null,
             dateStarted: $data['date_started'] ?? $data['dateStarted'] ?? null,
             dateFinished: $data['date_finished'] ?? $data['dateFinished'] ?? null,
-            completedAt: $data['completed_at'] ?? $data['completedAt'] ?? null
+            completedAt: $data['completed_at'] ?? $data['completedAt'] ?? null,
+            ownershipFormat: $data['ownership_format'] ?? $data['ownershipFormat'] ?? null
         );
     }
 
@@ -455,6 +459,13 @@ class Album
             'dateFinished'           => $this->dateFinished,
             'completed_at'           => $this->completedAt,
             'completedAt'            => $this->completedAt,
+            'ownership_format'       => $this->ownershipFormat,
+            'ownershipFormat'        => $this->ownershipFormat,
+            'ownership_format_value' => $this->ownershipFormat['value'] ?? null,
+            'ownership_format_label' => $this->ownershipFormat['label'] ?? null,
         ];
     }
+
+    public function getOwnershipFormat(): ?array { return $this->ownershipFormat; }
+    public function setOwnershipFormat(?array $ownershipFormat): void { $this->ownershipFormat = $ownershipFormat; }
 }

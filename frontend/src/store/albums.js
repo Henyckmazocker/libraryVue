@@ -167,7 +167,8 @@ export const useAlbumsStore = defineStore('albums', {
           popularity: album.popularity || 0,
           external_url: album.external_url || album.externalUrl || album.external_urls?.spotify || '',
           upc: album.upc || '',
-          userStatuses: statuses
+          userStatuses: statuses,
+          ownership_format_id: album.ownership_format_id || null
         }
 
         const response = await authStore.authenticatedApiCall('add_album', {

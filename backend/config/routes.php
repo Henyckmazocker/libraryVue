@@ -487,6 +487,15 @@ return [
         'validation' => []
     ],
 
+    'get_ownership_formats' => [
+        'controller' => ['LibraryController', 'getOwnershipFormats'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => ['entityType']
+    ],
+
     // ============================================================================
     // LIBRARYX ROUTES
     // ============================================================================

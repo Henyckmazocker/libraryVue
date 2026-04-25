@@ -74,7 +74,8 @@ class MovieDataMapper
             [], // allowedStatuses - loaded separately
             null, // tags - loaded separately
             null, // allowedTags - loaded separately
-            $genres
+            $genres,
+            $this->buildOwnershipFormat($row)
         );
     }
 

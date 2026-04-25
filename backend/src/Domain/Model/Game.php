@@ -39,6 +39,7 @@ class Game
     private ?string $dateStarted; // Date user started playing (YYYY-MM-DD)
     private ?string $dateFinished; // Date user finished the game (YYYY-MM-DD)
     private ?string $personalNotes; // User's personal notes about the game
+    private ?array $ownershipFormat; // Formato de posesión (id, value, label)
 
     public function __construct(
         GameIdentifier $id,
@@ -66,7 +67,8 @@ class Game
         ?string $platformPlayed = null,
         ?string $dateStarted = null,
         ?string $dateFinished = null,
-        ?string $personalNotes = null
+        ?string $personalNotes = null,
+        ?array $ownershipFormat = null
     ) {
         // Validations
         if (empty($title)) {
@@ -111,6 +113,7 @@ class Game
         $this->dateStarted = $dateStarted;
         $this->dateFinished = $dateFinished;
         $this->personalNotes = $personalNotes;
+        $this->ownershipFormat = $ownershipFormat;
     }
 
     public static function fromArray(array $data): self
@@ -191,7 +194,8 @@ class Game
             $data['platform_played'] ?? $data['platformPlayed'] ?? null,
             $data['date_started'] ?? $data['dateStarted'] ?? null,
             $data['date_finished'] ?? $data['dateFinished'] ?? null,
-            $data['personal_notes'] ?? $data['personalNotes'] ?? null
+            $data['personal_notes'] ?? $data['personalNotes'] ?? null,
+            $data['ownership_format'] ?? $data['ownershipFormat'] ?? null
         );
     }
 
@@ -422,6 +426,13 @@ class Game
             'personal_notes' => $this->personalNotes,
             'personalNotes' => $this->personalNotes, // camelCase alias
             'notes' => $this->personalNotes, // Additional alias
+            'ownership_format'       => $this->ownershipFormat,
+            'ownershipFormat'        => $this->ownershipFormat,
+            'ownership_format_value' => $this->ownershipFormat['value'] ?? null,
+            'ownership_format_label' => $this->ownershipFormat['label'] ?? null,
         ];
     }
+
+    public function getOwnershipFormat(): ?array { return $this->ownershipFormat; }
+    public function setOwnershipFormat(?array $ownershipFormat): void { $this->ownershipFormat = $ownershipFormat; }
 }

@@ -49,11 +49,12 @@
         />
         
         <!-- Game-specific fields (read-only display) -->
-        <div v-if="hoursPlayed || dateStarted || dateFinished || notes" class="game-specific-fields readonly-fields">
+        <div v-if="hoursPlayed || dateStarted || dateFinished || notes || ownershipFormatLabel" class="game-specific-fields readonly-fields">
           <p v-if="hoursPlayed" class="game-field"><strong>Horas Jugadas:</strong> {{ hoursPlayed }}</p>
           <p v-if="dateStarted" class="game-field"><strong>Fecha de Inicio:</strong> {{ dateStarted }}</p>
           <p v-if="dateFinished" class="game-field"><strong>Fecha de Finalización:</strong> {{ dateFinished }}</p>
           <p v-if="notes" class="game-field"><strong>Notas:</strong> {{ notes }}</p>
+          <p v-if="ownershipFormatLabel" class="game-field"><strong>Formato:</strong> <span class="ownership-format-badge">{{ ownershipFormatLabel }}</span></p>
         </div>
         
         <!-- Direct action buttons -->
@@ -173,11 +174,19 @@ watch(() => [props.game.notes, props.game.personalNotes, props.game.personal_not
   notes.value = notes1 || notes2 || notes3 || '';
 }, { immediate: true });
 
+const ownershipFormatLabel = ref(
+  props.game.ownershipFormat?.label || props.game.ownership_format?.label || ''
+)
+watch(() => [props.game.ownershipFormat, props.game.ownership_format], ([fmt1, fmt2]) => {
+  ownershipFormatLabel.value = fmt1?.label || fmt2?.label || ''
+}, { immediate: true, deep: true })
+
 watch(() => props.game.userStatuses, (newVal) => {
   if (newVal && newVal.length > 0) {
     selectedUserStatuses.value = [...newVal];
   }
 }, { deep: true, immediate: true });
+
 
 // Computed: el juego es nuevo si NO es editable
 const isNewGame = computed(() => !props.editable);

@@ -327,7 +327,7 @@ class OpenLibraryService
             'publishers' => $data['publishers'] ?? [],
             'publish_date' => $data['publish_date'] ?? null,
             'publish_year' => $this->extractYear($data['publish_date'] ?? null),
-            'number_of_pages' => $data['number_of_pages'] ?? null,
+            'number_of_pages' => $data['number_of_pages'] ?? (isset($data['pagination']) ? (int) filter_var($data['pagination'], FILTER_SANITIZE_NUMBER_INT) ?: null : null),
             'physical_format' => $data['physical_format'] ?? null,
             'languages' => $data['languages'] ?? [],
             'covers' => $data['covers'] ?? [],

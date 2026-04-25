@@ -2,6 +2,8 @@
 namespace App\Controllers;
 
 use App\Domain\UseCases\GetLibraryUseCase;
+use App\Domain\UseCases\GetOwnershipFormatsUseCase;
+use App\Domain\DTO\Queries\GetOwnershipFormatsQuery;
 use App\Domain\UseCases\Books\GetBooksUseCase;
 use App\Domain\UseCases\Movies\GetMoviesUseCase;
 use App\Domain\UseCases\Books\AddBookUseCase;
@@ -30,6 +32,7 @@ class LibraryController extends BaseController implements Contracts\LibraryContr
     private BookTagRepositoryInterface $bookTagRepository;
     private OpenLibraryService $openLibraryService;
     private AuthMiddleware $authMiddleware;
+    private GetOwnershipFormatsUseCase $getOwnershipFormatsUseCase;
 
     public function __construct(
         GetLibraryUseCase $getLibraryUseCase,
@@ -43,7 +46,8 @@ class LibraryController extends BaseController implements Contracts\LibraryContr
         UserMovieRepositoryInterface $userMovieRepository,
         BookTagRepositoryInterface $bookTagRepository,
         OpenLibraryService $openLibraryService,
-        AuthMiddleware $authMiddleware
+        AuthMiddleware $authMiddleware,
+        GetOwnershipFormatsUseCase $getOwnershipFormatsUseCase
     ) {
         $this->getLibraryUseCase = $getLibraryUseCase;
         $this->getBooksUseCase = $getBooksUseCase;
@@ -57,6 +61,7 @@ class LibraryController extends BaseController implements Contracts\LibraryContr
         $this->bookTagRepository = $bookTagRepository;
         $this->openLibraryService = $openLibraryService;
         $this->authMiddleware = $authMiddleware;
+        $this->getOwnershipFormatsUseCase = $getOwnershipFormatsUseCase;
     }
 
     public function getLibraryItems(int $userId): array
@@ -206,6 +211,19 @@ class LibraryController extends BaseController implements Contracts\LibraryContr
     public function ping(): array
     {
         return $this->successResponse('pong', null);
+    }
+
+    public function getOwnershipFormats(array $inputData, int $userId): array
+    {
+        try {
+            $query = GetOwnershipFormatsQuery::fromArray($inputData);
+            $formats = $this->getOwnershipFormatsUseCase->execute($query);
+            return $this->successResponse('Ownership formats retrieved.', ['formats' => $formats]);
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse($e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->errorResponse('Could not retrieve ownership formats: ' . $e->getMessage(), 500);
+        }
     }
 
     /**

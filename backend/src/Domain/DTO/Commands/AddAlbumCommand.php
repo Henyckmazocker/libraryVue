@@ -59,7 +59,8 @@ final readonly class AddAlbumCommand
         public ?Rating $userRating = null,
         public ?string $personalNotes = null,
         public ?int $listenCount = null,
-        public ?string $favoriteTrack = null
+        public ?string $favoriteTrack = null,
+        public ?int $ownershipFormatId = null
     ) {}
 
     public static function fromArray(array $data, int $userId): self
@@ -125,7 +126,8 @@ final readonly class AddAlbumCommand
             userRating: $userRating,
             personalNotes: $data['personal_notes'] ?? $data['personalNotes'] ?? null,
             listenCount: $listenCount,
-            favoriteTrack: $data['favorite_track'] ?? $data['favoriteTrack'] ?? null
+            favoriteTrack: $data['favorite_track'] ?? $data['favoriteTrack'] ?? null,
+            ownershipFormatId: isset($data['ownership_format_id']) ? (int)$data['ownership_format_id'] : (isset($data['ownershipFormatId']) ? (int)$data['ownershipFormatId'] : null)
         );
     }
 

@@ -81,16 +81,16 @@ const getStatusLabel = (statusKey) => {
   align-items: center;
   gap: 15px;
   padding: 12px 15px;
-  background: var(--color-background-soft);
+  background: #1a1625;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  border: 1px solid transparent;
+  border: 1px solid #2a1f3d;
 }
 
 .movie-list-item:hover {
-  background: var(--color-background-mute);
-  border-color: var(--color-primary);
+  background: #211a30;
+  border-color: #8b5cf6;
   transform: translateX(4px);
 }
 

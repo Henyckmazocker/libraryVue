@@ -18,10 +18,23 @@
             v-if="itemType === 'book'"
             ref="progressBarRef"
             :current-page="item?.currentPage || 0"
-            :total-pages="item?.pages || 0"
+            :total-pages="localTotalPages"
             :editable="true"
             theme="blue"
           />
+
+          <!-- Total pages input (books only, shown when pages is unknown) -->
+          <div v-if="itemType === 'book'" class="form-group">
+            <label for="total-pages-input">Total de páginas</label>
+            <input
+              id="total-pages-input"
+              v-model.number="localTotalPages"
+              type="number"
+              min="1"
+              placeholder="Nº total de páginas del libro"
+              class="game-input"
+            />
+          </div>
           
           <!-- Status Selector -->
           <StatusSelector
@@ -39,6 +52,25 @@
             :readonly="false"
             @add-tag="handleAddTag"
           />
+
+          <!-- Ownership Format Selector (all entity types) -->
+          <div v-if="ownershipFormats.length > 0" class="form-group">
+            <label for="ownership-format">Formato de Propiedad</label>
+            <select
+              id="ownership-format"
+              v-model="localOwnershipFormatId"
+              class="game-input"
+            >
+              <option :value="null">— Sin especificar —</option>
+              <option
+                v-for="fmt in ownershipFormats"
+                :key="fmt.id"
+                :value="fmt.id"
+              >
+                {{ fmt.label }}
+              </option>
+            </select>
+          </div>
           
           <!-- Game-specific fields -->
           <div v-if="itemType === 'game'" class="game-fields">
@@ -206,6 +238,7 @@ import { useMovies } from '@/composables/useMovies'
 import { useGames } from '@/composables/useGames'
 import { useAlbums } from '@/composables/useAlbums'
 import { useItemEdit } from '@/composables/useItemEdit'
+import { useUIStore } from '@/store/ui'
 import Logger from '@/utils/logger'
 
 const props = defineProps({
@@ -237,6 +270,7 @@ const emit = defineEmits(['close', 'saved'])
 // Composables
 const itemEdit = useItemEdit()
 const notifications = inject('notifications', null)
+const uiStore = useUIStore()
 
 // Get appropriate composables based on item type
 const booksComposable = useBooks()
@@ -249,6 +283,7 @@ const localRating = ref(props.item?.user_rating ?? null)
 const localStatuses = ref(props.item?.userStatuses ? [...props.item.userStatuses] : [])
 const localTags = ref(props.item?.tags ? [...props.item.tags] : [])
 const localCurrentPage = ref(props.item?.currentPage ?? 0)
+const localTotalPages = ref(props.item?.pages || props.item?.totalPages || 0)
 
 // Game-specific local state
 const localHoursPlayed = ref(props.item?.hoursPlayed ?? props.item?.hours_played ?? null)
@@ -259,6 +294,12 @@ const localPersonalNotes = ref(props.item?.personalNotes ?? props.item?.personal
 
 // Album-specific local state
 const localFavoriteTrack = ref(props.item?.favoriteTrack ?? props.item?.favorite_track ?? '')
+
+// Ownership format state
+const ownershipFormats = ref([])
+const localOwnershipFormatId = ref(
+  props.item?.ownershipFormat?.id ?? props.item?.ownership_format?.id ?? props.item?.ownership_format_id ?? null
+)
 
 const isSaving = ref(false)
 const progressBarRef = ref(null)
@@ -294,6 +335,9 @@ const userTags = computed(() => {
 // Load data on mount
 onMounted(async () => {
   try {
+    // Load ownership formats
+    ownershipFormats.value = await uiStore.fetchOwnershipFormats(props.itemType)
+
     if (props.itemType === 'book') {
       // Load user tags for books
       await booksComposable.fetchUserTags()
@@ -403,10 +447,13 @@ const handleSave = async () => {
       userId: props.item.userId || props.item.user_id
     }
     
-    // Add currentPage for books
+    // Add currentPage and pages for books
     if (props.itemType === 'book') {
       data.currentPage = currentPageToSave
       localCurrentPage.value = currentPageToSave
+      if (localTotalPages.value > 0) {
+        data.pages = localTotalPages.value
+      }
     }
     
     // Add game-specific fields
@@ -444,6 +491,11 @@ const handleSave = async () => {
       }
     }
     
+    // Add ownership format for all types
+    if (localOwnershipFormatId.value !== null) {
+      data.ownership_format_id = localOwnershipFormatId.value
+    }
+
     Logger.debug('Saving item with data:', { itemType: props.itemType, itemId, data })
     
     const result = await itemEdit.editItem(props.itemType, itemId, data, [...localTags.value], [])
@@ -451,6 +503,16 @@ const handleSave = async () => {
     Logger.debug('Save result:', result)
     
     if (result.success) {
+      // For books, also call update_reading_progress to record session + history
+      if (props.itemType === 'book' && props.item.isbn) {
+        try {
+          await booksComposable.updateReadingProgress(props.item.isbn, currentPageToSave)
+        } catch (progressErr) {
+          Logger.warn('[EditItemModal] Could not update reading progress history:', progressErr)
+          // Non-fatal: main save succeeded
+        }
+      }
+
       // Show success message
       const itemTypeName = props.itemType === 'book' ? 'Libro' : props.itemType === 'movie' ? 'Película' : props.itemType === 'album' ? 'Álbum' : 'Juego'
       if (notifications) {
@@ -469,6 +531,10 @@ const handleSave = async () => {
       if (props.itemType === 'book') {
         updatedItem.currentPage = localCurrentPage.value
         updatedItem.isbn = props.item.isbn
+        if (localTotalPages.value > 0) {
+          updatedItem.pages = localTotalPages.value
+          updatedItem.totalPages = localTotalPages.value
+        }
       } else if (props.itemType === 'movie') {
         updatedItem.imdbID = props.item.imdbID
         updatedItem.tmdbId = props.item.tmdbId
@@ -486,6 +552,13 @@ const handleSave = async () => {
         updatedItem.dateStarted = localDateStarted.value
         updatedItem.dateFinished = localDateFinished.value
         updatedItem.personalNotes = localPersonalNotes.value
+      }
+
+      // Update ownership format for all types
+      if (localOwnershipFormatId.value !== null) {
+        const fmt = ownershipFormats.value.find(f => f.id === localOwnershipFormatId.value)
+        updatedItem.ownership_format_id = localOwnershipFormatId.value
+        updatedItem.ownershipFormat = fmt || null
       }
       
       Logger.debug('Emitting saved event with updatedItem:', updatedItem)

@@ -38,6 +38,11 @@ class EditUserMovieUseCase extends AbstractUseCase
             $this->userMovieRepository->edit($userId, $movieId, $updateData);
         }
 
+        // Update ownership format if provided
+        if ($command->ownershipFormatId !== null) {
+            $this->userMovieRepository->edit($userId, $movieId, ['ownership_format_id' => $command->ownershipFormatId]);
+        }
+
         // Update statuses (allow clearing all statuses with empty array)
         if ($command->statuses !== null) {
             $this->userMovieRepository->updateStatuses($userId, $movieId, $command->statuses);

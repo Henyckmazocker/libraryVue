@@ -451,4 +451,42 @@ class GameCommandsTest extends TestCase
         $this->expectExceptionMessage('Game ID is required');
         UpdateGameStatusesCommand::fromArray(['statuses' => []], 1);
     }
+
+    // ═══════════════════════════════════════
+    // Ownership Format
+    // ═══════════════════════════════════════
+
+    #[Test]
+    public function add_game_ownership_format_id_from_array(): void
+    {
+        $cmd = AddGameCommand::fromArray([
+            'id' => 42,
+            'title' => 'Game',
+            'ownership_format_id' => 3,
+        ], 1);
+
+        $this->assertSame(3, $cmd->ownershipFormatId);
+    }
+
+    #[Test]
+    public function add_game_ownership_format_id_defaults_null(): void
+    {
+        $cmd = AddGameCommand::fromArray([
+            'id' => 42,
+            'title' => 'Game',
+        ], 1);
+
+        $this->assertNull($cmd->ownershipFormatId);
+    }
+
+    #[Test]
+    public function edit_game_ownership_format_id_camel_case(): void
+    {
+        $cmd = EditUserGameCommand::fromArray([
+            'gameId' => 42,
+            'data' => ['ownershipFormatId' => 5],
+        ], 1);
+
+        $this->assertSame(5, $cmd->ownershipFormatId);
+    }
 }

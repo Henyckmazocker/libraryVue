@@ -171,7 +171,8 @@ export const useBooksStore = defineStore('books', {
           userStatuses: statuses,
           allowedStatuses: this.allowedStatuses,
           rating: book.user_rating || null,
-          genres: book.genres || []
+          genres: book.genres || [],
+          ownership_format_id: book.ownership_format_id || null
         }
 
         const payload = { book: bookData }

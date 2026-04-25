@@ -201,7 +201,7 @@ class ActionRouter
                 AddBookCommand::fromArray($data['book'] ?? [], $userId)
             ),
             'delete_book' => $controller->deleteBook(
-                new DeleteBookCommand($userId, $data['isbn'] ?? '')
+                DeleteBookCommand::fromArray($data, $userId)
             ),
             'update_book_rating' => $controller->updateBookRating(
                 new UpdateBookRatingCommand($userId, $data['isbn'] ?? '', $data['rating'] ?? null)
@@ -431,10 +431,11 @@ class ActionRouter
             ),
 
             // LIBRARY - No DTOs (complex operations handled internally)
-            'get_library_items' => $controller->getLibraryItems($userId),
-            'save_library' => $controller->saveLibrary($userId),
-            'import_data' => $controller->importData($data['processedData'] ?? [], $userId),
-            'ping' => $controller->ping(),
+            'get_library_items'      => $controller->getLibraryItems($userId),
+            'save_library'           => $controller->saveLibrary($userId),
+            'import_data'            => $controller->importData($data['processedData'] ?? [], $userId),
+            'ping'                   => $controller->ping(),
+            'get_ownership_formats'  => $controller->getOwnershipFormats($data, $userId),
 
             // LIBRARYX - No DTOs (legacy endpoints)
             'libraryx_get_urls' => $controller->getUrls($request['user'] ?? []),

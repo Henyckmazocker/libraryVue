@@ -163,6 +163,7 @@
       <div class="library-section">
         <h2>{{ existingGame ? 'Detalles en tu Biblioteca' : 'Añadir a tu Biblioteca' }}</h2>
         <LibraryGameItem
+          v-if="allowedStatuses.length > 0"
           ref="libraryGameItemRef"
           :game="game"
           :allowedUserStatuses="allowedStatuses"

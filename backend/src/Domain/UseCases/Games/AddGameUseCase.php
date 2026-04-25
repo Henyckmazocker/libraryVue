@@ -70,7 +70,8 @@ class AddGameUseCase extends AbstractUseCase
             $command->hoursPlayed,
             $command->platformPlayed,
             $command->dateStarted,
-            $command->dateFinished
+            $command->dateFinished,
+            $command->ownershipFormatId
         );
         
         return $game;

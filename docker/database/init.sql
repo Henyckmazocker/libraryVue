@@ -161,6 +161,48 @@ CREATE TABLE IF NOT EXISTS book_editions (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 COMMENT='Ediciones específicas de obras literarias';
 
+-- ============================================================
+-- Tabla de lookup: formatos de posesión por tipo de entidad
+-- Gestión centralizada sin ALTER TABLE (añadir/desactivar con INSERT/UPDATE)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS item_owned_formats (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    entity_type VARCHAR(20)  NOT NULL COMMENT 'book, movie, game, album',
+    value       VARCHAR(50)  NOT NULL COMMENT 'Identificador interno (ej: blu_ray)',
+    label       VARCHAR(100) NOT NULL COMMENT 'Etiqueta para la UI (ej: Blu-ray)',
+    sort_order  INT          NOT NULL DEFAULT 0,
+    is_active   BOOLEAN      NOT NULL DEFAULT TRUE,
+    UNIQUE KEY uq_entity_value (entity_type, value),
+    INDEX idx_iof_entity_active (entity_type, is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Formatos de posesión disponibles por tipo de entidad (gestionable sin ALTER TABLE)';
+
+INSERT INTO item_owned_formats (entity_type, value, label, sort_order) VALUES
+  ('book',  'hardcover',           'Tapa dura',          1),
+  ('book',  'paperback',           'Tapa blanda',        2),
+  ('book',  'ebook_kindle',        'eBook (Kindle)',      3),
+  ('book',  'ebook_epub',          'eBook (ePub)',        4),
+  ('book',  'audiobook',           'Audiolibro',         5),
+  ('book',  'other',               'Otro',               6),
+  ('movie', 'digital',             'Digital',            1),
+  ('movie', 'blu_ray',             'Blu-ray',            2),
+  ('movie', 'blu_ray_4k',          'Blu-ray 4K',         3),
+  ('movie', 'dvd',                 'DVD',                4),
+  ('movie', 'vhs',                 'VHS',                5),
+  ('movie', 'streaming',           'Streaming',          6),
+  ('movie', 'other',               'Otro',               7),
+  ('game',  'digital',             'Digital',            1),
+  ('game',  'physical_disc',       'Disco físico',       2),
+  ('game',  'physical_cartridge',  'Cartucho físico',    3),
+  ('game',  'cloud',               'Cloud',              4),
+  ('game',  'other',               'Otro',               5),
+  ('album', 'digital',             'Digital',            1),
+  ('album', 'vinyl',               'Vinilo',             2),
+  ('album', 'cd',                  'CD',                 3),
+  ('album', 'cassette',            'Casete',             4),
+  ('album', 'streaming',           'Streaming',          5),
+  ('album', 'other',               'Otro',               6);
+
 -- Tabla de ediciones en biblioteca personal del usuario
 -- Permite que un usuario tenga múltiples ediciones de la misma obra
 CREATE TABLE IF NOT EXISTS user_book_editions (
@@ -226,7 +268,13 @@ CREATE TABLE IF NOT EXISTS user_book_editions (
     CONSTRAINT check_work_rating CHECK (work_rating IS NULL OR (work_rating >= 0.5 AND work_rating <= 5.0 AND MOD(work_rating * 2, 1) = 0)),
     CONSTRAINT check_current_page CHECK (current_page >= 0),
     CONSTRAINT check_sessions CHECK (total_sessions_completed >= 0),
-    CONSTRAINT check_purchase_price CHECK (purchase_price IS NULL OR purchase_price >= 0)
+    CONSTRAINT check_purchase_price CHECK (purchase_price IS NULL OR purchase_price >= 0),
+
+    -- Formato de posesión (FK a tabla de lookup centralizada)
+    ownership_format_id INT NULL COMMENT 'FK → item_owned_formats.id (entity_type=book)',
+    CONSTRAINT fk_ube_ownership_format
+        FOREIGN KEY (ownership_format_id) REFERENCES item_owned_formats(id)
+        ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 COMMENT='Ediciones específicas en la biblioteca de cada usuario';
 
@@ -394,7 +442,13 @@ CREATE TABLE IF NOT EXISTS user_movies (
     INDEX idx_user_movies_user_added (user_id, added_at), -- Para obtener películas de un usuario ordenadas por fecha
     INDEX idx_user_movies_consumed (user_id, consumed_at), -- Para obtener películas vistas ordenadas por fecha de visualización
     INDEX idx_user_movies_rating (user_id, personal_rating), -- Para filtros por rating personal
-    CONSTRAINT check_user_movie_rating CHECK (personal_rating IS NULL OR (personal_rating >= 0.5 AND personal_rating <= 5.0 AND MOD(personal_rating * 2, 1) = 0))
+    CONSTRAINT check_user_movie_rating CHECK (personal_rating IS NULL OR (personal_rating >= 0.5 AND personal_rating <= 5.0 AND MOD(personal_rating * 2, 1) = 0)),
+
+    -- Formato de posesión (FK a tabla de lookup centralizada)
+    ownership_format_id INT NULL COMMENT 'FK → item_owned_formats.id (entity_type=movie)',
+    CONSTRAINT fk_um_ownership_format
+        FOREIGN KEY (ownership_format_id) REFERENCES item_owned_formats(id)
+        ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- Estados personales de libros por usuario
@@ -698,7 +752,13 @@ CREATE TABLE IF NOT EXISTS user_games (
     INDEX idx_user_games_rating (user_id, personal_rating),
     INDEX idx_user_games_hours (user_id, hours_played),
     CONSTRAINT check_user_game_rating CHECK (personal_rating IS NULL OR (personal_rating >= 0.5 AND personal_rating <= 5.0 AND MOD(personal_rating * 2, 1) = 0)),
-    CONSTRAINT check_user_game_hours CHECK (hours_played >= 0)
+    CONSTRAINT check_user_game_hours CHECK (hours_played >= 0),
+
+    -- Formato de posesión (FK a tabla de lookup centralizada)
+    ownership_format_id INT NULL COMMENT 'FK → item_owned_formats.id (entity_type=game)',
+    CONSTRAINT fk_ug_ownership_format
+        FOREIGN KEY (ownership_format_id) REFERENCES item_owned_formats(id)
+        ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- Estados personales de videojuegos por usuario
@@ -873,7 +933,13 @@ CREATE TABLE IF NOT EXISTS user_albums (
     INDEX idx_user_albums_rating (user_id, personal_rating),
     INDEX idx_user_albums_listen_count (user_id, listen_count),
     CONSTRAINT check_user_album_rating CHECK (personal_rating IS NULL OR (personal_rating >= 0.5 AND personal_rating <= 5.0 AND MOD(personal_rating * 2, 1) = 0)),
-    CONSTRAINT check_user_album_listen_count CHECK (listen_count >= 0)
+    CONSTRAINT check_user_album_listen_count CHECK (listen_count >= 0),
+
+    -- Formato de posesión (FK a tabla de lookup centralizada)
+    ownership_format_id INT NULL COMMENT 'FK → item_owned_formats.id (entity_type=album)',
+    CONSTRAINT fk_ua_ownership_format
+        FOREIGN KEY (ownership_format_id) REFERENCES item_owned_formats(id)
+        ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 COMMENT='Biblioteca personal de álbumes musicales de cada usuario';
 

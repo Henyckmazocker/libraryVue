@@ -390,4 +390,44 @@ class AlbumCommandsTest extends TestCase
         $this->expectExceptionMessage('Album ID is required');
         EditUserAlbumCommand::fromArray([], 1);
     }
+
+    // ═══════════════════════════════════════
+    // Ownership Format
+    // ═══════════════════════════════════════
+
+    #[Test]
+    public function add_album_ownership_format_id_from_array(): void
+    {
+        $cmd = AddAlbumCommand::fromArray([
+            'spotifyId' => '1BZlo1MbFSztOf3l1X3vxQ',
+            'title' => 'Album',
+            'artist' => 'Artist',
+            'ownership_format_id' => 6,
+        ], 1);
+
+        $this->assertSame(6, $cmd->ownershipFormatId);
+    }
+
+    #[Test]
+    public function add_album_ownership_format_id_defaults_null(): void
+    {
+        $cmd = AddAlbumCommand::fromArray([
+            'spotifyId' => '1BZlo1MbFSztOf3l1X3vxQ',
+            'title' => 'Album',
+            'artist' => 'Artist',
+        ], 1);
+
+        $this->assertNull($cmd->ownershipFormatId);
+    }
+
+    #[Test]
+    public function edit_album_ownership_format_id_from_nested_data(): void
+    {
+        $cmd = EditUserAlbumCommand::fromArray([
+            'albumId' => 10,
+            'data' => ['ownershipFormatId' => 3],
+        ], 1);
+
+        $this->assertSame(3, $cmd->ownershipFormatId);
+    }
 }

@@ -156,7 +156,8 @@ export const useMoviesStore = defineStore('movies', {
           userStatuses: statuses,
           user_rating: movie.user_rating || 0,
           itemType: 'movie',
-          genres: movie.genres || []
+          genres: movie.genres || [],
+          ownership_format_id: movie.ownership_format_id || null
         }
         
         const response = await authStore.authenticatedApiCall('add_movie', { movie: movieData })

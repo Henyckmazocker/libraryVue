@@ -64,6 +64,8 @@ return function (): ContainerInterface {
         \App\Domain\Repository\Album\UserAlbumRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Album\MySqlUserAlbumRepository::class),
         \App\Domain\Repository\Album\AlbumTagRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Album\MySqlAlbumTagRepository::class),
         \App\Domain\Repository\Album\AlbumNoteRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Album\MySqlAlbumNoteRepository::class),
+        // Owned-format lookup repository (shared across all entity types)
+        \App\Domain\Repository\OwnedFormatRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Common\MySqlOwnedFormatRepository::class),
         \App\Domain\Repository\Book\WorkRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Book\MySqlWorkRepository::class),
         \App\Domain\Repository\Book\EditionRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Book\MySqlEditionRepository::class),
         \App\Domain\Repository\Book\UserBookEditionRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Book\MySqlUserBookEditionRepository::class),
@@ -88,6 +90,7 @@ return function (): ContainerInterface {
         \App\Infrastructure\Persistence\Album\MySqlAlbumTagRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Album\MySqlAlbumNoteRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Album\Mappers\AlbumDataMapper::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Common\MySqlOwnedFormatRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\User\MySqlUserRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Book\MySqlBookRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Movie\MySqlMovieRepository::class => DI\autowire(),
@@ -208,6 +211,7 @@ return function (): ContainerInterface {
         
         \App\Domain\UseCases\GetLibraryUseCase::class => DI\autowire(),
         \App\Domain\UseCases\GetLibraryItemsUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\GetOwnershipFormatsUseCase::class => DI\autowire(),
         
         // ===========================
         // MIDDLEWARE

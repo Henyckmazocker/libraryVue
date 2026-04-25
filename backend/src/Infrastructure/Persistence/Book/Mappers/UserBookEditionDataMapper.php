@@ -69,6 +69,11 @@ final class UserBookEditionDataMapper
             $userBookEdition->setPersonalNotes($dbRow['personal_notes']);
         }
 
+        $ownershipFormat = $this->buildOwnershipFormat($dbRow);
+        if ($ownershipFormat !== null) {
+            $userBookEdition->setOwnershipFormat($ownershipFormat);
+        }
+
         return $userBookEdition;
     }
 
@@ -93,6 +98,28 @@ final class UserBookEditionDataMapper
             'is_digital' => $userBookEdition->isDigital() ? 1 : 0,
             'total_sessions_completed' => $userBookEdition->getTotalSessionsCompleted(),
             'personal_notes' => $userBookEdition->getPersonalNotes(),
+            'ownership_format_id' => $userBookEdition->getOwnershipFormat()['id'] ?? null,
+        ];
+    }
+
+    /**
+     * Construye el objeto ownershipFormat desde columnas de JOIN con item_owned_formats.
+     * Espera columnas: ownership_format_id, ownership_format_value, ownership_format_label.
+     */
+    private function buildOwnershipFormat(array $row): ?array
+    {
+        $fmtId = isset($row['ownership_format_id']) && $row['ownership_format_id'] !== null
+            ? (int) $row['ownership_format_id']
+            : null;
+
+        if ($fmtId === null) {
+            return null;
+        }
+
+        return [
+            'id'    => $fmtId,
+            'value' => (string) ($row['ownership_format_value'] ?? ''),
+            'label' => (string) ($row['ownership_format_label'] ?? ''),
         ];
     }
 }

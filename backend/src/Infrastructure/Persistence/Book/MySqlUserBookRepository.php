@@ -248,6 +248,11 @@ final class MySqlUserBookRepository implements UserBookRepositoryInterface
                 $params[':consumed_at'] = $data['consumed_at'];
             }
 
+            if (array_key_exists('ownership_format_id', $data)) {
+                $updates[] = "ownership_format_id = :ownership_format_id";
+                $params[':ownership_format_id'] = $data['ownership_format_id'] !== null ? (int) $data['ownership_format_id'] : null;
+            }
+
             if (empty($updates)) {
                 $this->db->rollBack();
                 return;

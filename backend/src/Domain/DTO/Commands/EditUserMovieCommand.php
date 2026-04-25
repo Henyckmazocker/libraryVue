@@ -24,7 +24,8 @@ final readonly class EditUserMovieCommand
         public int $userId,
         public ?Rating $userRating = null,
         public ?array $statuses = null,
-        public array $tags = []
+        public array $tags = [],
+        public ?int $ownershipFormatId = null
     ) {}
 
     public static function fromArray(array $data, int $userId): self
@@ -41,7 +42,8 @@ final readonly class EditUserMovieCommand
                     ? Rating::fromNullableFloat((float)$movieData['personalRating'])
                     : null),
             statuses: $movieData['statuses'] ?? $data['statuses'] ?? null,
-            tags: $data['tags'] ?? []
+            tags: $data['tags'] ?? [],
+            ownershipFormatId: isset($movieData['ownership_format_id']) ? (int)$movieData['ownership_format_id'] : (isset($movieData['ownershipFormatId']) ? (int)$movieData['ownershipFormatId'] : null)
         );
     }
 }

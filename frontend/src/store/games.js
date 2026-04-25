@@ -203,7 +203,8 @@ export const useGamesStore = defineStore('games', {
           hoursPlayed: game.hoursPlayed || game.hours_played || 0,
           notes: game.notes || '',
           dateStarted: game.dateStarted || game.date_started || null,
-          dateFinished: game.dateFinished || game.date_finished || null
+          dateFinished: game.dateFinished || game.date_finished || null,
+          ownership_format_id: game.ownership_format_id || null
         }
 
         const response = await authStore.authenticatedApiCall('add_game', {

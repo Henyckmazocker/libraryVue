@@ -60,7 +60,16 @@ class UpdateReadingProgressUseCase extends AbstractUseCase
         // 3. Obtener páginas totales
         $totalPages = $edition->getPages() ?? 0;
         if ($totalPages === 0) {
-            throw new RuntimeException("Book has no page count defined");
+            // No page count: save progress + history but skip session logic
+            $this->progressRepository->updateWithSession($userId, $isbn, $currentPage, 'advance', null);
+            return [
+                'currentPage' => $currentPage,
+                'totalPages' => 0,
+                'percentage' => 0,
+                'isComplete' => false,
+                'sessionId' => null,
+                'updatedStatuses' => $this->userBookEditionRepository->getStatusesForEdition($userId, $editionId)
+            ];
         }
 
         // 4. Verificar si hay sesión activa

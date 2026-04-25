@@ -22,7 +22,8 @@ final readonly class EditUserGameCommand
         public ?string $dateStarted = null,
         public ?string $dateFinished = null,
         public ?array $statuses = null,
-        public array $tags = []
+        public array $tags = [],
+        public ?int $ownershipFormatId = null
     ) {}
 
     public static function fromArray(array $data, int $userId): self
@@ -49,7 +50,8 @@ final readonly class EditUserGameCommand
             dateStarted: !empty($gameData['dateStarted']) ? $gameData['dateStarted'] : (!empty($gameData['date_started']) ? $gameData['date_started'] : null),
             dateFinished: !empty($gameData['dateFinished']) ? $gameData['dateFinished'] : (!empty($gameData['date_finished']) ? $gameData['date_finished'] : null),
             statuses: $gameData['statuses'] ?? $data['statuses'] ?? null,
-            tags: $data['tags'] ?? []
+            tags: $data['tags'] ?? [],
+            ownershipFormatId: isset($gameData['ownership_format_id']) ? (int)$gameData['ownership_format_id'] : (isset($gameData['ownershipFormatId']) ? (int)$gameData['ownershipFormatId'] : null)
         );
     }
 
@@ -77,6 +79,9 @@ final readonly class EditUserGameCommand
         }
         if ($this->dateFinished !== null) {
             $data['date_finished'] = $this->dateFinished;
+        }
+        if ($this->ownershipFormatId !== null) {
+            $data['ownership_format_id'] = $this->ownershipFormatId;
         }
 
         return $data;

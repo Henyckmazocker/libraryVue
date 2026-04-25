@@ -45,6 +45,8 @@
           :book="book"
         />
 
+        <p v-if="ownershipFormatLabel" class="book-field"><strong>Formato:</strong> <span class="ownership-format-badge">{{ ownershipFormatLabel }}</span></p>
+
         <!-- Book Actions Component -->
         <div class="book-actions">
 
@@ -130,7 +132,14 @@ const props = defineProps({
 const emit = defineEmits(['delete-book', 'edit-item', 'save-book', 'show-session-history']);
 
 // Estados seleccionados (locales para display)
-const selectedUserStatuses = ref(props.book.userStatuses || []);
+const getInitialStatuses = () => {
+  if (props.book.userStatuses && props.book.userStatuses.length > 0) {
+    return [...props.book.userStatuses];
+  } else {
+    return props.allowedUserStatuses.includes('owned') ? ['owned'] : [];
+  }
+};
+const selectedUserStatuses = ref(getInitialStatuses());
 const rating = ref(props.book.user_rating || 0);
 const currentPage = ref(props.book.currentPage || 0);
 
@@ -234,15 +243,21 @@ watch(() => props.book.currentPage, (newPage) => {
   currentPage.value = newPage || 0;
 });
 
-watch(() => props.book.userStatuses, (newStatuses, oldStatuses) => {
-  Logger.debug('[LibraryBookItem] userStatuses changed:', { 
-    old: oldStatuses, 
-    new: newStatuses,
-    isArray: Array.isArray(newStatuses),
-    length: newStatuses?.length
-  });
-  selectedUserStatuses.value = newStatuses || [];
+watch(() => props.book.userStatuses, (newStatuses) => {
+  if (newStatuses && newStatuses.length > 0) {
+    // Libro existente recargado con sus estados reales
+    selectedUserStatuses.value = [...newStatuses];
+  }
+  // Si llega vacío, no sobreescribir la selección actual (ej. default 'owned')
 }, { deep: true });
+
+
+const ownershipFormatLabel = ref(
+  props.book.ownershipFormat?.label ?? props.book.ownership_format?.label ?? ''
+)
+watch(() => [props.book.ownershipFormat, props.book.ownership_format], ([fmt1, fmt2]) => {
+  ownershipFormatLabel.value = fmt1?.label ?? fmt2?.label ?? ''
+}, { immediate: true, deep: true })
 </script>
 
 <style>

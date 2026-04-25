@@ -332,4 +332,66 @@ class BookCommandsTest extends TestCase
 
         $this->assertEquals([], $cmd->statuses);
     }
+
+    // ═══════════════════════════════════════
+    // Ownership Format
+    // ═══════════════════════════════════════
+
+    #[Test]
+    public function add_book_ownership_format_id_camel_case(): void
+    {
+        $cmd = AddBookCommand::fromArray([
+            'isbn' => '9783161484100',
+            'title' => 'Book',
+            'ownershipFormatId' => 3,
+        ], 1);
+
+        $this->assertSame(3, $cmd->ownershipFormatId);
+    }
+
+    #[Test]
+    public function add_book_ownership_format_id_snake_case(): void
+    {
+        $cmd = AddBookCommand::fromArray([
+            'isbn' => '9783161484100',
+            'title' => 'Book',
+            'ownership_format_id' => 5,
+        ], 1);
+
+        $this->assertSame(5, $cmd->ownershipFormatId);
+    }
+
+    #[Test]
+    public function add_book_ownership_format_id_defaults_null(): void
+    {
+        $cmd = AddBookCommand::fromArray([
+            'isbn' => '9783161484100',
+            'title' => 'Book',
+        ], 1);
+
+        $this->assertNull($cmd->ownershipFormatId);
+    }
+
+    #[Test]
+    public function edit_user_book_ownership_format_id_from_nested_data(): void
+    {
+        $cmd = EditUserBookCommand::fromArray([
+            'isbn' => '9783161484100',
+            'data' => [
+                'ownership_format_id' => 2,
+            ],
+        ], 1);
+
+        $this->assertSame(2, $cmd->ownershipFormatId);
+    }
+
+    #[Test]
+    public function edit_user_book_ownership_format_id_defaults_null(): void
+    {
+        $cmd = EditUserBookCommand::fromArray([
+            'isbn' => '9783161484100',
+        ], 1);
+
+        $this->assertNull($cmd->ownershipFormatId);
+    }
 }

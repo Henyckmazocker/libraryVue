@@ -8,6 +8,7 @@ use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Book\UserBookRepositoryInterface;
 use App\Domain\Repository\Book\BookTagRepositoryInterface;
 use App\Domain\Repository\Book\BookNoteRepositoryInterface;
+use App\Domain\Repository\Book\EditionRepositoryInterface;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\EditUserBookCommand;
 use Psr\Log\LoggerInterface;
@@ -20,6 +21,7 @@ class EditUserBookUseCase extends AbstractUseCase
         private readonly UserBookRepositoryInterface $userBookRepository,
         private readonly BookTagRepositoryInterface $bookTagRepository,
         private readonly BookNoteRepositoryInterface $bookNoteRepository,
+        private readonly EditionRepositoryInterface $editionRepository,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -64,9 +66,25 @@ class EditUserBookUseCase extends AbstractUseCase
             $editData['consumed_at'] = $command->consumedAt;
         }
         
+        if ($command->ownershipFormatId !== null) {
+            $editData['ownership_format_id'] = $command->ownershipFormatId;
+        }
+        
         // Update user book data if there's anything to update
         if (!empty($editData)) {
             $this->userBookRepository->edit($userId, $isbn, $editData);
+        }
+
+        // Update edition page count if provided
+        if ($command->pages !== null) {
+            $edition = $this->editionRepository->findByIsbn($isbn);
+            if ($edition && $edition->getEditionId()) {
+                $this->editionRepository->updatePages($edition->getEditionId(), $command->pages);
+                $this->logger->info('Edition pages updated', [
+                    'isbn' => $isbn,
+                    'pages' => $command->pages
+                ]);
+            }
         }
 
         // Update statuses (allow clearing all statuses with empty array)

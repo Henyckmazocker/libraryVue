@@ -61,7 +61,8 @@ final readonly class AddGameCommand
         public ?string $platformPlayed = null,
         public ?string $dateStarted = null,
         public ?string $dateFinished = null,
-        public ?string $personalNotes = null
+        public ?string $personalNotes = null,
+        public ?int $ownershipFormatId = null
     ) {}
 
     public static function fromArray(array $data, int $userId): self
@@ -136,7 +137,8 @@ final readonly class AddGameCommand
             platformPlayed: $data['platform_played'] ?? $data['platformPlayed'] ?? null,
             dateStarted: !empty($data['date_started']) ? $data['date_started'] : (!empty($data['dateStarted']) ? $data['dateStarted'] : null),
             dateFinished: !empty($data['date_finished']) ? $data['date_finished'] : (!empty($data['dateFinished']) ? $data['dateFinished'] : null),
-            personalNotes: $data['personal_notes'] ?? $data['personalNotes'] ?? $data['notes'] ?? null
+            personalNotes: $data['personal_notes'] ?? $data['personalNotes'] ?? $data['notes'] ?? null,
+            ownershipFormatId: isset($data['ownership_format_id']) ? (int)$data['ownership_format_id'] : (isset($data['ownershipFormatId']) ? (int)$data['ownershipFormatId'] : null)
         );
     }
 

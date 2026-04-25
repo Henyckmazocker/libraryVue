@@ -29,6 +29,7 @@
         />
         
         <!-- Direct action buttons -->
+        <p v-if="ownershipFormatLabel" class="movie-field"><strong>Formato:</strong> <span class="ownership-format-badge">{{ ownershipFormatLabel }}</span></p>
         <div class="movie-actions">
           <!-- Save button for new movies -->
           <button 
@@ -185,6 +186,13 @@ const onEditMovie = () => {
 watch(() => props.movie.user_rating, (newRating) => {
   rating.value = newRating || 0;
 });
+
+const ownershipFormatLabel = ref(
+  props.movie.ownershipFormat?.label ?? props.movie.ownership_format?.label ?? ''
+)
+watch(() => [props.movie.ownershipFormat, props.movie.ownership_format], ([fmt1, fmt2]) => {
+  ownershipFormatLabel.value = fmt1?.label ?? fmt2?.label ?? ''
+}, { immediate: true, deep: true })
 
 // Mantener sincronía solo si cambia el IMDb ID (nueva película)
 watch(() => props.movie.imdbID, (newId, oldId) => {

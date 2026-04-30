@@ -170,7 +170,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, toRaw } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import LibraryAlbumItem from '@/components/Albums/LibraryAlbumItem.vue';
 import EditItemModal from '@/components/EditItemModal.vue';
@@ -380,10 +380,31 @@ const handleSaveAlbum = async (albumData) => {
   }
 };
 
-const handleEditItem = () => {
+const handleEditItem = async () => {
+  // Ensure albums are loaded in the store before opening the modal.
+  if (albumsStore.albums.length === 0) {
+    await albumsStore.fetchAlbums();
+  }
+
+  const storeAlbum = existingAlbum.value ? toRaw(existingAlbum.value) : null;
+
+  const itemForModal = storeAlbum
+    ? {
+        ...album.value,
+        ...storeAlbum,
+        cover_url: storeAlbum.cover_url || album.value?.cover_url,
+        user_rating: storeAlbum.user_rating ?? null,
+        userStatuses: Array.isArray(storeAlbum.userStatuses) ? [...storeAlbum.userStatuses] : [],
+        ownershipFormat: storeAlbum.ownershipFormat ?? storeAlbum.ownership_format ?? null,
+        ownership_format: storeAlbum.ownership_format ?? storeAlbum.ownershipFormat ?? null,
+        ownership_format_id: storeAlbum.ownershipFormat?.id ?? storeAlbum.ownership_format?.id ?? null,
+        tags: storeAlbum.tags ?? null,
+      }
+    : album.value;
+
   editModal.value = {
     isVisible: true,
-    item: albumForLibrary.value
+    item: itemForModal
   };
 };
 
@@ -481,7 +502,11 @@ const _mergeExistingAlbumData = () => {
     favoriteTrack: existingAlbum.value.favoriteTrack || existingAlbum.value.favorite_track || '',
     dateStarted: existingAlbum.value.dateStarted || existingAlbum.value.date_started || '',
     dateFinished: existingAlbum.value.dateFinished || existingAlbum.value.date_finished || '',
-    personalNotes: existingAlbum.value.personalNotes || existingAlbum.value.personal_notes || ''
+    personalNotes: existingAlbum.value.personalNotes || existingAlbum.value.personal_notes || '',
+    ownershipFormat: existingAlbum.value.ownershipFormat ?? existingAlbum.value.ownership_format ?? null,
+    ownership_format: existingAlbum.value.ownership_format ?? existingAlbum.value.ownershipFormat ?? null,
+    ownership_format_id: existingAlbum.value.ownership_format_id ?? existingAlbum.value.ownershipFormat?.id ?? null,
+    tags: existingAlbum.value.tags ?? null,
   };
 };
 

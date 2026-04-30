@@ -125,7 +125,9 @@ export function useAlbums() {
             favoriteTrack: data.favoriteTrack !== undefined ? data.favoriteTrack : albums.value[albumIndex].favoriteTrack,
             dateStarted: data.dateStarted !== undefined ? data.dateStarted : albums.value[albumIndex].dateStarted,
             dateFinished: data.dateFinished !== undefined ? data.dateFinished : albums.value[albumIndex].dateFinished,
-            personalNotes: data.personalNotes !== undefined ? data.personalNotes : albums.value[albumIndex].personalNotes
+            personalNotes: data.personalNotes !== undefined ? data.personalNotes : albums.value[albumIndex].personalNotes,
+            ownership_format_id: data.ownership_format_id !== undefined ? data.ownership_format_id : albums.value[albumIndex].ownership_format_id,
+            ownershipFormat: data.ownershipFormat !== undefined ? data.ownershipFormat : albums.value[albumIndex].ownershipFormat
           };
         }
 

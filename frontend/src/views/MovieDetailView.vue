@@ -227,19 +227,21 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, computed, watch, toRaw } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
 import LibraryMovieItem from '@/components/Movies/LibraryMovieItem.vue';
 import EditItemModal from '@/components/EditItemModal.vue';
 import { useMovies } from '@/composables/useMovies';
 import { useAuth } from '@/composables/useAuth';
+import { useUIStore } from '@/store/ui';
 import Logger from '@/utils/logger';
 
 const route = useRoute();
 const router = useRouter();
 const { isAuthenticated } = useAuth();
 const moviesComposable = useMovies();
+const uiStore = useUIStore();
 
 // Estados
 const movie = ref((history.state && history.state.movie) ? history.state.movie : null);
@@ -391,12 +393,35 @@ const handleSaveMovie = async (data) => {
   }
 };
 
-const handleEditItem = async (movieData) => {
-  Logger.debug('[MovieDetailView] Opening edit modal for movie:', movieData);
-  
+const handleEditItem = async () => {
+  // Ensure movies are loaded in the store before opening the modal.
+  // When navigating via history.state, isLoading is set to false immediately
+  // and fetchMovies runs in the background — the user could click Edit before
+  // it finishes, leaving existingMovie.value as null.
+  if (moviesComposable.movies.value.length === 0) {
+    await moviesComposable.fetchMovies();
+  }
+
+  // Use toRaw to strip Vue reactive proxy wrappers from Pinia store data
+  const storeMovie = existingMovie.value ? toRaw(existingMovie.value) : null;
+
+  const itemForModal = storeMovie
+    ? {
+        ...movie.value,
+        user_rating: storeMovie.user_rating ?? null,
+        userStatuses: Array.isArray(storeMovie.userStatuses) ? [...storeMovie.userStatuses] : [],
+        ownershipFormat: storeMovie.ownershipFormat ?? storeMovie.ownership_format ?? null,
+        ownership_format: storeMovie.ownership_format ?? storeMovie.ownershipFormat ?? null,
+        ownership_format_id: storeMovie.ownershipFormat?.id ?? storeMovie.ownership_format?.id ?? null,
+        tags: storeMovie.tags ?? null,
+        isbn: storeMovie.isbn ?? movie.value?.isbn,
+        imdbID: storeMovie.imdbID ?? movie.value?.imdbID,
+      }
+    : movie.value;
+
   editModal.value = {
     isVisible: true,
-    item: movie.value,
+    item: itemForModal,
     itemType: 'movie'
   };
 };
@@ -437,7 +462,7 @@ const handleModalSaved = async (updatedItem) => {
       libraryMovieItemRef.value.setEditSuccess();
     }
     
-    Logger.info('[MovieDetailView] Movie data updated successfully');
+    uiStore.showSuccess('Película actualizada correctamente');
     
     // Opcional: Recargar en segundo plano para sincronizar (sin bloquear UI)
     setTimeout(() => {
@@ -498,7 +523,11 @@ const _mergeExistingMovieData = () => {
   movie.value = {
     ...movie.value,
     user_rating: existingMovie.value.user_rating,
-    userStatuses: existingMovie.value.userStatuses || []
+    userStatuses: existingMovie.value.userStatuses || [],
+    ownershipFormat: existingMovie.value.ownershipFormat ?? existingMovie.value.ownership_format ?? null,
+    ownership_format: existingMovie.value.ownership_format ?? existingMovie.value.ownershipFormat ?? null,
+    ownership_format_id: existingMovie.value.ownership_format_id ?? existingMovie.value.ownershipFormat?.id ?? null,
+    tags: existingMovie.value.tags ?? null,
   };
 };
 

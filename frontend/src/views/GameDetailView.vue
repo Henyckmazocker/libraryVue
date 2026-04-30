@@ -196,7 +196,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, toRaw } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import LibraryGameItem from '@/components/Games/LibraryGameItem.vue';
 import EditItemModal from '@/components/EditItemModal.vue';
@@ -450,10 +450,34 @@ const handleSaveGame = async (data) => {
 
 const handleEditItem = async (gameData) => {
   Logger.debug('[GameDetailView] Opening edit modal for game:', gameData);
-  
+
+  // Ensure games are loaded in the store before opening the modal.
+  if (gamesStore.games.length === 0) {
+    await gamesStore.fetchGames();
+  }
+
+  const storeGame = existingGame.value ? toRaw(existingGame.value) : null;
+
+  const itemForModal = storeGame
+    ? {
+        ...game.value,
+        user_rating: storeGame.user_rating ?? null,
+        userStatuses: Array.isArray(storeGame.userStatuses) ? [...storeGame.userStatuses] : [],
+        hoursPlayed: storeGame.hoursPlayed ?? storeGame.hours_played ?? null,
+        platformPlayed: storeGame.platformPlayed ?? storeGame.platform_played ?? '',
+        dateStarted: storeGame.dateStarted ?? storeGame.date_started ?? '',
+        dateFinished: storeGame.dateFinished ?? storeGame.date_finished ?? '',
+        personalNotes: storeGame.personalNotes ?? storeGame.personal_notes ?? storeGame.notes ?? '',
+        ownershipFormat: storeGame.ownershipFormat ?? storeGame.ownership_format ?? null,
+        ownership_format: storeGame.ownership_format ?? storeGame.ownershipFormat ?? null,
+        ownership_format_id: storeGame.ownershipFormat?.id ?? storeGame.ownership_format?.id ?? null,
+        tags: storeGame.tags ?? null,
+      }
+    : game.value;
+
   editModal.value = {
     isVisible: true,
-    item: game.value,
+    item: itemForModal,
     itemType: 'game'
   };
 };
@@ -568,7 +592,11 @@ const _mergeExistingGameData = () => {
     platformPlayed: existingGame.value.platformPlayed || existingGame.value.platform_played || '',
     notes: existingGame.value.notes || existingGame.value.personalNotes || existingGame.value.personal_notes || '',
     dateStarted: existingGame.value.dateStarted || existingGame.value.date_started || '',
-    dateFinished: existingGame.value.dateFinished || existingGame.value.date_finished || ''
+    dateFinished: existingGame.value.dateFinished || existingGame.value.date_finished || '',
+    ownershipFormat: existingGame.value.ownershipFormat ?? existingGame.value.ownership_format ?? null,
+    ownership_format: existingGame.value.ownership_format ?? existingGame.value.ownershipFormat ?? null,
+    ownership_format_id: existingGame.value.ownership_format_id ?? existingGame.value.ownershipFormat?.id ?? null,
+    tags: existingGame.value.tags ?? null,
   };
 };
 

@@ -410,6 +410,8 @@ class Edition
         }
         if (isset($data['pages'])) {
             $edition->setPages($data['pages']);
+        } elseif (isset($data['number_of_pages'])) {
+            $edition->setPages((int)$data['number_of_pages']);
         }
         if (isset($data['description'])) {
             $edition->setDescription($data['description']);

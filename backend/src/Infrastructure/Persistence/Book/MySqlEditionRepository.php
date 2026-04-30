@@ -296,6 +296,20 @@ final class MySqlEditionRepository implements EditionRepositoryInterface
         }
     }
 
+    public function updatePages(int $editionId, int $pages): void
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'UPDATE book_editions SET pages = :pages, updated_at = NOW() WHERE edition_id = :edition_id'
+            );
+            $stmt->execute([':pages' => $pages, ':edition_id' => $editionId]);
+            $this->logInfo('Edition pages updated', ['edition_id' => $editionId, 'pages' => $pages]);
+        } catch (PDOException $e) {
+            $this->logError('Error updating edition pages', $e, ['edition_id' => $editionId]);
+            throw new RuntimeException("Could not update edition pages: " . $e->getMessage(), 0, $e);
+        }
+    }
+
     public function delete(int $editionId): bool
     {
         try {

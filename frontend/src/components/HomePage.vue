@@ -36,6 +36,12 @@
           <p>Descubre nuevas películas</p>
         </router-link>
         
+        <router-link class="action-card" to="/games">
+          <i class="fas fa-gamepad"></i>
+          <h3>Buscar Videojuegos</h3>
+          <p>Explora nuevos juegos</p>
+        </router-link>
+        
         <div class="action-card action-card--disabled">
           <i class="fas fa-music"></i>
           <h3>Música</h3>

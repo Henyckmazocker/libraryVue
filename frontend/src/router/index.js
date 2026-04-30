@@ -1,59 +1,133 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import HomePage from '../components/HomePage.vue';
-import BookSearch from '../components/Books/BookSearch.vue';
-import MovieSearch from '../components/Movies/MovieSearch.vue';
-// import MyLibrary from '../components/MyLibrary.vue';
+
+// Importar eagerly las vistas de detalle para transiciones instantáneas
+import BookDetailView from '../views/BookDetailView.vue';
+import MovieDetailView from '../views/MovieDetailView.vue';
+import SeriesDetailView from '../views/SeriesDetailView.vue';
+import GameDetailView from '../views/GameDetailView.vue';
+import AlbumDetailView from '../views/AlbumDetailView.vue';
+import UserProfileView from '../views/UserProfileView.vue';
 
 const routes = [
   {
     path: '/',
     name: 'Home',
-    component: HomePage
+    component: () => import('../components/HomePage.vue')
   },
   {
     path: '/books',
     name: 'Books',
-    component: BookSearch
+    component: () => import('../components/Books/BookSearch.vue')
   },
   {
     path: '/movies',
     name: 'Movies',
-    component: MovieSearch
+    component: () => import('../components/Movies/MovieSearch.vue')
+  },
+  {
+    path: '/games',
+    name: 'Games',
+    component: () => import('../components/Games/GameSearch.vue')
+  },
+  {
+    path: '/albums',
+    name: 'Albums',
+    component: () => import('../components/Albums/AlbumSearch.vue')
   },
   {
     path: '/library',
     name: 'MyLibrary',
-    component: () => import('../components/MyLibrary.vue')
+    component: () => import('../components/MyLibrary.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/dashboard',
+    name: 'UnifiedDashboard',
+    component: () => import('../components/Dashboard/UnifiedDashboard.vue'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/dashboard/books',
-    name: 'BooksDashboard',
-    component: () => import('../components/Dashboard/BooksDashboard.vue'),
-    meta: { requiresAuth: false }
+    redirect: '/dashboard?tab=books'
   },
   {
     path: '/dashboard/movies',
-    name: 'MoviesDashboard',
-    component: () => import('../components/Dashboard/MoviesDashboard.vue'),
-    meta: { requiresAuth: false }
+    redirect: '/dashboard?tab=movies'
+  },
+  {
+    path: '/dashboard/games',
+    redirect: '/dashboard?tab=games'
+  },
+  {
+    path: '/profile',
+    name: 'UserProfile',
+    component: UserProfileView,
+    meta: { requiresAuth: true }
   },
   {
     path: '/books/:isbn',
     name: 'BookDetail',
-    component: () => import('../views/BookDetailView.vue'),
-    props: true
+    component: BookDetailView,
+    props: true,
+    meta: { requiresAuth: true }
   },
   {
     path: '/movies/:imdbId',
     name: 'MovieDetail',
-    component: () => import('../views/MovieDetailView.vue'),
-    props: true
+    component: MovieDetailView,
+    props: true,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/series/:imdbId',
+    name: 'SeriesDetail',
+    component: SeriesDetailView,
+    props: true,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/games/:gameId',
+    name: 'GameDetail',
+    component: GameDetailView,
+    props: true,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/albums/:albumId',
+    name: 'AlbumDetail',
+    component: AlbumDetailView,
+    props: true,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('../views/NotFoundView.vue')
   }
 ];
 
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
   routes
+});
+
+// Guard de autenticación — redirige a Home si la ruta requiere auth y no hay sesión
+router.beforeEach(async (to, from, next) => {
+  if (to.meta.requiresAuth) {
+    // Import dinámico para evitar dependencia circular
+    const { useAuthStore } = require('../store/auth.js');
+    const authStore = useAuthStore();
+
+    // Si aún no se ha verificado la sesión, esperar a que se complete
+    if (!authStore.isAuthenticated && !authStore._authChecked) {
+      await authStore.initializeAuth();
+    }
+
+    if (!authStore.isLoggedIn) {
+      return next({ name: 'Home' });
+    }
+  }
+  next();
 });
 
 // Asegurar que el tema se aplique después de cada navegación

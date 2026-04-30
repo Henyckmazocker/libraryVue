@@ -53,6 +53,11 @@ interface EditionRepositoryInterface
     public function save(Edition $edition): Edition;
 
     /**
+     * Update only the page count of an edition
+     */
+    public function updatePages(int $editionId, int $pages): void;
+
+    /**
      * Delete an edition
      */
     public function delete(int $editionId): bool;

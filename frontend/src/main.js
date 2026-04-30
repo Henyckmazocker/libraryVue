@@ -77,6 +77,4 @@ if (router) {
   app.use(router);
 }
 
-// Si necesitas usar Vuex, importa y usa aquí. Actualmente solo Pinia está en uso.
-
 app.mount('#app');

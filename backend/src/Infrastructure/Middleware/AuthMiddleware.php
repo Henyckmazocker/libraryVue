@@ -6,6 +6,19 @@ namespace App\Infrastructure\Middleware;
 use App\Infrastructure\Session\SessionManager;
 use App\Domain\Repository\User\UserRepositoryInterface;
 
+/**
+ * Authentication helper service (injected into controllers via DI).
+ *
+ * Despite its name this is NOT a pipeline middleware (it does not implement
+ * MiddlewareInterface).  It provides session-based auth helpers such as
+ * getCurrentUserId(), requireAuth(), validateCSRF() and getCSRFToken().
+ *
+ * Pipeline-based authentication is handled by {@see AuthenticationMiddleware},
+ * which adds `user_id` to the request array for routes defined in routes.php.
+ *
+ * TODO: Consider renaming to AuthService and moving to Infrastructure/Auth/
+ *       to avoid confusion with the pipeline middleware.
+ */
 class AuthMiddleware
 {
     private SessionManager $sessionManager;

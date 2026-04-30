@@ -115,14 +115,18 @@ const progressBarClass = computed(() => {
 // Methods
 const updateCurrentPage = (event) => {
   const value = parseInt(event.target.value) || 0;
-  localCurrentPage.value = Math.min(props.totalPages, Math.max(0, value));
+  localCurrentPage.value = props.totalPages > 0
+    ? Math.min(props.totalPages, Math.max(0, value))
+    : Math.max(0, value);
   // Emitir el cambio inmediatamente
   emit('update-progress', localCurrentPage.value);
 };
 
 const updateCurrentPageFromSlider = (event) => {
   const value = parseInt(event.target.value) || 0;
-  localCurrentPage.value = Math.min(props.totalPages, Math.max(0, value));
+  localCurrentPage.value = props.totalPages > 0
+    ? Math.min(props.totalPages, Math.max(0, value))
+    : Math.max(0, value);
   // Emitir el cambio inmediatamente
   emit('update-progress', localCurrentPage.value);
 };

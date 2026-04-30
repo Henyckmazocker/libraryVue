@@ -9,6 +9,7 @@ use App\Domain\Repository\Book\UserBookRepositoryInterface;
 use App\Infrastructure\Persistence\Book\Mappers\BookDataMapper;
 use App\Infrastructure\Persistence\Concerns\LoggableTrait;
 use App\Infrastructure\Persistence\Concerns\StatusManagementTrait;
+use InvalidArgumentException;
 use PDO;
 use PDOException;
 use Psr\Log\LoggerInterface;
@@ -247,6 +248,11 @@ final class MySqlUserBookRepository implements UserBookRepositoryInterface
                 $params[':consumed_at'] = $data['consumed_at'];
             }
 
+            if (array_key_exists('ownership_format_id', $data)) {
+                $updates[] = "ownership_format_id = :ownership_format_id";
+                $params[':ownership_format_id'] = $data['ownership_format_id'] !== null ? (int) $data['ownership_format_id'] : null;
+            }
+
             if (empty($updates)) {
                 $this->db->rollBack();
                 return;
@@ -311,7 +317,10 @@ final class MySqlUserBookRepository implements UserBookRepositoryInterface
             }
             
             $userBookEditionId = (int) $userBookEdition['id'];
-            
+
+            // Validar lógica de estados excluyentes
+            $this->validateStatusLogic($statuses);
+
             // Delete existing statuses
             $stmtDelete = $this->db->prepare("
                 DELETE FROM user_book_statuses 
@@ -501,7 +510,7 @@ final class MySqlUserBookRepository implements UserBookRepositoryInterface
                 WHERE ube.added_at >= DATE_SUB(NOW(), INTERVAL {$daysWindow} DAY)
                 GROUP BY w.work_id, COALESCE(be.isbn_13, be.isbn_10), w.title, be.publisher, be.pages,
                          be.cover_url_large, be.cover_url_medium, be.cover_url_small
-                HAVING user_count >= 2
+                HAVING user_count >= 1
                 ORDER BY trending_score DESC
                 LIMIT :limit
             ";
@@ -552,5 +561,40 @@ final class MySqlUserBookRepository implements UserBookRepositoryInterface
     protected function getEntityIdColumnName(): string
     {
         return self::STATUS_COLUMN;
+    }
+
+    /**
+     * Valida que los estados sean lógicamente compatibles
+     *
+     * Reglas:
+     * - 'read' puede coexistir con cualquier otro estado (es histórico)
+     * - Solo uno de: 'to-read', 'reading', 're-reading', 'paused', 'abandoned' (estado actual de lectura)
+     * - Solo uno de: 'owned', 'want-to-buy' (estado de propiedad)
+     *
+     * @throws InvalidArgumentException si hay estados incompatibles
+     */
+    private function validateStatusLogic(array $statuses): void
+    {
+        // Categorías de estados
+        $readingStates = ['to-read', 'reading', 're-reading', 'paused', 'abandoned'];
+        $ownershipStates = ['owned', 'want-to-buy'];
+
+        // Validar estados de lectura (solo uno permitido)
+        $selectedReadingStates = array_intersect($statuses, $readingStates);
+        if (count($selectedReadingStates) > 1) {
+            throw new InvalidArgumentException(
+                "Solo se permite un estado de actividad de lectura simultáneamente. " .
+                "Recibidos: " . implode(', ', $selectedReadingStates)
+            );
+        }
+
+        // Validar estados de propiedad (solo uno permitido)
+        $selectedOwnershipStates = array_intersect($statuses, $ownershipStates);
+        if (count($selectedOwnershipStates) > 1) {
+            throw new InvalidArgumentException(
+                "Solo se permite un estado de propiedad simultáneamente. " .
+                "Recibidos: " . implode(', ', $selectedOwnershipStates)
+            );
+        }
     }
 }

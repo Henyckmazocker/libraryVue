@@ -8,23 +8,17 @@
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
-    "@strudel/web": "latest",
     "@primevue/core": "^4.5.4",
     "@primevue/icons": "^4.5.4",
     "@primevue/themes": "^4.5.4",
     "axios": "^1.13.5",
     "chart.js": "^4.4.0",
     "core-js": "^3.48.0",
-    "jimp": "^0.22.12",
-    "js-yaml": "^4.1.1",
-    "jsqr": "^1.4.0",
     "pinia": "^2.3.1",
     "primeicons": "^7.0.0",
     "primevue": "^4.5.4",
     "vue": "^3.5.28",
-    "vue-barcode-reader": "^1.0.3",
     "vue-chartjs": "^5.3.1",
-    "vue-multiselect": "^3.4.0",
     "vue-router": "^4.6.4"
   },
   "devDependencies": {

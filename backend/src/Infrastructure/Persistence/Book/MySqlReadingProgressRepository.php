@@ -80,19 +80,25 @@ final class MySqlReadingProgressRepository implements ReadingProgressRepositoryI
             $currentPage = (int) $currentPage;
             $previousPage = (int) $previousPage;
 
+            // Get edition_id from ISBN
+            $editionId = $this->getEditionIdFromIsbn($isbn);
+            if (!$editionId) {
+                throw new RuntimeException("Edition not found for ISBN: {$isbn}");
+            }
+
             // Determine progress type
             $progressType = $this->determineProgressType($currentPage, $previousPage);
 
             $sql = "
-                INSERT INTO reading_progress_history 
-                (user_id, book_isbn, reading_session_id, current_page, previous_page, progress_type, logged_at)
-                VALUES (:userId, :isbn, :sessionId, :currentPage, :previousPage, :progressType, NOW())
+                INSERT INTO reading_progress_history
+                (user_id, edition_id, reading_session_id, current_page, previous_page, progress_type, logged_at)
+                VALUES (:userId, :editionId, :sessionId, :currentPage, :previousPage, :progressType, NOW())
             ";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':userId' => $userId,
-                ':isbn' => $isbn,
+                ':editionId' => $editionId,
                 ':sessionId' => $sessionId,
                 ':currentPage' => $currentPage,
                 ':previousPage' => $previousPage,
@@ -102,6 +108,7 @@ final class MySqlReadingProgressRepository implements ReadingProgressRepositoryI
             $this->logInfo('Progress history entry added', [
                 'userId' => $userId,
                 'isbn' => $isbn,
+                'editionId' => $editionId,
                 'currentPage' => $currentPage,
                 'progressType' => $progressType
             ]);
@@ -120,21 +127,27 @@ final class MySqlReadingProgressRepository implements ReadingProgressRepositoryI
         try {
             $userId = (int) $userId;
 
+            // Get edition_id from ISBN
+            $editionId = $this->getEditionIdFromIsbn($isbn);
+            if (!$editionId) {
+                return []; // No edition found
+            }
+
             $sql = "
-                SELECT 
+                SELECT
                     rph.*,
                     rs.session_number,
-                    rs.status as session_status
+                    rs.is_active as session_status
                 FROM reading_progress_history rph
                 LEFT JOIN reading_sessions rs ON rph.reading_session_id = rs.id
-                WHERE rph.user_id = :userId AND rph.book_isbn = :isbn
+                WHERE rph.user_id = :userId AND rph.edition_id = :editionId
                 ORDER BY rph.logged_at DESC
             ";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':userId' => $userId,
-                ':isbn' => $isbn
+                ':editionId' => $editionId
             ]);
 
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -155,11 +168,11 @@ final class MySqlReadingProgressRepository implements ReadingProgressRepositoryI
             $months = (int) $months;
 
             $sql = "
-                SELECT 
+                SELECT
                     DATE_FORMAT(logged_at, '%Y-%m') as month,
                     COUNT(*) as total_updates,
                     SUM(CASE WHEN progress_type = 'advance' THEN (current_page - previous_page) ELSE 0 END) as pages_read,
-                    COUNT(DISTINCT book_isbn) as unique_books,
+                    COUNT(DISTINCT edition_id) as unique_books,
                     AVG(current_page - previous_page) as avg_pages_per_update
                 FROM reading_progress_history
                 WHERE user_id = :userId
@@ -188,10 +201,16 @@ final class MySqlReadingProgressRepository implements ReadingProgressRepositoryI
         try {
             $userId = (int) $userId;
 
+            // Get edition_id from ISBN
+            $editionId = $this->getEditionIdFromIsbn($isbn);
+            if (!$editionId) {
+                return 0; // No edition found
+            }
+
             $sql = "
                 SELECT current_page
                 FROM reading_progress_history
-                WHERE user_id = :userId AND book_isbn = :isbn
+                WHERE user_id = :userId AND edition_id = :editionId
                 ORDER BY logged_at DESC
                 LIMIT 1
             ";
@@ -199,7 +218,7 @@ final class MySqlReadingProgressRepository implements ReadingProgressRepositoryI
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':userId' => $userId,
-                ':isbn' => $isbn
+                ':editionId' => $editionId
             ]);
 
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -220,10 +239,9 @@ final class MySqlReadingProgressRepository implements ReadingProgressRepositoryI
             $userId = (int) $userId;
             $bookId = (int) $bookId;
 
-            // Note: This method uses book_id instead of ISBN
-            // May need to join with books table or adjust based on actual usage
+            // Note: bookId is actually edition_id in the new schema
             $sql = "
-                SELECT 
+                SELECT
                     COUNT(*) as total_updates,
                     MIN(logged_at) as first_update,
                     MAX(logged_at) as last_update,
@@ -232,14 +250,13 @@ final class MySqlReadingProgressRepository implements ReadingProgressRepositoryI
                     COUNT(DISTINCT reading_session_id) as total_sessions,
                     AVG(current_page - previous_page) as avg_progress_per_update
                 FROM reading_progress_history rph
-                INNER JOIN books b ON rph.book_isbn = b.isbn
-                WHERE rph.user_id = :userId AND b.id = :bookId
+                WHERE rph.user_id = :userId AND rph.edition_id = :editionId
             ";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':userId' => $userId,
-                ':bookId' => $bookId
+                ':editionId' => $bookId
             ]);
 
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -261,24 +278,24 @@ final class MySqlReadingProgressRepository implements ReadingProgressRepositoryI
             $bookId = (int) $bookId;
 
             $sql = "
-                SELECT 
+                SELECT
                     rph.*,
                     rs.session_number,
-                    rs.status as session_status,
-                    rs.started_at as session_start,
-                    b.title as book_title,
-                    b.total_pages
+                    rs.is_active as session_status,
+                    rs.start_date as session_start,
+                    be.title as book_title,
+                    be.pages as total_pages
                 FROM reading_progress_history rph
-                INNER JOIN books b ON rph.book_isbn = b.isbn
+                INNER JOIN book_editions be ON rph.edition_id = be.edition_id
                 LEFT JOIN reading_sessions rs ON rph.reading_session_id = rs.id
-                WHERE rph.user_id = :userId AND b.id = :bookId
+                WHERE rph.user_id = :userId AND rph.edition_id = :editionId
                 ORDER BY rph.logged_at DESC
             ";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':userId' => $userId,
-                ':bookId' => $bookId
+                ':editionId' => $bookId
             ]);
 
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -298,9 +315,9 @@ final class MySqlReadingProgressRepository implements ReadingProgressRepositoryI
             $userId = (int) $userId;
 
             $sql = "
-                SELECT 
+                SELECT
                     COUNT(*) as total_progress_updates,
-                    COUNT(DISTINCT book_isbn) as unique_books_tracked,
+                    COUNT(DISTINCT edition_id) as unique_books_tracked,
                     SUM(CASE WHEN progress_type = 'advance' THEN (current_page - previous_page) ELSE 0 END) as total_pages_read,
                     AVG(CASE WHEN progress_type = 'advance' THEN (current_page - previous_page) ELSE NULL END) as avg_pages_per_session,
                     MIN(logged_at) as first_reading_date,
@@ -328,27 +345,28 @@ final class MySqlReadingProgressRepository implements ReadingProgressRepositoryI
             $userId = (int) $userId;
 
             $sql = "
-                SELECT 
+                SELECT
                     rs.id as session_id,
-                    rs.book_isbn,
+                    be.isbn_13 as book_isbn,
                     rs.session_number,
-                    rs.started_at,
-                    rs.status,
-                    b.title,
-                    b.author,
-                    b.total_pages,
-                    ub.current_page,
+                    rs.start_date as started_at,
+                    rs.is_active as status,
+                    be.title,
+                    w.authors as author,
+                    be.pages as total_pages,
+                    ube.current_page,
                     COUNT(rph.id) as progress_entries,
                     MAX(rph.logged_at) as last_update,
-                    ROUND((ub.current_page / b.total_pages) * 100, 2) as completion_percentage
+                    ROUND((ube.current_page / be.pages) * 100, 2) as completion_percentage
                 FROM reading_sessions rs
-                INNER JOIN books b ON rs.book_isbn = b.isbn
-                INNER JOIN user_books ub ON rs.user_id = ub.user_id AND rs.book_isbn = ub.book_isbn
+                INNER JOIN book_editions be ON rs.edition_id = be.edition_id
+                INNER JOIN book_works w ON be.work_id = w.work_id
+                INNER JOIN user_book_editions ube ON rs.user_id = ube.user_id AND rs.edition_id = ube.edition_id
                 LEFT JOIN reading_progress_history rph ON rs.id = rph.reading_session_id
-                WHERE rs.user_id = :userId AND rs.status = 'active'
-                GROUP BY rs.id, rs.book_isbn, rs.session_number, rs.started_at, rs.status,
-                         b.title, b.author, b.total_pages, ub.current_page
-                ORDER BY rs.started_at DESC
+                WHERE rs.user_id = :userId AND rs.is_active = TRUE
+                GROUP BY rs.id, be.isbn_13, rs.session_number, rs.start_date, rs.is_active,
+                         be.title, w.authors, be.pages, ube.current_page
+                ORDER BY rs.start_date DESC
             ";
 
             $stmt = $this->db->prepare($sql);
@@ -366,16 +384,22 @@ final class MySqlReadingProgressRepository implements ReadingProgressRepositoryI
 
     private function getCurrentPageFromUserBooks(int $userId, string $isbn): int
     {
+        // Get edition_id from ISBN
+        $editionId = $this->getEditionIdFromIsbn($isbn);
+        if (!$editionId) {
+            return 0; // No edition found
+        }
+
         $sql = "
             SELECT current_page
-            FROM user_books
-            WHERE user_id = :userId AND book_isbn = :isbn
+            FROM user_book_editions
+            WHERE user_id = :userId AND edition_id = :editionId
         ";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             ':userId' => $userId,
-            ':isbn' => $isbn
+            ':editionId' => $editionId
         ]);
 
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -384,20 +408,26 @@ final class MySqlReadingProgressRepository implements ReadingProgressRepositoryI
 
     private function getActiveSessionId(int $userId, string $isbn): ?int
     {
+        // Get edition_id from ISBN
+        $editionId = $this->getEditionIdFromIsbn($isbn);
+        if (!$editionId) {
+            return null; // No edition found
+        }
+
         $sql = "
             SELECT id
             FROM reading_sessions
-            WHERE user_id = :userId 
-              AND book_isbn = :isbn 
-              AND status = 'active'
-            ORDER BY started_at DESC
+            WHERE user_id = :userId
+              AND edition_id = :editionId
+              AND is_active = TRUE
+            ORDER BY start_date DESC
             LIMIT 1
         ";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             ':userId' => $userId,
-            ':isbn' => $isbn
+            ':editionId' => $editionId
         ]);
 
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -406,27 +436,39 @@ final class MySqlReadingProgressRepository implements ReadingProgressRepositoryI
 
     private function updateCurrentPage(int $userId, string $isbn, int $currentPage): void
     {
+        // Get edition_id from ISBN
+        $editionId = $this->getEditionIdFromIsbn($isbn);
+        if (!$editionId) {
+            throw new RuntimeException("Edition not found for ISBN: {$isbn}");
+        }
+
         $sql = "
-            UPDATE user_books
+            UPDATE user_book_editions
             SET current_page = :currentPage
-            WHERE user_id = :userId AND book_isbn = :isbn
+            WHERE user_id = :userId AND edition_id = :editionId
         ";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             ':currentPage' => $currentPage,
             ':userId' => $userId,
-            ':isbn' => $isbn
+            ':editionId' => $editionId
         ]);
     }
 
     private function updateProgressNotes(int $userId, string $isbn, int $currentPage, string $notes): void
     {
+        // Get edition_id from ISBN
+        $editionId = $this->getEditionIdFromIsbn($isbn);
+        if (!$editionId) {
+            throw new RuntimeException("Edition not found for ISBN: {$isbn}");
+        }
+
         $sql = "
             UPDATE reading_progress_history
             SET notes = :notes
-            WHERE user_id = :userId 
-              AND book_isbn = :isbn 
+            WHERE user_id = :userId
+              AND edition_id = :editionId
               AND current_page = :currentPage
             ORDER BY logged_at DESC
             LIMIT 1
@@ -436,7 +478,7 @@ final class MySqlReadingProgressRepository implements ReadingProgressRepositoryI
         $stmt->execute([
             ':notes' => $notes,
             ':userId' => $userId,
-            ':isbn' => $isbn,
+            ':editionId' => $editionId,
             ':currentPage' => $currentPage
         ]);
     }
@@ -450,6 +492,27 @@ final class MySqlReadingProgressRepository implements ReadingProgressRepositoryI
             return 'backtrack';
         }
         return 'advance';
+    }
+
+    /**
+     * Get edition_id from ISBN (ISBN-13 or ISBN-10)
+     */
+    private function getEditionIdFromIsbn(string $isbn): ?int
+    {
+        try {
+            $sql = "
+                SELECT edition_id FROM book_editions
+                WHERE isbn_13 = :isbn1 OR isbn_10 = :isbn2
+                LIMIT 1
+            ";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':isbn1' => $isbn, ':isbn2' => $isbn]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result ? (int) $result['edition_id'] : null;
+        } catch (PDOException $e) {
+            $this->logError('Error getting edition_id from ISBN', $e, ['isbn' => $isbn]);
+            return null;
+        }
     }
 
     protected function getLogger(): ?LoggerInterface

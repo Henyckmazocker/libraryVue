@@ -53,6 +53,14 @@ export function useReadingSessions(bookId) {
   };
 
   /**
+   * Carga el historial detallado de progreso de páginas del libro
+   */
+  const loadProgressHistory = async () => {
+    const result = await sessionsStore.loadProgressHistory(bookId);
+    return result;
+  };
+
+  /**
    * Inicia una nueva sesión de lectura CON confirmación
    * Wrapper que añade lógica de confirmación modal
    */
@@ -225,6 +233,7 @@ export function useReadingSessions(bookId) {
     // ===== MÉTODOS DE SESIÓN (con confirmaciones) =====
     loadActiveSession,                    // Carga sesión activa
     loadHistory,                          // Carga historial
+    loadProgressHistory,                  // Carga historial de progreso detallado
     start,                                // Wrapper con confirmación
     complete,                             // Wrapper con confirmación
     pause,                                // Delegación directa

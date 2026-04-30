@@ -34,6 +34,7 @@ class UserBookEdition
     private int $totalSessionsCompleted;
     private ?Timestamp $lastSessionCompletedAt;
     private ?string $personalNotes;
+    private ?array $ownershipFormat = null; // Formato de posesión (id, value, label)
 
     public function __construct(
         int $userId,
@@ -61,6 +62,7 @@ class UserBookEdition
         $this->location = null;
         $this->lastSessionCompletedAt = null;
         $this->personalNotes = null;
+        $this->ownershipFormat = null;
     }
 
     // Getters and Setters
@@ -218,6 +220,9 @@ class UserBookEdition
         $this->personalNotes = $notes; 
     }
 
+    public function getOwnershipFormat(): ?array { return $this->ownershipFormat; }
+    public function setOwnershipFormat(?array $ownershipFormat): void { $this->ownershipFormat = $ownershipFormat; }
+
     /**
      * Convert to legacy format for frontend compatibility
      * CRITICAL: Frontend expects these exact field names
@@ -240,6 +245,10 @@ class UserBookEdition
             'total_sessions_completed' => $this->totalSessionsCompleted,
             'totalSessionsCompleted' => $this->totalSessionsCompleted,
             'ownership_type' => $this->ownershipType,
+            'ownership_format'       => $this->ownershipFormat,
+            'ownershipFormat'        => $this->ownershipFormat,
+            'ownership_format_value' => $this->ownershipFormat['value'] ?? null,
+            'ownership_format_label' => $this->ownershipFormat['label'] ?? null,
             'personal_notes' => $this->personalNotes,
             'personalNotes' => $this->personalNotes,
             'active_reading_session_id' => $this->activeReadingSessionId,
@@ -264,6 +273,10 @@ class UserBookEdition
             'edition_rating' => $this->editionRating?->toFloat(),
             'work_rating' => $this->workRating?->toFloat(),
             'ownership_type' => $this->ownershipType,
+            'ownership_format'       => $this->ownershipFormat,
+            'ownershipFormat'        => $this->ownershipFormat,
+            'ownership_format_value' => $this->ownershipFormat['value'] ?? null,
+            'ownership_format_label' => $this->ownershipFormat['label'] ?? null,
             'acquisition_date' => $this->acquisitionDate?->toDateTime()->format('Y-m-d'),
             'acquisition_type' => $this->acquisitionType,
             'condition' => $this->condition,
@@ -316,6 +329,10 @@ class UserBookEdition
         }
         if (isset($data['personal_notes'])) {
             $userBookEdition->setPersonalNotes($data['personal_notes']);
+        }
+        $ownershipFormat = $data['ownership_format'] ?? $data['ownershipFormat'] ?? null;
+        if ($ownershipFormat !== null) {
+            $userBookEdition->setOwnershipFormat($ownershipFormat);
         }
 
         return $userBookEdition;

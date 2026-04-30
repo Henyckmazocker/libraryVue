@@ -81,16 +81,16 @@ const getStatusLabel = (statusKey) => {
   align-items: center;
   gap: 15px;
   padding: 12px 15px;
-  background: var(--color-background-soft);
+  background: #1f1b14;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  border: 1px solid transparent;
+  border: 1px solid #2e2516;
 }
 
 .book-list-item:hover {
-  background: var(--color-background-mute);
-  border-color: var(--color-primary);
+  background: #26200f;
+  border-color: #c9943a;
   transform: translateX(4px);
 }
 

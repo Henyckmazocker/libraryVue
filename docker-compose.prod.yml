@@ -39,6 +39,9 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - LOG_PATH=/var/www/html/storage/logs
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID}
+      - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
+      - LASTFM_API_KEY=${LASTFM_API_KEY}
       - CORS_ALLOWED_ORIGINS=https://library.dcahomelab.com
     command: >
       bash -c "cd /var/www/html && 

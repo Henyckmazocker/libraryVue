@@ -34,16 +34,16 @@
   --color-border-hover: #DCA1B0;     /* Borde en hover - highlight */
   
   /* Estados de componentes */
-  --color-success: #A3CBC1;          /* Éxito - usando secundario */
-  --color-warning: #DCA1B0;          /* Advertencia - usando highlight */
-  --color-error: #6F5D4F;            /* Error - usando terciario */
-  --color-info: #E2CBBF;             /* Información - usando acento */
+  --color-success: #4CAF50;          /* Éxito - verde convencional */
+  --color-warning: #FFA726;          /* Advertencia - ámbar convencional */
+  --color-error: #EF5350;            /* Error - rojo convencional */
+  --color-info: #42A5F5;             /* Información - azul convencional */
   
   /* Estados de fondo para componentes */
-  --color-success-bg: rgba(163, 203, 193, 0.1);
-  --color-warning-bg: rgba(220, 161, 176, 0.1);
-  --color-error-bg: rgba(111, 93, 79, 0.1);
-  --color-info-bg: rgba(226, 203, 191, 0.1);
+  --color-success-bg: rgba(76, 175, 80, 0.1);
+  --color-warning-bg: rgba(255, 167, 38, 0.1);
+  --color-error-bg: rgba(239, 83, 80, 0.1);
+  --color-info-bg: rgba(66, 165, 245, 0.1);
   
   /* Botones */
   --btn-primary-bg: #1D4E4A;
@@ -105,15 +105,15 @@
   --color-border-hover: #e8b3c1;     /* Hover rosa brillante */
   
   /* Estados ajustados */
-  --color-success: #7ab3a8;
-  --color-warning: #e8b3c1;
-  --color-error: #d4a5a5;
-  --color-info: #c4ddd8;
+  --color-success: #66BB6A;
+  --color-warning: #FFB74D;
+  --color-error: #EF5350;
+  --color-info: #64B5F6;
   
-  --color-success-bg: rgba(122, 179, 168, 0.15);
-  --color-warning-bg: rgba(232, 179, 193, 0.15);
-  --color-error-bg: rgba(212, 165, 165, 0.15);
-  --color-info-bg: rgba(196, 221, 216, 0.15);
+  --color-success-bg: rgba(102, 187, 106, 0.15);
+  --color-warning-bg: rgba(255, 183, 77, 0.15);
+  --color-error-bg: rgba(239, 83, 80, 0.15);
+  --color-info-bg: rgba(100, 181, 246, 0.15);
   
   /* Botones modo oscuro */
   --btn-primary-bg: #2a5e5a;

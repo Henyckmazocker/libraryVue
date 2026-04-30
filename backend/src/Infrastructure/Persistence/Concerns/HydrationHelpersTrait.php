@@ -389,4 +389,29 @@ trait HydrationHelpersTrait
         
         return $result;
     }
+
+    /**
+     * Construye el objeto ownershipFormat a partir de columnas JOIN de item_owned_formats.
+     * Espera las columnas: ownership_format_id, ownership_format_value, ownership_format_label.
+     * Devuelve null si no hay formato asignado.
+     *
+     * @param array<string, mixed> $row Fila de BD con columnas de JOIN
+     * @return array{id: int, value: string, label: string}|null
+     */
+    protected function buildOwnershipFormat(array $row): ?array
+    {
+        $fmtId = isset($row['ownership_format_id']) && $row['ownership_format_id'] !== null
+            ? (int) $row['ownership_format_id']
+            : null;
+
+        if ($fmtId === null) {
+            return null;
+        }
+
+        return [
+            'id'    => $fmtId,
+            'value' => (string) ($row['ownership_format_value'] ?? ''),
+            'label' => (string) ($row['ownership_format_label'] ?? ''),
+        ];
+    }
 }

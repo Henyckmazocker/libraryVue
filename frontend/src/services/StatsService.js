@@ -1,11 +1,24 @@
 import Logger from '@/utils/logger';
+import { useAuthStore } from '@/store/auth.js';
 
 /**
  * Service para interactuar con la API de estadísticas
+ * Utiliza authStore.authenticatedApiCall() para CSRF y JWT consistentes
  */
 class StatsService {
-  constructor() {
-    this.baseUrl = process.env.VUE_APP_API_URL || 'http://127.0.0.1:8888';
+
+  /**
+   * Helper para llamadas autenticadas a la API
+   */
+  async _apiCall(action) {
+    const authStore = useAuthStore();
+    const response = await authStore.authenticatedApiCall(action);
+
+    if (response.data.status === 'error') {
+      throw new Error(response.data.message || `Failed to fetch ${action}`);
+    }
+
+    return response.data.data;
   }
 
   /**
@@ -15,30 +28,9 @@ class StatsService {
   async getBookStats() {
     try {
       Logger.info('[StatsService] Fetching book statistics...');
-      
-      const response = await fetch(`${this.baseUrl}/api.php`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          action: 'get_book_stats'
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.status === 'error') {
-        throw new Error(data.message || 'Failed to fetch book statistics');
-      }
-
+      const data = await this._apiCall('get_book_stats');
       Logger.info('[StatsService] Book statistics fetched successfully');
-      return data.data;
+      return data;
     } catch (error) {
       Logger.error('[StatsService] Error fetching book statistics:', error);
       throw error;
@@ -52,32 +44,39 @@ class StatsService {
   async getMovieStats() {
     try {
       Logger.info('[StatsService] Fetching movie statistics...');
-      
-      const response = await fetch(`${this.baseUrl}/api.php`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          action: 'get_movie_stats'
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.status === 'error') {
-        throw new Error(data.message || 'Failed to fetch movie statistics');
-      }
-
+      const data = await this._apiCall('get_movie_stats');
       Logger.info('[StatsService] Movie statistics fetched successfully');
-      return data.data;
+      return data;
     } catch (error) {
       Logger.error('[StatsService] Error fetching movie statistics:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener estadísticas de videojuegos del usuario
+   * @returns {Promise<Object>} Estadísticas de videojuegos
+   */
+  async getGameStats() {
+    try {
+      Logger.info('[StatsService] Fetching game statistics...');
+      const data = await this._apiCall('get_game_stats');
+      Logger.info('[StatsService] Game statistics fetched successfully');
+      return data;
+    } catch (error) {
+      Logger.error('[StatsService] Error fetching game statistics:', error);
+      throw error;
+    }
+  }
+
+  async getAlbumStats() {
+    try {
+      Logger.info('[StatsService] Fetching album statistics...');
+      const data = await this._apiCall('get_album_stats');
+      Logger.info('[StatsService] Album statistics fetched successfully');
+      return data;
+    } catch (error) {
+      Logger.error('[StatsService] Error fetching album statistics:', error);
       throw error;
     }
   }

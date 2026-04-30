@@ -158,15 +158,12 @@
             {{ existingBook ? 'Editar en Mi Biblioteca' : 'Añadir a Mi Biblioteca' }}
           </h2>
           <LibraryBookItem
+            v-if="allowedStatuses.length > 0"
             ref="libraryBookItemRef"
             :book="book"
             :allowedUserStatuses="allowedStatuses"
             :editable="!!existingBook"
-            :readonly="false"
             @delete-book="handleDeleteBook"
-            @update-rating="handleUpdateRating"
-            @update-statuses="handleUpdateStatuses"
-            @update-progress="handleUpdateProgress"
             @save-book="handleSaveBook"
             @edit-item="handleEditBook"
             @show-session-history="handleShowSessionHistory"
@@ -183,10 +180,20 @@
 
       <!-- Session History Modal -->
       <SessionHistoryModal
-        :is-visible="sessionHistoryModal.isVisible"
+        :visible="sessionHistoryModal.isVisible"
         :book="sessionHistoryModal.book"
-        :history="sessionHistoryModal.history"
         @close="closeSessionHistoryModal"
+      />
+
+      <!-- Edit Item Modal -->
+      <EditItemModal
+        v-if="editModal.isVisible"
+        :item="editModal.item"
+        :item-type="editModal.itemType"
+        :allowed-statuses="allowedStatuses"
+        :is-visible="editModal.isVisible"
+        @close="closeEditModal"
+        @saved="handleModalSaved"
       />
   </div>
 </template>
@@ -198,6 +205,7 @@ import axios from 'axios';
 import LibraryBookItem from '@/components/Books/LibraryBookItem.vue';
 import SessionHistoryModal from '@/components/Books/SessionHistoryModal.vue';
 import EditionSelector from '@/components/Books/EditionSelector.vue';
+import EditItemModal from '@/components/EditItemModal.vue';
 import { useBooks } from '@/composables/useBooks';
 import { useUIStore } from '@/store/ui';
 import { useAuth } from '@/composables/useAuth';
@@ -213,14 +221,20 @@ const booksComposable = useBooks();
 const uiStore = useUIStore();
 
 // Estados
-const book = ref(null);
-const isLoading = ref(true);
+const book = ref((history.state && history.state.book) ? history.state.book : null);
+// Si venimos con datos en el router state, no mostrar spinner (transición seamless)
+const isLoading = ref(!book.value);
 const error = ref(null);
 const libraryBookItemRef = ref(null);
 const sessionHistoryModal = ref({
   isVisible: false,
   book: {},
   history: []
+});
+const editModal = ref({
+  isVisible: false,
+  item: null,
+  itemType: 'book'
 });
 
 // Computed
@@ -243,7 +257,11 @@ const goBack = () => {
 };
 
 const fetchBookDetails = async (isbn) => {
-  isLoading.value = true;
+  // Solo mostrar spinner si no hay datos previos (evitar flash en enrichment)
+  const isBackgroundEnrichment = !!book.value;
+  if (!isBackgroundEnrichment) {
+    isLoading.value = true;
+  }
   error.value = null;
 
   try {
@@ -300,12 +318,13 @@ const fetchBookDetails = async (isbn) => {
       Logger.error(`[BookDetailView] Fallback also failed:`, fallbackErr);
     }
   } finally {
-    isLoading.value = false;
+    if (!isBackgroundEnrichment) {
+      isLoading.value = false;
+    }
   }
 };
 
 const fetchFromOpenLibrary = async (isbn) => {
-  Logger.debug(`[BookDetailView] Trying OpenLibrary for ISBN: ${isbn}`);
   
   // First get edition to extract work_key
   let workKey = null;
@@ -348,7 +367,7 @@ const fetchFromOpenLibrary = async (isbn) => {
         : "",
       publicationDate: bookData.publish_date || "",
       coverUrl: bookData.cover?.large || bookData.cover?.medium || bookData.cover?.small || "",
-      pages: bookData.number_of_pages || null,
+      pages: bookData.number_of_pages || (bookData.pagination ? (parseInt(String(bookData.pagination)) || null) : null) || null,
       description: bookData.notes || "",
       genres: bookData.subjects ? bookData.subjects.slice(0, 5).map(s => s.name) : [],
       subjects: bookData.subjects || [],
@@ -417,6 +436,15 @@ const enrichWithOpenLibrary = async (isbn) => {
           lc: olData.classifications.lc_classifications
         };
       }
+
+      // Actualizar páginas desde OpenLibrary si Google Books no las tenía
+      if (!book.value.pages) {
+        const olPages = olData.number_of_pages
+          || (olData.pagination ? (parseInt(String(olData.pagination)) || null) : null);
+        if (olPages) {
+          book.value.pages = olPages;
+        }
+      }
       
       Logger.debug('[BookDetailView] Successfully enriched with OpenLibrary data');
     }
@@ -442,37 +470,6 @@ const handleDeleteBook = async ({ isbn }) => {
   } catch (error) {
     Logger.error('[BookDetailView] Error deleting book:', error);
     alert('Error connecting to backend to delete book.');
-  }
-};
-
-const handleUpdateRating = async ({ rating }) => {
-  if (book.value) {
-    book.value.user_rating = rating;
-  }
-};
-
-const handleUpdateStatuses = async ({ statuses }) => {
-  if (book.value) {
-    book.value.userStatuses = [...statuses];
-  }
-};
-
-const handleUpdateProgress = async ({ isbn, updates }) => {
-  try {
-    if (Object.keys(updates).length === 0) {
-      Logger.debug('[BookDetailView] Refreshing book after session change');
-      await booksComposable.fetchBooks();
-      return;
-    }
-    
-    if (book.value && book.value.isbn === isbn) {
-      Object.keys(updates).forEach(key => {
-        book.value[key] = updates[key];
-      });
-      Logger.debug('[BookDetailView] Book progress updated locally:', { isbn, updates });
-    }
-  } catch (error) {
-    Logger.error('[BookDetailView] Error updating book progress:', error);
   }
 };
 
@@ -590,41 +587,69 @@ const handleSaveBook = async (bookData) => {
 };
 
 const handleEditBook = async (bookData) => {
+  Logger.debug('[BookDetailView] Opening edit modal for book:', bookData);
+  
+  // Merge store book data (has user_edition_id) with local book data
+  const storeBook = existingBook.value;
+  const itemData = {
+    ...book.value,
+    ...(storeBook ? { user_edition_id: storeBook.user_edition_id } : {})
+  };
+  
+  editModal.value = {
+    isVisible: true,
+    item: itemData,
+    itemType: 'book'
+  };
+};
+
+const closeEditModal = () => {
+  editModal.value = {
+    isVisible: false,
+    item: null,
+    itemType: 'book'
+  };
+};
+
+const handleModalSaved = async (updatedItem) => {
+  Logger.debug('[BookDetailView] Book saved from modal, updating local data', updatedItem);
+  
+  // Cerrar el modal
+  closeEditModal();
+  
   try {
-    Logger.debug('[BookDetailView] Editing book in library:', bookData);
-    
-    // Prepare the data object with current values
-    const data = {
-      personalRating: book.value.user_rating,
-      statuses: book.value.userStatuses,
-      currentPage: book.value.currentPage
-    };
-    
-    // Call editUserBook with separate parameters: isbn, userId, data, tags, notes
-    const result = await booksComposable.editUserBook(
-      book.value.isbn,
-      null, // userId will be taken from auth on backend
-      data,
-      [], // tags
-      []  // notes
-    );
-    
-    if (result.success) {
-      // Llamar al método de éxito del componente hijo
-      if (libraryBookItemRef.value) {
-        libraryBookItemRef.value.setEditSuccess();
-      }
-      Logger.debug('[BookDetailView] Book edited successfully');
-    } else {
-      // Llamar al método de error del componente hijo
-      if (libraryBookItemRef.value) {
-        libraryBookItemRef.value.setEditError();
-      }
-      Logger.error('[BookDetailView] Failed to edit book:', result.message);
+    // Actualizar inmediatamente con datos del evento (optimista)
+    if (book.value && updatedItem) {
+      book.value = {
+        ...book.value,
+        ...updatedItem,
+        user_rating: updatedItem.user_rating,
+        userStatuses: updatedItem.userStatuses,
+        currentPage: updatedItem.currentPage ?? book.value.currentPage
+      };
     }
+    
+    // Actualizar en el store local de books también
+    const bookInStore = booksComposable.findBookByISBN(book.value.isbn);
+    if (bookInStore) {
+      Object.assign(bookInStore, updatedItem);
+    }
+    
+    // Llamar al método de éxito del componente hijo
+    if (libraryBookItemRef.value) {
+      libraryBookItemRef.value.setEditSuccess();
+    }
+    
+    uiStore.showSuccess('Libro actualizado correctamente');
+    
+    // Opcional: Recargar en segundo plano para sincronizar (sin bloquear UI)
+    setTimeout(() => {
+      booksComposable.fetchBooks().catch(err => {
+        Logger.error('[BookDetailView] Background refresh failed:', err);
+      });
+    }, 500);
   } catch (err) {
-    Logger.error('[BookDetailView] Error editing book:', err);
-    // Llamar al método de error del componente hijo
+    Logger.error('[BookDetailView] Error updating book data:', err);
     if (libraryBookItemRef.value) {
       libraryBookItemRef.value.setEditError();
     }
@@ -670,100 +695,85 @@ const formatDescription = (description) => {
 // Helper function to load book data
 const loadBookData = async () => {
   Logger.debug('[BookDetailView] Loading book data');
-  
-  isLoading.value = true;
-  
-  // Solo cargar estados permitidos (es rápido y necesario)
+
+  // Datos ya cargados eagerly desde history.state, o via route.state
+  const hasEagerData = !!book.value;
+
+  if (hasEagerData || (route.state && route.state.book)) {
+    if (!hasEagerData && route.state.book) {
+      book.value = route.state.book;
+    }
+    isLoading.value = false;
+    Logger.debug('[BookDetailView] Using pre-loaded book data (seamless)');
+
+    // Cargar datos de biblioteca en segundo plano para enriquecer
+    await _loadLibraryContext();
+
+    // Enriquecer con datos completos de la API en segundo plano (sin mostrar spinner)
+    fetchBookDetails(route.params.isbn)
+      .then(() => _mergeExistingBookData())
+      .catch(err =>
+        Logger.warn('[BookDetailView] Background enrichment failed:', err)
+      );
+  } else {
+    // Sin state: acceso directo por URL — mostrar spinner
+    isLoading.value = true;
+    await _loadLibraryContext();
+    await fetchBookDetails(route.params.isbn);
+  }
+
+  // Mezclar con datos de biblioteca si el libro ya existe
+  _mergeExistingBookData();
+};
+
+/** Carga estados permitidos y libros del usuario (necesario para detectar existencia) */
+const _loadLibraryContext = async () => {
   if (allowedStatuses.value.length === 0) {
     await booksComposable.fetchAllowedStatuses();
   }
-
-  Logger.debug('[BookDetailView] Allowed statuses loaded:', {
-    allowedStatusesCount: allowedStatuses.value.length,
-    allowedStatuses: allowedStatuses.value
-  });
-
-  // Si hay datos en el state del router, usarlos directamente (más rápido)
-  if (route.state && route.state.book) {
-    Logger.debug('[BookDetailView] Using book data from router state');
-    book.value = route.state.book;
-    
-    // Solo buscar el libro en la biblioteca si no está en el state
-    // Esto evita cargar TODA la biblioteca
-    if (booksComposable.books.value.length > 0) {
-      const existing = booksComposable.books.value.find(b => b.isbn === route.state.book.isbn);
-      if (existing) {
-        // Mezclar datos del libro existente
-        book.value = {
-          ...book.value,
-          user_rating: existing.user_rating,
-          userStatuses: existing.userStatuses || [],
-          currentPage: existing.currentPage,
-          totalPages: existing.totalPages || book.value.pages,
-        };
-      }
-    }
-    
-    isLoading.value = false;
-  } else {
-    // Si no hay state, buscar el libro por ISBN
-    await fetchBookDetails(route.params.isbn);
+  if (booksComposable.books.value.length === 0) {
+    Logger.debug('[BookDetailView] Loading user books to check if book exists');
+    await booksComposable.fetchBooks();
   }
-  
-  Logger.debug('[BookDetailView] Book loaded, checking if exists in library:', {
-    bookIsbn: book.value?.isbn,
-    existingBook: existingBook.value ? 'FOUND' : 'NOT FOUND'
-  });
-  
-  // Si el libro ya existe en la biblioteca, mezclar los datos
-  if (existingBook.value && book.value) {
-    Logger.debug('[BookDetailView] Merging with existing book data from library:', {
-      existingUserStatuses: existingBook.value.userStatuses,
-      existingRating: existingBook.value.user_rating,
-      existingRating_personal: existingBook.value.personal_rating,
-      existingRating_rating: existingBook.value.rating,
-      existingRating_userRating: existingBook.value.userRating,
-      existingCurrentPage: existingBook.value.currentPage,
-      existingBook_keys: Object.keys(existingBook.value)
-    });
-    
-    // Usar la información de la edición guardada en la biblioteca
-    book.value = {
-      ...book.value,
-      // Datos de usuario
-      user_rating: existingBook.value.user_rating,
-      userStatuses: existingBook.value.userStatuses || [],
-      currentPage: existingBook.value.currentPage,
-      totalPages: existingBook.value.totalPages || book.value.pages,
-      
-      // Datos de la edición específica guardada (si están disponibles)
-      isbn: existingBook.value.isbn || book.value.isbn,
-      isbn10: existingBook.value.isbn10 || book.value.isbn10,
-      title: existingBook.value.title || book.value.title,
-      author: existingBook.value.author || book.value.author,
-      publisher: existingBook.value.publisher || book.value.publisher,
-      publishers: existingBook.value.publishers || book.value.publishers,
-      publicationDate: existingBook.value.publicationDate || book.value.publicationDate,
-      pages: existingBook.value.pages || book.value.pages,
-      coverUrl: existingBook.value.coverUrl || book.value.coverUrl,
-      language: existingBook.value.language || book.value.language,
-      physical_format: existingBook.value.physical_format || book.value.physical_format,
-      
-      // Mantener work_key para el selector de ediciones
-      work_key: book.value.work_key || existingBook.value.work_key
-    };
-    
-    Logger.debug('[BookDetailView] Loaded saved edition data:', {
-      isbn: book.value.isbn,
-      title: book.value.title,
-      publisher: book.value.publisher,
-      publicationDate: book.value.publicationDate,
-      userStatuses: book.value.userStatuses,
-      user_rating: book.value.user_rating
-    });
-  } else {
+};
+
+/** Mezcla datos del libro con la versión guardada en biblioteca (si existe) */
+const _mergeExistingBookData = () => {
+  if (!existingBook.value || !book.value) {
     Logger.debug('[BookDetailView] No existing book found in library or book not loaded');
+    return;
   }
+
+  Logger.debug('[BookDetailView] Merging with existing book data from library');
+
+  book.value = {
+    ...book.value,
+    // Datos de usuario
+    user_rating: existingBook.value.user_rating,
+    userStatuses: existingBook.value.userStatuses || [],
+    currentPage: existingBook.value.currentPage,
+    totalPages: existingBook.value.totalPages || book.value.pages,
+    // Datos de la edición guardada
+    isbn: existingBook.value.isbn || book.value.isbn,
+    isbn10: existingBook.value.isbn10 || book.value.isbn10,
+    title: existingBook.value.title || book.value.title,
+    author: existingBook.value.author || book.value.author,
+    publisher: existingBook.value.publisher || book.value.publisher,
+    publishers: existingBook.value.publishers || book.value.publishers,
+    publicationDate: existingBook.value.publicationDate || book.value.publicationDate,
+    pages: existingBook.value.pages || book.value.pages,
+    coverUrl: existingBook.value.coverUrl || book.value.coverUrl,
+    language: existingBook.value.language || book.value.language,
+    physical_format: existingBook.value.physical_format || book.value.physical_format,
+    work_key: book.value.work_key || existingBook.value.work_key
+  };
+
+  Logger.debug('[BookDetailView] Loaded saved edition data:', {
+    isbn: book.value.isbn,
+    title: book.value.title,
+    userStatuses: book.value.userStatuses,
+    user_rating: book.value.user_rating
+  });
 };
 
 // Lifecycle

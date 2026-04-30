@@ -17,6 +17,7 @@ services:
       - NODE_ENV=development
       - VUE_APP_API_URL=http://127.0.0.1:8888/index.php
       - VUE_APP_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - VUE_APP_OMDB_API_KEY=${OMDB_API_KEY}
     depends_on:
       - backend
     restart: unless-stopped
@@ -42,6 +43,9 @@ services:
       - LOG_PATH=/var/www/html/storage/logs
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_BOOKS_API_KEY=${GOOGLE_BOOKS_API_KEY}
+      - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID}
+      - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
+      - LASTFM_API_KEY=${LASTFM_API_KEY}
     command: >
       bash -c "cd /var/www/html && 
                cp .env.docker-development .env &&

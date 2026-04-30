@@ -1,0 +1,355 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controllers;
+
+use App\Domain\UseCases\Albums\AddAlbumUseCase;
+use App\Domain\UseCases\Albums\DeleteAlbumUseCase;
+use App\Domain\UseCases\Albums\UpdateAlbumRatingUseCase;
+use App\Domain\UseCases\Albums\UpdateAlbumUserStatusesUseCase;
+use App\Domain\UseCases\Albums\GetAlbumsUseCase;
+use App\Domain\UseCases\Albums\GetAlbumAllowedStatusesUseCase;
+use App\Domain\UseCases\Albums\EditUserAlbumUseCase;
+use App\Domain\UseCases\Albums\GetTrendingAlbumsUseCase;
+use App\Domain\DTO\Commands\AddAlbumCommand;
+use App\Domain\DTO\Commands\DeleteAlbumCommand;
+use App\Domain\DTO\Commands\UpdateAlbumRatingCommand;
+use App\Domain\DTO\Commands\UpdateAlbumStatusesCommand;
+use App\Domain\DTO\Commands\EditUserAlbumCommand;
+use App\Domain\DTO\Queries\GetTrendingAlbumsQuery;
+use App\Domain\Repository\Album\AlbumTagRepositoryInterface;
+use App\Domain\Repository\Album\AlbumNoteRepositoryInterface;
+use App\Domain\Services\SpotifyService;
+use App\Domain\Services\LastFmService;
+use App\Domain\DTO\Queries\GetLastFmStatsQuery;
+use App\Domain\UseCases\Albums\GetListeningStatsUseCase;
+
+class AlbumController extends BaseController implements Contracts\AlbumControllerInterface
+{
+    public function __construct(
+        private readonly AddAlbumUseCase $addAlbumUseCase,
+        private readonly DeleteAlbumUseCase $deleteAlbumUseCase,
+        private readonly UpdateAlbumRatingUseCase $updateAlbumRatingUseCase,
+        private readonly UpdateAlbumUserStatusesUseCase $updateAlbumUserStatusesUseCase,
+        private readonly GetAlbumsUseCase $getAlbumsUseCase,
+        private readonly GetAlbumAllowedStatusesUseCase $getAlbumAllowedStatusesUseCase,
+        private readonly EditUserAlbumUseCase $editUserAlbumUseCase,
+        private readonly GetTrendingAlbumsUseCase $getTrendingAlbumsUseCase,
+        private readonly AlbumTagRepositoryInterface $albumTagRepository,
+        private readonly AlbumNoteRepositoryInterface $albumNoteRepository,
+        private readonly SpotifyService $spotifyService,
+        private readonly LastFmService $lastFmService,
+        private readonly GetListeningStatsUseCase $getListeningStatsUseCase
+    ) {}
+
+    // =========================================================================
+    // Library CRUD
+    // =========================================================================
+
+    public function addAlbum(AddAlbumCommand $command): array
+    {
+        $album = $this->addAlbumUseCase->execute($command);
+        return $this->successResponse('Album added: ' . $album->getTitle(), $album->toArray(), 201);
+    }
+
+    public function deleteAlbum(DeleteAlbumCommand $command): array
+    {
+        $this->deleteAlbumUseCase->execute($command);
+        return $this->successResponse('Album removed from your library: ' . $command->albumId);
+    }
+
+    public function updateAlbumRating(UpdateAlbumRatingCommand $command): array
+    {
+        $this->updateAlbumRatingUseCase->execute($command);
+        return $this->successResponse('Album rating updated successfully.');
+    }
+
+    public function updateAlbumUserStatuses(UpdateAlbumStatusesCommand $command): array
+    {
+        $this->updateAlbumUserStatusesUseCase->execute($command);
+        return $this->successResponse('User statuses updated for Album ID ' . $command->albumId);
+    }
+
+    public function editUserAlbum(EditUserAlbumCommand $command): array
+    {
+        $this->editUserAlbumUseCase->execute($command);
+        return $this->successResponse('User album updated successfully.');
+    }
+
+    public function getAlbumAllowedStatuses(): array
+    {
+        $statuses = $this->getAlbumAllowedStatusesUseCase->execute([]);
+        return $this->successResponse('Allowed album statuses retrieved.', $statuses);
+    }
+
+    public function getAlbums(array $params): array
+    {
+        $albums = $this->getAlbumsUseCase->execute($params);
+
+        $albumsArray = array_map(function ($album) {
+            return $album->toArray();
+        }, $albums);
+
+        return $this->successResponse('Albums data retrieved.', $albumsArray);
+    }
+
+    public function getTrendingAlbums(GetTrendingAlbumsQuery $query): array
+    {
+        $userId = $_SESSION['user_data']['id'] ?? null;
+
+        $queryWithUser = GetTrendingAlbumsQuery::create(
+            $query->limit,
+            $query->daysWindow,
+            $userId
+        );
+
+        $trending = $this->getTrendingAlbumsUseCase->execute($queryWithUser);
+        return $this->successResponse('Trending albums retrieved.', $trending);
+    }
+
+    // =========================================================================
+    // Tags
+    // =========================================================================
+
+    public function getUserAlbumTags(int $userId): array
+    {
+        try {
+            $tags = $this->albumTagRepository->findByUser($userId);
+            return $this->successResponse('Tags retrieved successfully', $tags);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error retrieving tags: ' . $e->getMessage());
+        }
+    }
+
+    public function createUserAlbumTag(int $userId, string $name, string $color = '#1976d2'): array
+    {
+        try {
+            $tagId = $this->albumTagRepository->create($userId, $name, $color);
+            return $this->successResponse('Tag created successfully', [
+                'id'    => $tagId,
+                'name'  => $name,
+                'color' => $color,
+            ]);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error creating tag: ' . $e->getMessage());
+        }
+    }
+
+    public function deleteUserAlbumTag(int $userId, int $tagId): array
+    {
+        try {
+            $deleted = $this->albumTagRepository->delete($userId, $tagId);
+            if ($deleted) {
+                return $this->successResponse('Tag deleted successfully');
+            }
+            return $this->errorResponse('Tag not found or could not be deleted', 404);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error deleting tag: ' . $e->getMessage());
+        }
+    }
+
+    public function getAlbumTags(int $userId, int $albumId): array
+    {
+        try {
+            $tags = $this->albumTagRepository->getAlbumTags($userId, $albumId);
+            return $this->successResponse('Album tags retrieved successfully', $tags);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error retrieving album tags: ' . $e->getMessage());
+        }
+    }
+
+    public function updateAlbumTags(int $userId, int $albumId, array $tagIds): array
+    {
+        try {
+            $this->albumTagRepository->syncAlbumTags($userId, $albumId, $tagIds);
+            return $this->successResponse('Album tags updated successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error updating album tags: ' . $e->getMessage());
+        }
+    }
+
+    // =========================================================================
+    // Notes
+    // =========================================================================
+
+    public function getAlbumNotes(int $userId, int $albumId): array
+    {
+        try {
+            $notes = $this->albumNoteRepository->getByAlbum($userId, $albumId);
+            return $this->successResponse('Album notes retrieved successfully', $notes);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error retrieving album notes: ' . $e->getMessage());
+        }
+    }
+
+    public function addAlbumNote(
+        int $userId,
+        int $albumId,
+        string $noteText,
+        string $noteType = 'note',
+        bool $isPrivate = true
+    ): array {
+        try {
+            $noteId = $this->albumNoteRepository->add($userId, $albumId, $noteText, $noteType, $isPrivate);
+            return $this->successResponse('Album note added successfully', [
+                'note' => [
+                    'id'         => $noteId,
+                    'note_text'  => $noteText,
+                    'note_type'  => $noteType,
+                    'is_private' => $isPrivate ? 1 : 0,
+                    'created_at' => date('Y-m-d H:i:s'),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error adding album note: ' . $e->getMessage());
+        }
+    }
+
+    public function updateAlbumNote(
+        int $noteId,
+        int $userId,
+        string $noteText,
+        string $noteType = 'note',
+        bool $isPrivate = true
+    ): array {
+        try {
+            $updated = $this->albumNoteRepository->update($noteId, $userId, $noteText, $noteType, $isPrivate);
+            if ($updated) {
+                return $this->successResponse('Album note updated successfully');
+            }
+            return $this->errorResponse('Note not found or not authorized', 404);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error updating album note: ' . $e->getMessage());
+        }
+    }
+
+    public function deleteAlbumNote(int $noteId, int $userId): array
+    {
+        try {
+            $deleted = $this->albumNoteRepository->delete($noteId, $userId);
+            if ($deleted) {
+                return $this->successResponse('Album note deleted successfully');
+            }
+            return $this->errorResponse('Note not found or not authorized', 404);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error deleting album note: ' . $e->getMessage());
+        }
+    }
+
+    // =========================================================================
+    // Spotify proxy endpoints
+    // =========================================================================
+
+    public function searchSpotifyAlbums(array $data): array
+    {
+        try {
+            $query = $data['query'] ?? '';
+            $limit = isset($data['limit']) ? (int)$data['limit'] : 20;
+
+            if (empty($query)) {
+                return $this->errorResponse('Query parameter is required', 400);
+            }
+
+            $albums = $this->spotifyService->searchAlbums($query, $limit);
+            return $this->successResponse('Albums found', [
+                'albums' => $albums,
+                'count'  => count($albums),
+            ]);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error searching albums: ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function getSpotifyAlbum(array $data): array
+    {
+        try {
+            $spotifyId = $data['spotifyId'] ?? $data['spotify_id'] ?? '';
+
+            if (empty($spotifyId)) {
+                return $this->errorResponse('spotifyId parameter is required', 400);
+            }
+
+            $album = $this->spotifyService->getAlbum($spotifyId);
+
+            if ($album === null) {
+                return $this->errorResponse('Album not found', 404);
+            }
+
+            return $this->successResponse('Album found', ['album' => $album]);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error fetching album: ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function getSpotifyArtist(array $data): array
+    {
+        try {
+            $artistId = $data['artistId'] ?? $data['artist_id'] ?? '';
+
+            if (empty($artistId)) {
+                return $this->errorResponse('artistId parameter is required', 400);
+            }
+
+            $artist = $this->spotifyService->getArtist($artistId);
+
+            if ($artist === null) {
+                return $this->errorResponse('Artist not found', 404);
+            }
+
+            return $this->successResponse('Artist found', ['artist' => $artist]);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error fetching artist: ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function getSpotifyAlbumTracks(array $data): array
+    {
+        try {
+            $spotifyId = $data['spotifyId'] ?? $data['spotify_id'] ?? '';
+
+            if (empty($spotifyId)) {
+                return $this->errorResponse('spotifyId parameter is required', 400);
+            }
+
+            $tracks = $this->spotifyService->getAlbumTracks($spotifyId);
+            return $this->successResponse('Tracks found', [
+                'tracks' => $tracks,
+                'count'  => count($tracks),
+            ]);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error fetching album tracks: ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function getSpotifyNewReleases(array $data): array
+    {
+        try {
+            $limit = isset($data['limit']) ? (int)$data['limit'] : 20;
+
+            $releases = $this->spotifyService->getNewReleases($limit);
+            return $this->successResponse('New releases retrieved', [
+                'albums' => $releases,
+                'count'  => count($releases),
+            ]);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error fetching new releases: ' . $e->getMessage(), 500);
+        }
+    }
+
+    // =========================================================================
+    // Last.fm stats
+    // =========================================================================
+
+    public function getListeningStats(GetLastFmStatsQuery $query): array
+    {
+        try {
+            $result = $this->getListeningStatsUseCase->execute($query);
+            return $this->successResponse('Listening stats retrieved.', $result);
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse($e->getMessage(), 400);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error fetching Last.fm stats: ' . $e->getMessage(), 500);
+        }
+    }
+}

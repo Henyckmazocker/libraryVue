@@ -162,16 +162,20 @@ const getStatusLabel = (status) => {
   const statusLabels = {
     'owned': 'En biblioteca',
     'in watchlist': 'En lista de deseos',
+    'in-watchlist': 'En lista de deseos',
     'viewed': 'Visto',
     'watched': 'Visto',
+    'want-to-buy': 'Quiero comprarlo',
+    'abandoned': 'Abandonado',
     'reading': 'Leyendo',
     'read': 'Leído',
     'to-read': 'Por leer',
     'currently-reading': 'Leyendo actualmente',
     'want-to-read': 'Quiero leer',
-    'dropped': 'Abandonado',
+    'dropped': 'Abandonada',
     'completed': 'Completado',
-    'on-hold': 'En pausa'
+    'on-hold': 'En pausa',
+    'watching': 'Viendo ahora'
   };
   
   return statusLabels[status] || status;
@@ -182,8 +186,11 @@ const getStatusClass = (status) => {
   const statusClasses = {
     'owned': 'status-owned',
     'in watchlist': 'status-watchlist',
+    'in-watchlist': 'status-watchlist',
     'viewed': 'status-viewed',
     'watched': 'status-viewed',
+    'want-to-buy': 'status-watchlist',
+    'abandoned': 'status-dropped',
     'reading': 'status-reading',
     'read': 'status-completed',
     'to-read': 'status-watchlist',
@@ -193,7 +200,7 @@ const getStatusClass = (status) => {
     'completed': 'status-completed',
     'on-hold': 'status-paused',
     'paused': 'status-paused',
-    'abandoned': 'status-dropped'
+    'watching': 'status-watching'
   };
   
   return statusClasses[status] || 'status-default';
@@ -307,6 +314,12 @@ watch(() => props.allowedStatuses, (newValue) => {
   background: rgba(255, 133, 27, 0.2);
   color: #fd7e14;
   border: 1px solid rgba(255, 133, 27, 0.3);
+}
+
+.status-watching {
+  background: rgba(139, 92, 246, 0.2);
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.3);
 }
 
 .status-default {

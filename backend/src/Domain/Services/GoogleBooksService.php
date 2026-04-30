@@ -352,7 +352,7 @@ class GoogleBooksService
             'publisher' => $volumeInfo['publisher'] ?? null,
             'published_date' => $volumeInfo['publishedDate'] ?? null,
             'description' => $volumeInfo['description'] ?? null,
-            'page_count' => $volumeInfo['pageCount'] ?? null,
+            'page_count' => !empty($volumeInfo['pageCount']) ? (int)$volumeInfo['pageCount'] : null,
             'categories' => $volumeInfo['categories'] ?? [],
             'language' => $volumeInfo['language'] ?? null,
             'cover_url_small' => $coverSmall,

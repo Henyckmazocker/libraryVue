@@ -20,6 +20,7 @@ class User
     private ?Timestamp $lastLogin;
     private ?array $preferences;
     private bool $isActive;
+    private ?string $lastfmUsername;
 
     public function __construct(
         ?int $id,
@@ -31,7 +32,8 @@ class User
         ?Timestamp $updatedAt = null,
         ?Timestamp $lastLogin = null,
         ?array $preferences = null,
-        bool $isActive = true
+        bool $isActive = true,
+        ?string $lastfmUsername = null
     ) {
         $this->id = $id;
         $this->googleId = $googleId;
@@ -43,6 +45,7 @@ class User
         $this->lastLogin = $lastLogin;
         $this->preferences = $preferences;
         $this->isActive = $isActive;
+        $this->lastfmUsername = $lastfmUsername;
     }
 
     // Getters
@@ -56,6 +59,7 @@ class User
     public function getLastLogin(): ?Timestamp { return $this->lastLogin; }
     public function getPreferences(): ?array { return $this->preferences; }
     public function isActive(): bool { return $this->isActive; }
+    public function getLastFmUsername(): ?string { return $this->lastfmUsername; }
 
     // Setters with validation
     public function setGoogleId(GoogleId $googleId): void
@@ -95,6 +99,12 @@ class User
     public function setActive(bool $isActive): void
     {
         $this->isActive = $isActive;
+        $this->updatedAt = Timestamp::now();
+    }
+
+    public function setLastFmUsername(?string $username): void
+    {
+        $this->lastfmUsername = $username !== null ? trim($username) : null;
         $this->updatedAt = Timestamp::now();
     }
 
@@ -148,7 +158,8 @@ class User
             'updated_at' => $this->updatedAt->toUnixTimestamp(),
             'last_login' => $this->lastLogin?->toUnixTimestamp(),
             'preferences' => $this->preferences,
-            'is_active' => $this->isActive
+            'is_active' => $this->isActive,
+            'lastfm_username' => $this->lastfmUsername
         ];
     }
 
@@ -164,7 +175,8 @@ class User
             isset($data['updated_at']) ? Timestamp::fromUnixTimestamp($data['updated_at']) : null,
             isset($data['last_login']) ? Timestamp::fromUnixTimestamp($data['last_login']) : null,
             $data['preferences'] ?? null,
-            $data['is_active'] ?? true
+            $data['is_active'] ?? true,
+            $data['lastfm_username'] ?? null
         );
     }
 }

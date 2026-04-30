@@ -9,6 +9,7 @@ use App\Domain\Repository\Book\UserBookEditionRepositoryInterface;
 use App\Infrastructure\Persistence\Book\Mappers\UserBookEditionDataMapper;
 use App\Infrastructure\Persistence\Concerns\LoggableTrait;
 use App\Infrastructure\Persistence\Concerns\StatusManagementTrait;
+use InvalidArgumentException;
 use PDO;
 use PDOException;
 use Psr\Log\LoggerInterface;
@@ -62,8 +63,10 @@ final class MySqlUserBookEditionRepository implements UserBookEditionRepositoryI
     {
         try {
             $stmt = $this->db->prepare(
-                'SELECT * FROM user_book_editions 
-                 WHERE user_id = :user_id AND edition_id = :edition_id 
+                'SELECT ube.*, iof.id AS ownership_format_id, iof.value AS ownership_format_value, iof.label AS ownership_format_label
+                 FROM user_book_editions ube
+                 LEFT JOIN item_owned_formats iof ON iof.id = ube.ownership_format_id
+                 WHERE ube.user_id = :user_id AND ube.edition_id = :edition_id 
                  LIMIT 1'
             );
             $stmt->execute([
@@ -86,7 +89,12 @@ final class MySqlUserBookEditionRepository implements UserBookEditionRepositoryI
     public function findById(int $id): ?UserBookEdition
     {
         try {
-            $stmt = $this->db->prepare('SELECT * FROM user_book_editions WHERE id = :id LIMIT 1');
+            $stmt = $this->db->prepare(
+                'SELECT ube.*, iof.id AS ownership_format_id, iof.value AS ownership_format_value, iof.label AS ownership_format_label
+                 FROM user_book_editions ube
+                 LEFT JOIN item_owned_formats iof ON iof.id = ube.ownership_format_id
+                 WHERE ube.id = :id LIMIT 1'
+            );
             $stmt->execute([':id' => $id]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -101,16 +109,19 @@ final class MySqlUserBookEditionRepository implements UserBookEditionRepositoryI
     public function findByUser(int $userId, array $filters = []): array
     {
         try {
-            $sql = 'SELECT * FROM user_book_editions WHERE user_id = :user_id';
+            $sql = 'SELECT ube.*, iof.id AS ownership_format_id, iof.value AS ownership_format_value, iof.label AS ownership_format_label
+                    FROM user_book_editions ube
+                    LEFT JOIN item_owned_formats iof ON iof.id = ube.ownership_format_id
+                    WHERE ube.user_id = :user_id';
             $params = [':user_id' => $userId];
 
             // Apply filters if needed
             if (isset($filters['ownership_type'])) {
-                $sql .= ' AND ownership_type = :ownership_type';
+                $sql .= ' AND ube.ownership_type = :ownership_type';
                 $params[':ownership_type'] = $filters['ownership_type'];
             }
 
-            $sql .= ' ORDER BY added_at DESC';
+            $sql .= ' ORDER BY ube.added_at DESC';
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
@@ -146,7 +157,7 @@ final class MySqlUserBookEditionRepository implements UserBookEditionRepositoryI
         }
     }
 
-    public function add(int $userId, int $editionId, array $statuses = []): UserBookEdition
+    public function add(int $userId, int $editionId, array $statuses = [], ?int $ownershipFormatId = null): UserBookEdition
     {
         $this->db->beginTransaction();
         try {
@@ -160,10 +171,10 @@ final class MySqlUserBookEditionRepository implements UserBookEditionRepositoryI
 
             // Create user book edition
             $stmt = $this->db->prepare(
-                'INSERT INTO user_book_editions (user_id, edition_id, added_at, current_page) 
-                 VALUES (:userId, :edition_id, NOW(), 0)'
+                'INSERT INTO user_book_editions (user_id, edition_id, added_at, current_page, ownership_format_id) 
+                 VALUES (:userId, :edition_id, NOW(), 0, :ownership_format_id)'
             );
-            $stmt->execute([':userId' => $userId, ':edition_id' => $editionId]);
+            $stmt->execute([':userId' => $userId, ':edition_id' => $editionId, ':ownership_format_id' => $ownershipFormatId]);
 
             $userBookEditionId = (int) $this->db->lastInsertId();
 
@@ -216,7 +227,8 @@ final class MySqlUserBookEditionRepository implements UserBookEditionRepositoryI
                         location,
                         is_digital,
                         total_sessions_completed,
-                        personal_notes
+                        personal_notes,
+                        ownership_format_id
                     ) VALUES (
                         :user_id,
                         :edition_id,
@@ -231,7 +243,8 @@ final class MySqlUserBookEditionRepository implements UserBookEditionRepositoryI
                         :location,
                         :is_digital,
                         :total_sessions_completed,
-                        :personal_notes
+                        :personal_notes,
+                        :ownership_format_id
                     )'
                 );
 
@@ -250,6 +263,7 @@ final class MySqlUserBookEditionRepository implements UserBookEditionRepositoryI
                     ':is_digital' => $data['is_digital'],
                     ':total_sessions_completed' => $data['total_sessions_completed'],
                     ':personal_notes' => $data['personal_notes'],
+                    ':ownership_format_id' => $data['ownership_format_id'],
                 ]);
 
                 $userBookEdition->setId((int) $this->db->lastInsertId());
@@ -269,7 +283,8 @@ final class MySqlUserBookEditionRepository implements UserBookEditionRepositoryI
                         location = :location,
                         is_digital = :is_digital,
                         total_sessions_completed = :total_sessions_completed,
-                        personal_notes = :personal_notes
+                        personal_notes = :personal_notes,
+                        ownership_format_id = :ownership_format_id
                      WHERE id = :id'
                 );
 
@@ -286,6 +301,7 @@ final class MySqlUserBookEditionRepository implements UserBookEditionRepositoryI
                     ':is_digital' => $data['is_digital'],
                     ':total_sessions_completed' => $data['total_sessions_completed'],
                     ':personal_notes' => $data['personal_notes'],
+                    ':ownership_format_id' => $data['ownership_format_id'],
                 ]);
 
                 $this->logInfo('UserBookEdition updated', ['id' => $userBookEdition->getId()]);
@@ -363,15 +379,18 @@ final class MySqlUserBookEditionRepository implements UserBookEditionRepositoryI
 
     public function updateStatuses(int $userId, int $editionId, array $statuses): void
     {
+        // Get user_book_edition id
+        $userBookEdition = $this->findByUserAndEdition($userId, $editionId);
+        if (!$userBookEdition) {
+            throw new RuntimeException("User book edition not found");
+        }
+
+        // Validar lógica de estados excluyentes
+        $this->validateStatusLogic($statuses);
+
+        $userEditionId = $userBookEdition->getId();
+
         try {
-            // Get user_book_edition id
-            $userBookEdition = $this->findByUserAndEdition($userId, $editionId);
-            if (!$userBookEdition) {
-                throw new RuntimeException("User book edition not found");
-            }
-
-            $userEditionId = $userBookEdition->getId();
-
             // Delete old statuses
             $this->db->prepare('DELETE FROM user_book_statuses WHERE user_edition_id = :user_edition_id')
                 ->execute([':user_edition_id' => $userEditionId]);
@@ -379,7 +398,7 @@ final class MySqlUserBookEditionRepository implements UserBookEditionRepositoryI
             // Insert new statuses
             if (!empty($statuses)) {
                 $stmt = $this->db->prepare(
-                    'INSERT INTO user_book_statuses (user_edition_id, status_id) 
+                    'INSERT INTO user_book_statuses (user_edition_id, status_id)
                      VALUES (:user_edition_id, :status_id)'
                 );
 
@@ -406,6 +425,41 @@ final class MySqlUserBookEditionRepository implements UserBookEditionRepositoryI
                 'edition_id' => $editionId
             ]);
             throw new RuntimeException("Could not update statuses: " . $e->getMessage(), 0, $e);
+        }
+    }
+
+    /**
+     * Valida que los estados sean lógicamente compatibles
+     *
+     * Reglas:
+     * - 'read' puede coexistir con cualquier otro estado (es histórico)
+     * - Solo uno de: 'to-read', 'reading', 're-reading', 'paused', 'abandoned' (estado actual de lectura)
+     * - Solo uno de: 'owned', 'want-to-buy' (estado de propiedad)
+     *
+     * @throws InvalidArgumentException si hay estados incompatibles
+     */
+    private function validateStatusLogic(array $statuses): void
+    {
+        // Categorías de estados
+        $readingStates = ['to-read', 'reading', 're-reading', 'paused', 'abandoned'];
+        $ownershipStates = ['owned', 'want-to-buy'];
+
+        // Validar estados de lectura (solo uno permitido)
+        $selectedReadingStates = array_intersect($statuses, $readingStates);
+        if (count($selectedReadingStates) > 1) {
+            throw new InvalidArgumentException(
+                "Solo se permite un estado de actividad de lectura simultáneamente. " .
+                "Recibidos: " . implode(', ', $selectedReadingStates)
+            );
+        }
+
+        // Validar estados de propiedad (solo uno permitido)
+        $selectedOwnershipStates = array_intersect($statuses, $ownershipStates);
+        if (count($selectedOwnershipStates) > 1) {
+            throw new InvalidArgumentException(
+                "Solo se permite un estado de propiedad simultáneamente. " .
+                "Recibidos: " . implode(', ', $selectedOwnershipStates)
+            );
         }
     }
 

@@ -120,7 +120,7 @@ export const useSessionsStore = defineStore('sessions', {
       try {
         Logger.debug('[SessionsStore] Loading session history for book:', bookId)
         const authStore = useAuthStore()
-        
+
         const response = await authStore.authenticatedApiCall('get_reading_session_history', {
           isbn: bookId
         })
@@ -133,6 +133,29 @@ export const useSessionsStore = defineStore('sessions', {
       } catch (err) {
         Logger.error('[SessionsStore] Error loading history:', err)
         this.sessionHistories[bookId] = []
+        return { success: false, message: err.message }
+      }
+    },
+
+    /**
+     * Carga el historial detallado de progreso de páginas de un libro
+     */
+    async loadProgressHistory(bookId) {
+      try {
+        Logger.debug('[SessionsStore] Loading progress history for book:', bookId)
+        const authStore = useAuthStore()
+
+        const response = await authStore.authenticatedApiCall('get_progress_history', {
+          isbn: bookId
+        })
+
+        if (response.data.status === 'success') {
+          const progressHistory = response.data.data || []
+          Logger.debug('[SessionsStore] Progress history loaded:', progressHistory.length, 'entries')
+          return { success: true, history: progressHistory }
+        }
+      } catch (err) {
+        Logger.error('[SessionsStore] Error loading progress history:', err)
         return { success: false, message: err.message }
       }
     },
@@ -411,8 +434,26 @@ export const useSessionsStore = defineStore('sessions', {
         })
 
         if (response.data.status === 'success') {
+          const result = response.data.data || {}
+          
+          // ✅ Si vienen estados actualizados, actualizar el libro en el store
+          if (result.updatedStatuses && Array.isArray(result.updatedStatuses)) {
+            // Usar import dinámico para evitar dependencias circulares
+            import('./books').then(({ useBooksStore }) => {
+              const bookStore = useBooksStore()
+              const book = bookStore.books.find(b => b.isbn === bookId)
+              
+              if (book) {
+                book.userStatuses = result.updatedStatuses
+                Logger.debug('[SessionsStore] Book statuses updated in store:', result.updatedStatuses)
+              }
+            }).catch(err => {
+              Logger.error('[SessionsStore] Error updating book statuses:', err)
+            })
+          }
+          
           Logger.debug('[SessionsStore] Progress updated successfully')
-          return { success: true }
+          return { success: true, data: result }
         } else {
           throw new Error(response.data.message || 'Failed to update progress')
         }

@@ -155,6 +155,23 @@ export const useMenuStore = defineStore('menu', {
             ]
           },
           {
+            title: "Videojuegos",
+            items: [
+              {
+                name: "Buscar Videojuegos",
+                path: "/games",
+                icon: "fas fa-gamepad",
+                description: "Buscar nuevos videojuegos"
+              },
+              {
+                name: "Mis Videojuegos",
+                path: "/dashboard/games",
+                icon: "fas fa-trophy",
+                description: "Dashboard de tus videojuegos"
+              }
+            ]
+          },
+          {
             title: "Próximamente",
             items: [
               {

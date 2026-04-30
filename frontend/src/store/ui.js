@@ -39,7 +39,10 @@ export const useUIStore = defineStore('ui', {
     
     // Loading global
     globalLoading: false,
-    loadingMessage: ''
+    loadingMessage: '',
+
+    // Ownership formats cache (keyed by entityType: 'book'|'movie'|'game'|'album')
+    ownershipFormats: {}
   }),
 
   getters: {
@@ -387,6 +390,31 @@ export const useUIStore = defineStore('ui', {
       this.globalLoading = false
       this.loadingMessage = ''
       Logger.debug('[UIStore] Global loading hidden')
+    },
+
+    /**
+     * Fetches and caches ownership formats for a given entity type.
+     * Returns cached result if already fetched.
+     */
+    async fetchOwnershipFormats(entityType) {
+      if (this.ownershipFormats[entityType]) {
+        return this.ownershipFormats[entityType]
+      }
+      try {
+        const { useAuthStore } = await import('./auth')
+        const authStore = useAuthStore()
+        const response = await authStore.authenticatedApiCall('get_ownership_formats', {
+          entityType
+        })
+        if (response.data.status === 'success') {
+          this.ownershipFormats[entityType] = response.data.data?.formats || []
+          Logger.debug(`[UIStore] Fetched ${this.ownershipFormats[entityType].length} ownership formats for ${entityType}`)
+          return this.ownershipFormats[entityType]
+        }
+      } catch (err) {
+        Logger.error('[UIStore] Error fetching ownership formats:', err)
+      }
+      return []
     }
   }
 })

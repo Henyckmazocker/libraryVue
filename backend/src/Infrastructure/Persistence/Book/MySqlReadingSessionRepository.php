@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\Persistence\Book;
 
 use App\Domain\Repository\Book\ReadingSessionRepositoryInterface;
+use App\Domain\Repository\Book\UserBookEditionRepositoryInterface;
 use App\Infrastructure\Persistence\Concerns\LoggableTrait;
 use PDO;
 use PDOException;
@@ -21,7 +22,8 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
 
     public function __construct(
         private readonly PDO $db,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly UserBookEditionRepositoryInterface $userBookEditionRepository
     ) {}
 
     public function create(
@@ -32,31 +34,49 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
     ): int {
         try {
             $userId = (int) $userId;
+
+            // Get edition_id from ISBN
+            $editionId = $this->getEditionIdFromIsbn($isbn);
+            if (!$editionId) {
+                throw new RuntimeException("Edition not found for ISBN: {$isbn}");
+            }
+
+            // ✅ PREVENCIÓN: Verificar que no haya otra sesión activa
+            $existingActive = $this->getActive($userId, $isbn);
+            if ($existingActive !== null) {
+                $this->logError('Attempted to create duplicate active session', null, [
+                    'userId' => $userId,
+                    'isbn' => $isbn,
+                    'existingSessionId' => $existingActive['id']
+                ]);
+                throw new RuntimeException(
+                    "Cannot create session: User already has an active reading session for this book (Session ID: {$existingActive['id']})"
+                );
+            }
+
             $sessionNumber = $sessionNumber ?? $this->getNextSessionNumber($userId, $isbn);
 
             $sql = "
-                INSERT INTO reading_sessions 
-                (user_id, book_isbn, session_number, started_at, status, final_page)
-                VALUES (:userId, :isbn, :sessionNumber, NOW(), 'active', :startPage)
+                INSERT INTO reading_sessions
+                (user_id, edition_id, session_number, start_date, is_active, start_page)
+                VALUES (:userId, :editionId, :sessionNumber, NOW(), TRUE, :startPage)
             ";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':userId' => $userId,
-                ':isbn' => $isbn,
+                ':editionId' => $editionId,
                 ':sessionNumber' => $sessionNumber,
-                ':startPage' => $startPage
+                ':startPage' => $startPage ?? 0
             ]);
 
             $sessionId = (int) $this->db->lastInsertId();
-
-            // Update user_books active session
-            $this->updateUserBookActiveSession($userId, $isbn, $sessionId);
 
             $this->logInfo('Reading session created', [
                 'sessionId' => $sessionId,
                 'userId' => $userId,
                 'isbn' => $isbn,
+                'editionId' => $editionId,
                 'sessionNumber' => $sessionNumber
             ]);
 
@@ -76,19 +96,36 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
         try {
             $userId = (int) $userId;
 
+            // Get edition_id from ISBN
+            $editionId = $this->getEditionIdFromIsbn($isbn);
+            if (!$editionId) {
+                return null; // No edition found
+            }
+
             $sql = "
-                SELECT * FROM reading_sessions
-                WHERE user_id = :userId 
-                  AND book_isbn = :isbn 
-                  AND status = 'active'
-                ORDER BY started_at DESC
+                SELECT
+                    *,
+                    CASE
+                        WHEN is_active = TRUE AND end_date IS NULL THEN 'active'
+                        WHEN is_active = FALSE AND end_date IS NOT NULL THEN 'completed'
+                        ELSE 'unknown'
+                    END as status,
+                    start_date as started_at,
+                    end_date as completed_at,
+                    end_page as final_page,
+                    notes as session_notes
+                FROM reading_sessions
+                WHERE user_id = :userId
+                  AND edition_id = :editionId
+                  AND is_active = TRUE
+                ORDER BY start_date DESC
                 LIMIT 1
             ";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':userId' => $userId,
-                ':isbn' => $isbn
+                ':editionId' => $editionId
             ]);
 
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -110,23 +147,17 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
 
             $sql = "
                 UPDATE reading_sessions
-                SET status = 'completed',
-                    completed_at = NOW(),
-                    final_page = :finalPage
+                SET is_active = FALSE,
+                    end_date = NOW(),
+                    end_page = :finalPage
                 WHERE id = :sessionId
             ";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':sessionId' => $sessionId,
-                ':finalPage' => $finalPage
+                ':finalPage' => $finalPage ?? 0
             ]);
-
-            // Get session info to update user_books
-            $session = $this->getSessionById($sessionId);
-            if ($session) {
-                $this->updateUserBookOnCompletion($session['user_id'], $session['book_isbn']);
-            }
 
             $this->logInfo('Reading session completed', [
                 'sessionId' => $sessionId,
@@ -146,8 +177,8 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
 
             $sql = "
                 UPDATE reading_sessions
-                SET status = 'paused',
-                    session_notes = CONCAT(COALESCE(session_notes, ''), :reason)
+                SET is_active = FALSE,
+                    notes = CONCAT(COALESCE(notes, ''), :reason)
                 WHERE id = :sessionId
             ";
 
@@ -175,8 +206,8 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
 
             $sql = "
                 UPDATE reading_sessions
-                SET status = 'active'
-                WHERE id = :sessionId AND status = 'paused'
+                SET is_active = TRUE
+                WHERE id = :sessionId AND is_active = FALSE
             ";
 
             $stmt = $this->db->prepare($sql);
@@ -197,9 +228,9 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
 
             $sql = "
                 UPDATE reading_sessions
-                SET status = 'abandoned',
-                    completed_at = NOW(),
-                    session_notes = CONCAT(COALESCE(session_notes, ''), :reason)
+                SET is_active = FALSE,
+                    end_date = NOW(),
+                    notes = CONCAT(COALESCE(notes, ''), :reason)
                 WHERE id = :sessionId
             ";
 
@@ -208,12 +239,6 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
                 ':sessionId' => $sessionId,
                 ':reason' => $reason ? "\n[ABANDONED] $reason" : ''
             ]);
-
-            // Clear active session from user_books
-            $session = $this->getSessionById($sessionId);
-            if ($session) {
-                $this->clearUserBookActiveSession($session['user_id'], $session['book_isbn']);
-            }
 
             $this->logInfo('Reading session abandoned', [
                 'sessionId' => $sessionId,
@@ -230,9 +255,6 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
     {
         try {
             $sessionId = (int) $sessionId;
-
-            // Get session info before deletion
-            $session = $this->getSessionById($sessionId);
 
             if (!$keepHistory) {
                 $deleteSql = "
@@ -257,11 +279,6 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
             $stmt = $this->db->prepare($sql);
             $stmt->execute([':sessionId' => $sessionId]);
 
-            // Clear active session reference if it matches
-            if ($session) {
-                $this->clearUserBookActiveSession($session['user_id'], $session['book_isbn'], $sessionId);
-            }
-
             $this->logInfo('Reading session deleted', [
                 'sessionId' => $sessionId,
                 'keepHistory' => $keepHistory
@@ -278,16 +295,33 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
         try {
             $userId = (int) $userId;
 
+            // Get edition_id from ISBN
+            $editionId = $this->getEditionIdFromIsbn($isbn);
+            if (!$editionId) {
+                return []; // No edition found
+            }
+
             $sql = "
-                SELECT * FROM reading_sessions
-                WHERE user_id = :userId AND book_isbn = :isbn
-                ORDER BY started_at DESC
+                SELECT
+                    *,
+                    CASE
+                        WHEN is_active = TRUE AND end_date IS NULL THEN 'active'
+                        WHEN is_active = FALSE AND end_date IS NOT NULL THEN 'completed'
+                        ELSE 'unknown'
+                    END as status,
+                    start_date as started_at,
+                    end_date as completed_at,
+                    end_page as final_page,
+                    notes as session_notes
+                FROM reading_sessions
+                WHERE user_id = :userId AND edition_id = :editionId
+                ORDER BY start_date DESC
             ";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':userId' => $userId,
-                ':isbn' => $isbn
+                ':editionId' => $editionId
             ]);
 
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -336,11 +370,12 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
             $userId = (int) $userId;
 
             $sql = "
-                SELECT rs.*, b.title, b.author, b.total_pages
+                SELECT rs.*, be.title, w.authors
                 FROM reading_sessions rs
-                INNER JOIN books b ON rs.book_isbn = b.isbn
-                WHERE rs.user_id = :userId AND rs.status = 'active'
-                ORDER BY rs.started_at DESC
+                INNER JOIN book_editions be ON rs.edition_id = be.edition_id
+                INNER JOIN book_works w ON be.work_id = w.work_id
+                WHERE rs.user_id = :userId AND rs.is_active = TRUE
+                ORDER BY rs.start_date DESC
             ";
 
             $stmt = $this->db->prepare($sql);
@@ -360,20 +395,19 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
             $userId = (int) $userId;
 
             $sql = "
-                SELECT rs.*, b.title, b.author
+                SELECT rs.*, be.title, w.authors
                 FROM reading_sessions rs
-                INNER JOIN books b ON rs.book_isbn = b.isbn
+                INNER JOIN book_editions be ON rs.edition_id = be.edition_id
+                INNER JOIN book_works w ON be.work_id = w.work_id
                 WHERE rs.user_id = :userId
             ";
 
             $params = [':userId' => $userId];
 
-            if ($status !== null) {
-                $sql .= " AND rs.status = :status";
-                $params[':status'] = $status;
-            }
+            // Note: is_active is boolean, so we ignore the status parameter filter
+            // as the current schema doesn't support multiple status types
 
-            $sql .= " ORDER BY rs.started_at DESC";
+            $sql .= " ORDER BY rs.start_date DESC";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
@@ -394,16 +428,22 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
         try {
             $userId = (int) $userId;
 
+            // Get edition_id from ISBN
+            $editionId = $this->getEditionIdFromIsbn($isbn);
+            if (!$editionId) {
+                return 1; // No edition found, start with 1
+            }
+
             $sql = "
                 SELECT COALESCE(MAX(session_number), 0) + 1 as next_number
                 FROM reading_sessions
-                WHERE user_id = :userId AND book_isbn = :isbn
+                WHERE user_id = :userId AND edition_id = :editionId
             ";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':userId' => $userId,
-                ':isbn' => $isbn
+                ':editionId' => $editionId
             ]);
 
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -424,14 +464,13 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
             $userId = (int) $userId;
 
             $sql = "
-                SELECT 
+                SELECT
                     COUNT(*) as total_sessions,
-                    SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_sessions,
-                    SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_sessions,
-                    SUM(CASE WHEN status = 'abandoned' THEN 1 ELSE 0 END) as abandoned_sessions,
-                    SUM(CASE WHEN status = 'paused' THEN 1 ELSE 0 END) as paused_sessions,
-                    COUNT(DISTINCT book_isbn) as unique_books_read,
-                    AVG(TIMESTAMPDIFF(DAY, started_at, completed_at)) as avg_days_to_complete
+                    SUM(CASE WHEN end_date IS NOT NULL THEN 1 ELSE 0 END) as completed_sessions,
+                    SUM(CASE WHEN is_active = TRUE THEN 1 ELSE 0 END) as active_sessions,
+                    SUM(CASE WHEN is_active = FALSE AND end_date IS NULL THEN 1 ELSE 0 END) as paused_sessions,
+                    COUNT(DISTINCT edition_id) as unique_books_read,
+                    AVG(TIMESTAMPDIFF(DAY, start_date, end_date)) as avg_days_to_complete
                 FROM reading_sessions
                 WHERE user_id = :userId
             ";
@@ -453,18 +492,24 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
         try {
             $userId = (int) $userId;
 
+            // Get edition_id from ISBN
+            $editionId = $this->getEditionIdFromIsbn($isbn);
+            if (!$editionId) {
+                return false; // No edition found
+            }
+
             $sql = "
                 SELECT COUNT(*) as count
                 FROM reading_sessions
-                WHERE user_id = :userId 
-                  AND book_isbn = :isbn 
-                  AND status = 'completed'
+                WHERE user_id = :userId
+                  AND edition_id = :editionId
+                  AND end_date IS NOT NULL
             ";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':userId' => $userId,
-                ':isbn' => $isbn
+                ':editionId' => $editionId
             ]);
 
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -484,18 +529,24 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
         try {
             $userId = (int) $userId;
 
+            // Get edition_id from ISBN
+            $editionId = $this->getEditionIdFromIsbn($isbn);
+            if (!$editionId) {
+                return 0; // No edition found
+            }
+
             $sql = "
                 SELECT COUNT(*) as count
                 FROM reading_sessions
-                WHERE user_id = :userId 
-                  AND book_isbn = :isbn 
-                  AND status = 'completed'
+                WHERE user_id = :userId
+                  AND edition_id = :editionId
+                  AND end_date IS NOT NULL
             ";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':userId' => $userId,
-                ':isbn' => $isbn
+                ':editionId' => $editionId
             ]);
 
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -514,17 +565,59 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
     {
         try {
             $userId = (int) $userId;
+            
+            // Get edition_id from ISBN
+            $editionId = $this->getEditionIdFromIsbn($isbn);
+            if (!$editionId) {
+                $this->logError('Cannot update statuses: edition not found', null, [
+                    'userId' => $userId,
+                    'isbn' => $isbn
+                ]);
+                return; // Salida silenciosa si no se encuentra la edición
+            }
+
             $hasCompleted = $this->hasCompletedBook($userId, $isbn);
             $hasActive = $this->getActive($userId, $isbn) !== null;
 
-            // This would interact with UserBookRepository to update statuses
-            // Implementation depends on status management strategy
-            $this->logInfo('Book statuses update requested', [
+            // Obtener estados actuales
+            $currentStatuses = $this->userBookEditionRepository->getStatusesForEdition($userId, $editionId);
+            
+            // Estados de propiedad que siempre se mantienen
+            $ownershipStates = ['owned', 'want-to-buy'];
+            $ownershipStatuses = array_intersect($currentStatuses, $ownershipStates);
+
+            // Determinar nuevos estados basados en sesiones
+            $newStatuses = $ownershipStatuses; // Mantener siempre ownership
+
+            if ($hasActive) {
+                // Hay sesión activa → debe estar en 'reading' o 're-reading'
+                if ($hasCompleted) {
+                    $newStatuses[] = 're-reading'; // Ya completó antes, es relectura
+                } else {
+                    $newStatuses[] = 'reading'; // Primera lectura
+                }
+            }
+
+            if ($hasCompleted) {
+                // Ha completado al menos una vez → añadir 'read'
+                $newStatuses[] = 'read';
+            }
+
+            // Eliminar duplicados y actualizar
+            $newStatuses = array_unique($newStatuses);
+
+            $this->logInfo('Updating book statuses based on sessions', [
                 'userId' => $userId,
                 'isbn' => $isbn,
+                'editionId' => $editionId,
                 'hasCompleted' => $hasCompleted,
-                'hasActive' => $hasActive
+                'hasActive' => $hasActive,
+                'previousStatuses' => $currentStatuses,
+                'newStatuses' => $newStatuses
             ]);
+
+            // Actualizar estados en la base de datos
+            $this->userBookEditionRepository->updateStatuses($userId, $editionId, $newStatuses);
 
         } catch (PDOException $e) {
             $this->logError('Error updating book statuses', $e, [
@@ -532,6 +625,12 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
                 'isbn' => $isbn
             ]);
             throw new RuntimeException("Could not update book statuses: " . $e->getMessage(), 0, $e);
+        } catch (\Exception $e) {
+            $this->logError('Unexpected error updating book statuses', $e, [
+                'userId' => $userId,
+                'isbn' => $isbn
+            ]);
+            throw new RuntimeException("Unexpected error updating book statuses: " . $e->getMessage(), 0, $e);
         }
     }
 
@@ -546,54 +645,34 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
         return $result ?: null;
     }
 
-    private function updateUserBookActiveSession(int $userId, string $isbn, int $sessionId): void
+    /**
+     * Get edition_id from ISBN (ISBN-13 or ISBN-10)
+     */
+    private function getEditionIdFromIsbn(string $isbn): ?int
     {
-        $sql = "
-            UPDATE user_books
-            SET active_reading_session_id = :sessionId
-            WHERE user_id = :userId AND book_isbn = :isbn
-        ";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([
-            ':sessionId' => $sessionId,
-            ':userId' => $userId,
-            ':isbn' => $isbn
-        ]);
-    }
+        try {
+            $this->logInfo('Looking up edition_id from ISBN', ['isbn' => $isbn]);
 
-    private function clearUserBookActiveSession(int $userId, string $isbn, ?int $onlyIfMatches = null): void
-    {
-        $sql = "
-            UPDATE user_books
-            SET active_reading_session_id = NULL
-            WHERE user_id = :userId AND book_isbn = :isbn
-        ";
+            $sql = "
+                SELECT edition_id FROM book_editions
+                WHERE isbn_13 = :isbn1 OR isbn_10 = :isbn2
+                LIMIT 1
+            ";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':isbn1' => $isbn, ':isbn2' => $isbn]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $params = [':userId' => $userId, ':isbn' => $isbn];
+            $this->logInfo('Edition lookup result', [
+                'isbn' => $isbn,
+                'result' => $result,
+                'edition_id' => $result ? $result['edition_id'] : null
+            ]);
 
-        if ($onlyIfMatches !== null) {
-            $sql .= " AND active_reading_session_id = :sessionId";
-            $params[':sessionId'] = $onlyIfMatches;
+            return $result ? (int) $result['edition_id'] : null;
+        } catch (PDOException $e) {
+            $this->logError('Error getting edition_id from ISBN', $e, ['isbn' => $isbn]);
+            return null;
         }
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-    }
-
-    private function updateUserBookOnCompletion(int $userId, string $isbn): void
-    {
-        $sql = "
-            UPDATE user_books
-            SET total_sessions_completed = total_sessions_completed + 1,
-                last_session_completed_at = NOW(),
-                active_reading_session_id = NULL
-            WHERE user_id = :userId AND book_isbn = :isbn
-        ";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([
-            ':userId' => $userId,
-            ':isbn' => $isbn
-        ]);
     }
 
     protected function getLogger(): ?LoggerInterface

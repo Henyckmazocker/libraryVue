@@ -11,7 +11,7 @@ use App\Domain\Repository\Book\EditionRepositoryInterface;
 use App\Domain\Repository\Book\WorkRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Book\UserBookEditionRepositoryInterface;
-use App\Domain\Service\BookImportService;
+use App\Domain\Services\BookImportServiceInterface;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\AddBookCommand;
 use Psr\Log\LoggerInterface;
@@ -21,7 +21,7 @@ use RuntimeException;
 class AddBookUseCase extends AbstractUseCase
 {
     public function __construct(
-        private readonly BookImportService $bookImportService,
+        private readonly BookImportServiceInterface $bookImportService,
         private readonly EditionRepositoryInterface $editionRepository,
         private readonly WorkRepositoryInterface $workRepository,
         private readonly UserRepositoryInterface $userRepository,
@@ -64,6 +64,16 @@ class AddBookUseCase extends AbstractUseCase
                 throw new InvalidArgumentException('You already have this book in your library.');
             }
             
+            // Backfill pages if missing in DB but provided in command
+            if ($edition->getPages() === null && $command->pages !== null) {
+                $this->editionRepository->updatePages($edition->getEditionId(), $command->pages);
+                $edition->setPages($command->pages);
+                $this->logger->info('Backfilled missing pages for existing edition', [
+                    'edition_id' => $edition->getEditionId(),
+                    'pages' => $command->pages
+                ]);
+            }
+            
             // Get the associated work
             $work = $this->workRepository->findById($edition->getWorkId());
         } else {
@@ -85,17 +95,18 @@ class AddBookUseCase extends AbstractUseCase
                     'publish_date' => $command->publicationYear ? (string)$command->publicationYear : null,
                     'number_of_pages' => $command->pages,
                     'description' => $command->description,
+                    'subjects' => $command->genres, // Pass genres from command
                     'covers' => []
                 ]);
-                
+
                 $work = $result['work'];
                 $edition = $result['edition'];
-                
+
                 $this->logger->info('BookImportService created work and edition', [
                     'work_id' => $work->getWorkId(),
                     'edition_id' => $edition->getEditionId()
                 ]);
-                
+
             } catch (\Exception $e) {
                 // If BookImportService fails, fall back to manual creation
                 $this->logger->warning('BookImportService failed, falling back to manual creation', [
@@ -111,15 +122,15 @@ class AddBookUseCase extends AbstractUseCase
                 
                 if (!$work) {
                     $syntheticWorkKey = 'synthetic_' . md5($command->title . implode('', $authors));
-                    
+
                     $work = Work::fromArray([
                         'title' => $command->title,
                         'authors' => $authors,
-                        'subjects' => [],
+                        'subjects' => $command->genres, // Pass genres from command
                         'first_publish_year' => $command->publicationYear,
                         'synthetic_work_key' => $syntheticWorkKey
                     ]);
-                    
+
                     $work->markAsSynthetic($syntheticWorkKey);
                     $work = $this->workRepository->save($work);
                 }
@@ -149,7 +160,8 @@ class AddBookUseCase extends AbstractUseCase
         $userBookEdition = $this->userBookEditionRepository->add(
             $command->userId,
             $edition->getEditionId(),
-            $command->statuses ?? []
+            $command->statuses ?? [],
+            $command->ownershipFormatId
         );
 
         // Update user's work rating if provided

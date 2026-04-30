@@ -38,7 +38,7 @@ interface UserBookEditionRepositoryInterface
     /**
      * Add an edition to a user's library
      */
-    public function add(int $userId, int $editionId, array $statuses = []): UserBookEdition;
+    public function add(int $userId, int $editionId, array $statuses = [], ?int $ownershipFormatId = null): UserBookEdition;
 
     /**
      * Save (insert or update) a user book edition

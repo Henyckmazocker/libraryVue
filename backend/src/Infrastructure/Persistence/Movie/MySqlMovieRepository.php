@@ -94,11 +94,12 @@ final class MySqlMovieRepository implements MovieRepositoryInterface
         try {
             $persistenceData = $this->mapper->toPersistence($movie);
             
-            $sql = "INSERT INTO movie (isbn, title, original_title, director, author, coverUrl, rating, description, addedTimestamp, genres) " .
-                   "VALUES (:isbn, :title, :original_title, :director, :author, :coverUrl, :rating, :description, :addedTimestamp, :genres) " .
+            $sql = "INSERT INTO movie (isbn, title, original_title, director, author, coverUrl, rating, description, addedTimestamp, genres, media_type, total_seasons) " .
+                   "VALUES (:isbn, :title, :original_title, :director, :author, :coverUrl, :rating, :description, :addedTimestamp, :genres, :media_type, :total_seasons) " .
                    "ON DUPLICATE KEY UPDATE " .
                    "title = VALUES(title), original_title = VALUES(original_title), director = VALUES(director), author = VALUES(author), coverUrl = VALUES(coverUrl), " .
-                   "rating = VALUES(rating), description = VALUES(description), addedTimestamp = VALUES(addedTimestamp), genres = VALUES(genres)";
+                   "rating = VALUES(rating), description = VALUES(description), addedTimestamp = VALUES(addedTimestamp), genres = VALUES(genres), " .
+                   "media_type = VALUES(media_type), total_seasons = VALUES(total_seasons)";
             
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
@@ -111,7 +112,9 @@ final class MySqlMovieRepository implements MovieRepositoryInterface
                 ':rating' => $persistenceData['rating'],
                 ':description' => $persistenceData['description'],
                 ':addedTimestamp' => $persistenceData['addedTimestamp'],
-                ':genres' => $persistenceData['genres']
+                ':genres' => $persistenceData['genres'],
+                ':media_type' => $persistenceData['media_type'],
+                ':total_seasons' => $persistenceData['total_seasons']
             ]);
 
             $this->db->commit();

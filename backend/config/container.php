@@ -41,6 +41,7 @@ return function (): ContainerInterface {
         
         \App\Infrastructure\Persistence\Book\Mappers\BookDataMapper::class => DI\autowire(),
         \App\Infrastructure\Persistence\Movie\Mappers\MovieDataMapper::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Game\Mappers\GameDataMapper::class => DI\autowire(),
         \App\Infrastructure\Persistence\User\Mappers\UserDataMapper::class => DI\autowire(),
         \App\Infrastructure\Persistence\Book\Mappers\WorkDataMapper::class => DI\autowire(),
         \App\Infrastructure\Persistence\Book\Mappers\EditionDataMapper::class => DI\autowire(),
@@ -54,6 +55,17 @@ return function (): ContainerInterface {
         \App\Domain\Repository\User\UserRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\User\MySqlUserRepository::class),
         \App\Domain\Repository\Book\BookRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Book\MySqlBookRepository::class),
         \App\Domain\Repository\Movie\MovieRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Movie\MySqlMovieRepository::class),
+        \App\Domain\Repository\Game\GameRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Game\MySqlGameRepository::class),
+        \App\Domain\Repository\Game\UserGameRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Game\MySqlUserGameRepository::class),
+        \App\Domain\Repository\Game\GameTagRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Game\MySqlGameTagRepository::class),
+        \App\Domain\Repository\Game\GameNoteRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Game\MySqlGameNoteRepository::class),
+        // Album repositories
+        \App\Domain\Repository\Album\AlbumRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Album\MySqlAlbumRepository::class),
+        \App\Domain\Repository\Album\UserAlbumRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Album\MySqlUserAlbumRepository::class),
+        \App\Domain\Repository\Album\AlbumTagRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Album\MySqlAlbumTagRepository::class),
+        \App\Domain\Repository\Album\AlbumNoteRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Album\MySqlAlbumNoteRepository::class),
+        // Owned-format lookup repository (shared across all entity types)
+        \App\Domain\Repository\OwnedFormatRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Common\MySqlOwnedFormatRepository::class),
         \App\Domain\Repository\Book\WorkRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Book\MySqlWorkRepository::class),
         \App\Domain\Repository\Book\EditionRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Book\MySqlEditionRepository::class),
         \App\Domain\Repository\Book\UserBookEditionRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Book\MySqlUserBookEditionRepository::class),
@@ -65,8 +77,21 @@ return function (): ContainerInterface {
         \App\Domain\Repository\Book\ReadingProgressRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Book\MySqlReadingProgressRepository::class),
         \App\Domain\Repository\Movie\MovieTagRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Movie\MySqlMovieTagRepository::class),
         \App\Domain\Repository\Movie\MovieNoteRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Movie\MySqlMovieNoteRepository::class),
+        \App\Domain\Repository\Movie\SeriesSeasonRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Movie\MySqlSeriesSeasonRepository::class),
+        \App\Domain\Repository\Book\EditionNoteRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Book\MySqlEditionNoteRepository::class),
         
         // Note: Most repositories use 'db' as the constructor parameter name for PDO
+        \App\Infrastructure\Persistence\Game\MySqlGameRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Game\MySqlUserGameRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Game\MySqlGameTagRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Game\MySqlGameNoteRepository::class => DI\autowire(),
+        // Album persistence
+        \App\Infrastructure\Persistence\Album\MySqlAlbumRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Album\MySqlUserAlbumRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Album\MySqlAlbumTagRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Album\MySqlAlbumNoteRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Album\Mappers\AlbumDataMapper::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Common\MySqlOwnedFormatRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\User\MySqlUserRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Book\MySqlBookRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Movie\MySqlMovieRepository::class => DI\autowire(),
@@ -81,6 +106,8 @@ return function (): ContainerInterface {
         \App\Infrastructure\Persistence\Book\MySqlReadingProgressRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Movie\MySqlMovieTagRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Movie\MySqlMovieNoteRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Movie\MySqlSeriesSeasonRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Book\MySqlEditionNoteRepository::class => DI\autowire(),
         
         // ===========================
         // DOMAIN SERVICES
@@ -91,13 +118,26 @@ return function (): ContainerInterface {
             return new \App\Infrastructure\Cache\CacheService($cacheDir, $c->get(LoggerInterface::class));
         },
         
-        \App\Domain\Service\BookImportService::class => DI\autowire(),
+        \App\Domain\Services\BookImportServiceInterface::class => DI\get(\App\Domain\Services\BookImportService::class),
+        \App\Domain\Services\BookImportService::class => DI\autowire(),
         
         \App\Domain\Services\OpenLibraryService::class => DI\autowire()
             ->constructorParameter('cache', DI\get(\App\Infrastructure\Cache\CacheService::class))
             ->constructorParameter('logger', DI\get(LoggerInterface::class)),
             
         \App\Domain\Services\GoogleBooksService::class => DI\autowire()
+            ->constructorParameter('cache', DI\get(\App\Infrastructure\Cache\CacheService::class))
+            ->constructorParameter('logger', DI\get(LoggerInterface::class)),
+            
+        \App\Domain\Services\IGDBService::class => DI\autowire()
+            ->constructorParameter('cache', DI\get(\App\Infrastructure\Cache\CacheService::class))
+            ->constructorParameter('logger', DI\get(LoggerInterface::class)),
+
+        \App\Domain\Services\SpotifyService::class => DI\autowire()
+            ->constructorParameter('cache', DI\get(\App\Infrastructure\Cache\CacheService::class))
+            ->constructorParameter('logger', DI\get(LoggerInterface::class)),
+
+        \App\Domain\Services\LastFmService::class => DI\autowire()
             ->constructorParameter('cache', DI\get(\App\Infrastructure\Cache\CacheService::class))
             ->constructorParameter('logger', DI\get(LoggerInterface::class)),
             
@@ -112,6 +152,7 @@ return function (): ContainerInterface {
         // ===========================
         
         \App\Domain\UseCases\Auth\LoginUserUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Auth\UpdateUserProfileUseCase::class => DI\autowire(),
         
         // ===========================
         // USE CASES - Books
@@ -141,11 +182,38 @@ return function (): ContainerInterface {
         \App\Domain\UseCases\Movies\GetTrendingMoviesUseCase::class => DI\autowire(),
         
         // ===========================
+        // USE CASES - Games
+        // ===========================
+        
+        \App\Domain\UseCases\Games\AddGameUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Games\GetGamesUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Games\DeleteGameUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Games\UpdateGameRatingUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Games\UpdateGameUserStatusesUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Games\GetGameAllowedStatusesUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Games\EditUserGameUseCase::class => DI\autowire(),
+
+        // ===========================
+        // USE CASES - Albums
+        // ===========================
+
+        \App\Domain\UseCases\Albums\AddAlbumUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Albums\DeleteAlbumUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Albums\GetAlbumsUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Albums\UpdateAlbumRatingUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Albums\UpdateAlbumUserStatusesUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Albums\GetAlbumAllowedStatusesUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Albums\EditUserAlbumUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Albums\GetTrendingAlbumsUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Albums\GetListeningStatsUseCase::class => DI\autowire(),
+        
+        // ===========================
         // USE CASES - Library
         // ===========================
         
         \App\Domain\UseCases\GetLibraryUseCase::class => DI\autowire(),
         \App\Domain\UseCases\GetLibraryItemsUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\GetOwnershipFormatsUseCase::class => DI\autowire(),
         
         // ===========================
         // MIDDLEWARE
@@ -162,6 +230,8 @@ return function (): ContainerInterface {
         \App\Controllers\AuthController::class => DI\autowire(),
         \App\Controllers\BookController::class => DI\autowire(),
         \App\Controllers\MovieController::class => DI\autowire(),
+        \App\Controllers\GameController::class => DI\autowire(),
+        \App\Controllers\AlbumController::class => DI\autowire(),
         \App\Controllers\LibraryController::class => DI\autowire(),
         \App\Controllers\LibraryXController::class => DI\autowire(),
         \App\Controllers\StatsController::class => DI\autowire(),

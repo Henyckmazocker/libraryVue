@@ -88,7 +88,7 @@ export default {
     },
     message: {
       type: String,
-      required: true
+      default: ''
     },
     details: {
       type: Array,

@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 import { useAuthStore } from './auth'
+import { fetchLibraryItems } from './_libraryCache'
+import { handleStoreError } from '@/utils/storeHelpers'
 import Logger from '@/utils/logger'
 
 export const useBooksStore = defineStore('books', {
@@ -27,8 +29,8 @@ export const useBooksStore = defineStore('books', {
     averageRating: (state) => {
       const rated = state.books.filter(b => b.user_rating && b.user_rating > 0)
       if (rated.length === 0) return 0
-      const sum = rated.reduce((acc, book) => acc + book.user_rating, 0)
-      return (sum / rated.length).toFixed(2)
+      const sum = rated.reduce((acc, book) => acc + parseFloat(book.user_rating), 0)
+      return (sum / rated.length).toFixed(1)
     },
     
     booksByStatus: (state) => {
@@ -73,24 +75,14 @@ export const useBooksStore = defineStore('books', {
       
       try {
         Logger.debug('[BooksStore] Fetching user books...')
-        const authStore = useAuthStore()
-        const response = await authStore.authenticatedApiCall('get_library_items')
+        const data = await fetchLibraryItems()
         
-        if (response.data.status === 'success') {
-          Logger.debug('[BooksStore] Response data:', response.data)
-          
-          const data = response.data.data || {}
-          const booksArray = Array.isArray(data.books) ? data.books : []
-          
-          this.books = booksArray.map(book => ({
-            ...book,
-            itemType: 'book'
-          }))
-          
-          Logger.debug(`[BooksStore] Fetched ${this.books.length} books`)
-        } else {
-          throw new Error(response.data.message || 'Failed to fetch books')
-        }
+        this.books = data.books.map(book => ({
+          ...book,
+          itemType: 'book'
+        }))
+        
+        Logger.debug(`[BooksStore] Fetched ${this.books.length} books`)
       } catch (err) {
         this.error = this._handleError(err, 'Failed to fetch books')
         Logger.error('[BooksStore] Error fetching books:', err)
@@ -179,7 +171,8 @@ export const useBooksStore = defineStore('books', {
           userStatuses: statuses,
           allowedStatuses: this.allowedStatuses,
           rating: book.user_rating || null,
-          genres: book.genres || []
+          genres: book.genres || [],
+          ownership_format_id: book.ownership_format_id || null
         }
 
         const payload = { book: bookData }
@@ -463,26 +456,7 @@ export const useBooksStore = defineStore('books', {
      * @private
      */
     _handleError(err, defaultMessage = 'Operation failed') {
-      if (err.response) {
-        const status = err.response.status
-        const data = err.response.data
-        
-        if (status === 401) {
-          return 'Authentication required. Please login again.'
-        } else if (status === 403) {
-          return 'Invalid CSRF token. Please refresh the page and try again.'
-        } else if (data && data.message) {
-          return data.message
-        } else {
-          return `Server error (${status})`
-        }
-      } else if (err.request) {
-        return 'Network error. Please check your connection.'
-      } else if (err.message) {
-        return err.message
-      }
-      
-      return defaultMessage
+      return handleStoreError(err, defaultMessage)
     }
   }
 })

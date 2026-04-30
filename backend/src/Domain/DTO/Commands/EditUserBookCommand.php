@@ -26,11 +26,13 @@ final readonly class EditUserBookCommand
         public ISBN $isbn,
         public int $userId,
         public ?Rating $userRating = null,
-        public array $statuses = [],
+        public ?array $statuses = null,
         public array $tags = [],
         public ?int $currentPage = null,
         public ?string $personalNotes = null,
-        public ?string $consumedAt = null
+        public ?string $consumedAt = null,
+        public ?int $ownershipFormatId = null,
+        public ?int $pages = null
     ) {}
 
     public static function fromArray(array $data, int $userId): self
@@ -46,7 +48,7 @@ final readonly class EditUserBookCommand
                 : (isset($bookData['personalRating']) && is_numeric($bookData['personalRating']) && (float)$bookData['personalRating'] > 0
                     ? Rating::fromNullableFloat((float)$bookData['personalRating'])
                     : null),
-            statuses: $bookData['statuses'] ?? $data['statuses'] ?? [],
+            statuses: $bookData['statuses'] ?? $data['statuses'] ?? null,
             tags: $data['tags'] ?? [],
             currentPage: isset($bookData['current_page']) && is_numeric($bookData['current_page']) 
                 ? (int)$bookData['current_page'] 
@@ -54,7 +56,11 @@ final readonly class EditUserBookCommand
                     ? (int)$bookData['currentPage']
                     : null),
             personalNotes: $bookData['personal_notes'] ?? $bookData['personalNotes'] ?? null,
-            consumedAt: $bookData['consumed_at'] ?? $bookData['consumedAt'] ?? null
+            consumedAt: $bookData['consumed_at'] ?? $bookData['consumedAt'] ?? null,
+            ownershipFormatId: isset($bookData['ownership_format_id']) ? (int)$bookData['ownership_format_id'] : (isset($bookData['ownershipFormatId']) ? (int)$bookData['ownershipFormatId'] : null),
+            pages: isset($bookData['pages']) && is_numeric($bookData['pages']) && (int)$bookData['pages'] > 0
+                ? (int)$bookData['pages']
+                : null
         );
     }
 }

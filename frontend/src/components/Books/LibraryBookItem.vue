@@ -18,17 +18,15 @@
         <!-- Rating Component -->
         <RatingComponent
           :rating="rating"
-          :editable="editable"
-          @rating-changed="onRatingChange"
+          :editable="false"
         />
         
         <!-- Reading Progress Bar -->
         <ReadingProgressBar
           :current-page="currentPage"
           :total-pages="book.pages || 0"
-          :editable="!readonly"
+          :editable="false"
           theme="blue"
-          @update-progress="onUpdateProgress"
         />
         
         <!-- Status Selector Component -->
@@ -36,10 +34,9 @@
           v-model="selectedUserStatuses"
           :allowed-statuses="allowedUserStatuses"
           :multiple="true"
-          :readonly="readonly"
-          label="Status"
-          :subtitle="readonly ? '(solo lectura - usa el modal para editar)' : 'Selecciona estados'"
-          @status-changed="onStatusesChange"
+          :readonly="!isNewBook"
+          :label="isNewBook ? 'Añadir con estado' : 'Status'"
+          :subtitle="isNewBook ? '' : '(solo lectura - usa el modal para editar)'"
         />
         
         <!-- Reading Status Widget -->
@@ -48,13 +45,15 @@
           :book="book"
         />
 
+        <p v-if="ownershipFormatLabel" class="book-field"><strong>Formato:</strong> <span class="ownership-format-badge">{{ ownershipFormatLabel }}</span></p>
+
         <!-- Book Actions Component -->
         <div class="book-actions">
 
           <!-- Save button for new books -->
-          <button 
+          <button
             v-if="isNewBook"
-            @click="onSaveBook" 
+            @click="onSaveBook"
             :class="['action-button', 'save-button', `save-button--${saveButtonState}`]"
             :disabled="!canSave"
             title="Guardar libro"
@@ -64,11 +63,22 @@
             <i v-else-if="saveButtonState === 'error'" class="fas fa-times"></i>
             <span>Guardar</span>
           </button>
-          
-          <!-- Edit button -->
-          <button 
+
+          <!-- View History button -->
+          <button
             v-if="!isNewBook"
-            @click="onEditBook" 
+            @click="onShowHistory"
+            class="action-button history-button"
+            title="Ver historial de lectura"
+          >
+            <i class="fas fa-history"></i>
+            <span>Historial</span>
+          </button>
+
+          <!-- Edit button -->
+          <button
+            v-if="!isNewBook"
+            @click="onEditBook"
             :class="['action-button', 'edit-button', `edit-button--${editButtonState}`]"
             :disabled="editButtonState !== 'idle'"
             title="Editar libro"
@@ -78,12 +88,12 @@
             <i v-else-if="editButtonState === 'error'" class="fas fa-times"></i>
             <span>Editar</span>
           </button>
-          
+
           <!-- Delete button -->
-          <button 
+          <button
             v-if="!isNewBook && canDelete"
-            @click="onDeleteBook" 
-            class="action-button delete-button" 
+            @click="onDeleteBook"
+            class="action-button delete-button"
             title="Eliminar libro"
           >
             <i class="fas fa-trash"></i>
@@ -101,7 +111,6 @@ import ReadingProgressBar from '@/components/common/ReadingProgressBar.vue';
 import RatingComponent from '@/components/common/RatingComponent.vue';
 import StatusSelector from '@/components/common/StatusSelector.vue';
 import ReadingStatusWidget from '@/components/Books/ReadingStatusWidget.vue';
-import { useBooks } from '@/composables/useBooks';
 import Logger from '@/utils/logger';
 
 const props = defineProps({
@@ -117,22 +126,20 @@ const props = defineProps({
   editable: {
     type: Boolean,
     default: false
-  },
-  readonly: {
-    type: Boolean,
-    default: false
   }
 });
 
-const emit = defineEmits(['delete-book', 'update-progress', 'edit-item', 'update-rating', 'update-statuses', 'save-book']);
-
-// Composables
-const { 
-  updateReadingProgress
-} = useBooks();
+const emit = defineEmits(['delete-book', 'edit-item', 'save-book', 'show-session-history']);
 
 // Estados seleccionados (locales para display)
-const selectedUserStatuses = ref(props.book.userStatuses || []);
+const getInitialStatuses = () => {
+  if (props.book.userStatuses && props.book.userStatuses.length > 0) {
+    return [...props.book.userStatuses];
+  } else {
+    return props.allowedUserStatuses.includes('owned') ? ['owned'] : [];
+  }
+};
+const selectedUserStatuses = ref(getInitialStatuses());
 const rating = ref(props.book.user_rating || 0);
 const currentPage = ref(props.book.currentPage || 0);
 
@@ -144,8 +151,7 @@ Logger.debug('[LibraryBookItem] Component initialized with:', {
   user_rating: props.book.user_rating,
   currentPage: props.book.currentPage,
   allowedUserStatuses: props.allowedUserStatuses,
-  editable: props.editable,
-  readonly: props.readonly
+  editable: props.editable
 });
 
 // Estado del botón de guardar
@@ -166,23 +172,14 @@ const canSave = computed(() => {
 });
 
 // Methods
-const onRatingChange = (newRating) => {
-  rating.value = newRating;
-  Logger.debug('Rating changed:', { isbn: props.book.isbn, rating: newRating });
-  emit('update-rating', { isbn: props.book.isbn, rating: newRating, itemType: 'book' });
-};
-
-const onStatusesChange = (newStatuses) => {
-  selectedUserStatuses.value = newStatuses;
-  Logger.debug('Statuses changed:', { isbn: props.book.isbn, statuses: newStatuses });
-  emit('update-statuses', { isbn: props.book.isbn, statuses: newStatuses, itemType: 'book' });
-};
-
 const onSaveBook = () => {
-  // Emitir evento para guardar el libro
   Logger.debug('Saving book:', props.book.isbn);
-  saveButtonState.value = 'idle'; // Reset state
+  saveButtonState.value = 'idle';
   emit('save-book', { book: props.book, statuses: selectedUserStatuses.value, itemType: 'book' });
+};
+
+const onEditBook = () => {
+  emit('edit-item', props.book, 'book');
 };
 
 // Métodos públicos para actualizar el estado del botón
@@ -222,9 +219,9 @@ defineExpose({
   setEditError
 });
 
-// Methods
-const onEditBook = () => {
-  emit('edit-item', props.book, 'book');
+const onShowHistory = () => {
+  Logger.debug('[LibraryBookItem] Showing session history for book:', props.book.isbn);
+  emit('show-session-history', { book: props.book });
 };
 
 const onDeleteBook = () => {
@@ -236,32 +233,6 @@ const onDeleteBook = () => {
 // HANDLERS DE EVENTOS DEL WIDGET DE SESIONES
 // ===================================
 
-
-
-// Maneja la actualización del progreso de lectura
-const onUpdateProgress = async (currentPageValue) => {
-  try {
-    Logger.debug('Updating reading progress:', { isbn: props.book.isbn, currentPage: currentPageValue });
-    
-    // Usar el método tradicional de actualización de progreso
-    const result = await updateReadingProgress(props.book.isbn, currentPageValue);
-    
-    if (result.success) {
-      currentPage.value = currentPageValue; // Actualiza el valor local
-      
-      // Emite evento para que el componente padre actualice el libro
-      emit('update-progress', { 
-        isbn: props.book.isbn, 
-        updates: { currentPage: currentPageValue } 
-      });
-    } else {
-      Logger.error('Error updating reading progress:', result.message);
-    }
-  } catch (error) {
-    Logger.error('Error updating reading progress:', error);
-  }
-};
-
 watch(() => props.book.user_rating, (newRating) => {
   Logger.debug('[LibraryBookItem] user_rating changed:', { old: rating.value, new: newRating });
   rating.value = newRating || 0;
@@ -272,15 +243,21 @@ watch(() => props.book.currentPage, (newPage) => {
   currentPage.value = newPage || 0;
 });
 
-watch(() => props.book.userStatuses, (newStatuses, oldStatuses) => {
-  Logger.debug('[LibraryBookItem] userStatuses changed:', { 
-    old: oldStatuses, 
-    new: newStatuses,
-    isArray: Array.isArray(newStatuses),
-    length: newStatuses?.length
-  });
-  selectedUserStatuses.value = newStatuses || [];
+watch(() => props.book.userStatuses, (newStatuses) => {
+  if (newStatuses && newStatuses.length > 0) {
+    // Libro existente recargado con sus estados reales
+    selectedUserStatuses.value = [...newStatuses];
+  }
+  // Si llega vacío, no sobreescribir la selección actual (ej. default 'owned')
 }, { deep: true });
+
+
+const ownershipFormatLabel = ref(
+  props.book.ownershipFormat?.label ?? props.book.ownership_format?.label ?? ''
+)
+watch(() => [props.book.ownershipFormat, props.book.ownership_format], ([fmt1, fmt2]) => {
+  ownershipFormatLabel.value = fmt1?.label ?? fmt2?.label ?? ''
+}, { immediate: true, deep: true })
 </script>
 
 <style>
@@ -468,6 +445,18 @@ watch(() => props.book.userStatuses, (newStatuses, oldStatuses) => {
 .edit-button--error {
   background: linear-gradient(135deg, #dc3545, #ff6b6b) !important;
   animation: shake 0.5s ease;
+}
+
+.history-button {
+  background: linear-gradient(135deg, #6c757d, #5a6268);
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.history-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5a6268, #495057);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .delete-button {

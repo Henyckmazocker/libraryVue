@@ -148,30 +148,24 @@ export function useFileImport() {
 
     try {
       Logger.debug(`[useFileImport] Starting import with service: ${selectedService.value}`);
-      
+
       // Fase 1: Procesar el archivo localmente
       updateProgress(10, 'Procesando archivo...');
       const processedData = await FileProcessorService.processFile(
-        selectedFile.value, 
+        selectedFile.value,
         selectedService.value
       );
 
-      if (!processedData || !processedData.items) {
+      if (!processedData || !Array.isArray(processedData) || processedData.length === 0) {
         throw new Error('No se pudieron extraer datos válidos del archivo');
       }
 
-      Logger.debug(`[useFileImport] File processed successfully. Found ${processedData.items.length} items`);
-      
+      Logger.debug(`[useFileImport] File processed successfully. Found ${processedData.length} items`);
+
       // Fase 2: Enviar datos al backend
       updateProgress(30, 'Enviando datos al servidor...');
       const response = await authenticatedApiCall('import_data', {
-        service: selectedService.value,
-        data: processedData,
-        file_info: {
-          name: selectedFile.value.name,
-          size: selectedFile.value.size,
-          type: selectedFile.value.type
-        }
+        processedData: processedData
       });
 
       if (response.data.status === 'success') {

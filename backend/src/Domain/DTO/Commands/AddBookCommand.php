@@ -6,7 +6,6 @@ namespace App\Domain\DTO\Commands;
 
 use App\Domain\Model\ValueObjects\ISBN;
 use App\Domain\Model\ValueObjects\Rating;
-use App\Domain\Model\ValueObjects\Genre;
 
 /**
  * Command DTO for adding a book to user's library
@@ -27,7 +26,7 @@ final readonly class AddBookCommand
      * @param Rating|null $userRating User's personal rating
      * @param int|null $pages Number of pages
      * @param string|null $description Book description
-     * @param Genre|null $genre Book genre
+     * @param array $genres Book genres array
      * @param string|null $language Book language
      */
     public function __construct(
@@ -43,8 +42,9 @@ final readonly class AddBookCommand
         public ?Rating $userRating = null,
         public ?int $pages = null,
         public ?string $description = null,
-        public ?Genre $genre = null,
-        public ?string $language = null
+        public array $genres = [],
+        public ?string $language = null,
+        public ?int $ownershipFormatId = null
     ) {}
 
     /**
@@ -53,6 +53,14 @@ final readonly class AddBookCommand
      */
     public static function fromArray(array $data, int $userId): self
     {
+        // Process genres array
+        $genres = [];
+        if (isset($data['genres']) && is_array($data['genres'])) {
+            $genres = array_filter($data['genres'], fn($g) => !empty($g));
+        } elseif (isset($data['genre']) && !empty($data['genre'])) {
+            $genres = [$data['genre']];
+        }
+
         return new self(
             isbn: ISBN::fromString($data['isbn']),
             title: $data['title'],
@@ -60,8 +68,8 @@ final readonly class AddBookCommand
             statuses: $data['userStatuses'] ?? [],
             author: $data['author'] ?? null,
             publisher: $data['publisher'] ?? null,
-            publicationYear: isset($data['publicationDate']) && is_numeric($data['publicationDate']) 
-                ? (int)$data['publicationDate'] 
+            publicationYear: isset($data['publicationDate']) && is_numeric($data['publicationDate'])
+                ? (int)$data['publicationDate']
                 : ($data['publication_year'] ?? null),
             coverUrl: $data['coverUrl'] ?? $data['cover_url'] ?? null,
             rating: isset($data['rating']) && is_numeric($data['rating']) && (float)$data['rating'] > 0
@@ -70,16 +78,15 @@ final readonly class AddBookCommand
             userRating: isset($data['user_rating']) && is_numeric($data['user_rating']) && (float)$data['user_rating'] > 0
                 ? Rating::fromNullableFloat((float)$data['user_rating'])
                 : null,
-            pages: isset($data['pages']) && is_numeric($data['pages']) 
-                ? (int)$data['pages'] 
+            pages: isset($data['pages']) && is_numeric($data['pages'])
+                ? (int)$data['pages']
                 : null,
-            description: is_array($data['description'] ?? null) 
-                ? implode(' ', $data['description']) 
+            description: is_array($data['description'] ?? null)
+                ? implode(' ', $data['description'])
                 : ($data['description'] ?? null),
-            genre: isset($data['genre']) && !empty($data['genre'])
-                ? Genre::fromString($data['genre'])
-                : (isset($data['genres'][0]) ? Genre::fromString($data['genres'][0]) : null),
-            language: $data['language'] ?? null
+            genres: $genres,
+            language: $data['language'] ?? null,
+            ownershipFormatId: isset($data['ownership_format_id']) ? (int)$data['ownership_format_id'] : (isset($data['ownershipFormatId']) ? (int)$data['ownershipFormatId'] : null)
         );
     }
 
@@ -103,8 +110,7 @@ final readonly class AddBookCommand
             'description' => $this->description,
             'userStatuses' => $this->statuses,
             'allowedStatuses' => [],
-            'genre' => $this->genre?->toString(),
-            'genres' => $this->genre !== null ? [$this->genre->toString()] : null,
+            'genres' => $this->genres,
             'language' => $this->language
         ];
     }

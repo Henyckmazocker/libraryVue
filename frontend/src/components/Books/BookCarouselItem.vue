@@ -79,28 +79,25 @@ const truncateText = (text, maxLength) => {
   flex-shrink: 0;
   width: 150px;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface-card, #2a2d36);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
-  gap: 10px;
 }
 
 .book-carousel-item:hover {
-  transform: translateY(-5px);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 }
 
 .book-cover-wrapper {
   position: relative;
   width: 150px;
   height: 225px;
-  border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transition: box-shadow 0.2s ease;
-}
-
-.book-carousel-item:hover .book-cover-wrapper {
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  background: var(--surface-ground, #1e2127);
 }
 
 .book-cover {
@@ -108,6 +105,11 @@ const truncateText = (text, maxLength) => {
   height: 100%;
   object-fit: cover;
   display: block;
+  transition: transform 0.2s ease;
+}
+
+.book-carousel-item:hover .book-cover {
+  transform: scale(1.05);
 }
 
 .book-cover-placeholder {
@@ -116,14 +118,12 @@ const truncateText = (text, maxLength) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--color-background-mute) 0%, var(--color-background-soft) 100%);
-  border: 2px dashed var(--color-border);
+  background: linear-gradient(135deg, #1D4E4A, #2a5c58);
 }
 
 .book-cover-placeholder i {
   font-size: 3rem;
-  color: var(--color-text-muted);
-  opacity: 0.5;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .rating-badge {
@@ -163,37 +163,26 @@ const truncateText = (text, maxLength) => {
 
 .library-badge {
   position: absolute;
-  top: 8px;
-  left: 8px;
-  background: rgba(33, 150, 243, 0.95);
-  color: white;
-  padding: 6px 8px;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(4px);
-  transition: transform 0.2s ease;
-}
-
-.library-badge:hover {
-  transform: scale(1.1);
+  top: 6px;
+  left: 6px;
+  background: rgba(29, 78, 74, 0.9);
+  color: #4ade80;
+  font-size: 0.75rem;
+  padding: 3px 6px;
+  border-radius: 4px;
 }
 
 .book-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  text-align: center;
-  padding: 0 5px;
+  gap: 3px;
+  padding: 8px 10px;
 }
 
 .book-title {
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  color: var(--color-heading);
+  color: var(--text-color, #e0e0e0);
   line-height: 1.3;
   margin: 0;
   min-height: 2.6em;
@@ -205,8 +194,8 @@ const truncateText = (text, maxLength) => {
 }
 
 .book-author {
-  font-size: 0.8rem;
-  color: var(--color-text-secondary);
+  font-size: 0.74rem;
+  color: var(--text-color-secondary, #9ca3af);
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -218,18 +207,9 @@ const truncateText = (text, maxLength) => {
   .book-carousel-item {
     width: 130px;
   }
-  
   .book-cover-wrapper {
     width: 130px;
     height: 195px;
-  }
-  
-  .book-title {
-    font-size: 0.85rem;
-  }
-  
-  .book-author {
-    font-size: 0.75rem;
   }
 }
 
@@ -237,22 +217,12 @@ const truncateText = (text, maxLength) => {
   .book-carousel-item {
     width: 110px;
   }
-  
   .book-cover-wrapper {
     width: 110px;
     height: 165px;
   }
-  
   .book-cover-placeholder i {
     font-size: 2rem;
-  }
-  
-  .book-title {
-    font-size: 0.8rem;
-  }
-  
-  .book-author {
-    font-size: 0.7rem;
   }
 }
 </style>

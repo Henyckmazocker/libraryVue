@@ -49,7 +49,8 @@ class UserDataMapper
             $updatedAt,
             $lastLogin,
             $this->extractJson($row, 'preferences', []),
-            $this->extractBool($row, 'is_active', false)
+            $this->extractBool($row, 'is_active', false),
+            $this->extractString($row, 'lastfm_username', null)
         );
     }
 
@@ -71,7 +72,8 @@ class UserDataMapper
             'updated_at' => $user->getUpdatedAt()->toString(),
             'last_login' => $user->getLastLogin()?->toString(),
             'preferences' => $this->toDbValue($user->getPreferences(), 'json'),
-            'is_active' => $user->isActive() ? 1 : 0
+            'is_active' => $user->isActive() ? 1 : 0,
+            'lastfm_username' => $user->getLastFmUsername()
         ];
 
         if ($includeId && $user->getId() !== null) {

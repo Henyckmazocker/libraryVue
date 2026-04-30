@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 import { useAuthStore } from './auth'
+import { fetchLibraryItems } from './_libraryCache'
+import { handleStoreError } from '@/utils/storeHelpers'
 import Logger from '@/utils/logger'
 
 export const useMoviesStore = defineStore('movies', {
@@ -27,8 +29,8 @@ export const useMoviesStore = defineStore('movies', {
     averageRating: (state) => {
       const rated = state.movies.filter(m => m.user_rating && m.user_rating > 0)
       if (rated.length === 0) return 0
-      const sum = rated.reduce((acc, movie) => acc + movie.user_rating, 0)
-      return (sum / rated.length).toFixed(2)
+      const sum = rated.reduce((acc, movie) => acc + parseFloat(movie.user_rating), 0)
+      return (sum / rated.length).toFixed(1)
     },
     
     moviesByStatus: (state) => {
@@ -73,22 +75,14 @@ export const useMoviesStore = defineStore('movies', {
       
       try {
         Logger.debug('[MoviesStore] Fetching user movies...')
-        const authStore = useAuthStore()
-        const response = await authStore.authenticatedApiCall('get_library_items')
+        const data = await fetchLibraryItems()
         
-        if (response.data.status === 'success') {
-          const data = response.data.data || {}
-          const moviesArray = Array.isArray(data.movies) ? data.movies : []
-          
-          this.movies = moviesArray.map(movie => ({
-            ...movie,
-            itemType: 'movie'
-          }))
-          
-          Logger.debug(`[MoviesStore] Fetched ${this.movies.length} movies`)
-        } else {
-          throw new Error(response.data.message || 'Failed to fetch movies')
-        }
+        this.movies = data.movies.map(movie => ({
+          ...movie,
+          itemType: 'movie'
+        }))
+        
+        Logger.debug(`[MoviesStore] Fetched ${this.movies.length} movies`)
       } catch (err) {
         this.error = this._handleError(err, 'Failed to fetch movies')
         Logger.error('[MoviesStore] Error fetching movies:', err)
@@ -162,7 +156,12 @@ export const useMoviesStore = defineStore('movies', {
           userStatuses: statuses,
           user_rating: movie.user_rating || 0,
           itemType: 'movie',
-          genres: movie.genres || []
+          genres: movie.genres || [],
+          ownership_format_id: movie.ownership_format_id || null,
+          media_type: movie.type || movie.media_type || 'movie',
+          mediaType: movie.type || movie.media_type || 'movie',
+          total_seasons: movie.totalSeasons || null,
+          totalSeasons: movie.totalSeasons || null
         }
         
         const response = await authStore.authenticatedApiCall('add_movie', { movie: movieData })
@@ -444,26 +443,7 @@ export const useMoviesStore = defineStore('movies', {
      * @private
      */
     _handleError(err, defaultMessage = 'Operation failed') {
-      if (err.response) {
-        const status = err.response.status
-        const data = err.response.data
-        
-        if (status === 401) {
-          return 'Authentication required. Please login again.'
-        } else if (status === 403) {
-          return 'Invalid CSRF token. Please refresh the page and try again.'
-        } else if (data && data.message) {
-          return data.message
-        } else {
-          return `Server error (${status})`
-        }
-      } else if (err.request) {
-        return 'Network error. Please check your connection.'
-      } else if (err.message) {
-        return err.message
-      }
-      
-      return defaultMessage
+      return handleStoreError(err, defaultMessage)
     }
   }
 })

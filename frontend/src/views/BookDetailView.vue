@@ -243,8 +243,11 @@ const allowedStatuses = computed(() =>
 );
 
 const existingBook = computed(() => {
-  if (!book.value?.isbn) return null;
-  return booksComposable.findBookByISBN(book.value.isbn);
+  if (!book.value) return null;
+  // Buscar por isbn actual o por el isbn original de la ruta
+  // (Google Books puede devolver un isbn_13 distinto al guardado en la biblioteca)
+  return booksComposable.findBookByISBN(book.value.isbn)
+      || booksComposable.findBookByISBN(route.params.isbn);
 });
 
 // Métodos
@@ -275,6 +278,10 @@ const fetchBookDetails = async (isbn) => {
       const bookData = response.data.data;
       Logger.debug(`[BookDetailView] Found book in Google Books:`, bookData.title);
       
+      // Preservar datos de usuario que ya tenía book.value (vienen eager desde history.state)
+      // para evitar parpadeo a 0 estrellas durante el enriquecimiento en background.
+      const previousUserData = book.value || {};
+
       // Transformar datos de Google Books al formato esperado
       book.value = {
         isbn: bookData.isbn_13 || isbn,
@@ -292,8 +299,15 @@ const fetchBookDetails = async (isbn) => {
         previewLink: bookData.preview_link || null,
         infoLink: bookData.info_link || null,
         rating: null,
-        user_rating: null,
-        userStatuses: []
+        // Preservar datos de usuario si ya existían (eager load)
+        user_rating: previousUserData.user_rating ?? null,
+        userStatuses: previousUserData.userStatuses ?? [],
+        currentPage: previousUserData.currentPage,
+        totalPages: previousUserData.totalPages,
+        ownershipFormat: previousUserData.ownershipFormat ?? previousUserData.ownership_format ?? null,
+        ownership_format: previousUserData.ownership_format ?? previousUserData.ownershipFormat ?? null,
+        ownership_format_id: previousUserData.ownership_format_id ?? null,
+        tags: previousUserData.tags ?? null
       };
       
       // Intentar enriquecer con datos de OpenLibrary (subjects, clasificaciones)

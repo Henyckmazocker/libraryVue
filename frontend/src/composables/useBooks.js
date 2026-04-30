@@ -288,12 +288,20 @@ export function useBooks() {
       });
       
       if (response.data.status === 'success') {
+        const data = response.data.data || {};
         // Actualizar en el store local
         const book = books.value.find(b => b.isbn === isbn);
         if (book) {
           book.current_page = currentPage;
+          book.currentPage = currentPage;
+          // El backend puede actualizar estados automáticamente
+          // (p. ej. añadir 'reading' al iniciar o 'read' al completar)
+          if (Array.isArray(data.updatedStatuses)) {
+            book.userStatuses = data.updatedStatuses;
+            Logger.debug('[useBooks] Book statuses updated from progress:', data.updatedStatuses);
+          }
         }
-        return { success: true };
+        return { success: true, data };
       } else {
         throw new Error(response.data.message || 'Error updating progress');
       }

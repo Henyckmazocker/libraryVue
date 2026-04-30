@@ -244,11 +244,13 @@ watch(() => props.book.currentPage, (newPage) => {
 });
 
 watch(() => props.book.userStatuses, (newStatuses) => {
-  if (newStatuses && newStatuses.length > 0) {
-    // Libro existente recargado con sus estados reales
+  if (props.editable) {
+    // Libro existente: sincronizar siempre (incluso array vacío cuando se eliminan todos)
+    selectedUserStatuses.value = Array.isArray(newStatuses) ? [...newStatuses] : [];
+  } else if (newStatuses && newStatuses.length > 0) {
+    // Libro nuevo: solo sobrescribir si llegan estados; preservar default 'owned' si vacío
     selectedUserStatuses.value = [...newStatuses];
   }
-  // Si llega vacío, no sobreescribir la selección actual (ej. default 'owned')
 }, { deep: true });
 
 

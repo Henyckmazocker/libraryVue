@@ -671,11 +671,15 @@ const handleModalSaved = async (updatedItem) => {
     
     uiStore.showSuccess('Libro actualizado correctamente');
     
-    // Opcional: Recargar en segundo plano para sincronizar (sin bloquear UI)
+    // Recargar en segundo plano para sincronizar con cambios que el backend
+    // pueda haber aplicado automáticamente (p. ej. añadir 'read' al llegar al 100%).
+    // Tras refrescar, re-mezclar con book.value para que la tarjeta refleje los cambios.
     setTimeout(() => {
-      booksComposable.fetchBooks().catch(err => {
-        Logger.error('[BookDetailView] Background refresh failed:', err);
-      });
+      booksComposable.fetchBooks()
+        .then(() => _mergeExistingBookData())
+        .catch(err => {
+          Logger.error('[BookDetailView] Background refresh failed:', err);
+        });
     }, 500);
   } catch (err) {
     Logger.error('[BookDetailView] Error updating book data:', err);

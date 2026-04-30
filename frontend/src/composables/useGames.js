@@ -133,7 +133,9 @@ export function useGames() {
             platformPlayed: data.platformPlayed !== undefined ? data.platformPlayed : games.value[gameIndex].platformPlayed,
             dateStarted: data.dateStarted !== undefined ? data.dateStarted : games.value[gameIndex].dateStarted,
             dateFinished: data.dateFinished !== undefined ? data.dateFinished : games.value[gameIndex].dateFinished,
-            personalNotes: data.personalNotes !== undefined ? data.personalNotes : games.value[gameIndex].personalNotes
+            personalNotes: data.personalNotes !== undefined ? data.personalNotes : games.value[gameIndex].personalNotes,
+            ownership_format_id: data.ownership_format_id !== undefined ? data.ownership_format_id : games.value[gameIndex].ownership_format_id,
+            ownershipFormat: data.ownershipFormat !== undefined ? data.ownershipFormat : games.value[gameIndex].ownershipFormat
           };
         }
         

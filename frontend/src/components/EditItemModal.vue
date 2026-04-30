@@ -223,7 +223,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, inject, defineProps, defineEmits } from 'vue'
+import { ref, computed, watch, onMounted, inject, defineProps, defineEmits } from 'vue'
 import RatingComponent from '@/components/common/RatingComponent.vue'
 import ReadingProgressBar from '@/components/common/ReadingProgressBar.vue'
 import StatusSelector from '@/components/common/StatusSelector.vue'
@@ -279,30 +279,48 @@ const gamesComposable = useGames()
 const albumsComposable = useAlbums()
 
 // Local state
-const localRating = ref(props.item?.user_rating ?? null)
-const localStatuses = ref(props.item?.userStatuses ? [...props.item.userStatuses] : [])
-const localTags = ref(props.item?.tags ? [...props.item.tags] : [])
-const localCurrentPage = ref(props.item?.currentPage ?? 0)
-const localTotalPages = ref(props.item?.pages || props.item?.totalPages || 0)
+const localRating = ref(null)
+const localStatuses = ref([])
+const localTags = ref([])
+const localCurrentPage = ref(0)
+const localTotalPages = ref(0)
 
 // Game-specific local state
-const localHoursPlayed = ref(props.item?.hoursPlayed ?? props.item?.hours_played ?? null)
-const localPlatformPlayed = ref(props.item?.platformPlayed ?? props.item?.platform_played ?? '')
-const localDateStarted = ref(props.item?.dateStarted ?? props.item?.date_started ?? '')
-const localDateFinished = ref(props.item?.dateFinished ?? props.item?.date_finished ?? '')
-const localPersonalNotes = ref(props.item?.personalNotes ?? props.item?.personal_notes ?? '')
+const localHoursPlayed = ref(null)
+const localPlatformPlayed = ref('')
+const localDateStarted = ref('')
+const localDateFinished = ref('')
+const localPersonalNotes = ref('')
 
 // Album-specific local state
-const localFavoriteTrack = ref(props.item?.favoriteTrack ?? props.item?.favorite_track ?? '')
+const localFavoriteTrack = ref('')
 
 // Ownership format state
 const ownershipFormats = ref([])
-const localOwnershipFormatId = ref(
-  props.item?.ownershipFormat?.id ?? props.item?.ownership_format?.id ?? props.item?.ownership_format_id ?? null
-)
+const localOwnershipFormatId = ref(null)
 
 const isSaving = ref(false)
 const progressBarRef = ref(null)
+
+// Reset all local state when the item prop changes (handles modal reuse)
+const resetLocalState = (item) => {
+  localRating.value = item?.user_rating ?? null
+  localStatuses.value = item?.userStatuses ? [...item.userStatuses] : []
+  localTags.value = item?.tags ? [...item.tags] : []
+  localCurrentPage.value = item?.currentPage ?? 0
+  localTotalPages.value = item?.pages || item?.totalPages || 0
+  localHoursPlayed.value = item?.hoursPlayed ?? item?.hours_played ?? null
+  localPlatformPlayed.value = item?.platformPlayed ?? item?.platform_played ?? ''
+  localDateStarted.value = item?.dateStarted ?? item?.date_started ?? ''
+  localDateFinished.value = item?.dateFinished ?? item?.date_finished ?? ''
+  localPersonalNotes.value = item?.personalNotes ?? item?.personal_notes ?? ''
+  localFavoriteTrack.value = item?.favoriteTrack ?? item?.favorite_track ?? ''
+  localOwnershipFormatId.value =
+    item?.ownershipFormat?.id ?? item?.ownership_format?.id ?? item?.ownership_format_id ?? null
+}
+
+// Keep local state in sync whenever the item prop changes
+watch(() => props.item, resetLocalState, { immediate: true })
 
 // Determine if this is a new item (not yet saved in library)
 const isNewItem = computed(() => {
@@ -524,6 +542,7 @@ const handleSave = async () => {
         ...props.item,
         user_rating: localRating.value,
         userStatuses: [...localStatuses.value],
+        tags: [...localTags.value],
         itemType: props.itemType
       }
       

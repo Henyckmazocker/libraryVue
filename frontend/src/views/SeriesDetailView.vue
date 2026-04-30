@@ -188,7 +188,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, computed, watch, toRaw } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
 import LibraryMovieItem from '@/components/Movies/LibraryMovieItem.vue';
@@ -196,12 +196,14 @@ import SeriesSeasonTracker from '@/components/Movies/SeriesSeasonTracker.vue';
 import EditItemModal from '@/components/EditItemModal.vue';
 import { useMovies } from '@/composables/useMovies';
 import { useAuth } from '@/composables/useAuth';
+import { useUIStore } from '@/store/ui';
 import Logger from '@/utils/logger';
 
 const route  = useRoute();
 const router = useRouter();
 const { isAuthenticated } = useAuth();
 const moviesComposable    = useMovies();
+const uiStore             = useUIStore();
 
 // ── Estado ──────────────────────────────────────────────────
 const series   = ref((history.state && history.state.movie) ? history.state.movie : null);
@@ -333,8 +335,29 @@ const handleSaveSeries = async (data) => {
   }
 };
 
-const handleEditItem = () => {
-  editModal.value = { isVisible: true, item: series.value, itemType: 'movie' };
+const handleEditItem = async () => {
+  // Ensure movies are loaded in the store before opening the modal.
+  if (moviesComposable.movies.value.length === 0) {
+    await moviesComposable.fetchMovies();
+  }
+
+  const storeSeries = existingSeries.value ? toRaw(existingSeries.value) : null;
+
+  const itemForModal = storeSeries
+    ? {
+        ...series.value,
+        user_rating: storeSeries.user_rating ?? null,
+        userStatuses: Array.isArray(storeSeries.userStatuses) ? [...storeSeries.userStatuses] : [],
+        ownershipFormat: storeSeries.ownershipFormat ?? storeSeries.ownership_format ?? null,
+        ownership_format: storeSeries.ownership_format ?? storeSeries.ownershipFormat ?? null,
+        ownership_format_id: storeSeries.ownershipFormat?.id ?? storeSeries.ownership_format?.id ?? null,
+        tags: storeSeries.tags ?? null,
+        isbn: storeSeries.isbn ?? series.value?.isbn,
+        imdbID: storeSeries.imdbID ?? series.value?.imdbID,
+      }
+    : series.value;
+
+  editModal.value = { isVisible: true, item: itemForModal, itemType: 'movie' };
 };
 
 const closeEditModal = () => {
@@ -344,8 +367,19 @@ const closeEditModal = () => {
 const handleModalSaved = async (updatedItem) => {
   closeEditModal();
   if (series.value && updatedItem) {
-    series.value = { ...series.value, ...updatedItem };
+    series.value = {
+      ...series.value,
+      ...updatedItem,
+      user_rating: updatedItem.user_rating,
+      userStatuses: updatedItem.userStatuses || series.value.userStatuses
+    };
+    // Actualizar en el store local también
+    const seriesInStore = moviesComposable.findMovieByTMDBId(
+      series.value.imdbID || series.value.isbn
+    );
+    if (seriesInStore) Object.assign(seriesInStore, updatedItem);
   }
+  uiStore.showSuccess('Serie actualizada correctamente');
   setTimeout(() => moviesComposable.fetchMovies().catch(() => {}), 500);
 };
 
@@ -359,21 +393,30 @@ const loadData = async () => {
   ]);
 
   if (hasEager) {
-    fetchSeriesDetails(route.params.imdbId).catch(() => {});
+    fetchSeriesDetails(route.params.imdbId)
+      .then(() => _mergeExistingSeriesData())
+      .catch(() => {});
   } else {
     await fetchSeriesDetails(route.params.imdbId);
   }
 
   // Merge datos de biblioteca
-  if (existingSeries.value && series.value) {
-    series.value = {
-      ...series.value,
-      user_rating:  existingSeries.value.user_rating,
-      userStatuses: existingSeries.value.userStatuses || [],
-    };
-  }
+  _mergeExistingSeriesData();
 
   await loadSeasonProgress();
+};
+
+const _mergeExistingSeriesData = () => {
+  if (!existingSeries.value || !series.value) return;
+  series.value = {
+    ...series.value,
+    user_rating:  existingSeries.value.user_rating,
+    userStatuses: existingSeries.value.userStatuses || [],
+    ownershipFormat: existingSeries.value.ownershipFormat ?? existingSeries.value.ownership_format ?? null,
+    ownership_format: existingSeries.value.ownership_format ?? existingSeries.value.ownershipFormat ?? null,
+    ownership_format_id: existingSeries.value.ownership_format_id ?? existingSeries.value.ownershipFormat?.id ?? null,
+    tags: existingSeries.value.tags ?? null,
+  };
 };
 
 onMounted(async () => {

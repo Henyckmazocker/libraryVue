@@ -199,7 +199,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, computed, watch, toRaw } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
 import LibraryBookItem from '@/components/Books/LibraryBookItem.vue';
@@ -588,14 +588,29 @@ const handleSaveBook = async (bookData) => {
 
 const handleEditBook = async (bookData) => {
   Logger.debug('[BookDetailView] Opening edit modal for book:', bookData);
-  
-  // Merge store book data (has user_edition_id) with local book data
-  const storeBook = existingBook.value;
-  const itemData = {
-    ...book.value,
-    ...(storeBook ? { user_edition_id: storeBook.user_edition_id } : {})
-  };
-  
+
+  // Ensure books are loaded in the store before opening the modal.
+  if (booksComposable.books.value.length === 0) {
+    await booksComposable.fetchBooks();
+  }
+
+  const storeBook = existingBook.value ? toRaw(existingBook.value) : null;
+
+  const itemData = storeBook
+    ? {
+        ...book.value,
+        user_edition_id: storeBook.user_edition_id,
+        user_rating: storeBook.user_rating ?? null,
+        userStatuses: Array.isArray(storeBook.userStatuses) ? [...storeBook.userStatuses] : [],
+        currentPage: storeBook.currentPage ?? book.value?.currentPage,
+        totalPages: storeBook.totalPages ?? book.value?.totalPages ?? book.value?.pages,
+        ownershipFormat: storeBook.ownershipFormat ?? storeBook.ownership_format ?? null,
+        ownership_format: storeBook.ownership_format ?? storeBook.ownershipFormat ?? null,
+        ownership_format_id: storeBook.ownershipFormat?.id ?? storeBook.ownership_format?.id ?? null,
+        tags: storeBook.tags ?? null,
+      }
+    : book.value;
+
   editModal.value = {
     isVisible: true,
     item: itemData,
@@ -753,6 +768,10 @@ const _mergeExistingBookData = () => {
     userStatuses: existingBook.value.userStatuses || [],
     currentPage: existingBook.value.currentPage,
     totalPages: existingBook.value.totalPages || book.value.pages,
+    ownershipFormat: existingBook.value.ownershipFormat ?? existingBook.value.ownership_format ?? null,
+    ownership_format: existingBook.value.ownership_format ?? existingBook.value.ownershipFormat ?? null,
+    ownership_format_id: existingBook.value.ownership_format_id ?? existingBook.value.ownershipFormat?.id ?? null,
+    tags: existingBook.value.tags ?? null,
     // Datos de la edición guardada
     isbn: existingBook.value.isbn || book.value.isbn,
     isbn10: existingBook.value.isbn10 || book.value.isbn10,

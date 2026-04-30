@@ -128,7 +128,9 @@ export function useMovies() {
           movies.value[movieIndex] = {
             ...movies.value[movieIndex],
             user_rating: data.personalRating !== undefined ? data.personalRating : movies.value[movieIndex].user_rating,
-            userStatuses: data.statuses || movies.value[movieIndex].userStatuses
+            userStatuses: data.statuses || movies.value[movieIndex].userStatuses,
+            ownership_format_id: data.ownership_format_id !== undefined ? data.ownership_format_id : movies.value[movieIndex].ownership_format_id,
+            ownershipFormat: data.ownershipFormat !== undefined ? data.ownershipFormat : movies.value[movieIndex].ownershipFormat
           };
         }
         

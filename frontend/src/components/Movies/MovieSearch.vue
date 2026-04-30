@@ -2,9 +2,9 @@
   <div class="movie-search-container">
     <!-- Search Section -->
     <GenericSearch :config="searchConfig" />
-    <!-- Trending Movies Section -->
+    <!-- Trending Movies -->
     <TrendingCarousel
-      :items="trendingMovies"
+      :items="trendingOnlyMovies"
       :is-loading="isLoadingTrending"
       :error="errorTrending"
       type="movies"
@@ -13,7 +13,18 @@
       subtitle="Las películas más populares en nuestra comunidad"
       @item-click="handleTrendingClick"
     />
-
+    <!-- Trending Series (solo si hay datos o está cargando) -->
+    <TrendingCarousel
+      v-if="isLoadingTrending || trendingOnlySeries.length > 0"
+      :items="trendingOnlySeries"
+      :is-loading="isLoadingTrending"
+      :error="errorTrending"
+      type="movies"
+      :item-component="MovieCarouselItem"
+      title="Series Populares"
+      subtitle="Las series más populares en nuestra comunidad"
+      @item-click="handleTrendingClick"
+    />
   </div>
 </template>
 
@@ -47,6 +58,14 @@ const {
   errorMovies: errorTrending,
   fetchTrendingMovies 
 } = useTrending();
+
+// Separar trending en películas y series
+const trendingOnlyMovies = computed(() =>
+  trendingMovies.value.filter(m => (m.media_type || m.type || 'movie') !== 'series')
+);
+const trendingOnlySeries = computed(() =>
+  trendingMovies.value.filter(m => (m.media_type || m.type || 'movie') === 'series')
+);
 
 // Cargar películas del usuario y trending al montar (solo si está autenticado)
 onMounted(async () => {
@@ -124,7 +143,8 @@ const transformResult = (result) => {
     coverUrl: result.Poster !== 'N/A' ? result.Poster : null,
     Poster: result.Poster,
     user_rating: 0,
-    userStatuses: []
+    userStatuses: [],
+    type: result.Type || 'movie'   // 'movie' | 'series' | 'episode'
   };
 };
 
@@ -147,11 +167,14 @@ const navigateToDetail = (router, movie) => {
     coverUrl: movie.Poster !== 'N/A' ? movie.Poster : null,
     user_rating: 0,
     userStatuses: [],
-    itemType: 'movie'
+    type: movie.type || 'movie',
+    itemType: movie.type === 'series' ? 'series' : 'movie'
   };
-  
+
+  const routeName = movie.type === 'series' ? 'SeriesDetail' : 'MovieDetail';
+
   router.push({
-    name: 'MovieDetail',
+    name: routeName,
     params: { imdbId: movie.imdbID },
     state: { movie: JSON.parse(JSON.stringify(movieData)) }
   });
@@ -163,7 +186,7 @@ const handleTrendingClick = (movie) => {
   
   // Navegar a detalle de la película trending
   // El backend devuelve 'isbn' (que es el IMDb ID)
-  const movieData = {
+  const trendingData = {
     isbn: movie.isbn,
     imdbID: movie.isbn,
     title: movie.title,
@@ -172,13 +195,16 @@ const handleTrendingClick = (movie) => {
     coverUrl: movie.coverUrl,
     user_rating: movie.avg_rating || 0,
     userStatuses: [],
-    itemType: 'movie'
+    type: movie.media_type || 'movie',
+    itemType: movie.media_type === 'series' ? 'series' : 'movie',
   };
-  
+
+  const trendingRoute = movie.media_type === 'series' ? 'SeriesDetail' : 'MovieDetail';
+
   router.push({
-    name: 'MovieDetail',
+    name: trendingRoute,
     params: { imdbId: movie.isbn },
-    state: { movie: JSON.parse(JSON.stringify(movieData)) }
+    state: { movie: JSON.parse(JSON.stringify(trendingData)) }
   });
 };
 
@@ -197,7 +223,7 @@ const fetchAllowedStatuses = async () => {
 
 // Configuración del componente genérico
 const searchConfig = computed(() => ({
-  title: 'Buscador de Películas (OMDb)',
+  title: 'Buscador de Películas/Series (OMDb)',
   inputs: [
     {
       type: 'auto',

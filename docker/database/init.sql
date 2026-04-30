@@ -382,8 +382,11 @@ CREATE TABLE IF NOT EXISTS movie (
     rating DECIMAL(2,1) DEFAULT NULL, -- e.g., 3.5 (precision 2, 1 decimal place)
     description TEXT DEFAULT NULL,   -- Sinopsis de la película
     genres JSON DEFAULT NULL,        -- Géneros de la película (array JSON)
+    media_type VARCHAR(20) DEFAULT 'movie',  -- Tipo: 'movie' o 'series'
+    total_seasons TINYINT UNSIGNED DEFAULT NULL, -- Número de temporadas (solo series)
     addedTimestamp INT UNSIGNED DEFAULT NULL,
-    CONSTRAINT check_movie_rating CHECK (rating IS NULL OR (rating >= 0.5 AND rating <= 5.0 AND MOD(rating * 2, 1) = 0))
+    CONSTRAINT check_movie_rating CHECK (rating IS NULL OR (rating >= 0.5 AND rating <= 5.0 AND MOD(rating * 2, 1) = 0)),
+    CONSTRAINT check_media_type CHECK (media_type IN ('movie', 'series'))
 );
 
 -- Índices optimizados para movies
@@ -407,7 +410,7 @@ CREATE TABLE IF NOT EXISTS movie_statuses (
 -- Populate allowed statuses
 -- This ensures that only valid statuses can be referenced.
 -- IMPORTANT: Status names use kebab-case format (lowercase with hyphens)
-INSERT INTO movie_statuses (name) VALUES ('owned'), ('viewed'), ('in-watchlist'), ('want-to-buy'), ('abandoned');
+INSERT INTO movie_statuses (name) VALUES ('owned'), ('viewed'), ('in-watchlist'), ('want-to-buy'), ('abandoned'), ('watching'), ('on-hold'), ('dropped');
 
 -- Junction table to link books with their statuses using status IDs
 CREATE TABLE IF NOT EXISTS movie_has_statuses (
@@ -477,6 +480,33 @@ CREATE TABLE IF NOT EXISTS user_movie_statuses (
     INDEX idx_user_movie_statuses_user_status (user_id, status_id), -- Para filtrar películas del usuario por estado
     INDEX idx_user_movie_statuses_updated (user_id, updated_at)     -- Para ver cambios recientes
 );
+
+-- Seguimiento de temporadas de series vistas por usuario
+CREATE TABLE IF NOT EXISTS user_series_seasons (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    user_id       INT NOT NULL,
+    series_isbn   VARCHAR(20) NOT NULL,           -- FK → movie.isbn (media_type='series')
+    season_number TINYINT UNSIGNED NOT NULL,
+    status        ENUM('viewed', 'partial', 'skipped') NOT NULL DEFAULT 'viewed',
+    date_viewed   DATE NULL COMMENT 'Fecha en que terminó la temporada',
+    personal_rating DECIMAL(2,1) NULL COMMENT 'Rating de esta temporada (0.5-5.0)',
+    notes         TEXT NULL,
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uq_user_series_season (user_id, series_isbn, season_number),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (series_isbn) REFERENCES movie(isbn) ON DELETE CASCADE,
+
+    INDEX idx_uss_user_series (user_id, series_isbn),
+    INDEX idx_uss_date (user_id, date_viewed),
+
+    CONSTRAINT chk_season_rating CHECK (
+        personal_rating IS NULL OR
+        (personal_rating >= 0.5 AND personal_rating <= 5.0 AND MOD(personal_rating * 2, 1) = 0)
+    )
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+COMMENT='Seguimiento de temporadas vistas por usuario';
 
 CREATE TABLE IF NOT EXISTS user_preferences (
     user_id INT NOT NULL,

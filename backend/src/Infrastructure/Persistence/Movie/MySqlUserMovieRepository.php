@@ -473,6 +473,8 @@ final class MySqlUserMovieRepository implements UserMovieRepositoryInterface
                     m.coverUrl,
                     m.director,
                     m.rating as movie_rating,
+                    m.media_type,
+                    m.total_seasons,
                     {$userLibraryCheck}
                     COUNT(DISTINCT um.user_id) as user_count,
                     AVG(um.personal_rating) as avg_rating,

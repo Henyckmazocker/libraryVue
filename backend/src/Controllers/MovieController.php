@@ -16,6 +16,10 @@ use App\Domain\UseCases\Movies\AddMovieNoteUseCase;
 use App\Domain\UseCases\Movies\GetMovieNotesUseCase;
 use App\Domain\UseCases\Movies\UpdateMovieNoteUseCase;
 use App\Domain\UseCases\Movies\DeleteMovieNoteUseCase;
+use App\Domain\UseCases\Movies\TrackSeriesSeasonUseCase;
+use App\Domain\UseCases\Movies\GetSeriesProgressUseCase;
+use App\Domain\DTO\Commands\TrackSeriesSeasonCommand;
+use App\Domain\DTO\Queries\GetSeriesProgressQuery;
 use App\Domain\DTO\Commands\AddMovieCommand;
 use App\Domain\DTO\Commands\DeleteMovieCommand;
 use App\Domain\DTO\Commands\UpdateMovieRatingCommand;
@@ -47,6 +51,8 @@ class MovieController extends BaseController implements Contracts\MovieControlle
     private GetMovieNotesUseCase $getMovieNotesUseCase;
     private UpdateMovieNoteUseCase $updateMovieNoteUseCase;
     private DeleteMovieNoteUseCase $deleteMovieNoteUseCase;
+    private TrackSeriesSeasonUseCase $trackSeriesSeasonUseCase;
+    private GetSeriesProgressUseCase $getSeriesProgressUseCase;
 
     public function __construct(
         AddMovieUseCase $addMovieUseCase,
@@ -62,7 +68,9 @@ class MovieController extends BaseController implements Contracts\MovieControlle
         AddMovieNoteUseCase $addMovieNoteUseCase,
         GetMovieNotesUseCase $getMovieNotesUseCase,
         UpdateMovieNoteUseCase $updateMovieNoteUseCase,
-        DeleteMovieNoteUseCase $deleteMovieNoteUseCase
+        DeleteMovieNoteUseCase $deleteMovieNoteUseCase,
+        TrackSeriesSeasonUseCase $trackSeriesSeasonUseCase,
+        GetSeriesProgressUseCase $getSeriesProgressUseCase
     ) {
         $this->addMovieUseCase = $addMovieUseCase;
         $this->deleteMovieUseCase = $deleteMovieUseCase;
@@ -78,6 +86,8 @@ class MovieController extends BaseController implements Contracts\MovieControlle
         $this->getMovieNotesUseCase = $getMovieNotesUseCase;
         $this->updateMovieNoteUseCase = $updateMovieNoteUseCase;
         $this->deleteMovieNoteUseCase = $deleteMovieNoteUseCase;
+        $this->trackSeriesSeasonUseCase = $trackSeriesSeasonUseCase;
+        $this->getSeriesProgressUseCase = $getSeriesProgressUseCase;
     }
 
     /**
@@ -300,5 +310,23 @@ class MovieController extends BaseController implements Contracts\MovieControlle
     {
         $this->deleteMovieNoteUseCase->execute($command);
         return $this->successResponse('Movie note deleted successfully');
+    }
+
+    /**
+     * Track (upsert) a single season for a series
+     */
+    public function trackSeriesSeason(TrackSeriesSeasonCommand $command): array
+    {
+        $this->trackSeriesSeasonUseCase->execute($command);
+        return $this->successResponse('Season tracked successfully');
+    }
+
+    /**
+     * Get all tracked seasons for a series
+     */
+    public function getSeriesProgress(GetSeriesProgressQuery $query): array
+    {
+        $progress = $this->getSeriesProgressUseCase->execute($query);
+        return $this->successResponse('Series progress retrieved', $progress);
     }
 }

@@ -7,6 +7,7 @@ namespace Tests\Unit\Domain\DTO\Queries;
 use App\Domain\DTO\Queries\GetMoviesByUserQuery;
 use App\Domain\DTO\Queries\GetMovieNotesQuery;
 use App\Domain\DTO\Queries\GetTrendingMoviesQuery;
+use App\Domain\DTO\Queries\GetSeriesProgressQuery;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -159,5 +160,36 @@ class MovieQueriesTest extends TestCase
         $this->assertSame(5, $q->limit);
         $this->assertSame(60, $q->daysWindow);
         $this->assertSame(3, $q->userId);
+    }
+
+    // ═══════════════════════════════════════
+    // GetSeriesProgressQuery
+    // ═══════════════════════════════════════
+
+    #[Test]
+    public function get_series_progress_constructor(): void
+    {
+        $q = new GetSeriesProgressQuery(userId: 1, seriesIsbn: 'tt1234567');
+
+        $this->assertSame(1, $q->userId);
+        $this->assertSame('tt1234567', $q->seriesIsbn);
+    }
+
+    #[Test]
+    public function get_series_progress_from_array_camel_case(): void
+    {
+        $q = GetSeriesProgressQuery::fromArray(['seriesIsbn' => 'tt9876543'], 5);
+
+        $this->assertSame(5, $q->userId);
+        $this->assertSame('tt9876543', $q->seriesIsbn);
+    }
+
+    #[Test]
+    public function get_series_progress_from_array_snake_case(): void
+    {
+        $q = GetSeriesProgressQuery::fromArray(['series_isbn' => 'tt1111111'], 3);
+
+        $this->assertSame(3, $q->userId);
+        $this->assertSame('tt1111111', $q->seriesIsbn);
     }
 }

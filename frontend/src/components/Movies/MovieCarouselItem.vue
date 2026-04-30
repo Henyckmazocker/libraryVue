@@ -9,7 +9,7 @@
         loading="lazy"
       />
       <div v-else class="movie-poster-placeholder">
-        <i class="fas fa-film"></i>
+        <i :class="isSeries ? 'fas fa-tv' : 'fas fa-film'"></i>
       </div>
       
       <!-- Badge de año -->
@@ -23,6 +23,12 @@
         <span>{{ movie.user_rating }}</span>
       </div>
       
+      <!-- Badge de tipo: Serie o Película -->
+      <div class="media-type-badge" :class="isSeries ? 'is-series' : 'is-movie'">
+        <i :class="isSeries ? 'fas fa-tv' : 'fas fa-film'"></i>
+        {{ isSeries ? 'Serie' : 'Película' }}
+      </div>
+
       <!-- Badge de "En tu biblioteca" -->
       <div v-if="isInLibrary" class="library-badge" title="En tu biblioteca">
         <i class="fas fa-bookmark"></i>
@@ -54,6 +60,12 @@ const props = defineProps({
 const emit = defineEmits(['click']);
 
 const moviesStore = useMoviesStore();
+
+// Detectar si es serie usando cualquiera de los posibles campos
+const isSeries = computed(() => {
+  const t = props.movie.media_type || props.movie.mediaType || props.movie.type || 'movie';
+  return t === 'series';
+});
 
 // Check if movie is in library (from trending API or store check)
 const isInLibrary = computed(() => {
@@ -188,6 +200,30 @@ const truncateText = (text, maxLength) => {
   font-size: 0.75rem;
   padding: 3px 6px;
   border-radius: 4px;
+}
+
+.media-type-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.media-type-badge.is-series {
+  background: rgba(139, 92, 246, 0.9);
+  color: #fff;
+}
+
+.media-type-badge.is-movie {
+  background: rgba(29, 78, 74, 0.85);
+  color: #e0f7f5;
 }
 
 .movie-info {

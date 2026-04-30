@@ -33,7 +33,7 @@
           "description": "Buscar nuevos libros"
         },
         {
-          "name": "Buscar Películas",
+          "name": "Buscar Películas/Series",
           "path": "/movies",
           "icon": "fas fa-film",
           "description": "Buscar nuevas películas"

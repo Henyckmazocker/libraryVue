@@ -38,7 +38,9 @@ final readonly class AddMovieCommand
         public ?Rating $userRating = null,
         public ?string $description = null,
         public ?array $genres = null,
-        public ?int $ownershipFormatId = null
+        public ?int $ownershipFormatId = null,
+        public string $mediaType = 'movie',
+        public ?int $totalSeasons = null
     ) {}
 
     public static function fromArray(array $data, int $userId): self
@@ -68,7 +70,9 @@ final readonly class AddMovieCommand
                 : null,
             description: $data['description'] ?? $data['Plot'] ?? null,
             genres: $genres,
-            ownershipFormatId: isset($data['ownership_format_id']) ? (int)$data['ownership_format_id'] : (isset($data['ownershipFormatId']) ? (int)$data['ownershipFormatId'] : null)
+            ownershipFormatId: isset($data['ownership_format_id']) ? (int)$data['ownership_format_id'] : (isset($data['ownershipFormatId']) ? (int)$data['ownershipFormatId'] : null),
+            mediaType: $data['media_type'] ?? $data['mediaType'] ?? $data['type'] ?? 'movie',
+            totalSeasons: isset($data['total_seasons']) ? (int)$data['total_seasons'] : (isset($data['totalSeasons']) ? (int)$data['totalSeasons'] : null)
         );
     }
 
@@ -89,7 +93,11 @@ final readonly class AddMovieCommand
             'userStatuses' => $this->statuses,
             'genres' => $this->genres !== null 
                 ? array_map(fn(Genre $g) => $g->toString(), $this->genres)
-                : null
+                : null,
+            'media_type' => $this->mediaType,
+            'mediaType' => $this->mediaType,
+            'total_seasons' => $this->totalSeasons,
+            'totalSeasons' => $this->totalSeasons
         ];
     }
 }

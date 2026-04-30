@@ -83,20 +83,24 @@ class UpdateReadingProgressUseCaseTest extends TestCase
     }
 
     #[Test]
-    public function throws_when_book_has_no_pages(): void
+    public function returns_zero_pages_when_book_has_no_pages(): void
     {
-        // Edition with 0 pages
+        // Edition with 0 pages — use case skips session logic and returns early
         $edition = new Edition(1, null, 'Test Book', 5);
         $userBookEdition = new UserBookEdition(userId: 1, editionId: 5, id: 10);
 
         $this->editionRepo->method('findByIsbn')->willReturn($edition);
         $this->userBookEditionRepo->method('findByUserAndEdition')->willReturn($userBookEdition);
+        $this->userBookEditionRepo->method('getStatusesForEdition')->willReturn([]);
+        $this->progressRepo->expects($this->once())->method('updateWithSession');
 
         $command = new UpdateReadingProgressCommand(userId: 1, isbn: '9780131103627', currentPage: 50);
 
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('no page count');
-        $this->useCase->execute($command);
+        $result = $this->useCase->execute($command);
+
+        $this->assertSame(0, $result['totalPages']);
+        $this->assertSame(0, $result['percentage']);
+        $this->assertNull($result['sessionId']);
     }
 
     #[Test]

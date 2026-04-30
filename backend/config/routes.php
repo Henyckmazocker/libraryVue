@@ -449,6 +449,27 @@ return [
         'validation' => ['noteId']
     ],
 
+    // SERIES SEASON TRACKING
+    'track_series_season' => [
+        'controller' => ['MovieController', 'trackSeriesSeason'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['seriesIsbn', 'seasonNumber']]]
+        ],
+        'validation' => ['seriesIsbn', 'seasonNumber']
+    ],
+
+    'get_series_progress' => [
+        'controller' => ['MovieController', 'getSeriesProgress'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
     // ============================================================================
     // LIBRARY ROUTES
     // ============================================================================

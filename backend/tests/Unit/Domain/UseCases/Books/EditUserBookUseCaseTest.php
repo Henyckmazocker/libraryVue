@@ -9,6 +9,7 @@ use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Book\UserBookRepositoryInterface;
 use App\Domain\Repository\Book\BookTagRepositoryInterface;
 use App\Domain\Repository\Book\BookNoteRepositoryInterface;
+use App\Domain\Repository\Book\EditionRepositoryInterface;
 use App\Domain\DTO\Commands\EditUserBookCommand;
 use App\Domain\Model\User;
 use App\Domain\Model\ValueObjects\GoogleId;
@@ -27,6 +28,7 @@ class EditUserBookUseCaseTest extends TestCase
     private UserBookRepositoryInterface $userBookRepo;
     private BookTagRepositoryInterface $bookTagRepo;
     private BookNoteRepositoryInterface $bookNoteRepo;
+    private EditionRepositoryInterface $editionRepo;
 
     protected function setUp(): void
     {
@@ -34,12 +36,14 @@ class EditUserBookUseCaseTest extends TestCase
         $this->userBookRepo = $this->createMock(UserBookRepositoryInterface::class);
         $this->bookTagRepo = $this->createMock(BookTagRepositoryInterface::class);
         $this->bookNoteRepo = $this->createMock(BookNoteRepositoryInterface::class);
+        $this->editionRepo = $this->createMock(EditionRepositoryInterface::class);
 
         $this->useCase = new EditUserBookUseCase(
             $this->userRepo,
             $this->userBookRepo,
             $this->bookTagRepo,
             $this->bookNoteRepo,
+            $this->editionRepo,
             new NullLogger()
         );
     }

@@ -73,7 +73,7 @@
         <MovieListItem
           v-else-if="item.itemType === 'movie'"
           :movie="item"
-          :allowedStatuses="allowedUserStatusesList('movie')"
+          :allowedStatuses="allowedUserStatusesList('movie', item.media_type || item.mediaType)"
           @click="navigateToMovieDetail(item)"
           class="book-item"
         />
@@ -177,8 +177,16 @@ const allowedMovieUserStatuses = computed(() => moviesComposable.allowedStatuses
 const allowedGameUserStatuses = computed(() => gamesComposable.allowedStatuses.value);
 const allowedAlbumUserStatuses = computed(() => albumsComposable.allowedStatuses.value);
 
-const allowedUserStatusesList = (itemType) => {
-  if (itemType === 'movie') return allowedMovieUserStatuses.value;
+const allowedUserStatusesList = (itemType, mediaType = null) => {
+  if (itemType === 'movie') {
+    const allStatuses = allowedMovieUserStatuses.value;
+    if (mediaType === 'series') {
+      // Series: quitar 'abandoned' (tiene 'dropped' como equivalente)
+      return allStatuses.filter(s => s !== 'abandoned');
+    }
+    // Película: quitar estados exclusivos de series
+    return allStatuses.filter(s => !['watching', 'on-hold', 'dropped'].includes(s));
+  }
   if (itemType === 'game') return allowedGameUserStatuses.value;
   if (itemType === 'album') return allowedAlbumUserStatuses.value;
   return allowedBookUserStatuses.value;
@@ -284,13 +292,15 @@ const navigateToBookDetail = (book) => {
   });
 };
 
-// Navigate to movie detail page
+// Navigate to movie or series detail page
 const navigateToMovieDetail = (movie) => {
+  const mediaType = movie.media_type || movie.mediaType || 'movie';
+  const routeName = mediaType === 'series' ? 'SeriesDetail' : 'MovieDetail';
   router.push({
-    name: 'MovieDetail',
-    params: { imdbId: movie.imdbID },
+    name: routeName,
+    params: { imdbId: movie.imdbID || movie.isbn },
     state: { movie: JSON.parse(JSON.stringify(movie)) }
-  })
+  });
 };
 
 // Navigate to game detail page

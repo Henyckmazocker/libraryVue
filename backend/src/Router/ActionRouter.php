@@ -26,7 +26,9 @@ use App\Domain\DTO\Commands\EditUserMovieCommand;
 use App\Domain\DTO\Commands\AddMovieNoteCommand;
 use App\Domain\DTO\Commands\UpdateMovieNoteCommand;
 use App\Domain\DTO\Commands\DeleteMovieNoteCommand;
+use App\Domain\DTO\Commands\TrackSeriesSeasonCommand;
 use App\Domain\DTO\Queries\GetMovieNotesQuery;
+use App\Domain\DTO\Queries\GetSeriesProgressQuery;
 use App\Domain\DTO\Commands\AddGameCommand;
 use App\Domain\DTO\Commands\DeleteGameCommand;
 use App\Domain\DTO\Commands\UpdateGameRatingCommand;
@@ -292,7 +294,15 @@ class ActionRouter
             'delete_movie_note' => $controller->deleteMovieNote(
                 DeleteMovieNoteCommand::fromArray($data, $userId)
             ),
-            
+
+            // SERIES SEASON TRACKING
+            'track_series_season' => $controller->trackSeriesSeason(
+                TrackSeriesSeasonCommand::fromArray($data, $userId)
+            ),
+            'get_series_progress' => $controller->getSeriesProgress(
+                GetSeriesProgressQuery::fromArray($data, $userId)
+            ),
+
             // GAMES - Use Command DTOs
             'add_game' => $controller->addGame(
                 AddGameCommand::fromArray($data['game'] ?? [], $userId)

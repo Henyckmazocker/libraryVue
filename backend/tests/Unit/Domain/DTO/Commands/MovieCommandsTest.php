@@ -9,6 +9,7 @@ use App\Domain\DTO\Commands\DeleteMovieCommand;
 use App\Domain\DTO\Commands\EditUserMovieCommand;
 use App\Domain\DTO\Commands\UpdateMovieRatingCommand;
 use App\Domain\DTO\Commands\UpdateMovieStatusesCommand;
+use App\Domain\DTO\Commands\TrackSeriesSeasonCommand;
 use App\Domain\Model\ValueObjects\Genre;
 use App\Domain\Model\ValueObjects\MovieIdentifier;
 use App\Domain\Model\ValueObjects\Rating;
@@ -329,5 +330,85 @@ class MovieCommandsTest extends TestCase
         ], 1);
 
         $this->assertSame(7, $cmd->ownershipFormatId);
+    }
+
+    // ═══════════════════════════════════════
+    // TrackSeriesSeasonCommand
+    // ═══════════════════════════════════════
+
+    #[Test]
+    public function track_series_season_constructor_sets_defaults(): void
+    {
+        $cmd = new TrackSeriesSeasonCommand(
+            userId: 1,
+            seriesIsbn: 'tt1234567',
+            seasonNumber: 1,
+        );
+
+        $this->assertSame(1, $cmd->userId);
+        $this->assertSame('tt1234567', $cmd->seriesIsbn);
+        $this->assertSame(1, $cmd->seasonNumber);
+        $this->assertSame('viewed', $cmd->status);
+        $this->assertNull($cmd->dateViewed);
+        $this->assertNull($cmd->personalRating);
+        $this->assertNull($cmd->notes);
+    }
+
+    #[Test]
+    public function track_series_season_throws_on_invalid_season_number(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        new TrackSeriesSeasonCommand(userId: 1, seriesIsbn: 'tt1234567', seasonNumber: 0);
+    }
+
+    #[Test]
+    public function track_series_season_throws_on_invalid_status(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Status must be one of');
+        new TrackSeriesSeasonCommand(userId: 1, seriesIsbn: 'tt1234567', seasonNumber: 1, status: 'unknown');
+    }
+
+    #[Test]
+    public function track_series_season_throws_on_invalid_rating(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('0.5 and 5.0 in 0.5 increments');
+        new TrackSeriesSeasonCommand(userId: 1, seriesIsbn: 'tt1234567', seasonNumber: 1, personalRating: 3.3);
+    }
+
+    #[Test]
+    public function track_series_season_from_array_camel_case(): void
+    {
+        $cmd = TrackSeriesSeasonCommand::fromArray([
+            'seriesIsbn'    => 'tt9876543',
+            'seasonNumber'  => 3,
+            'status'        => 'partial',
+            'personalRating' => 3.5,
+            'notes'         => 'Good episode',
+        ], 5);
+
+        $this->assertSame(5, $cmd->userId);
+        $this->assertSame('tt9876543', $cmd->seriesIsbn);
+        $this->assertSame(3, $cmd->seasonNumber);
+        $this->assertSame('partial', $cmd->status);
+        $this->assertSame(3.5, $cmd->personalRating);
+        $this->assertSame('Good episode', $cmd->notes);
+    }
+
+    #[Test]
+    public function track_series_season_from_array_snake_case(): void
+    {
+        $cmd = TrackSeriesSeasonCommand::fromArray([
+            'series_isbn'   => 'tt1111111',
+            'season_number' => 2,
+            'status'        => 'skipped',
+            'personal_rating' => 2.0,
+        ], 7);
+
+        $this->assertSame('tt1111111', $cmd->seriesIsbn);
+        $this->assertSame(2, $cmd->seasonNumber);
+        $this->assertSame('skipped', $cmd->status);
+        $this->assertSame(2.0, $cmd->personalRating);
     }
 }

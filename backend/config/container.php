@@ -77,6 +77,7 @@ return function (): ContainerInterface {
         \App\Domain\Repository\Book\ReadingProgressRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Book\MySqlReadingProgressRepository::class),
         \App\Domain\Repository\Movie\MovieTagRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Movie\MySqlMovieTagRepository::class),
         \App\Domain\Repository\Movie\MovieNoteRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Movie\MySqlMovieNoteRepository::class),
+        \App\Domain\Repository\Movie\SeriesSeasonRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Movie\MySqlSeriesSeasonRepository::class),
         \App\Domain\Repository\Book\EditionNoteRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Book\MySqlEditionNoteRepository::class),
         
         // Note: Most repositories use 'db' as the constructor parameter name for PDO
@@ -105,6 +106,7 @@ return function (): ContainerInterface {
         \App\Infrastructure\Persistence\Book\MySqlReadingProgressRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Movie\MySqlMovieTagRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Movie\MySqlMovieNoteRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Movie\MySqlSeriesSeasonRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Book\MySqlEditionNoteRepository::class => DI\autowire(),
         
         // ===========================

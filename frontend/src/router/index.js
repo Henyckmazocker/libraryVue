@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 // Importar eagerly las vistas de detalle para transiciones instantáneas
 import BookDetailView from '../views/BookDetailView.vue';
 import MovieDetailView from '../views/MovieDetailView.vue';
+import SeriesDetailView from '../views/SeriesDetailView.vue';
 import GameDetailView from '../views/GameDetailView.vue';
 import AlbumDetailView from '../views/AlbumDetailView.vue';
 import UserProfileView from '../views/UserProfileView.vue';
@@ -74,6 +75,13 @@ const routes = [
     path: '/movies/:imdbId',
     name: 'MovieDetail',
     component: MovieDetailView,
+    props: true,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/series/:imdbId',
+    name: 'SeriesDetail',
+    component: SeriesDetailView,
     props: true,
     meta: { requiresAuth: true }
   },

@@ -232,6 +232,37 @@ export function useMovies() {
     return await searchMoviesStore(query);
   };
 
+  // ===== SERIES SEASON TRACKING =====
+
+  const trackSeriesSeason = async (seriesIsbn, seasonNumber, data = {}) => {
+    try {
+      const { useAuthStore } = await import('@/store/auth.js');
+      const authStore = useAuthStore();
+      const response = await authStore.apiCall('track_series_season', {
+        seriesIsbn,
+        seasonNumber,
+        status: data.status || 'viewed',
+        dateViewed: data.dateViewed || null,
+        personalRating: data.personalRating || null,
+        notes: data.notes || null,
+      });
+      return { success: true, data: response.data };
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  };
+
+  const getSeriesProgress = async (seriesIsbn) => {
+    try {
+      const { useAuthStore } = await import('@/store/auth.js');
+      const authStore = useAuthStore();
+      const response = await authStore.apiCall('get_series_progress', { seriesIsbn });
+      return { success: true, data: response.data?.data || {} };
+    } catch (err) {
+      return { success: false, message: err.message, data: {} };
+    }
+  };
+
   return {
     // ===== ESTADO REACTIVO (desde store) =====
     movies,
@@ -273,6 +304,10 @@ export function useMovies() {
     findMovieByTMDBId,                    // Helper puro
     filterMovies,                         // Helper puro
     clearSearchResults,                   // Directo del store
-    clearError                            // Directo del store
+    clearError,                           // Directo del store
+
+    // ===== SERIES SEASON TRACKING =====
+    trackSeriesSeason,
+    getSeriesProgress,
   };
 }

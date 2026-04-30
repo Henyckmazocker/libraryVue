@@ -157,7 +157,11 @@ export const useMoviesStore = defineStore('movies', {
           user_rating: movie.user_rating || 0,
           itemType: 'movie',
           genres: movie.genres || [],
-          ownership_format_id: movie.ownership_format_id || null
+          ownership_format_id: movie.ownership_format_id || null,
+          media_type: movie.type || movie.media_type || 'movie',
+          mediaType: movie.type || movie.media_type || 'movie',
+          total_seasons: movie.totalSeasons || null,
+          totalSeasons: movie.totalSeasons || null
         }
         
         const response = await authStore.authenticatedApiCall('add_movie', { movie: movieData })

@@ -32,10 +32,22 @@
           
           <div class="movie-main-info">
             <h1 class="movie-title-large">{{ movie.title }}</h1>
+
+            <!-- Badge tipo: Serie o Película -->
+            <div class="media-type-indicator" :class="movie.type === 'series' ? 'is-series' : 'is-movie'">
+              <i :class="movie.type === 'series' ? 'fas fa-tv' : 'fas fa-film'"></i>
+              {{ movie.type === 'series' ? 'Serie de Televisión' : 'Película' }}
+            </div>
+
+            <!-- Info exclusiva de series: temporadas -->
+            <div v-if="movie.type === 'series' && movie.totalSeasons" class="series-seasons-info">
+              <i class="fas fa-layer-group"></i>
+              <span>{{ movie.totalSeasons }} temporada{{ movie.totalSeasons > 1 ? 's' : '' }}</span>
+            </div>
             
             <div v-if="movie.director" class="movie-director-large">
-              <i class="fas fa-video"></i>
-              <span>Dirigida por {{ movie.director }}</span>
+              <i :class="movie.type === 'series' ? 'fas fa-tv' : 'fas fa-video'"></i>
+              <span>{{ movie.type === 'series' ? 'Creada por' : 'Dirigida por' }} {{ movie.director }}</span>
             </div>
             
             <div class="movie-metadata">
@@ -49,7 +61,7 @@
               </span>
               <span v-if="movie.runtime" class="metadata-item">
                 <i class="fas fa-clock"></i>
-                {{ movie.runtime }}
+                {{ movie.type === 'series' ? movie.runtime + ' / ep.' : movie.runtime }}
               </span>
               <span v-if="movie.country" class="metadata-item">
                 <i class="fas fa-globe"></i>
@@ -130,8 +142,8 @@
           <p class="awards-content">{{ movie.awards }}</p>
         </div>
 
-        <!-- Producción y Lanzamiento -->
-        <div v-if="movie.production || movie.boxOffice || movie.released || movie.dvd || movie.website" class="movie-production-section">
+        <!-- Producción y Lanzamiento (solo películas) -->
+        <div v-if="movie.type !== 'series' && (movie.production || movie.boxOffice || movie.released || movie.dvd || movie.website)" class="movie-production-section">
           <h2 class="section-title">
             <i class="fas fa-building"></i>
             Producción y Lanzamiento
@@ -242,9 +254,17 @@ const editModal = ref({
 });
 
 // Computed
-const allowedStatuses = computed(() => 
-  Array.isArray(moviesComposable.allowedStatuses.value) ? moviesComposable.allowedStatuses.value : []
-);
+const allowedStatuses = computed(() => {
+  const all = Array.isArray(moviesComposable.allowedStatuses.value)
+    ? moviesComposable.allowedStatuses.value : [];
+  const mediaType = movie.value?.type || movie.value?.mediaType || movie.value?.media_type || 'movie';
+  if (mediaType === 'series') {
+    // Series: excluir 'abandoned' (usar 'dropped')
+    return all.filter(s => s !== 'abandoned');
+  }
+  // Película: excluir estados exclusivos de series
+  return all.filter(s => !['watching', 'on-hold', 'dropped'].includes(s));
+});
 
 const existingMovie = computed(() => {
   if (!movie.value?.imdbID) return null;
@@ -299,7 +319,9 @@ const transformMovieData = (omdbMovie) => {
     released: omdbMovie.Released,
     dvd: omdbMovie.DVD,
     website: omdbMovie.Website,
-    type: omdbMovie.Type,
+    type: omdbMovie.Type ? omdbMovie.Type.toLowerCase() : 'movie',
+    totalSeasons: omdbMovie.totalSeasons && omdbMovie.totalSeasons !== 'N/A'
+      ? parseInt(omdbMovie.totalSeasons) : null,
     ratings: omdbMovie.Ratings || []
   };
 };
@@ -605,6 +627,41 @@ watch(isAuthenticated, async (newValue) => {
 
 .movie-director-large i {
   color: var(--color-primary);
+}
+
+.media-type-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.media-type-indicator.is-series {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.35);
+}
+
+.media-type-indicator.is-movie {
+  background: rgba(29, 78, 74, 0.15);
+  color: #4ade80;
+  border: 1px solid rgba(29, 78, 74, 0.35);
+}
+
+.series-seasons-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  color: #a78bfa;
+  margin-bottom: 16px;
+  font-weight: 500;
 }
 
 .movie-metadata {

@@ -75,7 +75,9 @@ class MovieDataMapper
             null, // tags - loaded separately
             null, // allowedTags - loaded separately
             $genres,
-            $this->buildOwnershipFormat($row)
+            $this->buildOwnershipFormat($row),
+            $this->extractString($row, 'media_type', 'movie'),
+            $this->extractInt($row, 'total_seasons', null)
         );
     }
 
@@ -96,7 +98,9 @@ class MovieDataMapper
             'rating' => $this->toDbValue($movie->getRating()),
             'description' => $this->toDbValue($movie->getDescription()),
             'addedTimestamp' => $movie->getAddedTimestamp()->toUnixTimestamp(),
-            'genres' => $this->toDbValue($movie->getGenres(), 'json')
+            'genres' => $this->toDbValue($movie->getGenres(), 'json'),
+            'media_type' => $movie->getMediaType(),
+            'total_seasons' => $movie->getTotalSeasons()
         ];
     }
 

@@ -145,6 +145,7 @@ export const useAuthStore = defineStore('auth', {
         'add_game_note', 'update_game_note', 'delete_game_note',
         'add_edition_note', 'update_edition_note', 'delete_edition_note',
         'add_movie_note', 'update_movie_note', 'delete_movie_note',
+        'track_series_season',
         // Álbumes
         'add_album', 'delete_album', 'update_album_rating', 'update_album_user_statuses',
         'edit_user_album', 'create_user_album_tag', 'update_album_tags',

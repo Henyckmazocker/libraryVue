@@ -28,6 +28,8 @@ class Movie
     /** @var Genre[]|null */
     private ?array $genres; // Géneros de la película
     private ?array $ownershipFormat; // Formato de posesión (id, value, label)
+    private string $mediaType; // 'movie' o 'series'
+    private ?int $totalSeasons; // Número de temporadas (solo series)
 
     public function __construct(
         MovieIdentifier $id,
@@ -44,7 +46,9 @@ class Movie
         ?array $tags = null,
         ?array $allowedTags = null,
         ?array $genres = null,
-        ?array $ownershipFormat = null
+        ?array $ownershipFormat = null,
+        string $mediaType = 'movie',
+        ?int $totalSeasons = null
     ) {
         $this->id = $id;
         $this->title = $title;
@@ -61,6 +65,8 @@ class Movie
         $this->allowedTags = $allowedTags;
         $this->genres = $genres;
         $this->ownershipFormat = $ownershipFormat;
+        $this->mediaType = in_array($mediaType, ['movie', 'series']) ? $mediaType : 'movie';
+        $this->totalSeasons = $totalSeasons;
     }
 
     public static function fromArray(array $data): self
@@ -103,7 +109,9 @@ class Movie
             $data['tags'] ?? null,
             $data['allowedTags'] ?? null,
             $genres,
-            $data['ownership_format'] ?? $data['ownershipFormat'] ?? null
+            $data['ownership_format'] ?? $data['ownershipFormat'] ?? null,
+            $data['media_type'] ?? $data['mediaType'] ?? 'movie',
+            isset($data['total_seasons']) ? (int)$data['total_seasons'] : (isset($data['totalSeasons']) ? (int)$data['totalSeasons'] : null)
         );
     }
 
@@ -179,6 +187,10 @@ class Movie
 
     public function getOwnershipFormat(): ?array { return $this->ownershipFormat; }
     public function setOwnershipFormat(?array $ownershipFormat): void { $this->ownershipFormat = $ownershipFormat; }
+    public function getMediaType(): string { return $this->mediaType; }
+    public function setMediaType(string $mediaType): void { $this->mediaType = in_array($mediaType, ['movie', 'series']) ? $mediaType : 'movie'; }
+    public function getTotalSeasons(): ?int { return $this->totalSeasons; }
+    public function setTotalSeasons(?int $totalSeasons): void { $this->totalSeasons = $totalSeasons; }
 
     public function toArray(): array
     {
@@ -209,6 +221,10 @@ class Movie
             'ownershipFormat'        => $this->ownershipFormat,
             'ownership_format_value' => $this->ownershipFormat['value'] ?? null,
             'ownership_format_label' => $this->ownershipFormat['label'] ?? null,
+            'media_type'   => $this->mediaType,
+            'mediaType'    => $this->mediaType,
+            'total_seasons' => $this->totalSeasons,
+            'totalSeasons'  => $this->totalSeasons,
         ];
     }
 }

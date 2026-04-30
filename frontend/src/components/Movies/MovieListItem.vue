@@ -9,11 +9,17 @@
       loading="lazy"
     />
     <div v-else class="movie-list-poster-placeholder">
-      <i class="fas fa-film"></i>
+      <i :class="isSeries ? 'fas fa-tv' : 'fas fa-film'"></i>
     </div>
     
     <div class="movie-list-info">
-      <div class="movie-list-title">{{ movie.title }}</div>
+      <div class="movie-list-header">
+        <div class="movie-list-title">{{ movie.title }}</div>
+        <span class="media-type-badge" :class="isSeries ? 'is-series' : 'is-movie'">
+          <i :class="isSeries ? 'fas fa-tv' : 'fas fa-film'"></i>
+          {{ isSeries ? 'Serie' : 'Película' }}
+        </span>
+      </div>
       <div class="movie-list-subtitle">{{ movie.year || movie.director || 'Director desconocido' }}</div>
       
       <!-- Rating (solo si existe) -->
@@ -42,7 +48,7 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits } from 'vue';
+import { ref, computed, defineProps, defineEmits } from 'vue';
 import RatingComponent from '@/components/common/RatingComponent.vue';
 
 const props = defineProps({
@@ -59,6 +65,12 @@ const props = defineProps({
 const emit = defineEmits(['click']);
 
 const imageError = ref(false);
+
+// Detect if this is a series based on any of the possible field names
+const isSeries = computed(() => {
+  const t = props.movie.media_type || props.movie.mediaType || props.movie.type || 'movie';
+  return t === 'series';
+});
 
 const handleClick = () => {
   emit('click', props.movie);
@@ -128,6 +140,13 @@ const getStatusLabel = (statusKey) => {
   gap: 4px;
 }
 
+.movie-list-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .movie-list-title {
   font-size: 1rem;
   font-weight: 600;
@@ -135,6 +154,32 @@ const getStatusLabel = (statusKey) => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.media-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.media-type-badge.is-series {
+  background: rgba(139, 92, 246, 0.2);
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.4);
+}
+
+.media-type-badge.is-movie {
+  background: rgba(29, 78, 74, 0.2);
+  color: #4ade80;
+  border: 1px solid rgba(29, 78, 74, 0.4);
 }
 
 .movie-list-subtitle {

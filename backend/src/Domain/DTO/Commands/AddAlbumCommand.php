@@ -110,7 +110,7 @@ final readonly class AddAlbumCommand
             title: $data['title'],
             artist: $data['artist'] ?? '',
             userId: $userId,
-            statuses: $data['statuses'] ?? [],
+            statuses: $data['statuses'] ?? $data['userStatuses'] ?? [],
             artistId: $data['artist_id'] ?? $data['artistId'] ?? null,
             releaseDate: $data['release_date'] ?? $data['releaseDate'] ?? null,
             releaseDatePrecision: $data['release_date_precision'] ?? $data['releaseDatePrecision'] ?? null,

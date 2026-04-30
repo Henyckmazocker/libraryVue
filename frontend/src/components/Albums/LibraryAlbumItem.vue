@@ -205,7 +205,13 @@ const canSave = computed(() => saveButtonState.value === 'idle');
 async function onSaveAlbum() {
   saveButtonState.value = 'saving';
   try {
-    emit('save', props.album);
+    // Incluir estados y rating seleccionados localmente: props.album no los contiene
+    // hasta que se guarde por primera vez
+    emit('save', {
+      ...props.album,
+      userStatuses: [...selectedUserStatuses.value],
+      user_rating: rating.value
+    });
     saveButtonState.value = 'success';
     setTimeout(() => { saveButtonState.value = 'idle'; }, 1500);
   } catch (err) {

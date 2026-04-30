@@ -366,10 +366,23 @@ const handleSaveAlbum = async (albumData) => {
   try {
     Logger.debug('[AlbumDetailView] Saving album to library:', albumData);
     const statuses = albumData.userStatuses || [];
+    const userRating = albumData.user_rating ?? null;
     const result = await albumsStore.addAlbum(albumData, statuses);
 
     if (result.success) {
       Logger.info('[AlbumDetailView] Album saved successfully');
+      // Reflejar inmediatamente en el estado local para que el modal de edición
+      // muestre los datos correctos si se abre justo después de guardar
+      if (album.value) {
+        album.value = {
+          ...album.value,
+          userStatuses: [...statuses],
+          user_rating: userRating
+        };
+      }
+      // Refrescar el store para que existingAlbum resuelva con los datos completos
+      // (incluyendo el album_id numérico, statuses joined, etc.)
+      await albumsStore.fetchAlbums();
     } else {
       Logger.error('[AlbumDetailView] Error saving album:', result.message);
       alert('Error al añadir el álbum: ' + (result.message || 'Error desconocido'));

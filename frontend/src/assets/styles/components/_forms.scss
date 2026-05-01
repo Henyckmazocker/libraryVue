@@ -1,0 +1,32 @@
+// components/_forms.scss
+// Patrones de formulario compartidos.
+
+@use '../abstracts' as *;
+
+@mixin form-group {
+  display: flex;
+  flex-direction: column;
+  gap: spacing(2xs);
+
+  label {
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+    font-size: var(--font-size-sm);
+  }
+}
+
+@mixin form-control {
+  padding: spacing(xs) spacing(sm);
+  border: 1px solid var(--color-border);
+  border-radius: radius(sm);
+  font-size: var(--font-size-sm);
+  background: var(--color-background-soft);
+  color: var(--color-text);
+  transition: border-color transition(fast);
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary-light);
+    box-shadow: 0 0 0 2px rgba(29, 78, 74, 0.15);
+  }
+}

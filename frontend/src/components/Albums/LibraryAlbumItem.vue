@@ -238,98 +238,12 @@ function onDeleteAlbum() {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+@use '@/assets/styles/components/library-item' as *;
+
+// Cover 1:1 (carátula cuadrada de álbum) en lugar de 2:3 de libros/películas.
 .library-album-item-container {
-  padding: 10px 0;
+  @include library-item('album', '1/1', 120px, 'album');
 }
-
-.album-details {
-  display: flex;
-  gap: 20px;
-  align-items: flex-start;
-}
-
-.cover-image-container {
-  flex-shrink: 0;
-  width: 120px;
-  height: 120px;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.cover-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.info-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.album-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  margin: 0 0 8px;
-  color: var(--text-color, #e0e0e0);
-}
-
-.album-artist,
-.album-release,
-.album-genres,
-.album-label,
-.album-tracks,
-.album-duration,
-.album-id {
-  font-size: 0.85rem;
-  margin: 3px 0;
-  color: var(--text-color-secondary, #9ca3af);
-}
-
-.album-specific-fields {
-  margin-top: 10px;
-  padding: 8px 12px;
-  background: var(--surface-card, #2a2d36);
-  border-radius: 6px;
-}
-
-.album-field {
-  font-size: 0.82rem;
-  margin: 3px 0;
-  color: var(--text-color-secondary, #9ca3af);
-}
-
-.album-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-  flex-wrap: wrap;
-}
-
-.action-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.82rem;
-  font-weight: 500;
-  transition: opacity 0.2s, background 0.2s;
-}
-
-.action-button:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.save-button { background: var(--primary-color, #1D4E4A); color: white; }
-.save-button--success { background: #16a34a; }
-.save-button--error { background: #dc2626; }
-
-.edit-button { background: var(--surface-card, #2a2d36); color: var(--text-color, #e0e0e0); border: 1px solid var(--surface-border, #3f4451); }
-.edit-button--success { border-color: #16a34a; color: #16a34a; }
-.edit-button--error { border-color: #dc2626; color: #dc2626; }
-
-.delete-button { background: transparent; color: #f87171; border: 1px solid #f87171; }
-.delete-button:hover { background: #f87171; color: white; }
 </style>

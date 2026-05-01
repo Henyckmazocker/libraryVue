@@ -1,0 +1,80 @@
+// components/_modal.scss
+// Patrones compartidos para modales.
+//
+// Provee:
+//   - keyframes modalSlideIn
+//   - @mixin modal-overlay-base / modal-overlay-blur
+//   - @mixin modal-content-base
+//   - @mixin modal-close-button
+
+@use '../abstracts' as *;
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@mixin modal-overlay-base($z: modal) {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: z($z);
+}
+
+@mixin modal-overlay-blur {
+  backdrop-filter: blur(2px);
+}
+
+@mixin modal-content-base($width: 700px) {
+  background: var(--color-background-soft);
+  color: var(--color-text);
+  padding: spacing(xl) spacing(xl) spacing(xl) spacing(lg);
+  border-radius: radius(xl);
+  min-width: 320px;
+  width: $width;
+  min-height: 180px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: shadow(heavy);
+  position: relative;
+  font-family: inherit;
+}
+
+@mixin modal-close-button {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  background: transparent;
+  border: none;
+  font-size: var(--font-size-xl);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: color transition(fast);
+  z-index: 10;
+
+  &:hover {
+    color: var(--color-error);
+  }
+}
+
+// Fix de z-index para PrimeVue dentro de modales.
+@mixin modal-primevue-fix {
+  :deep(.p-multiselect-panel),
+  :deep(.p-dropdown-panel),
+  :deep(.p-component-overlay),
+  :deep(.p-multiselect-overlay),
+  :deep(.p-dropdown-overlay) {
+    z-index: 3100 !important;
+    position: fixed !important;
+  }
+}

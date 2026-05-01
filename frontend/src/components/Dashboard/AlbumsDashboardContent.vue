@@ -131,55 +131,33 @@ onMounted(async () => {
 });
 </script>
 
-<style scoped>
+
+<style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+@use '@/assets/styles/components/dashboard' as *;
+
 .dashboard-content {
-  width: 100%;
+  @include dashboard-content-page;
 }
 
-.content-header {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 1.5rem;
-}
-
-.loading-container,
-.error-container {
-  text-align: center;
-  padding: 3rem;
-}
-
-.loading-container i {
-  font-size: 3rem;
-  color: var(--color-primary);
-}
-
-.error-container i {
-  font-size: 3rem;
-  color: var(--color-error, #e74c3c);
-  margin-bottom: 1rem;
-}
-
-.error-container p {
-  margin-bottom: 1rem;
-}
-
+// Sección Last.fm exclusiva de Albums (drift intencional: brand color rojo)
 .lastfm-stats-section {
-  margin-top: 2rem;
-  background: var(--color-background-card, #A3CBC1);
-  border-radius: 8px;
-  padding: 1.5rem;
-  border: 1px solid var(--color-border-light, #A3CBC1);
+  margin-top: spacing(xl);
+  background: var(--color-background-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: radius(lg);
+  padding: spacing(lg);
 }
 
 .lastfm-section-title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: spacing(xs);
   font-size: 1rem;
   font-weight: 600;
-  color: var(--color-text, #E2CBBF);
-  margin: 0 0 1.25rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--color-border, #6F5D4F);
+  color: var(--color-text);
+  margin: 0 0 spacing(md);
+  padding-bottom: spacing(sm);
+  border-bottom: 1px solid var(--color-border);
 }
 </style>

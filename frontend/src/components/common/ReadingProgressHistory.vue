@@ -133,7 +133,7 @@ defineExpose({
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .reading-progress-history {
   background: var(--card-background, #272729);
   border-radius: 12px;

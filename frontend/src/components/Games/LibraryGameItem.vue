@@ -328,228 +328,36 @@ defineExpose({
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+@use '@/assets/styles/components/library-item' as *;
+
 .library-game-item-container {
-  background: var(--background-secondary, #f8f9fa);
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  @include library-item('game', '2/3', 80px, 'game');
 }
 
-.game-details {
-  display: flex;
-  gap: 20px;
-}
-
-.cover-image-container {
-  flex-shrink: 0;
-  width: 200px;
-}
-
-.cover-image {
-  width: 100%;
-  height: auto;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-.info-text {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.game-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-primary, #333);
-  margin: 0 0 10px 0;
-}
-
-.game-details p {
-  margin: 0;
-  color: var(--text-secondary, #666);
-  line-height: 1.6;
-}
-
-.game-details strong {
-  color: var(--text-primary, #333);
-  margin-right: 8px;
-}
-
+// ─── Específico de Game: clases de score Metacritic ───────────────────
 .score-high {
   background: #6c3;
   color: white;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-weight: 700;
+  padding: 2px spacing(xs);
+  border-radius: radius(sm);
+  font-weight: var(--font-weight-bold);
 }
 
 .score-medium {
   background: #fc3;
   color: #333;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-weight: 700;
+  padding: 2px spacing(xs);
+  border-radius: radius(sm);
+  font-weight: var(--font-weight-bold);
 }
 
 .score-low {
   background: #f00;
   color: white;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-weight: 700;
-}
-
-.game-specific-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  padding: 15px;
-  background: var(--background-primary, #fff);
-  border-radius: 8px;
-  border: 1px solid var(--border-color, #dee2e6);
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.form-group label {
-  font-weight: 600;
-  color: var(--text-primary, #333);
-  font-size: 0.9rem;
-}
-
-.form-control {
-  padding: 8px 12px;
-  border: 1px solid var(--border-color, #ced4da);
-  border-radius: 4px;
-  font-size: 0.95rem;
-  transition: border-color 0.2s ease;
-}
-
-.form-control:focus {
-  outline: none;
-  border-color: var(--primary-color, #007bff);
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
-}
-
-.game-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 15px;
-}
-
-.action-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.95rem;
-}
-
-.save-button {
-  background: #28a745;
-  color: white;
-}
-
-.save-button:hover:not(:disabled) {
-  background: #218838;
-}
-
-.save-button--success {
-  background: #28a745;
-}
-
-.save-button--error {
-  background: #dc3545;
-}
-
-.edit-button {
-  background: #007bff;
-  color: white;
-}
-
-.edit-button:hover:not(:disabled) {
-  background: #0056b3;
-}
-
-.edit-button--success {
-  background: #28a745;
-}
-
-.edit-button--error {
-  background: #dc3545;
-}
-
-.delete-button {
-  background: #dc3545;
-  color: white;
-}
-
-.delete-button:hover {
-  background: #c82333;
-}
-
-.action-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-@media (prefers-color-scheme: dark) {
-  .library-game-item-container {
-    background: var(--background-secondary, #1e1e1e);
-  }
-  
-  .game-title,
-  .game-details strong,
-  .form-group label {
-    color: var(--text-primary, #e0e0e0);
-  }
-  
-  .game-details p {
-    color: var(--text-secondary, #aaa);
-  }
-  
-  .game-specific-fields {
-    background: var(--background-primary, #2a2a2a);
-    border-color: var(--border-color, #444);
-  }
-  
-  .form-control {
-    background: var(--background-primary, #333);
-    color: var(--text-primary, #e0e0e0);
-    border-color: var(--border-color, #555);
-  }
-}
-
-@media (max-width: 768px) {
-  .game-details {
-    flex-direction: column;
-  }
-  
-  .cover-image-container {
-    width: 100%;
-    max-width: 300px;
-    margin: 0 auto;
-  }
-  
-  .game-actions {
-    flex-direction: column;
-  }
-  
-  .action-button {
-    width: 100%;
-    justify-content: center;
-  }
+  padding: 2px spacing(xs);
+  border-radius: radius(sm);
+  font-weight: var(--font-weight-bold);
 }
 </style>

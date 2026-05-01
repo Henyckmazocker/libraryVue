@@ -107,7 +107,7 @@ function handleClick() {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .album-carousel-item {
   cursor: pointer;
   width: 160px;

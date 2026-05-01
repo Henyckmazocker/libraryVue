@@ -128,7 +128,7 @@ watch(() => props.rating, (newValue) => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .rating-section {
   margin: 15px 0;
 }

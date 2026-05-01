@@ -361,7 +361,7 @@ const searchQuery = searchSystem.query;
 
 </script>
 
-<style>
+<style lang="scss">
 .library-container {
   display: flex;
   flex-direction: column;

@@ -262,334 +262,39 @@ watch(() => [props.book.ownershipFormat, props.book.ownership_format], ([fmt1, f
 }, { immediate: true, deep: true })
 </script>
 
-<style>
-
+<style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+@use '@/assets/styles/components/library-item' as *;
 
 .library-book-item-container {
-  padding: 12px; /* Reducido de 20px */
-  background-color: #2c2c2c;
-  border-radius: 12px; /* Reducido de 15px */
-  box-shadow: 0 3px 8px rgba(0,0,0,0.25); /* Sombra más sutil */
-  width: auto;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+  @include library-item('book', '2/3', 80px, 'book');
 }
 
-@media (max-width: 480px) {
-  .library-book-item-container {
-    width: 100%;
-    padding: 10px; /* Reducido para móvil */
-  }
-  
-  .book-details {
-    gap: 10px; /* Reducido para móvil */
-  }
-  
-  .cover-image {
-    width: 70px; /* Aún más pequeño en móvil */
-  }
-  
-  .book-title {
-    font-size: 1rem; /* Reducido para móvil */
-  }
-  
-  .book-author,
-  .book-publisher,
-  .book-isbn,
-  .book-publication-date {
-    font-size: 0.8rem; /* Aún más pequeño en móvil */
-  }
-}
-
-.book-details {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px; /* Reducido de 20px */
-}
-
-.cover-image-container {
-  flex-shrink: 0;
-}
-
-.cover-image {
-  width: 80px; /* Reducido de 100px */
-  height: auto;
-  border-radius: 6px; /* Reducido de 8px */
-  border: 1px solid #444;
-}
-
-.info-text {
-  text-align: left;
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.book-title {
-  font-size: 1.1rem; /* Reducido de 1.3rem */
-  color: #e0e0e0;
-  margin-top: 0;
-  margin-bottom: 6px; /* Reducido de 8px */
-  line-height: 1.3; /* Mejor espaciado de líneas */
-}
-
-
-.book-author,
-.book-publisher,
-.book-isbn,
-.book-publication-date {
-  font-size: 0.85rem; /* Reducido de 0.95rem */
-  color: #bbb;
-  margin-top: 0;
-  margin-bottom: 3px; /* Reducido de 4px */
-  line-height: 1.2; /* Mejor espaciado */
-}
-
-.book-author strong,
-.book-isbn strong {
-  font-weight: 500;
-  color: #888;
-  margin-right: 6px;
-}
-
-.rating-section {
-  margin-top: 10px;
-  margin-bottom: 10px;
-}
-
-.current-rating {
-  font-size: 0.9em;
-  color: #ccc;
-  margin-bottom: 5px;
-}
-
-/* Action buttons styles - restored from original BookActions.vue */
-.book-actions {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-top: 15px;
-}
-
-.action-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 15px;
-  font-size: 0.9rem;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-weight: 500;
-  min-width: auto;
-  justify-content: center;
-}
-
-.action-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-}
-
-.action-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* Button types with gradients */
-.save-button {
-  background: linear-gradient(135deg, #28a745, #20c997);
-  color: white;
-  transition: all 0.3s ease;
-}
-
-.save-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #20c997, #17a2b8);
-}
-
-.save-button--success {
-  background: linear-gradient(135deg, #28a745, #32cd32) !important;
-  animation: pulse-success 0.5s ease;
-}
-
-.save-button--error {
-  background: linear-gradient(135deg, #dc3545, #ff6b6b) !important;
-  animation: shake 0.5s ease;
-}
-
-@keyframes pulse-success {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
-}
-
-.edit-button {
-  background: linear-gradient(135deg, #007bff, #0056b3);
-  color: white;
-  transition: all 0.3s ease;
-}
-
-.edit-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #0056b3, #004085);
-}
-
-.edit-button--success {
-  background: linear-gradient(135deg, #28a745, #32cd32) !important;
-  animation: pulse-success 0.5s ease;
-}
-
-.edit-button--error {
-  background: linear-gradient(135deg, #dc3545, #ff6b6b) !important;
-  animation: shake 0.5s ease;
-}
-
-.history-button {
-  background: linear-gradient(135deg, #6c757d, #5a6268);
-  color: white;
-  transition: all 0.3s ease;
-}
-
-.history-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #5a6268, #495057);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.delete-button {
-  background: linear-gradient(135deg, #dc3545, #c82333);
-  color: white;
-}
-
-.delete-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #c82333, #bd2130);
-}
-
-/* Estilos para sesiones de lectura */
+// ─── Sesiones de lectura (específico de Book) ─────────────────────────
 .session-info {
-  margin: 12px 0;
-  padding: 10px;
-  background-color: #1a472a;
-  border-radius: 8px;
+  margin: spacing(sm) 0;
+  padding: spacing(xs);
+  background-color: rgba(40, 167, 69, 0.15);
+  border-radius: radius(md);
   border-left: 4px solid #28a745;
 }
 
 .session-badge {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  font-size: 14px;
-  color: #d4edda;
+  gap: spacing(xs);
+  margin-bottom: spacing(xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+
+  i { color: #28a745; }
 }
 
-.session-badge i {
-  color: #28a745;
-}
-
-.session-actions {
-  display: flex;
-  gap: 8px;
-}
-
+.session-actions,
 .session-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.btn {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  text-decoration: none;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-sm {
-  padding: 4px 8px;
-  font-size: 11px;
-}
-
-.btn-primary {
-  background-color: #007bff;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background-color: #0056b3;
-}
-
-.btn-success {
-  background-color: #28a745;
-  color: white;
-}
-
-.btn-success:hover:not(:disabled) {
-  background-color: #1e7e34;
-}
-
-.btn-warning {
-  background-color: #ffc107;
-  color: #212529;
-}
-
-.btn-warning:hover:not(:disabled) {
-  background-color: #e0a800;
-}
-
-.btn-info {
-  background-color: #17a2b8;
-  color: white;
-}
-
-.btn-info:hover:not(:disabled) {
-  background-color: #138496;
-}
-
-.btn-secondary {
-  background-color: #6c757d;
-  color: white;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background-color: #5a6268;
-}
-
-@media (max-width: 768px) {
-  .book-actions {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .session-buttons {
-    justify-content: center;
-  }
-  
-  .session-actions {
-    justify-content: center;
-  }
-  
-  .action-button {
-    width: 100%;
-    justify-content: center;
-  }
+  gap: spacing(xs);
+  margin-bottom: spacing(xs);
 }
 </style>

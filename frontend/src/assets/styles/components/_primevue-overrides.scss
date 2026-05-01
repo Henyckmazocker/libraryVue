@@ -1,0 +1,51 @@
+// components/_primevue-overrides.scss
+// Overrides centralizados de PrimeVue.
+//
+// Nota: PrimeVue teletransporta overlays (panels/dropdowns/dialogs) al `body`,
+// fuera del DOM `<style scoped>`. Por eso estos overrides son globales
+// (sin `:deep()`) y se aplican una sola vez desde aquí.
+
+@use '../abstracts' as *;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Z-index: dropdowns/multiselects/overlays sobre modales
+// ─────────────────────────────────────────────────────────────────────────────
+.p-multiselect-panel,
+.p-dropdown-panel,
+.p-overlay-mask .p-multiselect-panel,
+.p-overlay-mask .p-dropdown-panel,
+.p-component-overlay,
+.p-multiselect-overlay,
+.p-dropdown-overlay,
+.p-connected-overlay,
+[data-pc-section="root"] {
+  z-index: 3100 !important;
+}
+
+// Mantener inputs base con z-index bajo (anclas).
+.modal-content .p-multiselect,
+.modal-content .p-dropdown {
+  z-index: 1;
+  position: relative;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Z-index: nuestros propios modales
+// ─────────────────────────────────────────────────────────────────────────────
+.modal-overlay {
+  z-index: z(modal);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Diálogos de notas (Books/Movies/Games/Albums *Notes.vue)
+// ─────────────────────────────────────────────────────────────────────────────
+.note-dialog .p-dialog {
+  max-width: 600px;
+  width: 90vw;
+}
+
+// Forzar Dialog de notas por encima de EditItemModal (z-index: 2000)
+.note-dialog.p-dialog-mask,
+.p-dialog-mask:has(.note-dialog) {
+  z-index: 2500 !important;
+}

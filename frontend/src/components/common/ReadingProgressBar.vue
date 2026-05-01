@@ -159,7 +159,7 @@ defineExpose({
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .reading-progress-container {
   margin: 12px 0;
   padding: 10px;

@@ -1,0 +1,223 @@
+// components/_list-item.scss
+// Patrón compartido por *ListItem.vue (Books, Movies, Games, Albums).
+//
+// Filosofía: TODOS los list items tienen la misma estructura visual.
+// La identidad de entidad se comunica únicamente vía color de fondo / acento
+// (variantes book/movie/game/album).
+//
+// Estructura BEM esperada:
+//   .list-item.list-item--{book|movie|game|album}
+//     .list-item__cover (img | placeholder)
+//     .list-item__info
+//       .list-item__header (title + opcional type-badge)
+//       .list-item__title
+//       .list-item__subtitle
+//       .list-item__extra      (slot: plataformas, formato, etc.)
+//       .list-item__rating
+//       .list-item__statuses
+//         .list-item__status-badge
+//     .list-item__arrow (chevron)
+
+@use '../abstracts' as *;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mixin principal: aplica el patrón completo a la raíz `.list-item`.
+//
+// Parámetros:
+//   $variant       'book' | 'movie' | 'game' | 'album'  (color de fondo + acento)
+//   $cover-aspect  '2/3' | '1/1'                        (libros/movies vs games/albums)
+//   $cover-size    px (lado mayor de la portada)
+// ─────────────────────────────────────────────────────────────────────────────
+@mixin list-item($variant: 'book', $cover-aspect: '2/3', $cover-size: 75px) {
+  display: flex;
+  align-items: center;
+  gap: spacing(md);
+  padding: spacing(sm) spacing(md);
+  background: var(--color-card-#{$variant}-bg);
+  border: 1px solid var(--color-card-#{$variant}-border);
+  border-radius: radius(md);
+  cursor: pointer;
+  transition: all transition(fast);
+
+  &:hover {
+    background: var(--color-card-#{$variant}-bg-hover);
+    border-color: var(--color-card-#{$variant}-accent);
+    transform: translateX(4px);
+  }
+
+  &:hover .list-item__arrow {
+    color: var(--color-card-#{$variant}-accent);
+    transform: translateX(4px);
+  }
+
+  // ─── Cover (img o placeholder) ────────────────────────────────────────────
+  .list-item__cover,
+  .list-item__cover-placeholder {
+    flex-shrink: 0;
+    border-radius: radius(sm);
+    box-shadow: shadow(light);
+    object-fit: cover;
+
+    @if $cover-aspect == '1/1' {
+      width: $cover-size;
+      height: $cover-size;
+    } @else {
+      // 2/3 (carteles de libros/películas)
+      $cover-width: 50px;
+      width: $cover-width;
+      height: $cover-size;
+    }
+  }
+
+  .list-item__cover-placeholder {
+    background: var(--color-background-soft);
+    border: 2px dashed var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xl);
+  }
+
+  // ─── Info container ───────────────────────────────────────────────────────
+  .list-item__info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: spacing(3xs);
+  }
+
+  .list-item__header {
+    display: flex;
+    align-items: center;
+    gap: spacing(xs);
+    flex-wrap: wrap;
+  }
+
+  .list-item__title {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .list-item__subtitle {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .list-item__extra {
+    display: flex;
+    align-items: center;
+    gap: spacing(2xs);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    margin-top: spacing(3xs);
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .list-item__rating {
+    margin-top: spacing(3xs);
+  }
+
+  .list-item__statuses {
+    display: flex;
+    flex-wrap: wrap;
+    gap: spacing(2xs);
+    margin-top: spacing(3xs);
+  }
+
+  .list-item__status-badge {
+    display: inline-block;
+    padding: 2px spacing(xs);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    background: var(--color-primary);
+    color: var(--color-text-light);
+    border-radius: radius(xl);
+    text-transform: capitalize;
+  }
+
+  // ─── Arrow chevron ────────────────────────────────────────────────────────
+  .list-item__arrow {
+    font-size: var(--font-size-base);
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+    transition: transform transition(fast), color transition(fast);
+  }
+
+  // ─── Responsive ───────────────────────────────────────────────────────────
+  @include responsive-below(md) {
+    padding: spacing(xs) spacing(sm);
+    gap: spacing(sm);
+
+    .list-item__cover,
+    .list-item__cover-placeholder {
+      @if $cover-aspect == '1/1' {
+        width: 50px;
+        height: 50px;
+      } @else {
+        width: 40px;
+        height: 60px;
+      }
+    }
+
+    .list-item__title { font-size: var(--font-size-sm); }
+    .list-item__subtitle { font-size: var(--font-size-xs); }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Type badge (Película/Serie en MovieListItem) — opcional por variante.
+// ─────────────────────────────────────────────────────────────────────────────
+@mixin list-item-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px spacing(xs);
+  border-radius: radius(sm);
+  font-size: 0.68rem;
+  font-weight: var(--font-weight-semibold);
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+
+  &.is-series {
+    background: rgba(139, 92, 246, 0.2);
+    color: #a78bfa;
+    border: 1px solid rgba(139, 92, 246, 0.4);
+  }
+
+  &.is-movie {
+    background: rgba(74, 222, 128, 0.15);
+    color: #4ade80;
+    border: 1px solid rgba(74, 222, 128, 0.3);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mixins legacy (compat con _index.scss). No usar en código nuevo.
+// ─────────────────────────────────────────────────────────────────────────────
+@mixin list-item-row {
+  @include list-item('book', '2/3', 75px);
+}
+
+@mixin list-item-thumb($size: 48px) {
+  width: $size;
+  height: $size;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: radius(sm);
+}

@@ -123,7 +123,7 @@ const clearAllErrors = () => {
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .auth-example {
   max-width: 800px;
   margin: 20px auto;

@@ -1,0 +1,44 @@
+// abstracts/_breakpoints.scss
+// Map de breakpoints + mixin responsive (mobile-first).
+//
+// Uso:
+//   @use '@/assets/styles/abstracts' as *;
+//   .card { @include responsive(md) { padding: spacing(lg); } }
+
+@use 'sass:map';
+
+$breakpoints: (
+  xs: 0,
+  sm: 480px,
+  md: 768px,
+  lg: 1024px,
+  xl: 1280px,
+  2xl: 1536px,
+);
+
+@function bp($key) {
+  @if not map.has-key($breakpoints, $key) {
+    @error "Breakpoint `#{$key}` no existe. Disponibles: #{map.keys($breakpoints)}";
+  }
+  @return map.get($breakpoints, $key);
+}
+
+// Mobile-first: aplica desde el breakpoint hacia arriba.
+@mixin responsive($key) {
+  $value: bp($key);
+  @if $value == 0 {
+    @content;
+  } @else {
+    @media (min-width: $value) {
+      @content;
+    }
+  }
+}
+
+// Aplica por debajo de un breakpoint (max-width).
+@mixin responsive-below($key) {
+  $value: bp($key);
+  @media (max-width: #{$value - 1px}) {
+    @content;
+  }
+}

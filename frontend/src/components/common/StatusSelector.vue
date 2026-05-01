@@ -250,7 +250,7 @@ watch(() => props.allowedStatuses, (newValue) => {
 }, { deep: true });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .status-selector-container {
   margin: 15px 0;
   overflow: visible;

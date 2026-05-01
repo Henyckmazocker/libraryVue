@@ -253,7 +253,7 @@ export default {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .confirmation-modal-overlay {
   position: fixed;
   top: 0;
@@ -282,16 +282,8 @@ export default {
 .modal-medium { width: 500px; }
 .modal-large { width: 600px; }
 
-@keyframes modalSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
+// @keyframes modalSlideIn → definida globalmente en
+// assets/styles/components/_modal.scss
 
 .modal-header {
   display: flex;

@@ -1,0 +1,50 @@
+// utilities/_text.scss — Utilidades de texto.
+
+// Alineación (legacy compat).
+.text-center { text-align: center; }
+.text-left   { text-align: left; }
+.text-right  { text-align: right; }
+
+.u-text-center { text-align: center; }
+.u-text-left   { text-align: left; }
+.u-text-right  { text-align: right; }
+
+// Truncate 1 línea.
+.u-truncate {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+// Truncate multilínea.
+.u-truncate-2,
+.u-truncate-3,
+.u-truncate-4 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+}
+.u-truncate-2 { -webkit-line-clamp: 2; }
+.u-truncate-3 { -webkit-line-clamp: 3; }
+.u-truncate-4 { -webkit-line-clamp: 4; }
+
+// Variantes semánticas.
+.u-text-muted     { color: var(--color-text-muted); }
+.u-text-secondary { color: var(--color-text-secondary); }
+.u-text-error     { color: var(--color-error); }
+.u-text-success   { color: var(--color-success); }
+.u-text-warning   { color: var(--color-warning); }
+
+// Pesos.
+.u-text-regular  { font-weight: var(--font-weight-regular); }
+.u-text-medium   { font-weight: var(--font-weight-medium); }
+.u-text-semibold { font-weight: var(--font-weight-semibold); }
+.u-text-bold     { font-weight: var(--font-weight-bold); }
+
+// Tamaños.
+.u-text-xs   { font-size: var(--font-size-xs); }
+.u-text-sm   { font-size: var(--font-size-sm); }
+.u-text-base { font-size: var(--font-size-base); }
+.u-text-md   { font-size: var(--font-size-md); }
+.u-text-lg   { font-size: var(--font-size-lg); }
+.u-text-xl   { font-size: var(--font-size-xl); }

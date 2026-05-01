@@ -1,0 +1,73 @@
+// themes/_dark.scss
+// Tema oscuro. Alineado con PrimeVue: darkModeSelector = '.app-dark'.
+
+.app-dark {
+  // ─── Paleta principal ───────────────────────────────────────────────
+  --color-primary:        #2a5e5a;
+  --color-primary-dark:   #1D4E4A;
+  --color-primary-hover:  #3a6e6a;
+  --color-primary-light:  #4a7e7a;
+
+  --color-secondary:       #7ab3a8;
+  --color-secondary-light: #a3cbc1;
+  --color-secondary-dark:  #5a9e92;
+
+  --color-tertiary:  #8a7a6d;
+  --color-accent:    #f5e8e0;
+  --color-highlight: #e8b3c1;
+
+  // ─── Fondos ─────────────────────────────────────────────────────────
+  --color-background:         #0f1412;
+  --color-background-soft:    #1a2420;
+  --color-background-mute:    #2a3530;
+  --color-background-card:    #1D4E4A;
+  --color-background-overlay: rgba(15, 20, 18, 0.95);
+
+  // ─── Textos ─────────────────────────────────────────────────────────
+  --color-text:           #f5e8e0;
+  --color-text-dark:      #a3cbc1;
+  --color-text-light:     #ffffff;
+  --color-text-secondary: #c4ddd8;
+  --color-text-muted:     rgba(245, 232, 224, 0.6);
+
+  // ─── Bordes ─────────────────────────────────────────────────────────
+  --color-border:        #3a4a45;
+  --color-border-light:  #5a6a65;
+  --color-border-hover:  #e8b3c1;
+
+  // ─── Estados ────────────────────────────────────────────────────────
+  --color-success: #66BB6A;
+  --color-warning: #FFB74D;
+  --color-error:   #EF5350;
+  --color-info:    #64B5F6;
+
+  --color-success-bg: rgba(102, 187, 106, 0.15);
+  --color-warning-bg: rgba(255, 183, 77, 0.15);
+  --color-error-bg:   rgba(239, 83, 80, 0.15);
+  --color-info-bg:    rgba(100, 181, 246, 0.15);
+
+  // ─── Botones ────────────────────────────────────────────────────────
+  --btn-primary-bg:        #2a5e5a;
+  --btn-primary-bg-hover:  #3a6e6a;
+  --btn-primary-text:      #f5e8e0;
+
+  --btn-secondary-bg:        #7ab3a8;
+  --btn-secondary-bg-hover:  #8ac3b8;
+  --btn-secondary-text:      #0f1412;
+
+  --btn-accent-bg:        #e8b3c1;
+  --btn-accent-bg-hover:  #d4a1b0;
+  --btn-accent-text:      #1D4E4A;
+
+  // ─── Sombras (más sutiles en oscuro) ────────────────────────────────
+  --shadow-sm:     0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-light:  0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-medium: 0 4px 8px rgba(0, 0, 0, 0.4);
+  --shadow-heavy:  0 8px 16px rgba(0, 0, 0, 0.5);
+  --shadow-xl:     0 16px 32px rgba(0, 0, 0, 0.6);
+
+  // ─── Cards de entidad (mismas en oscuro: ya son colores oscuros) ────
+  // En modo claro estos valores también funcionan porque las cards
+  // mantienen identidad visual oscura sobre cualquier fondo.
+  // Si en el futuro se quiere un set claro distinto, override aquí.
+}

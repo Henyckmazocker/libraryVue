@@ -106,7 +106,7 @@ const handleImageError = (event) => {
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .edition-card {
   background: var(--color-background-card);
   border: 2px solid var(--color-border);

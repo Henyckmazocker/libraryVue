@@ -1,0 +1,34 @@
+// components/_search.scss
+// Patrones compartidos por GenericSearch + *Search.vue.
+
+@use '../abstracts' as *;
+
+// Wrapper de página de búsqueda (Book/Movie/Game/Album Search).
+// Aplicar en .{entity}-search-container para uniformidad entre familias.
+@mixin search-page {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: spacing(xl);
+}
+
+@mixin search-container {
+  display: flex;
+  flex-direction: column;
+  gap: spacing(md);
+}
+
+@mixin search-input {
+  width: 100%;
+  padding: spacing(sm) spacing(md);
+  border: 1px solid var(--color-border);
+  border-radius: radius(md);
+  background: var(--color-background-soft);
+  color: var(--color-text);
+  font-size: var(--font-size-base);
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary-light);
+  }
+}

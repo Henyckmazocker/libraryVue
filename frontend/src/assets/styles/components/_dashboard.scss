@@ -1,0 +1,87 @@
+// components/_dashboard.scss
+// Patrones compartidos por *DashboardContent.vue, Dashboard/shared/* y UnifiedDashboard.
+
+@use '../abstracts' as *;
+
+// ─────────────────────────────────────────────────────────────────────
+// Helpers existentes (mantener API estable)
+// ─────────────────────────────────────────────────────────────────────
+
+@mixin dashboard-grid($min: 220px) {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax($min, 1fr));
+  gap: spacing(md);
+}
+
+@mixin dashboard-section {
+  margin-bottom: spacing(xl);
+}
+
+@mixin dashboard-card {
+  background: var(--color-background-card);
+  color: var(--color-text-dark);
+  border-radius: radius(lg);
+  box-shadow: shadow(light);
+  padding: spacing(md);
+  transition: transition(fast);
+
+  &:hover {
+    box-shadow: shadow(medium);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Master mixin para *DashboardContent.vue
+// Renderiza: wrapper + content-header (botón a la biblioteca) +
+// estados loading/error con icono + retry.
+// ─────────────────────────────────────────────────────────────────────
+
+@mixin dashboard-content-page {
+  width: 100%;
+
+  .content-header {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: spacing(lg);
+  }
+
+  .loading-container,
+  .error-container {
+    text-align: center;
+    padding: spacing(2xl);
+
+    i {
+      font-size: 3rem;
+      margin-bottom: spacing(md);
+    }
+
+    p {
+      font-size: 1.125rem;
+      color: var(--color-text-secondary);
+      margin-bottom: spacing(lg);
+    }
+  }
+
+  .loading-container i { color: var(--color-primary); }
+  .error-container i { color: var(--color-error); }
+
+  @include responsive-below(md) {
+    .content-header {
+      justify-content: stretch;
+      margin-bottom: spacing(md);
+
+      .btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    .loading-container,
+    .error-container {
+      padding: spacing(xl) spacing(md);
+
+      i { font-size: 2.25rem; }
+      p { font-size: 1rem; }
+    }
+  }
+}

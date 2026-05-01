@@ -105,7 +105,7 @@ export default {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .album-lastfm-card {
   /* Inherits the container's dark theme */
 }

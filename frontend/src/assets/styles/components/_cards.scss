@@ -1,0 +1,22 @@
+// components/_cards.scss
+// Patrones de tarjeta genéricos.
+
+@use '../abstracts' as *;
+
+@mixin card-base($padding: md, $radius-key: lg, $shadow-key: light) {
+  background: var(--color-background-card);
+  color: var(--color-text-dark);
+  border-radius: radius($radius-key);
+  box-shadow: shadow($shadow-key);
+  padding: spacing($padding);
+}
+
+@mixin card-interactive {
+  transition: transform transition(fast), box-shadow transition(fast);
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: shadow(medium);
+  }
+}

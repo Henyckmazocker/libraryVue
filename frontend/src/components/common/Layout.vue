@@ -56,7 +56,7 @@ const handleLogout = () => {
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .app-layout {
   min-height: 100vh;
   background: var(--color-background);

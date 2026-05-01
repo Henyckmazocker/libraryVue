@@ -30,16 +30,16 @@ defineProps({
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
+  gap: spacing(lg);
+  margin-bottom: spacing(xl);
 
-@media (max-width: 768px) {
-  .stats-grid {
+  @include responsive-below(md) {
     grid-template-columns: 1fr;
   }
 }

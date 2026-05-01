@@ -79,9 +79,11 @@ watch(activeTab, (newTab) => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .unified-dashboard {
-  padding: 2rem;
+  padding: spacing(xl);
   max-width: 1400px;
   margin: 0 auto;
   background: var(--color-background);
@@ -90,28 +92,28 @@ watch(activeTab, (newTab) => {
 
 .dashboard-header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: spacing(xl);
 }
 
 .dashboard-title {
   font-size: 2rem;
   font-weight: 700;
-  color: var(--color-text-dark);
-  margin: 0 0 0.5rem 0;
+  color: var(--color-text);
+  margin: 0 0 spacing(xs) 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-}
+  gap: spacing(sm);
 
-.dashboard-title i {
-  color: var(--color-primary);
-  font-size: 1.75rem;
+  i {
+    color: var(--color-primary);
+    font-size: 1.75rem;
+  }
 }
 
 .dashboard-subtitle {
   font-size: 1rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
@@ -122,26 +124,15 @@ watch(activeTab, (newTab) => {
 .dashboard-tabs :deep(.p-tab) {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
+  gap: spacing(xs);
+  padding: spacing(sm) spacing(lg);
   font-weight: 600;
   font-size: 1rem;
-}
 
-.dashboard-tabs :deep(.p-tab i) {
-  font-size: 1.1rem;
+  i { font-size: 1.1rem; }
 }
 
 .dashboard-tabs :deep(.p-tabpanel) {
-  padding: 1.5rem 0 0 0;
-}
-
-/* Dark mode */
-:global(.app-dark) .unified-dashboard {
-  background: var(--color-background);
-}
-
-:global(.app-dark) .dashboard-subtitle {
-  color: var(--color-text-secondary);
+  padding: spacing(lg) 0 0 0;
 }
 </style>

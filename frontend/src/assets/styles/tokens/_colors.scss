@@ -1,0 +1,87 @@
+// tokens/_colors.scss
+// Definición base (tema claro) y override en tema oscuro.
+// Las CSS vars son la fuente runtime; design-tokens.js es la fuente JS espejo.
+
+:root {
+  // ─── Paleta principal (teal) ────────────────────────────────────────
+  --color-primary:        #1D4E4A;
+  --color-primary-dark:   #0f2a27;
+  --color-primary-hover:  #2a5e5a;
+  --color-primary-light:  #3a6e6a;
+
+  --color-secondary:       #A3CBC1;
+  --color-secondary-light: #c4ddd8;
+  --color-secondary-dark:  #7ab3a8;
+
+  --color-tertiary:  #6F5D4F;
+  --color-accent:    #E2CBBF;
+  --color-highlight: #DCA1B0;
+
+  // ─── Fondos ─────────────────────────────────────────────────────────
+  --color-background:         #1D4E4A;
+  --color-background-soft:    #2a5e5a;
+  --color-background-mute:    #6F5D4F;
+  --color-background-card:    #A3CBC1;
+  --color-background-overlay: rgba(29, 78, 74, 0.9);
+
+  // ─── Textos ─────────────────────────────────────────────────────────
+  --color-text:           #E2CBBF;
+  --color-text-dark:      #6F5D4F;
+  --color-text-light:     #ffffff;
+  --color-text-secondary: #A3CBC1;
+  --color-text-muted:     rgba(226, 203, 191, 0.7);
+
+  // ─── Bordes ─────────────────────────────────────────────────────────
+  --color-border:        #6F5D4F;
+  --color-border-light:  #A3CBC1;
+  --color-border-hover:  #DCA1B0;
+
+  // ─── Estados ────────────────────────────────────────────────────────
+  --color-success: #4CAF50;
+  --color-warning: #FFA726;
+  --color-error:   #EF5350;
+  --color-info:    #42A5F5;
+
+  --color-success-bg: rgba(76, 175, 80, 0.1);
+  --color-warning-bg: rgba(255, 167, 38, 0.1);
+  --color-error-bg:   rgba(239, 83, 80, 0.1);
+  --color-info-bg:    rgba(66, 165, 245, 0.1);
+
+  // ─── Botones ────────────────────────────────────────────────────────
+  --btn-primary-bg:        #1D4E4A;
+  --btn-primary-bg-hover:  #0f2a27;
+  --btn-primary-text:      #E2CBBF;
+
+  --btn-secondary-bg:        #6F5D4F;
+  --btn-secondary-bg-hover:  #5a4d3f;
+  --btn-secondary-text:      #E2CBBF;
+
+  --btn-accent-bg:        #DCA1B0;
+  --btn-accent-bg-hover:  #c9889a;
+  --btn-accent-text:      #1D4E4A;
+
+  // ─── Cards de entidad (Books / Movies / Games / Albums) ─────────────
+  // Cada entidad tiene un color de fondo y un color de acento (border hover)
+  // que dan identidad visual a sus cards/list items en vistas mixtas.
+  // Películas y Series comparten el mismo color (intencional).
+
+  --color-card-book-bg:           #1f1b14;
+  --color-card-book-bg-hover:     #26200f;
+  --color-card-book-border:       #2e2516;
+  --color-card-book-accent:       #c9943a;
+
+  --color-card-movie-bg:          #1a1625;
+  --color-card-movie-bg-hover:    #211a30;
+  --color-card-movie-border:      #2a1f3d;
+  --color-card-movie-accent:      #8b5cf6;
+
+  --color-card-game-bg:           #131d17;
+  --color-card-game-bg-hover:     #172415;
+  --color-card-game-border:       #1a2d20;
+  --color-card-game-accent:       #4ade80;
+
+  --color-card-album-bg:          #1e2028;
+  --color-card-album-bg-hover:    #252836;
+  --color-card-album-border:      #2d3141;
+  --color-card-album-accent:      #f59e0b;
+}

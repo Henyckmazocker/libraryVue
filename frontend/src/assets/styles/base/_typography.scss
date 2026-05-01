@@ -1,0 +1,12 @@
+// base/_typography.scss
+// Estilos por defecto de enlaces y tipografía base.
+
+a {
+  color: var(--color-primary-light);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+    color: var(--color-highlight);
+  }
+}

@@ -1,0 +1,23 @@
+// components/_carousel-item.scss
+// Compartido por *CarouselItem.vue + HorizontalCarousel.vue.
+
+@use '../abstracts' as *;
+
+@mixin carousel-item-base($width: 160px) {
+  flex-shrink: 0;
+  width: $width;
+  cursor: pointer;
+  transition: transform transition(fast);
+
+  &:hover {
+    transform: translateY(-3px);
+  }
+}
+
+@mixin carousel-cover {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: radius(md);
+  box-shadow: shadow(medium);
+}

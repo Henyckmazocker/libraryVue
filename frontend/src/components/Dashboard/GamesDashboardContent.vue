@@ -138,62 +138,12 @@ onMounted(async () => {
 });
 </script>
 
-<style scoped>
+
+<style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+@use '@/assets/styles/components/dashboard' as *;
+
 .dashboard-content {
-  width: 100%;
-}
-
-.content-header {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 1.5rem;
-}
-
-.loading-container,
-.error-container {
-  text-align: center;
-  padding: 3rem;
-}
-
-.loading-container i {
-  font-size: 3rem;
-  color: var(--color-primary);
-  margin-bottom: 1rem;
-}
-
-.error-container i {
-  font-size: 3rem;
-  color: var(--color-error);
-  margin-bottom: 1rem;
-}
-
-.loading-container p,
-.error-container p {
-  font-size: 1.125rem;
-  color: var(--color-text-muted);
-  margin-bottom: 1.5rem;
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: 6px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: var(--transition-fast);
-  border: none;
-  cursor: pointer;
-}
-
-.btn--primary {
-  background: var(--btn-primary-bg);
-  color: var(--btn-primary-text);
-}
-
-.btn--primary:hover {
-  background: var(--btn-primary-bg-hover);
-  transform: translateY(-2px);
+  @include dashboard-content-page;
 }
 </style>

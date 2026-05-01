@@ -1,0 +1,8 @@
+// Abstracts: SOLO @use, no genera CSS.
+// Uso desde un componente:
+//   @use '@/assets/styles/abstracts' as *;
+
+@forward 'tokens';
+@forward 'breakpoints';
+@forward 'functions';
+@forward 'mixins';

@@ -245,11 +245,10 @@ const searchConfig = computed(() => ({
 }));
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@use '@/assets/styles/components/search' as *;
+
 .movie-search-container {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 40px;
+  @include search-page;
 }
 </style>

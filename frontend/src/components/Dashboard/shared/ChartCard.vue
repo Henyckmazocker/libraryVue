@@ -54,51 +54,34 @@ const chartComponent = computed(() => {
 });
 </script>
 
-<style scoped>
-.chart-card {
-  background: var(--color-background-card);
-  border-radius: 8px;
-  padding: 1.5rem;
-  border: 1px solid var(--color-border-light);
-  box-shadow: var(--shadow-light);
-  transition: var(--transition-fast);
-}
+<style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+@use '@/assets/styles/components/dashboard' as *;
 
-.chart-card:hover {
-  box-shadow: var(--shadow-medium);
-  border-color: var(--color-border-hover);
+.chart-card {
+  @include dashboard-card;
+  border: 1px solid var(--color-border-light);
+  padding: spacing(lg);
+
+  &:hover {
+    border-color: var(--color-border-hover);
+  }
 }
 
 .chart-title {
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--color-text-dark);
-  margin: 0 0 1.5rem 0;
+  color: var(--color-text);
+  margin: 0 0 spacing(lg) 0;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-}
+  gap: spacing(xs);
 
-.chart-title i {
-  color: var(--color-primary);
+  i { color: var(--color-primary); }
 }
 
 .chart-container {
   position: relative;
   height: 300px;
-}
-
-/* Dark mode */
-:global(.app-dark) .chart-card {
-  background: var(--color-background-card);
-  border-color: var(--color-border);
-}
-
-:global(.app-dark) .chart-title {
-  color: var(--color-text);
-}
-
-:global(.app-dark) .chart-title i {
-  color: var(--color-secondary);
 }
 </style>

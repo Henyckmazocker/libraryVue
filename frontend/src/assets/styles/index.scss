@@ -1,0 +1,9 @@
+// Punto de entrada único de estilos.
+// Importado desde frontend/src/main.js
+
+@use 'tokens';
+@use 'themes/light';
+@use 'themes/dark';
+@use 'base';
+@use 'components';
+@use 'utilities';

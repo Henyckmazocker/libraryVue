@@ -254,7 +254,11 @@ class WorkSearchService
     private function extractCoverUrl(array $volumeInfo): ?string
     {
         $imageLinks = $volumeInfo['imageLinks'] ?? [];
-        return $imageLinks['thumbnail'] ?? $imageLinks['smallThumbnail'] ?? null;
+        $url = $imageLinks['thumbnail'] ?? $imageLinks['smallThumbnail'] ?? null;
+        if ($url && str_starts_with($url, 'http://')) {
+            $url = 'https://' . substr($url, 7);
+        }
+        return $url;
     }
 
     /**

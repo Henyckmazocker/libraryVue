@@ -96,7 +96,7 @@ onMounted(async () => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .app-sidebar {
   position: fixed;
   top: 70px; /* Altura del header */

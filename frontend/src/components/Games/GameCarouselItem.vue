@@ -139,9 +139,7 @@ const getRatingClass = (rating) => {
 };
 </script>
 
-<style scoped>
-@import '@/assets/styles/variables.css';
-
+<style scoped lang="scss">
 .game-carousel-item {
   flex-shrink: 0;
   width: 160px;

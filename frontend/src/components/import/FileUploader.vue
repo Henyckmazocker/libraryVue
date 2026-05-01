@@ -72,7 +72,7 @@ defineExpose({
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .form-group {
   margin-bottom: 20px;
 }

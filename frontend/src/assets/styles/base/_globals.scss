@@ -1,0 +1,32 @@
+// base/_globals.scss
+// Estilos globales de body, #app y transiciones de página.
+
+body {
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-family-base);
+}
+
+#app {
+  font-family: var(--font-family-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--color-text);
+  background: var(--color-background);
+  min-height: 100vh;
+  height: 100%;
+}
+
+// Page transition — fade suave entre páginas
+.page-fade-enter-active {
+  transition: opacity 0.15s ease;
+}
+
+.page-fade-leave-active {
+  transition: opacity 0.1s ease;
+}
+
+.page-fade-enter-from,
+.page-fade-leave-to {
+  opacity: 0;
+}

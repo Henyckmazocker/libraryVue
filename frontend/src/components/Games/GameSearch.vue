@@ -245,28 +245,10 @@ const searchConfig = computed(() => ({
 }));
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@use '@/assets/styles/components/search' as *;
+
 .game-search-container {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 40px;
-}
-
-.trending-section {
-  width: 100%;
-}
-
-.trending-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-bottom: 20px;
-  color: var(--text-primary, #333);
-}
-
-@media (prefers-color-scheme: dark) {
-  .trending-title {
-    color: var(--text-primary, #e0e0e0);
-  }
+  @include search-page;
 }
 </style>

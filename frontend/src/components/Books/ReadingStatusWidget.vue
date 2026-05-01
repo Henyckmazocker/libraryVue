@@ -106,7 +106,7 @@ const formatDate = (dateString) => {
 
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .reading-status-widget {
   display: flex;
   flex-direction: column;

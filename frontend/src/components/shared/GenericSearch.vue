@@ -142,9 +142,7 @@ onMounted(async () => {
 });
 </script>
 
-<style scoped>
-@import '@/assets/styles/variables.css';
-
+<style scoped lang="scss">
 .generic-search-container {
   display: flex;
   flex-direction: column;

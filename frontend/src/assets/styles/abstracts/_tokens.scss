@@ -1,0 +1,53 @@
+// abstracts/_tokens.scss
+// Maps SCSS espejo de las CSS vars. Permiten validación en build-time
+// y son consumidos por las funciones spacing()/z()/radius()/shadow().
+//
+// IMPORTANTE: Mantener sincronizado con tokens/*.scss.
+
+$spacing: (
+  3xs: var(--spacing-3xs),
+  2xs: var(--spacing-2xs),
+  xs:  var(--spacing-xs),
+  sm:  var(--spacing-sm),
+  md:  var(--spacing-md),
+  lg:  var(--spacing-lg),
+  xl:  var(--spacing-xl),
+  2xl: var(--spacing-2xl),
+  3xl: var(--spacing-3xl),
+);
+
+$radius: (
+  none: var(--radius-none),
+  sm:   var(--radius-sm),
+  md:   var(--radius-md),
+  lg:   var(--radius-lg),
+  xl:   var(--radius-xl),
+  2xl:  var(--radius-2xl),
+  full: var(--radius-full),
+);
+
+$shadow: (
+  sm:     var(--shadow-sm),
+  light:  var(--shadow-light),
+  medium: var(--shadow-medium),
+  heavy:  var(--shadow-heavy),
+  xl:     var(--shadow-xl),
+);
+
+$z-index: (
+  hide:     var(--z-hide),
+  base:     var(--z-base),
+  dropdown: var(--z-dropdown),
+  sticky:   var(--z-sticky),
+  overlay:  var(--z-overlay),
+  modal:    var(--z-modal),
+  popover:  var(--z-popover),
+  toast:    var(--z-toast),
+  tooltip:  var(--z-tooltip),
+);
+
+$transition: (
+  fast:   var(--transition-fast),
+  medium: var(--transition-medium),
+  slow:   var(--transition-slow),
+);

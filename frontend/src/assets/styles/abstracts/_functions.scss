@@ -1,0 +1,40 @@
+// abstracts/_functions.scss
+// Funciones de acceso a tokens (devuelven CSS vars).
+
+@use 'sass:map';
+@use 'tokens' as *;
+
+@function spacing($key) {
+  @if not map.has-key($spacing, $key) {
+    @error "Spacing `#{$key}` no existe. Disponibles: #{map.keys($spacing)}";
+  }
+  @return map.get($spacing, $key);
+}
+
+@function radius($key) {
+  @if not map.has-key($radius, $key) {
+    @error "Radius `#{$key}` no existe. Disponibles: #{map.keys($radius)}";
+  }
+  @return map.get($radius, $key);
+}
+
+@function shadow($key) {
+  @if not map.has-key($shadow, $key) {
+    @error "Shadow `#{$key}` no existe. Disponibles: #{map.keys($shadow)}";
+  }
+  @return map.get($shadow, $key);
+}
+
+@function z($key) {
+  @if not map.has-key($z-index, $key) {
+    @error "Z-index `#{$key}` no existe. Disponibles: #{map.keys($z-index)}";
+  }
+  @return map.get($z-index, $key);
+}
+
+@function transition($key) {
+  @if not map.has-key($transition, $key) {
+    @error "Transition `#{$key}` no existe. Disponibles: #{map.keys($transition)}";
+  }
+  @return map.get($transition, $key);
+}

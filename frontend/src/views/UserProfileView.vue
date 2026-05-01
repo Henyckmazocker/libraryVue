@@ -148,7 +148,7 @@ export default {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 
 .profile-container {
   max-width: 700px;

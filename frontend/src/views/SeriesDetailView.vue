@@ -433,155 +433,167 @@ watch(existingSeries, async (val) => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+@use '@/assets/styles/components/detail-view' as *;
+
+// Series comparte identidad visual con Movies (variant 'movie')
 .series-detail-view {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
+  @include detail-view-page('movie', 'series');
+
+  .series-plot-section,
+  .series-crew-section,
+  .series-awards-section,
+  .series-links-section,
+  .season-tracker-section,
+  .library-form-section {
+    @include detail-section-card;
+  }
+
+  .series-poster-large {
+    flex-shrink: 0;
+    width: 220px;
+  }
+
+  .series-main-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .media-type-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: spacing(2xs);
+    padding: spacing(3xs) spacing(sm);
+    border-radius: radius(full);
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-bottom: spacing(sm);
+
+    &.is-series {
+      background: rgba(139, 92, 246, 0.15);
+      color: #a78bfa;
+      border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+  }
+
+  .series-seasons-info {
+    display: inline-flex;
+    align-items: center;
+    gap: spacing(2xs);
+    color: #a78bfa;
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: spacing(xs);
+  }
+
+  .series-creator {
+    display: flex;
+    align-items: center;
+    gap: spacing(xs);
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: spacing(xs);
+
+    i { color: var(--color-card-movie-accent); }
+  }
+
+  .series-metadata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: spacing(sm);
+    margin: spacing(sm) 0;
+  }
+
+  .series-language {
+    display: flex;
+    align-items: center;
+    gap: spacing(2xs);
+    font-size: 0.88rem;
+    color: var(--color-text-secondary);
+    margin-bottom: spacing(xs);
+  }
+
+  .series-ratings {
+    display: flex;
+    flex-direction: column;
+    gap: spacing(2xs);
+    margin: spacing(xs) 0;
+  }
+
+  .rating-item {
+    display: flex;
+    align-items: center;
+    gap: spacing(2xs);
+    font-size: 0.9rem;
+
+    i { color: #f5c518; }
+
+    .votes {
+      color: var(--color-text-secondary);
+      font-size: 0.8rem;
+    }
+  }
+
+  .series-imdb-id {
+    font-size: 0.82rem;
+    color: var(--color-text-secondary);
+  }
+
+  .series-genres {
+    display: flex;
+    align-items: center;
+    gap: spacing(xs);
+    flex-wrap: wrap;
+    margin-top: spacing(xs);
+
+    > i {
+      color: var(--color-card-movie-accent);
+      flex-shrink: 0;
+    }
+  }
+
+  .genre-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: spacing(2xs);
+  }
+
+  .series-plot-content {
+    line-height: 1.7;
+    color: var(--color-text);
+  }
+
+  .crew-info {
+    display: flex;
+    flex-direction: column;
+    gap: spacing(2xs);
+  }
+
+  .crew-item {
+    font-size: 0.92rem;
+  }
+
+  .awards-content {
+    font-size: 0.92rem;
+    color: var(--color-text);
+  }
+
+  .poster-placeholder {
+    background: rgba(139, 92, 246, 0.15);
+    border: 2px dashed rgba(139, 92, 246, 0.3);
+    color: rgba(139, 92, 246, 0.4);
+    font-size: 3rem;
+  }
+
+  @include responsive-below(md) {
+    .series-poster-large,
+    .poster-placeholder {
+      width: 100%;
+      max-width: 250px;
+      margin: 0 auto;
+    }
+  }
 }
-
-.back-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background-color: var(--color-background-mute);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.95rem;
-  transition: all 0.2s ease;
-  margin-bottom: 20px;
-}
-.back-button:hover { background-color: var(--color-background-soft); }
-
-.loading-state, .error-state, .empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--color-text-muted);
-}
-.loading-state i, .error-state i, .empty-state i { font-size: 3rem; margin-bottom: 16px; display: block; }
-
-.series-detail-content { }
-
-/* ── Cabecera ── */
-.series-header {
-  display: grid;
-  grid-template-columns: 200px 1fr;
-  gap: 2rem;
-  margin-bottom: 2rem;
-}
-@media (max-width: 640px) { .series-header { grid-template-columns: 1fr; } }
-
-.series-poster-large { width: 100%; }
-.poster-image-large  { width: 100%; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
-.poster-placeholder {
-  width: 100%; aspect-ratio: 2/3;
-  background: rgba(139, 92, 246, 0.15);
-  border: 2px dashed rgba(139, 92, 246, 0.3);
-  border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 3rem; color: rgba(139,92,246,0.4);
-}
-
-.series-title-large { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.75rem; }
-
-.media-type-indicator {
-  display: inline-flex; align-items: center; gap: 0.4rem;
-  padding: 0.3rem 0.8rem;
-  border-radius: 20px;
-  font-size: 0.82rem;
-  font-weight: 600;
-  margin-bottom: 0.75rem;
-}
-.media-type-indicator.is-series {
-  background: rgba(139, 92, 246, 0.15);
-  color: #a78bfa;
-  border: 1px solid rgba(139, 92, 246, 0.3);
-}
-
-.series-seasons-info {
-  display: inline-flex; align-items: center; gap: 0.4rem;
-  color: #a78bfa; font-weight: 600; font-size: 0.95rem;
-  margin-bottom: 0.5rem;
-}
-
-.series-creator {
-  display: flex; align-items: center; gap: 0.5rem;
-  color: var(--text-color-secondary, #aaa);
-  font-size: 0.9rem; margin-bottom: 0.5rem;
-}
-
-.series-metadata { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 0.75rem 0; }
-.metadata-item { display: flex; align-items: center; gap: 0.35rem; font-size: 0.88rem; color: var(--text-color-secondary, #aaa); }
-
-.series-language { display: flex; align-items: center; gap: 0.4rem; font-size: 0.88rem; color: var(--text-color-secondary,#aaa); margin-bottom: 0.5rem; }
-
-.series-ratings { display: flex; flex-direction: column; gap: 0.3rem; margin: 0.5rem 0; }
-.rating-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; }
-.votes { color: var(--text-color-secondary, #aaa); font-size: 0.8rem; }
-
-.series-imdb-id { font-size: 0.82rem; color: var(--text-color-secondary, #aaa); margin: 0.3rem 0; }
-
-.series-genres { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem; }
-.genre-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-.genre-tag {
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 12px;
-  padding: 0.2rem 0.6rem;
-  font-size: 0.8rem;
-}
-
-/* ── Secciones ── */
-.section-title {
-  display: flex; align-items: center; gap: 0.5rem;
-  font-size: 1.1rem; font-weight: 600;
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.4rem;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-}
-.series-plot-section, .series-crew-section, .series-awards-section,
-.series-links-section, .season-tracker-section, .library-form-section {
-  margin-bottom: 2rem;
-}
-
-.series-plot-content { line-height: 1.7; color: var(--text-color, #fff); }
-
-.crew-info { display: flex; flex-direction: column; gap: 0.4rem; }
-.crew-item { font-size: 0.92rem; }
-
-.awards-content { font-size: 0.92rem; color: var(--text-color, #fff); }
-
-.external-link {
-  display: inline-flex; align-items: center; gap: 0.4rem;
-  padding: 0.45rem 1rem;
-  background: rgba(255,193,7,0.1);
-  color: #fbbf24;
-  border: 1px solid rgba(255,193,7,0.25);
-  border-radius: 8px;
-  text-decoration: none;
-  font-size: 0.9rem;
-  transition: background 0.2s;
-}
-.external-link:hover { background: rgba(255,193,7,0.2); }
-
-.section-divider {
-  height: 1px;
-  background: rgba(255,255,255,0.06);
-  margin: 2rem 0;
-}
-
-.action-button {
-  padding: 0.6rem 1.2rem;
-  background: var(--primary-color, #1D4E4A);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: opacity 0.2s;
-}
-.action-button:hover { opacity: 0.85; }
 </style>
+

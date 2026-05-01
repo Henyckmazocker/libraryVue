@@ -1,168 +1,162 @@
 <template>
   <Teleport to="body">
-    <div v-if="isVisible" class="modal-overlay" @click="onBackgroundClick">
-      <div class="modal-content">
-        <button class="close-btn" @click="$emit('close')" aria-label="Cerrar">&times;</button>
-        
-        <h2>{{ item?.title || 'Sin título' }}</h2>
-        
-        <div class="edit-fields">
-          <!-- Rating Component -->
-          <RatingComponent
-            v-model:rating="localRating"
-            :editable="true"
-          />
-          
-          <!-- Reading Progress Bar (solo para libros) -->
-          <ReadingProgressBar
-            v-if="itemType === 'book'"
-            ref="progressBarRef"
-            :current-page="item?.currentPage || 0"
-            :total-pages="localTotalPages"
-            :editable="true"
-            theme="blue"
-          />
+    <div
+      v-if="isVisible"
+      class="edit-modal"
+      :class="`edit-modal--${itemType}`"
+      @click="onBackgroundClick"
+    >
+      <div class="edit-modal__dialog" role="dialog" aria-modal="true">
+        <header class="edit-modal__header">
+          <h2 class="edit-modal__title" :title="item?.title || 'Sin título'">
+            {{ item?.title || 'Sin título' }}
+          </h2>
+          <button
+            class="edit-modal__close"
+            type="button"
+            aria-label="Cerrar"
+            @click="$emit('close')"
+          >
+            &times;
+          </button>
+        </header>
 
-          <!-- Total pages input (books only, shown when pages is unknown) -->
-          <div v-if="itemType === 'book'" class="form-group">
-            <label for="total-pages-input">Total de páginas</label>
-            <input
-              id="total-pages-input"
-              v-model.number="localTotalPages"
-              type="number"
-              min="1"
-              placeholder="Nº total de páginas del libro"
-              class="game-input"
+        <div class="edit-modal__body">
+          <!-- Sección: valoración y progreso -->
+          <section class="edit-modal__section">
+            <RatingComponent v-model:rating="localRating" :editable="true" />
+
+            <ReadingProgressBar
+              v-if="itemType === 'book'"
+              ref="progressBarRef"
+              :current-page="item?.currentPage || 0"
+              :total-pages="localTotalPages"
+              :editable="true"
+              theme="blue"
             />
-          </div>
-          
-          <!-- Status Selector -->
-          <StatusSelector
-            v-model="localStatuses"
-            :allowed-statuses="allowedStatuses"
-            :multiple="true"
-            label="Estado"
-            subtitle="(selecciona uno o más)"
-          />
-          
-          <!-- Tag Selector -->
-          <TagSelector
-            v-model="localTags"
-            :tags="userTags"
-            :readonly="false"
-            @add-tag="handleAddTag"
-          />
 
-          <!-- Ownership Format Selector (all entity types) -->
-          <div v-if="ownershipFormats.length > 0" class="form-group">
-            <label for="ownership-format">Formato de Propiedad</label>
-            <select
-              id="ownership-format"
-              v-model="localOwnershipFormatId"
-              class="game-input"
-            >
-              <option :value="null">— Sin especificar —</option>
-              <option
-                v-for="fmt in ownershipFormats"
-                :key="fmt.id"
-                :value="fmt.id"
-              >
-                {{ fmt.label }}
-              </option>
-            </select>
-          </div>
-          
-          <!-- Game-specific fields -->
-          <div v-if="itemType === 'game'" class="game-fields">
-            <div class="form-group">
-              <label for="hours-played">Horas Jugadas</label>
+            <div v-if="itemType === 'book'" class="edit-modal__field">
+              <label for="total-pages-input">Total de páginas</label>
               <input
-                id="hours-played"
-                v-model.number="localHoursPlayed"
+                id="total-pages-input"
+                v-model.number="localTotalPages"
                 type="number"
-                min="0"
-                step="0.5"
-                placeholder="Horas jugadas"
-                class="game-input"
+                min="1"
+                placeholder="Nº total de páginas del libro"
+                class="edit-modal__input"
               />
             </div>
-            
-            <div class="form-group">
-              <label for="platform-played">Plataforma</label>
-              <input
-                id="platform-played"
-                v-model="localPlatformPlayed"
-                type="text"
-                placeholder="PC, PS5, Xbox, etc."
-                class="game-input"
-              />
+          </section>
+
+          <!-- Sección: estado, tags y propiedad -->
+          <section class="edit-modal__section">
+            <StatusSelector
+              v-model="localStatuses"
+              :allowed-statuses="allowedStatuses"
+              :multiple="true"
+              label="Estado"
+              subtitle="(selecciona uno o más)"
+            />
+
+            <TagSelector
+              v-model="localTags"
+              :tags="userTags"
+              :readonly="false"
+              @add-tag="handleAddTag"
+            />
+
+            <div v-if="ownershipFormats.length > 0" class="edit-modal__field">
+              <label for="ownership-format">Formato de Propiedad</label>
+              <select
+                id="ownership-format"
+                v-model="localOwnershipFormatId"
+                class="edit-modal__input"
+              >
+                <option :value="null">— Sin especificar —</option>
+                <option
+                  v-for="fmt in ownershipFormats"
+                  :key="fmt.id"
+                  :value="fmt.id"
+                >
+                  {{ fmt.label }}
+                </option>
+              </select>
             </div>
-            
-            <div class="form-group">
-              <label for="date-started">Fecha de Inicio</label>
-              <input
-                id="date-started"
-                v-model="localDateStarted"
-                type="date"
-                class="game-input"
-              />
+          </section>
+
+          <!-- Sección: detalles específicos del juego -->
+          <section v-if="itemType === 'game'" class="edit-modal__section edit-modal__section--card">
+            <h3 class="edit-modal__section-title">Detalles del juego</h3>
+
+            <div class="edit-modal__grid">
+              <div class="edit-modal__field">
+                <label for="hours-played">Horas jugadas</label>
+                <input
+                  id="hours-played"
+                  v-model.number="localHoursPlayed"
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  placeholder="Horas jugadas"
+                  class="edit-modal__input"
+                />
+              </div>
+
+              <div class="edit-modal__field">
+                <label for="platform-played">Plataforma</label>
+                <input
+                  id="platform-played"
+                  v-model="localPlatformPlayed"
+                  type="text"
+                  placeholder="PC, PS5, Xbox, etc."
+                  class="edit-modal__input"
+                />
+              </div>
+
+              <div class="edit-modal__field">
+                <label for="date-started">Fecha de inicio</label>
+                <input
+                  id="date-started"
+                  v-model="localDateStarted"
+                  type="date"
+                  class="edit-modal__input"
+                />
+              </div>
+
+              <div class="edit-modal__field">
+                <label for="date-finished">Fecha de finalización</label>
+                <input
+                  id="date-finished"
+                  v-model="localDateFinished"
+                  type="date"
+                  class="edit-modal__input"
+                />
+              </div>
             </div>
-            
-            <div class="form-group">
-              <label for="date-finished">Fecha de Finalización</label>
-              <input
-                id="date-finished"
-                v-model="localDateFinished"
-                type="date"
-                class="game-input"
-              />
-            </div>
-            
-            <div class="form-group">
-              <label for="personal-notes">Notas Personales</label>
+
+            <div class="edit-modal__field">
+              <label for="personal-notes">Notas personales</label>
               <textarea
                 id="personal-notes"
                 v-model="localPersonalNotes"
                 rows="3"
                 placeholder="Tus notas sobre este juego..."
-                class="game-textarea"
+                class="edit-modal__textarea"
               ></textarea>
             </div>
-          </div>
-          
-          <!-- Reading Status Widget (solo para libros existentes) -->
-          <ReadingStatusWidget
-            v-if="itemType === 'book' && item?.isbn && !isNewItem"
-            :book="item"
-          />
+          </section>
 
-          <!-- Edition Notes (solo para libros) -->
-          <EditionNotes
-            v-if="itemType === 'book' && userEditionId"
-            :user-edition-id="userEditionId"
-          />
-          
-          <!-- Movie Notes (solo para películas) -->
-          <MovieNotes
-            v-if="itemType === 'movie' && item?.isbn"
-            :movie-isbn="item.isbn"
-          />
-          
-          <!-- Game Notes (solo para juegos) -->
-          <GameNotes
-            v-if="itemType === 'game' && item?.id"
-            :game-id="item.id"
-          />
+          <!-- Sección: detalles específicos del álbum -->
+          <section v-if="itemType === 'album'" class="edit-modal__section edit-modal__section--card">
+            <h3 class="edit-modal__section-title">Detalles del álbum</h3>
 
-          <!-- Album-specific fields -->
-          <div v-if="itemType === 'album'" class="game-fields">
-            <div class="form-group">
-              <label for="favorite-track">Canción Favorita</label>
+            <div class="edit-modal__field">
+              <label for="favorite-track">Canción favorita</label>
               <select
                 v-if="albumTracks && albumTracks.length > 0"
                 id="favorite-track"
                 v-model="localFavoriteTrack"
-                class="game-input"
+                class="edit-modal__input"
               >
                 <option value="">— Ninguna —</option>
                 <option
@@ -179,44 +173,82 @@
                 v-model="localFavoriteTrack"
                 type="text"
                 placeholder="Tu canción favorita del álbum"
-                class="game-input"
+                class="edit-modal__input"
               />
             </div>
 
-            <div class="form-group">
-              <label for="album-date-started">Primera Escucha</label>
+            <div class="edit-modal__field">
+              <label for="album-date-started">Primera escucha</label>
               <input
                 id="album-date-started"
                 v-model="localDateStarted"
                 type="date"
-                class="game-input"
+                class="edit-modal__input"
               />
             </div>
 
-            <div class="form-group">
-              <label for="album-personal-notes">Notas Personales</label>
+            <div class="edit-modal__field">
+              <label for="album-personal-notes">Notas personales</label>
               <textarea
                 id="album-personal-notes"
                 v-model="localPersonalNotes"
                 rows="3"
                 placeholder="Tus notas sobre este álbum..."
-                class="game-textarea"
+                class="edit-modal__textarea"
               ></textarea>
             </div>
-          </div>
+          </section>
 
-          <!-- Album Notes -->
-          <AlbumNotes
-            v-if="itemType === 'album' && item?.id"
-            :album-id="item.id"
-          />
+          <!-- Sección: widgets/notas asociadas -->
+          <section
+            v-if="hasNotesSection"
+            class="edit-modal__section"
+          >
+            <ReadingStatusWidget
+              v-if="itemType === 'book' && item?.isbn && !isNewItem"
+              :book="item"
+            />
+
+            <EditionNotes
+              v-if="itemType === 'book' && userEditionId"
+              :user-edition-id="userEditionId"
+            />
+
+            <MovieNotes
+              v-if="itemType === 'movie' && item?.isbn"
+              :movie-isbn="item.isbn"
+            />
+
+            <GameNotes
+              v-if="itemType === 'game' && item?.id"
+              :game-id="item.id"
+            />
+
+            <AlbumNotes
+              v-if="itemType === 'album' && item?.id"
+              :album-id="item.id"
+            />
+          </section>
         </div>
-        
-        <div class="save-btn-container">
-          <button class="save-btn" @click="handleSave" :disabled="isSaving">
+
+        <footer class="edit-modal__footer">
+          <button
+            type="button"
+            class="btn btn--secondary"
+            :disabled="isSaving"
+            @click="$emit('close')"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn btn--primary"
+            :disabled="isSaving"
+            @click="handleSave"
+          >
             {{ isSaving ? 'Guardando...' : 'Guardar' }}
           </button>
-        </div>
+        </footer>
       </div>
     </div>
   </Teleport>
@@ -603,176 +635,206 @@ const handleSave = async () => {
 
 // Handle background click
 const onBackgroundClick = (e) => {
-  if (e.target.classList.contains('modal-overlay')) {
+  if (e.target.classList.contains('edit-modal')) {
     emit('close')
   }
 }
+
+// Whether the bottom "notes / widgets" section should render
+const hasNotesSection = computed(() => {
+  if (props.itemType === 'book') {
+    return Boolean(props.item?.isbn) || Boolean(userEditionId.value)
+  }
+  if (props.itemType === 'movie') return Boolean(props.item?.isbn)
+  if (props.itemType === 'game' || props.itemType === 'album') return Boolean(props.item?.id)
+  return false
+})
 </script>
 
-<style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-}
+<style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+@use '@/assets/styles/components/modal' as *;
+@use '@/assets/styles/components/forms' as *;
 
-.modal-content {
-  background: var(--background, #23272f);
-  color: var(--text, #f5f5f5);
-  padding: 2rem 2.5rem 2rem 2rem;
-  border-radius: 16px;
-  min-width: 320px;
-  width: 700px;
-  min-height: 180px;
-  max-width: 90vw;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.35);
-  position: relative;
-  font-family: inherit;
-}
+// Overrides PrimeVue (z-index, overlays) → centralizados en
+// assets/styles/components/_primevue-overrides.scss
 
-.close-btn {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  background: transparent;
-  border: none;
-  font-size: 2rem;
-  color: #f5f5f5;
-  cursor: pointer;
-  transition: color 0.2s;
-  z-index: 10;
-}
+.edit-modal {
+  @include modal-overlay-base(modal);
+  @include modal-overlay-blur;
+  padding: spacing(md);
 
-.close-btn:hover {
-  color: #ff5252;
-}
+  &__dialog {
+    @include modal-content-base(720px);
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    animation: modalSlideIn transition(medium) ease-out;
+    border-top: 3px solid var(--color-primary);
+  }
 
-.edit-fields {
-  margin-top: 1rem;
-  margin-bottom: 1rem;
-}
+  // Acento por entidad en el borde superior del modal
+  &--book &__dialog   { border-top-color: var(--color-card-book-accent); }
+  &--movie &__dialog  { border-top-color: var(--color-card-movie-accent); }
+  &--game &__dialog   { border-top-color: var(--color-card-game-accent); }
+  &--album &__dialog  { border-top-color: var(--color-card-album-accent); }
 
-.save-btn-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 2rem;
-}
+  &__header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: spacing(md);
+    padding: spacing(lg) spacing(xl);
+    background: var(--color-background-soft);
+    border-bottom: 1px solid var(--color-border);
+    border-top-left-radius: radius(xl);
+    border-top-right-radius: radius(xl);
+  }
 
-.save-btn {
-  padding: 0.5rem 2rem;
-  background: #1976d2;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 1.1rem;
-  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
-  transition: background 0.2s;
-}
+  &__title {
+    flex: 1 1 auto;
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+    @include truncate(2);
+  }
 
-.save-btn:hover:not(:disabled) {
-  background: #1565c0;
-}
+  &__close {
+    @include modal-close-button;
+    position: static;
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: radius(full);
 
-.save-btn:disabled {
-  background: #666;
-  cursor: not-allowed;
-}
+    &:hover {
+      background: var(--color-background-mute);
+    }
+  }
 
-/* Aggressive z-index fix for PrimeVue components inside modal */
-.modal-content :deep(.p-multiselect-panel),
-.modal-content :deep(.p-dropdown-panel),
-.modal-content :deep(.p-component-overlay),
-.modal-content :deep(.p-multiselect-overlay),
-.modal-content :deep(.p-dropdown-overlay) {
-  z-index: 3100 !important;
-  position: fixed !important;
-}
+  &__body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: spacing(lg) spacing(xl);
+    display: flex;
+    flex-direction: column;
+    gap: spacing(lg);
+  }
 
-.modal-content :deep(.p-multiselect),
-.modal-content :deep(.p-dropdown) {
-  z-index: 1;
-  position: relative;
-}
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: spacing(md);
 
-/* Ensure overlay elements have higher z-index */
-:deep(.p-multiselect-panel),
-:deep(.p-dropdown-panel),
-:deep(.p-component-overlay),
-:deep(.p-multiselect-overlay),
-:deep(.p-dropdown-overlay) {
-  z-index: 3100 !important;
-  position: fixed !important;
-}
+    & + & {
+      padding-top: spacing(lg);
+      border-top: 1px solid var(--color-border);
+    }
 
-/* Force all PrimeVue overlays to be on top */
-:deep(.p-connected-overlay),
-:deep([data-pc-section="root"]) {
-  z-index: 3100 !important;
-}
+    &--card {
+      padding: spacing(md) spacing(lg);
+      background: var(--color-background-mute);
+      border: 1px solid var(--color-border);
+      border-radius: radius(md);
+    }
 
-/* Game-specific fields */
-.game-fields {
-  margin-top: 1rem;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
+    // Cuando una sección es card, el separador visual ya lo da la propia card
+    &--card + &,
+    & + &--card {
+      padding-top: 0;
+      border-top: none;
+    }
+  }
 
-.form-group {
-  margin-bottom: 1rem;
-}
+  &__section-title {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
 
-.form-group:last-child {
-  margin-bottom: 0;
-}
+  &__field {
+    @include form-group;
+  }
 
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  color: #e0e0e0;
-  font-size: 0.9rem;
-}
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: spacing(md);
 
-.game-input,
-.game-textarea {
-  width: 100%;
-  padding: 0.5rem;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
-  color: #f5f5f5;
-  font-size: 0.95rem;
-  font-family: inherit;
-  transition: border-color 0.2s, background 0.2s;
-}
+    @include responsive-below(sm) {
+      grid-template-columns: 1fr;
+    }
+  }
 
-.game-input:focus,
-.game-textarea:focus {
-  outline: none;
-  border-color: #1976d2;
-  background: rgba(255, 255, 255, 0.1);
-}
+  &__input,
+  &__textarea {
+    @include form-control;
+    width: 100%;
+    font-family: inherit;
+  }
 
-.game-textarea {
-  resize: vertical;
-  min-height: 60px;
-}
+  &__textarea {
+    resize: vertical;
+    min-height: 72px;
+  }
 
-.game-input::placeholder,
-.game-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  &__footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    display: flex;
+    justify-content: flex-end;
+    gap: spacing(sm);
+    padding: spacing(md) spacing(xl);
+    background: var(--color-background-soft);
+    border-top: 1px solid var(--color-border);
+    border-bottom-left-radius: radius(xl);
+    border-bottom-right-radius: radius(xl);
+
+    .btn {
+      min-width: 110px;
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  // Mobile: ocupa toda la pantalla y elimina bordes redondeados
+  @include responsive-below(md) {
+    padding: 0;
+
+    &__dialog {
+      width: 100%;
+      max-width: 100vw;
+      max-height: 100vh;
+      min-height: 100vh;
+      border-radius: 0;
+      border-top: none;
+    }
+
+    &__header,
+    &__footer {
+      border-radius: 0;
+    }
+
+    &__header,
+    &__body,
+    &__footer {
+      padding-left: spacing(md);
+      padding-right: spacing(md);
+    }
+  }
 }
 </style>

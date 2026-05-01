@@ -48,79 +48,75 @@ defineProps({
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .dashboard-header-wrapper {
-  margin-bottom: 2rem;
+  margin-bottom: spacing(xl);
 }
 
 .dashboard-header {
   text-align: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: spacing(lg);
 }
 
 .dashboard-title {
   font-size: 2rem;
   font-weight: 700;
-  color: var(--color-text-dark);
-  margin: 0 0 0.5rem 0;
+  color: var(--color-text);
+  margin: 0 0 spacing(xs) 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-}
+  gap: spacing(sm);
 
-.dashboard-title i {
-  color: var(--color-primary);
-  font-size: 1.75rem;
+  i {
+    color: var(--color-primary);
+    font-size: 1.75rem;
+  }
 }
 
 .dashboard-subtitle {
   font-size: 1rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
 .quick-actions {
   display: flex;
   justify-content: center;
-  gap: 1rem;
+  gap: spacing(md);
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: 6px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: var(--transition-fast);
-  border: none;
-  cursor: pointer;
-}
-
-.btn--primary {
-  background: var(--btn-primary-bg);
-  color: var(--btn-primary-text);
-}
-
-.btn--primary:hover {
-  background: var(--btn-primary-bg-hover);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-medium);
-}
-
+// .btn / .btn--primary se proveen globalmente desde components/_buttons.scss
 .btn--large {
-  padding: 1rem 2rem;
+  padding: spacing(md) spacing(xl);
   font-size: 1rem;
 }
 
-/* Dark mode */
-:global(.app-dark) .dashboard-title {
-  color: var(--color-text);
-}
+@include responsive-below(md) {
+  .dashboard-header-wrapper {
+    margin-bottom: spacing(lg);
+  }
 
-:global(.app-dark) .dashboard-subtitle {
-  color: var(--color-text-secondary);
+  .dashboard-title {
+    font-size: 1.5rem;
+    flex-wrap: wrap;
+
+    i { font-size: 1.25rem; }
+  }
+
+  .dashboard-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .quick-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .btn--large {
+    padding: spacing(sm) spacing(lg);
+  }
 }
 </style>

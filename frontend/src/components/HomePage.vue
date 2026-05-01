@@ -95,7 +95,7 @@ const openHelpPage = () => {
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .home-container {
   max-width: 1000px;
   margin: 0 auto;

@@ -190,6 +190,19 @@ Each entity type follows the same component structure:
 
 Pre-configured and available globally: `MultiSelect`, `DataTable`, `Dialog`, `Toast`, `Button`, `InputText`, `Calendar`, `Rating`, `Dropdown`, `TabView`, `Chart`, etc.
 
+## Styles Architecture
+
+Frontend SCSS architecture, tokens, theming, and family-coherence master mixins are documented in a dedicated skill:
+
+→ **[`.github/skills/styles.md`](styles.md)** — tokens, layer order, master mixins (`list-item`, `library-item`, `search-page`, `notes-panel`, `detail-view-page`), entity color identity, refactor workflow, common drift patterns.
+
+**Quick reminders** when writing `<style>` blocks:
+- Always `<style scoped lang="scss">`, only `@use` / `@forward` (no `@import`)
+- No hex/px hardcoded — use `spacing()`, `radius()`, `shadow()`, etc.
+- Shadow tokens are `sm/light/medium/heavy/xl` (**NOT** `md`/`lg`)
+- PrimeVue overlay overrides go in `_primevue-overrides.scss` without `:deep()`
+- Dark mode uses `.app-dark` class — never `prefers-color-scheme`
+
 ## Key Conventions
 
 1. **File naming**: PascalCase for components (`.vue`), camelCase for JS files

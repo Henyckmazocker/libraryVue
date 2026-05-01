@@ -1,0 +1,303 @@
+// components/_notes.scss
+// Patrones compartidos por *Notes.vue (Books/Movies/Games/Albums).
+//
+// Uso:
+//   .edition-notes { @include notes-panel('book'); }
+//   .movie-notes   { @include notes-panel('movie'); }
+//   .game-notes    { @include notes-panel('game'); }
+//   .album-notes   { @include notes-panel('album'); }
+
+@use '../abstracts' as *;
+
+// ─── Master mixin: aplica TODO el panel de notas ─────────────────────────────
+@mixin notes-panel($entity: 'book') {
+  margin-top: spacing(md);
+  padding: spacing(md);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: radius(md);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  // ─── Header (título + botón "Nueva Nota") ─────────────────────────────────
+  .notes-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: spacing(md);
+    padding-bottom: spacing(sm);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+    h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      color: var(--color-text);
+      font-weight: 600;
+    }
+  }
+
+  .add-note-btn {
+    display: flex;
+    align-items: center;
+    gap: spacing(2xs);
+    padding: spacing(2xs) spacing(sm);
+    background: var(--color-primary);
+    color: #fff;
+    border: none;
+    border-radius: radius(md);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background transition(fast);
+
+    &:hover:not(:disabled) {
+      background: var(--color-primary-hover);
+    }
+
+    &:disabled {
+      background: var(--color-text-muted, #666);
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+  }
+
+  // ─── Estados loading / empty ──────────────────────────────────────────────
+  .loading-state,
+  .empty-state {
+    padding: spacing(xl);
+    text-align: center;
+    color: var(--color-text-secondary, #999);
+  }
+
+  .empty-state {
+    i {
+      font-size: 3rem;
+      color: var(--color-text-muted, #555);
+      margin-bottom: spacing(md);
+    }
+
+    p {
+      margin: spacing(2xs) 0;
+    }
+  }
+
+  .empty-hint {
+    font-size: 0.9rem;
+    color: var(--color-text-muted, #777);
+  }
+
+  // ─── Lista de notas ───────────────────────────────────────────────────────
+  .notes-list {
+    display: flex;
+    flex-direction: column;
+    gap: spacing(sm);
+  }
+
+  // ─── Item individual de nota (con accent por entidad) ─────────────────────
+  .note-item {
+    padding: spacing(sm);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: radius(md);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-left: 3px solid var(--color-card-#{$entity}-accent);
+    transition: border-color transition(fast);
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      border-left-color: var(--color-card-#{$entity}-accent);
+    }
+  }
+
+  .note-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: spacing(2xs);
+  }
+
+  .note-meta {
+    display: flex;
+    align-items: center;
+    gap: spacing(sm);
+    font-size: 0.85rem;
+
+    i {
+      color: var(--color-card-#{$entity}-accent);
+    }
+  }
+
+  .note-type {
+    font-weight: 500;
+    color: var(--color-text-secondary, #bbb);
+  }
+
+  .note-page {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 0.2rem spacing(2xs);
+    border-radius: radius(sm);
+    font-size: 0.8rem;
+    color: var(--color-text-secondary, #ccc);
+  }
+
+  .note-public {
+    display: flex;
+    align-items: center;
+    gap: spacing(3xs);
+    color: var(--color-success, #4caf50);
+    font-size: 0.8rem;
+  }
+
+  .note-actions {
+    display: flex;
+    gap: spacing(2xs);
+  }
+
+  .note-action-btn {
+    padding: spacing(3xs) spacing(2xs);
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: radius(sm);
+    color: var(--color-text);
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all transition(fast);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    &.delete:hover {
+      background: rgba(244, 67, 54, 0.2);
+      border-color: var(--color-danger, #f44336);
+      color: var(--color-danger, #f44336);
+    }
+  }
+
+  .note-text {
+    color: var(--color-text);
+    line-height: 1.6;
+    margin-bottom: spacing(2xs);
+    white-space: pre-wrap;
+  }
+
+  .note-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--color-text-muted, #888);
+  }
+
+  .note-updated {
+    font-style: italic;
+  }
+
+  // ─── Responsive (mobile) ──────────────────────────────────────────────────
+  @include responsive-below(sm) {
+    padding: spacing(sm);
+
+    .notes-header {
+      flex-direction: column;
+      align-items: stretch;
+      gap: spacing(sm);
+    }
+
+    .add-note-btn {
+      justify-content: center;
+      width: 100%;
+    }
+
+    .note-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: spacing(2xs);
+    }
+
+    .note-meta {
+      flex-wrap: wrap;
+      gap: spacing(2xs) spacing(sm);
+    }
+
+    .note-actions {
+      width: 100%;
+      justify-content: flex-end;
+    }
+
+    .note-footer {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: spacing(3xs);
+    }
+  }
+}
+
+// ─── Formulario del diálogo de nota ──────────────────────────────────────────
+@mixin notes-dialog-form {
+  .note-form {
+    display: flex;
+    flex-direction: column;
+    gap: spacing(md);
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: spacing(2xs);
+
+    label {
+      font-weight: 500;
+      color: var(--color-text);
+      font-size: 0.9rem;
+    }
+
+    &.checkbox {
+      flex-direction: row;
+      align-items: center;
+
+      label {
+        margin: 0 0 0 spacing(2xs);
+      }
+    }
+  }
+
+  .dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: spacing(2xs);
+    margin-top: spacing(md);
+  }
+
+  @include responsive-below(sm) {
+    .dialog-actions {
+      flex-direction: column-reverse;
+
+      :deep(.p-button),
+      .btn {
+        width: 100%;
+      }
+    }
+  }
+}
+
+// ─── Mixins legacy (compat) ──────────────────────────────────────────────────
+@mixin notes-container { @include notes-panel('book'); }
+@mixin notes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: spacing(md);
+  padding-bottom: spacing(sm);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+@mixin note-item {
+  padding: spacing(sm);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: radius(md);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: border-color transition(fast);
+
+  &:hover { border-color: rgba(255, 255, 255, 0.15); }
+}
+@mixin notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: spacing(sm);
+}

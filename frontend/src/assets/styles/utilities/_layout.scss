@@ -1,0 +1,56 @@
+// utilities/_layout.scss — Utilidades de layout (flex, stack, cluster, grid).
+
+.u-flex          { display: flex; }
+.u-inline-flex   { display: inline-flex; }
+.u-grid          { display: grid; }
+.u-block         { display: block; }
+.u-inline-block  { display: inline-block; }
+
+.u-flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.u-flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.u-flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+// Stack: hijos apilados verticalmente con gap.
+.u-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+
+  &--xs { gap: var(--spacing-xs); }
+  &--sm { gap: var(--spacing-sm); }
+  &--lg { gap: var(--spacing-lg); }
+  &--xl { gap: var(--spacing-xl); }
+}
+
+// Cluster: hijos en línea con wrap y gap.
+.u-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-md);
+
+  &--xs { gap: var(--spacing-xs); }
+  &--sm { gap: var(--spacing-sm); }
+  &--lg { gap: var(--spacing-lg); }
+  &--xl { gap: var(--spacing-xl); }
+}
+
+// Grid auto-fill responsive (cards).
+.u-grid-auto {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--spacing-md);
+}

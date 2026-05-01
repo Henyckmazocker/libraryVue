@@ -106,7 +106,7 @@ const handleItemClick = (item) => {
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .trending-section {
   width: 100%;
   margin: 30px 0;

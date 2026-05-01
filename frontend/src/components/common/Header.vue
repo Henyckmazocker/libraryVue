@@ -154,7 +154,7 @@ const handleLogout = async () => {
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .app-header {
   display: flex;
   justify-content: space-between;

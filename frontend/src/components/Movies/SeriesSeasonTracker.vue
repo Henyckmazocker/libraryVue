@@ -281,7 +281,7 @@ async function loadEpisodes(seasonNumber) {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .series-season-tracker {
   background: var(--surface-card, #1e1e2e);
   border-radius: 12px;

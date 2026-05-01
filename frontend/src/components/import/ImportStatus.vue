@@ -53,7 +53,7 @@ defineProps({
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .import-status {
   display: flex;
   align-items: center;

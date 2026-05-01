@@ -168,7 +168,7 @@ export default {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .listening-stats {
   font-size: 0.9rem;
 }

@@ -51,7 +51,7 @@ export default {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .simple-link {
   margin-bottom: 0.5rem;
 }

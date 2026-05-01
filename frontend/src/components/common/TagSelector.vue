@@ -69,7 +69,7 @@ function addTag() {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .tag-selector {
   display: flex;
   flex-direction: column;

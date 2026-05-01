@@ -467,7 +467,7 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 /* Modal Overlay */
 .modal-overlay {
   position: fixed;

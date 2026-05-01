@@ -124,7 +124,7 @@ watch(() => props.show, (newValue) => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 /* Modal styles */
 .modal-overlay {
   position: fixed;

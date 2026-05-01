@@ -89,9 +89,7 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped>
-@import '@/assets/styles/variables.css';
-
+<style scoped lang="scss">
 .horizontal-carousel {
   position: relative;
   width: 100%;

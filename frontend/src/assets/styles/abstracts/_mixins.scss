@@ -1,0 +1,103 @@
+// abstracts/_mixins.scss
+// Mixins reutilizables.
+
+@use 'functions' as *;
+
+// Card base — sombra, radio, fondo, transición.
+@mixin card($padding: md, $radius-key: lg, $shadow-key: light) {
+  background: var(--color-background-card);
+  color: var(--color-text-dark);
+  border-radius: radius($radius-key);
+  box-shadow: shadow($shadow-key);
+  padding: spacing($padding);
+  transition: transition(fast);
+}
+
+@mixin card-hover($shadow-key: medium, $translate: -2px) {
+  transition: transform transition(fast), box-shadow transition(fast);
+
+  &:hover {
+    transform: translateY($translate);
+    box-shadow: shadow($shadow-key);
+  }
+}
+
+// Truncate de líneas.
+@mixin truncate($lines: 1) {
+  overflow: hidden;
+  @if $lines == 1 {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  } @else {
+    display: -webkit-box;
+    -webkit-line-clamp: $lines;
+    -webkit-box-orient: vertical;
+  }
+}
+
+// Anillo de focus accesible.
+@mixin focus-ring($color: var(--color-border-hover), $width: 2px, $offset: 2px) {
+  &:focus-visible {
+    outline: $width solid $color;
+    outline-offset: $offset;
+  }
+}
+
+// Reset de botón nativo.
+@mixin button-reset {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+// Scrollbar fino estilizado.
+@mixin scrollbar-thin($thumb: var(--color-border), $track: transparent) {
+  scrollbar-width: thin;
+  scrollbar-color: $thumb $track;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: $track;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: $thumb;
+    border-radius: radius(full);
+  }
+}
+
+// Centrado flex.
+@mixin flex-center($direction: row, $gap: null) {
+  display: flex;
+  flex-direction: $direction;
+  align-items: center;
+  justify-content: center;
+  @if $gap != null {
+    gap: spacing($gap);
+  }
+}
+
+// Cubrir todo el contenedor padre (overlay).
+@mixin absolute-fill {
+  position: absolute;
+  inset: 0;
+}
+
+// Visualmente oculto pero accesible para lectores de pantalla.
+@mixin visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

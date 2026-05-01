@@ -536,332 +536,216 @@ watch(isAuthenticated, async (newValue) => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+@use '@/assets/styles/components/detail-view' as *;
+
 .album-detail-view {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-}
+  @include detail-view-page('album');
 
-.back-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: var(--surface-card, #1e2028);
-  color: var(--text-color, #e0e0e0);
-  border: 1px solid var(--surface-border, #2d3141);
-  border-radius: 8px;
-  cursor: pointer;
-  margin-bottom: 20px;
-  transition: background 0.15s;
-}
-
-.back-button:hover { background: var(--surface-hover, #252836); }
-
-.loading-container,
-.error-container,
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 60px 20px;
-  color: var(--text-color-secondary, #9ca3af);
-  font-size: 1rem;
-}
-
-.loading-container i,
-.error-container i,
-.empty-state i {
-  font-size: 2.5rem;
-  color: var(--primary-color, #1D4E4A);
-}
-
-.retry-button {
-  padding: 8px 20px;
-  background: var(--primary-color, #1D4E4A);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-/* Album Header */
-.album-header {
-  display: flex;
-  gap: 32px;
-  align-items: flex-start;
-  margin-bottom: 32px;
-  padding: 24px;
-  background: var(--surface-card, #1e2028);
-  border-radius: 12px;
-  border: 1px solid var(--surface-border, #2d3141);
-}
-
-.album-cover-large {
-  flex-shrink: 0;
-  width: 240px;
-  height: 240px;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-}
-
-.cover-image-large {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.cover-placeholder {
-  width: 100%;
-  height: 100%;
-  background: var(--surface-section, #2a2d36);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 4rem;
-  color: var(--text-color-secondary, #6b7280);
-}
-
-.album-main-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.album-type-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
-  border-radius: 12px;
-  background: var(--primary-color, #1D4E4A);
-  color: white;
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 8px;
-}
-
-.album-title-large {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--text-color, #e0e0e0);
-  margin: 0 0 8px;
-  line-height: 1.2;
-}
-
-.album-artist-large {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 1rem;
-  color: var(--text-color-secondary, #9ca3af);
-  margin-bottom: 14px;
-}
-
-.album-metadata {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-
-.metadata-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.84rem;
-  color: var(--text-color-secondary, #9ca3af);
-  background: var(--surface-section, #2a2d36);
-  padding: 4px 10px;
-  border-radius: 6px;
-}
-
-.album-popularity {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.popularity-label {
-  font-size: 0.82rem;
-  color: var(--text-color-secondary, #9ca3af);
-  white-space: nowrap;
-}
-
-.popularity-bar-container {
-  flex: 1;
-  max-width: 180px;
-  height: 6px;
-  background: var(--surface-section, #2a2d36);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.popularity-bar {
-  height: 100%;
-  background: linear-gradient(90deg, #1D4E4A, #2eb87e);
-  border-radius: 3px;
-  transition: width 0.5s ease;
-}
-
-.popularity-value {
-  font-size: 0.78rem;
-  color: var(--text-color-secondary, #9ca3af);
-}
-
-.album-genres {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.album-genres i {
-  color: var(--text-color-secondary, #9ca3af);
-  margin-top: 3px;
-}
-
-.genre-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.genre-tag {
-  font-size: 0.76rem;
-  padding: 3px 10px;
-  border-radius: 12px;
-  background: var(--surface-section, #2a2d36);
-  color: var(--text-color-secondary, #9ca3af);
-  border: 1px solid var(--surface-border, #2d3141);
-}
-
-.album-links {
-  margin-top: 8px;
-}
-
-.spotify-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 16px;
-  background: #1DB954;
-  color: white;
-  border-radius: 20px;
-  text-decoration: none;
-  font-size: 0.85rem;
-  font-weight: 600;
-  transition: background 0.2s;
-}
-
-.spotify-link:hover { background: #1aa34a; }
-.spotify-link i { font-size: 1.1rem; }
-
-/* Tracks */
-.tracks-section {
-  margin-bottom: 28px;
-  background: var(--surface-card, #1e2028);
-  border-radius: 12px;
-  border: 1px solid var(--surface-border, #2d3141);
-  padding: 20px;
-}
-
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-color, #e0e0e0);
-  margin: 0 0 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--surface-border, #2d3141);
-}
-
-.tracks-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.track-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 8px 10px;
-  border-radius: 6px;
-  transition: background 0.1s;
-}
-
-.track-item:hover { background: var(--surface-hover, #252836); }
-
-.track-number {
-  width: 24px;
-  text-align: right;
-  font-size: 0.8rem;
-  color: var(--text-color-secondary, #9ca3af);
-  flex-shrink: 0;
-}
-
-.track-name {
-  flex: 1;
-  font-size: 0.88rem;
-  color: var(--text-color, #e0e0e0);
-}
-
-.track-duration {
-  font-size: 0.78rem;
-  color: var(--text-color-secondary, #9ca3af);
-  flex-shrink: 0;
-}
-
-/* Library Section */
-.library-section {
-  background: var(--surface-card, #1e2028);
-  border-radius: 12px;
-  border: 1px solid var(--surface-border, #2d3141);
-  padding: 20px;
-  margin-bottom: 28px;
-}
-
-.library-section h2 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-color, #e0e0e0);
-  margin: 0 0 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--surface-border, #2d3141);
-}
-
-@media (max-width: 768px) {
-  .album-header {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
+  .tracks-section,
+  .library-section,
+  .lastfm-section {
+    @include detail-section-card;
   }
 
+  // Album cover es cuadrado (1:1) por convención musical
   .album-cover-large {
-    width: 180px;
-    height: 180px;
+    flex-shrink: 0;
+    width: 240px;
+    height: 240px;
+    border-radius: radius(md);
+    overflow: hidden;
+    box-shadow: shadow(heavy);
   }
 
-  .album-metadata,
+  .cover-image-large {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: none;
+    box-shadow: none;
+  }
+
+  .cover-placeholder {
+    aspect-ratio: 1 / 1;
+    background: var(--color-background-soft);
+    border: none;
+    font-size: 4rem;
+    color: var(--color-text-muted);
+  }
+
+  .album-main-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .album-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: spacing(2xs);
+    padding: spacing(3xs) spacing(sm);
+    border-radius: radius(full);
+    background: var(--color-card-album-accent);
+    color: white;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: spacing(xs);
+  }
+
+  .album-artist-large {
+    display: flex;
+    align-items: center;
+    gap: spacing(xs);
+    font-size: 1rem;
+    color: var(--color-text-secondary);
+    margin-bottom: spacing(md);
+
+    i { color: var(--color-card-album-accent); }
+  }
+
+  .album-metadata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: spacing(sm);
+    margin-bottom: spacing(md);
+  }
+
+  .album-popularity {
+    display: flex;
+    align-items: center;
+    gap: spacing(xs);
+    margin-bottom: spacing(sm);
+  }
+
+  .popularity-label {
+    font-size: 0.82rem;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+  }
+
+  .popularity-bar-container {
+    flex: 1;
+    max-width: 180px;
+    height: 6px;
+    background: var(--color-background-soft);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .popularity-bar {
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      var(--color-card-album-accent),
+      color-mix(in srgb, var(--color-card-album-accent) 60%, white)
+    );
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+
+  .popularity-value {
+    font-size: 0.78rem;
+    color: var(--color-text-secondary);
+  }
+
   .album-genres {
-    justify-content: center;
-  }
-}
+    display: flex;
+    align-items: flex-start;
+    gap: spacing(xs);
+    margin-bottom: spacing(md);
 
-.lastfm-section {
-  background: var(--surface-card, #1e2028);
-  border-radius: 12px;
-  border: 1px solid var(--surface-border, #2d3141);
-  padding: 20px;
-  margin-bottom: 28px;
+    > i {
+      color: var(--color-card-album-accent);
+      margin-top: 6px;
+      flex-shrink: 0;
+    }
+  }
+
+  .genre-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: spacing(xs);
+  }
+
+  .album-links {
+    margin-top: spacing(xs);
+  }
+
+  // Spotify branding link conserva su color verde semantico
+  .spotify-link {
+    display: inline-flex;
+    align-items: center;
+    gap: spacing(xs);
+    padding: spacing(xs) spacing(md);
+    background: #1DB954;
+    color: white;
+    border-radius: radius(full);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: background transition(fast);
+
+    &:hover { background: #1aa34a; }
+    i { font-size: 1.1rem; }
+  }
+
+  // Lista de tracks
+  .tracks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .track-item {
+    display: flex;
+    align-items: center;
+    gap: spacing(sm);
+    padding: spacing(xs) spacing(sm);
+    border-radius: radius(sm);
+    transition: background transition(fast);
+
+    &:hover { background: var(--color-background-soft); }
+  }
+
+  .track-number {
+    width: 24px;
+    text-align: right;
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    flex-shrink: 0;
+  }
+
+  .track-name {
+    flex: 1;
+    font-size: 0.88rem;
+    color: var(--color-text);
+  }
+
+  .track-duration {
+    font-size: 0.78rem;
+    color: var(--color-text-secondary);
+    flex-shrink: 0;
+  }
+
+  @include responsive-below(md) {
+    .album-header {
+      align-items: center;
+      text-align: center;
+    }
+
+    .album-cover-large {
+      width: 180px;
+      height: 180px;
+    }
+
+    .album-metadata,
+    .album-genres {
+      justify-content: center;
+    }
+  }
 }
 </style>
+

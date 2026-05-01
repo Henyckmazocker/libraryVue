@@ -17,7 +17,7 @@
 // No logic needed
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .not-found {
   display: flex;
   justify-content: center;

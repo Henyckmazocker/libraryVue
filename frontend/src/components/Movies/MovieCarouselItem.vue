@@ -89,9 +89,7 @@ const truncateText = (text, maxLength) => {
 };
 </script>
 
-<style scoped>
-@import '@/assets/styles/variables.css';
-
+<style scoped lang="scss">
 .movie-carousel-item {
   flex-shrink: 0;
   width: 150px;

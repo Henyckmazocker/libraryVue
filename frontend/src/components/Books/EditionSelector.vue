@@ -438,7 +438,7 @@ watch(() => props.workKey, () => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .edition-selector {
   margin: 32px 0;
   padding: 24px;

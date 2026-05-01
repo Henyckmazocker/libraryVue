@@ -298,6 +298,138 @@ const CustomPreset = definePreset(Lara, {
 
 Use PrimeVue components (MultiSelect, DataTable) - they're pre-configured.
 
+### Frontend Styles Architecture (SCSS Modular)
+
+**Single entry point**: `frontend/src/assets/styles/index.scss` (imported once from `main.js`).
+
+**Source of truth**:
+- **Palette (JS)**: [`config/design-tokens.js`](../frontend/src/config/design-tokens.js) → consumed by PrimeVue.
+- **Tokens (CSS vars)**: `assets/styles/tokens/_*.scss` → consumed by components. Manual sync required.
+
+**Layer order in `index.scss`**:
+1. `tokens/` (CSS vars under `:root`)
+2. `themes/light` + `themes/dark` (`.app-dark` overrides)
+3. `base/` (reset, globals, typography)
+4. `components/` (shared mixins + global classes)
+5. `utilities/` (`.u-*` atomic helpers)
+
+**Component pattern** (always `<style scoped lang="scss">`):
+
+```vue
+<style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+@use '@/assets/styles/components/library-item' as *;
+
+.library-book-item {
+  @include library-item-container;
+  &__cover { @include library-item-cover(80px, 70px); }
+  padding: spacing(md);
+  border-radius: radius(lg);
+}
+</style>
+```
+
+**Available helpers after `@use '@/assets/styles/abstracts' as *`**:
+- Functions: `spacing($key)`, `radius($key)`, `shadow($key)`, `z($key)`, `transition($key)` — all return `var(--*)`, `@error` on missing key.
+- Mixins: `responsive($key)` (mobile-first min-width), `responsive-below($key)` (max-width), `card()`, `truncate($lines)`, `focus-ring`, `flex-center`.
+
+**Tokens**: `spacing` (3xs..3xl), `radius` (none..full), `shadow` (`sm`/`light`/`medium`/`heavy`/`xl` — **NOT** `md`/`lg`), `z` (hide..tooltip), `transition` (fast/medium/slow). Breakpoints: `sm` 480 / `md` 768 / `lg` 1024 / `xl` 1280 / `2xl` 1536.
+
+**Naming**: BEM relaxed (`.book-item__cover`, `.book-item--reading`), utilities prefixed `u-`, states `is-`/`has-`.
+
+**Entity color identity** (`tokens/_colors.scss`): each library entity has a card color set `--color-card-{book|movie|game|album}-{bg,bg-hover,border,accent}`:
+- `book` → `#c9943a` (oro)
+- `movie` → `#8b5cf6` (violeta) — **shared with Series**
+- `game` → `#4ade80` (verde)
+- `album` → `#f59e0b` (ámbar)
+
+Use the accent color in borders, hover states, icon colors, and tag gradients to give each entity a consistent visual identity across families (`*ListItem`, `Library*Item`, `*Notes`, `*DetailView`).
+
+### Family-Coherence Pattern (parametric master mixins)
+
+When refactoring component families that share structure but differ by entity (e.g. `BookSearch.vue` / `MovieSearch.vue` / `GameSearch.vue` / `AlbumSearch.vue`), use a **single parametric master mixin** instead of duplicated SCSS.
+
+**Pattern** — master mixin in `components/_{family}.scss`:
+
+```scss
+@use '../abstracts' as *;
+
+// $entity   → controls accent colors (book/movie/game/album)
+// $selector → controls selector prefix (defaults to $entity)
+//             Decouple them when an entity wants another's color
+//             (e.g. Series uses ('movie', 'series') for violet color
+//             with .series-* selectors).
+@mixin detail-view-page($entity: 'book', $selector: $entity) {
+  .#{$selector}-header {
+    border-top: 3px solid var(--color-card-#{$entity}-accent);
+    // ...
+  }
+
+  .category-tag {
+    background: linear-gradient(
+      135deg,
+      var(--color-card-#{$entity}-accent),
+      color-mix(in srgb, var(--color-card-#{$entity}-accent) 70%, black)
+    );
+  }
+}
+```
+
+**Component usage** — minimal style block, only entity-specific blocks remain:
+
+```vue
+<style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+@use '@/assets/styles/components/detail-view' as *;
+
+.movie-detail-view {
+  @include detail-view-page('movie');
+
+  // Wrap entity-specific sections with the section-card helper
+  .movie-plot-section,
+  .movie-crew-section,
+  .library-form-section {
+    @include detail-section-card;
+  }
+
+  // Only blocks unique to this entity stay here
+  .movie-ratings { /* ... */ }
+}
+</style>
+```
+
+**Available family mixins**:
+- `_list-item.scss` → `list-item($variant, $cover-aspect, $cover-size)` — used by `*ListItem.vue` (compact rows in MyLibrary)
+- `_library-item.scss` → `library-item($variant, $cover-aspect, $cover-size, $entity)` — used by `Library*Item.vue` (action-rich cards)
+- `_search.scss` → `search-page` — used by `*Search.vue` wrappers
+- `_notes.scss` → `notes-panel($entity)` + `notes-dialog-form` — used by `*Notes.vue`
+- `_detail-view.scss` → `detail-view-page($entity, $selector?)` + `detail-section-card` — used by `*DetailView.vue`
+- `_dashboard.scss` → `dashboard-content-page` + `dashboard-card` + `dashboard-grid($min)` — used by `*DashboardContent.vue`, `StatCard`, `ChartCard`
+
+**Decouple `$entity` from `$selector`** when an entity inherits another's color but keeps its own template selectors. Example: `SeriesDetailView.vue` uses `@include detail-view-page('movie', 'series')` to get violet identity (Movies) on `.series-*` selectors.
+
+**Refactor workflow** (proven on 5 families, ~3000 → ~700 lines, 75% reduction):
+1. **Read all sibling files**, catalog drift in a markdown table
+2. Identify **intentional drifts** (e.g. Album cover 1:1 = musical convention, Spotify green `#1DB954` = brand)
+3. Identify **accidental drifts** (random hex, PrimeVue `--surface-*` vars instead of project tokens, dead CSS unused in template)
+4. Write/extend the master mixin, parametrized by `$entity`
+5. Replace each component's `<style>` block (use `sed -i 'N,$d'` to truncate from `<style>` line, then append new minimal block via edit tool)
+6. **Always** verify with `docker compose logs frontend --tail 30` for `Build finished at HH:MM:SS by 0.000s`
+7. Preserve entity-unique blocks **outside** the mixin call (Album `.tracks-list`, Game `.screenshots-grid`, Movie `.movie-ratings`, etc.)
+
+**Common drift to fix when found**:
+- PrimeVue vars (`--surface-card`, `--text-color`, `--primary-color`) → project tokens (`--color-background-mute`, `--color-text`, `--color-primary`)
+- Random hex (`#1976d2`, `#1e2028`) → tokens or entity accent
+- `prefers-color-scheme: dark` queries → remove (project uses `.app-dark` class selector via PrimeVue)
+- Hardcoded `gap: 40px`, `padding: 20px` → `spacing(xl)`, `spacing(lg)`
+
+
+**PrimeVue overrides**: PrimeVue teleports overlays to `<body>` — `:deep()` does NOT work for them. All PrimeVue overrides go in `assets/styles/components/_primevue-overrides.scss` **without** `:deep()`.
+
+**No `@import`** — only `@use` / `@forward`. **No hex/px hardcoded** — use tokens.
+
+**Full doc**: [`.github/skills/styles.md`](skills/styles.md)
+
 ## Key Application Features
 
 ### Reading Progress Tracking
@@ -575,6 +707,11 @@ composer install
 9. **Statuses nullable vs empty array** - Use `?array $statuses = null` (not `array $statuses = []`) in Commands to distinguish "user didn't send statuses" (null → don't touch) from "user cleared all statuses" (empty array → remove all).
 10. **CSRF token not sent for new entity actions** - `frontend/src/store/auth.js` has a hardcoded `protectedActions` list. When adding a new entity (e.g., albums), ALL its write actions (`add_album`, `delete_album`, `update_album_rating`, `edit_user_album`, etc.) must be added to this list. Missing them causes a `400 "Invalid CSRF token"` error even though the backend route has `CSRFMiddleware`. The pattern is: every action with `CSRFMiddleware` in `config/routes.php` must appear in `protectedActions` in `auth.js`.
 11. **Backend response shape for `get_spotify_album`** - Returns `{ data: { album: {...} } }`, not `{ data: {...} }`. Frontend `fetchAlbumDetails` must extract `response.data.data.album`, not `response.data.data`. Similarly, `get_spotify_album_tracks` returns `{ data: { tracks: [...], count: N } }` — use `response.data.data.tracks`.
+12. **Shadow tokens are NOT `md`/`lg`** - Available shadow keys: `sm`, `light`, `medium`, `heavy`, `xl`. Using `shadow(md)` or `shadow(lg)` causes `@error` at compile time. Spacing/radius DO have `md`/`lg` — only shadow differs.
+13. **Master mixin selector vs accent decoupling** - Family master mixins like `detail-view-page($entity, $selector)` need TWO parameters when an entity inherits another's color but keeps its own template selectors. `SeriesDetailView` uses `('movie', 'series')` to render `.series-header { border-top: 3px solid var(--color-card-movie-accent); }`. Coupling them causes the inheriting entity (Series) to lose ALL prefixed selector styles silently — visible only as missing card containers / borders / fade-in animations in the rendered page.
+14. **Dead CSS in `<style>` blocks** - When refactoring families, search for class selectors that appear in `<style>` but NOT in the `<template>`. Common in older components (e.g. `GameSearch.vue` had `.trending-section`, `.trending-title` defined but never rendered). Always grep the template before preserving a style rule.
+15. **PrimeVue vars vs project tokens** - Older components use PrimeVue Lara vars (`--surface-card`, `--text-color`, `--primary-color`, `--text-color-secondary`). Refactor these to project tokens (`--color-background-mute`, `--color-text`, `--color-primary`, `--color-text-secondary`). PrimeVue components themselves keep their vars; only your custom selectors should use project tokens.
+
 
 ## Data Flow & Debugging Guide
 

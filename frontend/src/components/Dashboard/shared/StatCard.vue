@@ -43,29 +43,28 @@ const displayNumber = computed(() => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+@use '@/assets/styles/components/dashboard' as *;
+
 .stat-card {
-  background: var(--color-background-card);
-  border-radius: 8px;
-  padding: 1.5rem;
+  @include dashboard-card;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: spacing(md);
+  padding: spacing(lg);
   border: 1px solid var(--color-border-light);
-  box-shadow: var(--shadow-light);
-  transition: var(--transition-fast);
-}
 
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-medium);
-  border-color: var(--color-border-hover);
+  &:hover {
+    transform: translateY(-2px);
+    border-color: var(--color-border-hover);
+  }
 }
 
 .stat-icon {
   width: 60px;
   height: 60px;
-  border-radius: 12px;
+  border-radius: radius(lg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -74,6 +73,7 @@ const displayNumber = computed(() => {
   font-size: 1.5rem;
 }
 
+// Variantes funcionales (no por entidad — son indicadores semánticos)
 .stat-card--primary .stat-icon {
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
 }
@@ -97,29 +97,15 @@ const displayNumber = computed(() => {
 .stat-number {
   font-size: 2rem;
   font-weight: 700;
-  margin: 0 0 0.25rem 0;
-  color: var(--color-text-dark);
+  margin: 0 0 spacing(3xs) 0;
+  color: var(--color-text);
 }
 
 .stat-label {
   font-size: 0.875rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-}
-
-/* Dark mode */
-:global(.app-dark) .stat-card {
-  background: var(--color-background-card);
-  border-color: var(--color-border);
-}
-
-:global(.app-dark) .stat-number {
-  color: var(--color-text);
-}
-
-:global(.app-dark) .stat-label {
-  color: var(--color-text-secondary);
 }
 </style>

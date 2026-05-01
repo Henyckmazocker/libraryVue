@@ -1,0 +1,308 @@
+// components/_library-item.scss
+// Estilos compartidos por Library{Book,Movie,Game,Album}Item.vue.
+//
+// Cada componente DEBE incluir su mixin de variante:
+//   .library-book-item-container  { @include library-item('book'); }
+//   .library-movie-item-container { @include library-item('movie'); }
+//   .library-game-item-container  { @include library-item('game'); }
+//   .library-album-item-container { @include library-item('album', '1/1', 120px); }
+//
+// Las clases internas son las del HTML actual (.book-details, .info-text,
+// .book-title, .book-author, .book-actions, .action-button, etc.) que se
+// estilizan dentro del mixin para garantizar paridad visual entre familias.
+
+@use '../abstracts' as *;
+
+// ─── Animaciones de feedback (globales) ─────────────────────────────
+@keyframes pulse-success {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.05); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-5px); }
+  75%      { transform: translateX(5px); }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// MIXIN PRINCIPAL: aplica TODA la card al selector raíz.
+//
+// Parámetros:
+//   $variant       'book' | 'movie' | 'game' | 'album'
+//   $cover-aspect  '2/3' (libros, películas) | '1/1' (juegos, álbumes)
+//   $cover-size    px (lado mayor del cover)
+//   $entity        nombre de la entidad usado en clases internas
+//                  (.book-details, .movie-details, .game-details, .album-details)
+// ─────────────────────────────────────────────────────────────────────
+@mixin library-item(
+  $variant: 'book',
+  $cover-aspect: '2/3',
+  $cover-size: 80px,
+  $entity: $variant
+) {
+  // ─── Card contenedor ──────────────────────────────────────────────
+  padding: spacing(sm);
+  background-color: var(--color-card-#{$variant}-bg);
+  border: 1px solid var(--color-card-#{$variant}-border);
+  border-left: 3px solid var(--color-card-#{$variant}-accent);
+  border-radius: radius(lg);
+  box-shadow: shadow(medium);
+  width: auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  transition: border-color transition(fast), box-shadow transition(fast);
+
+  &:hover {
+    box-shadow: shadow(heavy);
+  }
+
+  @include responsive-below(sm) {
+    width: 100%;
+    padding: spacing(xs);
+  }
+
+  // ─── Layout interno (.book-details / .movie-details / etc.) ───────
+  .#{$entity}-details {
+    display: flex;
+    align-items: flex-start;
+    gap: spacing(sm);
+
+    @include responsive-below(sm) {
+      gap: spacing(xs);
+    }
+  }
+
+  .cover-image-container {
+    flex-shrink: 0;
+  }
+
+  .cover-image {
+    @if $cover-aspect == '1/1' {
+      width: $cover-size;
+      height: $cover-size;
+      object-fit: cover;
+    } @else {
+      width: $cover-size;
+      height: auto;
+    }
+    border-radius: radius(sm);
+    border: 1px solid var(--color-border);
+
+    @include responsive-below(sm) {
+      @if $cover-aspect == '1/1' {
+        width: 80px;
+        height: 80px;
+      } @else {
+        width: 70px;
+      }
+    }
+  }
+
+  .info-text {
+    text-align: left;
+    flex-grow: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  // ─── Título de entidad (.book-title, .movie-title, .game-title, .album-title) ──
+  .#{$entity}-title {
+    font-size: var(--font-size-md);
+    color: var(--color-text);
+    margin-top: 0;
+    margin-bottom: spacing(2xs);
+    line-height: var(--line-height-tight);
+
+    @include responsive-below(sm) {
+      font-size: var(--font-size-base);
+    }
+  }
+
+  // ─── Líneas meta (todas las <p> bajo .info-text) ──────────────────
+  .info-text > p {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    margin-top: 0;
+    margin-bottom: 3px;
+    line-height: var(--line-height-tight);
+
+    strong {
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text-muted);
+      margin-right: spacing(2xs);
+    }
+
+    @include responsive-below(sm) {
+      font-size: var(--font-size-xs);
+    }
+  }
+
+  // ─── Bloque de campos read-only (.{entity}-specific-fields) ───────
+  .readonly-fields,
+  .#{$entity}-specific-fields {
+    margin-top: spacing(xs);
+    padding: spacing(2xs) spacing(sm);
+    background: var(--color-background-soft);
+    border-radius: radius(sm);
+
+    .#{$entity}-field {
+      font-size: var(--font-size-sm);
+      margin: 3px 0;
+      color: var(--color-text-secondary);
+
+      strong {
+        font-weight: var(--font-weight-medium);
+        color: var(--color-text-muted);
+        margin-right: spacing(2xs);
+      }
+    }
+  }
+
+  // ─── Badge de formato de propiedad ────────────────────────────────
+  .ownership-format-badge {
+    display: inline-block;
+    padding: 2px spacing(xs);
+    background: var(--color-card-#{$variant}-accent);
+    color: var(--color-text-light);
+    border-radius: radius(sm);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+  }
+
+  // ─── Fila de acciones (.book-actions, .movie-actions, etc.) ───────
+  .#{$entity}-actions {
+    display: flex;
+    gap: spacing(xs);
+    align-items: center;
+    margin-top: spacing(sm);
+    flex-wrap: wrap;
+
+    @include responsive-below(md) {
+      flex-direction: column;
+      gap: spacing(xs);
+
+      .action-button { width: 100%; }
+    }
+  }
+
+  // ─── Botón base ───────────────────────────────────────────────────
+  .action-button {
+    display: flex;
+    align-items: center;
+    gap: spacing(xs);
+    padding: spacing(xs) spacing(sm);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-light);
+    border: none;
+    border-radius: radius(md);
+    cursor: pointer;
+    transition: all transition(fast);
+    font-weight: var(--font-weight-medium);
+    justify-content: center;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: shadow(light);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+  }
+
+  // ─── Variantes de botón ───────────────────────────────────────────
+  .save-button {
+    background: linear-gradient(135deg, #28a745, #20c997);
+
+    &:hover:not(:disabled) {
+      background: linear-gradient(135deg, #20c997, #17a2b8);
+    }
+  }
+
+  .edit-button {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+
+    &:hover:not(:disabled) {
+      background: linear-gradient(135deg, #0056b3, #004085);
+    }
+  }
+
+  .history-button {
+    background: linear-gradient(135deg, #6c757d, #5a6268);
+
+    &:hover:not(:disabled) {
+      background: linear-gradient(135deg, #5a6268, #495057);
+    }
+  }
+
+  .delete-button {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+
+    &:hover:not(:disabled) {
+      background: linear-gradient(135deg, #c82333, #bd2130);
+    }
+  }
+
+  // Estados de feedback (success / error) — sirven para save y edit
+  .save-button--success,
+  .edit-button--success {
+    background: linear-gradient(135deg, #28a745, #32cd32) !important;
+    animation: pulse-success 0.5s ease;
+  }
+
+  .save-button--error,
+  .edit-button--error {
+    background: linear-gradient(135deg, #dc3545, #ff6b6b) !important;
+    animation: shake 0.5s ease;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Mixins legacy (compat) — mantenidos por si algún componente externo
+// los usa. NO usar en código nuevo: usar @include library-item().
+// ─────────────────────────────────────────────────────────────────────
+@mixin library-item-container {
+  padding: spacing(sm);
+  background-color: var(--color-background-mute);
+  border-radius: radius(lg);
+  box-shadow: shadow(medium);
+  width: auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+@mixin library-item-cover($width: 80px, $mobile-width: 70px) {
+  width: $width;
+  height: auto;
+  border-radius: radius(sm);
+  border: 1px solid var(--color-border);
+}
+
+@mixin library-item-action-button {
+  display: flex;
+  align-items: center;
+  gap: spacing(xs);
+  padding: spacing(xs) spacing(sm);
+  font-size: var(--font-size-sm);
+  border: none;
+  border-radius: radius(md);
+  cursor: pointer;
+  font-weight: var(--font-weight-medium);
+  justify-content: center;
+}
+
+@mixin library-item-button-success {
+  background: linear-gradient(135deg, #28a745, #32cd32) !important;
+  animation: pulse-success 0.5s ease;
+}
+
+@mixin library-item-button-error {
+  background: linear-gradient(135deg, #dc3545, #ff6b6b) !important;
+  animation: shake 0.5s ease;
+}

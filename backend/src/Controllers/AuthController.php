@@ -7,6 +7,7 @@ use App\Domain\UseCases\Auth\UpdateUserProfileUseCase;
 use App\Infrastructure\Session\SessionManager;
 use App\Infrastructure\Middleware\AuthMiddleware;
 use App\Infrastructure\Auth\GoogleOAuthVerifier;
+use App\Infrastructure\Auth\JWTService;
 
 class AuthController extends BaseController implements Contracts\AuthControllerInterface
 {
@@ -15,19 +16,22 @@ class AuthController extends BaseController implements Contracts\AuthControllerI
     private SessionManager $sessionManager;
     private AuthMiddleware $authMiddleware;
     private GoogleOAuthVerifier $googleVerifier;
+    private JWTService $jwtService;
 
     public function __construct(
         LoginUserUseCase $loginUserUseCase,
         UpdateUserProfileUseCase $updateUserProfileUseCase,
         SessionManager $sessionManager,
         AuthMiddleware $authMiddleware,
-        GoogleOAuthVerifier $googleVerifier
+        GoogleOAuthVerifier $googleVerifier,
+        JWTService $jwtService
     ) {
         $this->loginUserUseCase = $loginUserUseCase;
         $this->updateUserProfileUseCase = $updateUserProfileUseCase;
         $this->sessionManager = $sessionManager;
         $this->authMiddleware = $authMiddleware;
         $this->googleVerifier = $googleVerifier;
+        $this->jwtService = $jwtService;
     }
 
     public function login(array $inputData): array
@@ -44,9 +48,17 @@ class AuthController extends BaseController implements Contracts\AuthControllerI
         $user = $this->loginUserUseCase->execute($command);
         $this->sessionManager->login($user);
         
+        $jwtToken = $this->jwtService->generate([
+            'user_id' => $user->getId(),
+            'email'   => $user->getEmail()->toString(),
+            'name'    => $user->getName(),
+            'picture' => $user->getPicture(),
+        ]);
+
         return $this->successResponse('Login successful.', [
-            'user' => $user->toArray(),
-            'csrf_token' => $this->authMiddleware->getCSRFToken()
+            'user'       => $user->toArray(),
+            'csrf_token' => $this->authMiddleware->getCSRFToken(),
+            'jwt_token'  => $jwtToken,
         ]);
     }
 

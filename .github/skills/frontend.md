@@ -9,10 +9,10 @@ This skill covers all frontend development: Vue 3 components, Pinia stores, comp
 - **Framework**: Vue 3 (Composition API + Options API mix, no TypeScript)
 - **UI Library**: PrimeVue 4 with Lara theme + custom teal preset (`#1D4E4A`)
 - **State Management**: Pinia stores + composables pattern
-- **Router**: Vue Router 4 (history mode, no hash)
+- **Router**: Vue Router 4 (`createWebHashHistory` for mobile builds, `createWebHistory` for web)
 - **HTTP**: Axios with `withCredentials: true`
 - **Build**: Vue CLI (`vue.config.js`)
-- **Auth**: Google OAuth (`VUE_APP_GOOGLE_CLIENT_ID`)
+- **Auth**: Google OAuth (`VUE_APP_GOOGLE_CLIENT_ID`) — native Google Sign-In via Capacitor on mobile
 
 ## Directory Structure
 
@@ -309,3 +309,16 @@ docker compose logs -f frontend
 # Install new npm package
 docker compose exec frontend npm install package-name
 ```
+
+## Mobile (Capacitor)
+
+The frontend also runs as a native Android app via Capacitor. See **[`.github/skills/mobile.md`](mobile.md)** for full mobile documentation.
+
+**Quick reference**:
+- Build: `npm run build:mobile` (loads `.env.mobile`, sets `publicPath: './'`, hash router)
+- Platform detection: `Capacitor.isNativePlatform()` — use this to bifurcate web vs. native behavior
+- Auth on mobile: JWT Bearer token (not session cookies)
+- Navigation on mobile: `MobileNavBar.vue` (bottom nav) replaces `Sidebar.vue`
+- `VUE_APP_MODE=mobile` controls build config (router, publicPath) — not runtime behavior
+
+**New actions checklist for mobile**: Any new write action using `CSRFMiddleware` in `config/routes.php` MUST be added to `protectedActions` in `store/auth.js` (web CSRF) — mobile automatically bypasses CSRF via JWT.

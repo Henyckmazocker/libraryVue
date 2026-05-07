@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">LibraryVue</string>
+    <string name="title_activity_main">LibraryVue</string>
+    <string name="package_name">com.libraryapp.library</string>
+    <string name="custom_url_scheme">com.libraryapp.library</string>
+    <!-- server_client_id se define en secrets.xml (gitignoreado) -->
+    <!-- Copia android/app/src/main/res/values/secrets.xml.example y rellena el valor -->
+</resources>

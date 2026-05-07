@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Documentation - Mi Biblioteca Personal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css" rel="stylesheet">
+    <style>
+        .help-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+        }
+        .help-section {
+            margin: 2rem 0;
+        }
+        .feature-card {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: transform 0.2s;
+        }
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .code-block {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+        .warning-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .info-box {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .success-box {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .endpoint-card {
+            border-left: 4px solid #007bff;
+            background-color: #f8f9fa;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+        .method-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+        .method-get { background-color: #28a745; color: white; }
+        .method-post { background-color: #007bff; color: white; }
+        .method-put { background-color: #ffc107; color: black; }
+        .method-delete { background-color: #dc3545; color: white; }
+        .breadcrumb {
+            background-color: transparent;
+            margin-bottom: 1rem;
+        }
+        .api-category {
+            margin-bottom: 2rem;
+        }
+        .toc-sticky {
+            position: sticky;
+            top: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="help-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="fas fa-plug me-3"></i>API Documentation</h1>
+                    <p class="lead mb-0">API REST para Library Vue - Gestión de biblioteca personal</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button onclick="window.history.back()" class="btn btn-light me-2">
+                        <i class="fas fa-arrow-left me-2"></i>Volver
+                    </button>
+                    <button onclick="window.close()" class="btn btn-light">
+                        <i class="fas fa-times me-2"></i>Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container my-5">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="../../frontend/public/help.html">Documentación</a></li>
+                <li class="breadcrumb-item"><a href="../README.html">Docs</a></li>
+                <li class="breadcrumb-item active" aria-current="page">API</li>
+            </ol>
+        </nav>
+
+        <div class="row">
+            <!-- Tabla de contenidos lateral -->
+            <div class="col-md-3">
+                <div class="card toc-sticky">
+                    <div class="card-header">
+                        <h5><i class="fas fa-list me-2"></i>Contenidos</h5>
+                    </div>
+                    <div class="card-body">
+                        <nav class="nav flex-column">
+                            <a class="nav-link" href="#overview">Visión General</a>
+                            <a class="nav-link" href="#base-url">Base URL</a>
+                            <a class="nav-link" href="#authentication">Autenticación</a>
+                            <a class="nav-link" href="#endpoints">Endpoints</a>
+                            <a class="nav-link" href="#error-handling">Manejo de Errores</a>
+                            <a class="nav-link" href="#examples">Ejemplos</a>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-9">
+                <!-- Overview -->
+                <section id="overview" class="help-section">
+                    <h2><i class="fas fa-eye me-2"></i>Visión General</h2>
+                    <div class="info-box">
+                        <p class="mb-0">Esta documentación describe la API REST del sistema Library Vue, que permite gestionar una biblioteca personal de libros y películas con funcionalidades de autenticación, búsqueda e importación de archivos.</p>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <h5><i class="fas fa-check-circle text-success me-2"></i>Características</h5>
+                                <ul>
+                                    <li>Autenticación con Google OAuth</li>
+                                    <li>CRUD completo para libros y películas</li>
+                                    <li>Búsqueda avanzada y filtros</li>
+                                    <li>Sistema de calificaciones personales</li>
+                                    <li>Gestión de estados y tags</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <h5><i class="fas fa-code text-primary me-2"></i>Formato</h5>
+                                <ul>
+                                    <li>REST API con JSON</li>
+                                    <li>Códigos de estado HTTP estándar</li>
+                                    <li>Manejo de errores consistente</li>
+                                    <li>Validación de datos</li>
+                                    <li>Logging estructurado</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Base URL -->
+                <section id="base-url" class="help-section">
+                    <h2><i class="fas fa-globe me-2"></i>Base URL</h2>
+                    
+                    <div class="code-block">
+<pre><code># Desarrollo Local
+http://localhost:8080/api
+
+# Producción
+[URL del servidor de producción]/api</code></pre>
+                    </div>
+
+                    <div class="warning-box">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Importante</h6>
+                        <p class="mb-0">Todos los endpoints de la API tienen el prefijo <code>/api</code>. Las URLs mostradas en esta documentación asumen este prefijo.</p>
+                    </div>
+                </section>
+
+                <!-- Authentication -->
+                <section id="authentication" class="help-section">
+                    <h2><i class="fas fa-shield-alt me-2"></i>Autenticación</h2>
+
+                    <div class="feature-card">
+                        <h5>Sistema de Autenticación</h5>
+                        <p>El sistema utiliza autenticación basada en sesiones con soporte para Google OAuth.</p>
+
+                        <h6><i class="fas fa-code me-2"></i>Headers Requeridos</h6>
+                        <div class="code-block">
+<pre><code class="language-http">Content-Type: application/json
+X-Requested-With: XMLHttpRequest</code></pre>
+                        </div>
+
+                        <h6><i class="fas fa-cookie-bite me-2"></i>Gestión de Sesiones</h6>
+                        <div class="info-box">
+                            <p class="mb-0">Las sesiones se mantienen automáticamente mediante cookies. El estado de autenticación se verifica en cada request protegido.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Endpoints -->
+                <section id="endpoints" class="help-section">
+                    <h2><i class="fas fa-sitemap me-2"></i>Endpoints de la API</h2>
+
+                    <div class="api-category">
+                        <h4><i class="fas fa-book text-primary me-2"></i>Books API</h4>
+                        <div class="endpoint-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6><i class="fas fa-book-open me-2"></i>Gestión completa de libros</h6>
+                                    <p class="mb-0">CRUD operations, búsqueda por ISBN, calificaciones y estados</p>
+                                </div>
+                                <div>
+                                    <a href="books.html" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-external-link-alt me-2"></i>Ver Documentación
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <h6>Endpoints principales:</h6>
+                                <ul class="list-unstyled">
+                                    <li><span class="method-badge method-get">GET</span><code>/books</code> - Lista de libros</li>
+                                    <li><span class="method-badge method-post">POST</span><code>/books</code> - Agregar libro</li>
+                                    <li><span class="method-badge method-put">PUT</span><code>/books/{id}</code> - Actualizar libro</li>
+                                    <li><span class="method-badge method-delete">DELETE</span><code>/books/{id}</code> - Eliminar libro</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="api-category">
+                        <h4><i class="fas fa-film text-danger me-2"></i>Movies API</h4>
+                        <div class="endpoint-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6><i class="fas fa-video me-2"></i>Gestión de películas</h6>
+                                    <p class="mb-0">CRUD operations, búsqueda y categorización de películas</p>
+                                </div>
+                                <div>
+                                    <a href="movies.html" class="btn btn-danger btn-sm">
+                                        <i class="fas fa-external-link-alt me-2"></i>Ver Documentación
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <h6>Endpoints principales:</h6>
+                                <ul class="list-unstyled">
+                                    <li><span class="method-badge method-get">GET</span><code>/movies</code> - Lista de películas</li>
+                                    <li><span class="method-badge method-post">POST</span><code>/movies</code> - Agregar película</li>
+                                    <li><span class="method-badge method-put">PUT</span><code>/movies/{id}</code> - Actualizar película</li>
+                                    <li><span class="method-badge method-delete">DELETE</span><code>/movies/{id}</code> - Eliminar película</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="api-category">
+                        <h4><i class="fas fa-user-shield text-success me-2"></i>Authentication API</h4>
+                        <div class="endpoint-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6><i class="fas fa-sign-in-alt me-2"></i>Autenticación y gestión de usuarios</h6>
+                                    <p class="mb-0">Google OAuth, gestión de sesiones y perfiles de usuario</p>
+                                </div>
+                                <div>
+                                    <a href="auth.html" class="btn btn-success btn-sm">
+                                        <i class="fas fa-external-link-alt me-2"></i>Ver Documentación
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <h6>Endpoints principales:</h6>
+                                <ul class="list-unstyled">
+                                    <li><span class="method-badge method-post">POST</span><code>/auth/google</code> - Login con Google</li>
+                                    <li><span class="method-badge method-get">GET</span><code>/auth/status</code> - Estado de autenticación</li>
+                                    <li><span class="method-badge method-post">POST</span><code>/auth/logout</code> - Cerrar sesión</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="api-category">
+                        <h4><i class="fas fa-book-reader text-info me-2"></i>Library API</h4>
+                        <div class="endpoint-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6><i class="fas fa-library me-2"></i>Gestión general de biblioteca</h6>
+                                    <p class="mb-0">Estadísticas, búsquedas cruzadas y operaciones generales</p>
+                                </div>
+                                <div>
+                                    <a href="library.html" class="btn btn-info btn-sm">
+                                        <i class="fas fa-external-link-alt me-2"></i>Ver Documentación
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <h6>Endpoints principales:</h6>
+                                <ul class="list-unstyled">
+                                    <li><span class="method-badge method-get">GET</span><code>/library/stats</code> - Estadísticas generales</li>
+                                    <li><span class="method-badge method-get">GET</span><code>/library/search</code> - Búsqueda general</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Error Handling -->
+                <section id="error-handling" class="help-section">
+                    <h2><i class="fas fa-exclamation-triangle me-2"></i>Manejo de Errores</h2>
+
+                    <div class="feature-card">
+                        <h5>Códigos de Estado HTTP</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Significado</th>
+                                        <th>Descripción</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><span class="badge bg-success">200</span></td>
+                                        <td>OK</td>
+                                        <td>Petición exitosa</td>
+                                    </tr>
+                                    <tr>
+                                        <td><span class="badge bg-success">201</span></td>
+                                        <td>Created</td>
+                                        <td>Recurso creado exitosamente</td>
+                                    </tr>
+                                    <tr>
+                                        <td><span class="badge bg-warning">400</span></td>
+                                        <td>Bad Request</td>
+                                        <td>Datos de entrada inválidos</td>
+                                    </tr>
+                                    <tr>
+                                        <td><span class="badge bg-warning">401</span></td>
+                                        <td>Unauthorized</td>
+                                        <td>No autenticado</td>
+                                    </tr>
+                                    <tr>
+                                        <td><span class="badge bg-warning">403</span></td>
+                                        <td>Forbidden</td>
+                                        <td>Sin permisos</td>
+                                    </tr>
+                                    <tr>
+                                        <td><span class="badge bg-warning">404</span></td>
+                                        <td>Not Found</td>
+                                        <td>Recurso no encontrado</td>
+                                    </tr>
+                                    <tr>
+                                        <td><span class="badge bg-danger">500</span></td>
+                                        <td>Internal Server Error</td>
+                                        <td>Error interno del servidor</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h5>Formato de Respuesta de Error</h5>
+                        <div class="code-block">
+<pre><code class="language-json">{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Los datos proporcionados no son válidos",
+    "details": {
+      "field": "isbn",
+      "issue": "Formato de ISBN inválido"
+    }
+  }
+}</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Examples -->
+                <section id="examples" class="help-section">
+                    <h2><i class="fas fa-code me-2"></i>Ejemplos de Uso</h2>
+
+                    <div class="feature-card">
+                        <h5>Ejemplo: Agregar un Libro</h5>
+                        <div class="code-block">
+<pre><code class="language-javascript">// Request
+POST /api/books
+Content-Type: application/json
+
+{
+  "title": "El Quijote",
+  "author": "Miguel de Cervantes",
+  "isbn": "9788491051234",
+  "status": "tengo",
+  "rating": 4.5,
+  "tags": ["clásico", "español"]
+}
+
+// Response
+{
+  "success": true,
+  "data": {
+    "id": 123,
+    "title": "El Quijote",
+    "author": "Miguel de Cervantes",
+    "isbn": "9788491051234",
+    "status": "tengo",
+    "user_rating": 4.5,
+    "tags": ["clásico", "español"],
+    "created_at": "2025-08-18T10:30:00Z"
+  }
+}</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="feature-card">
+                        <h5>Ejemplo: Búsqueda de Libros</h5>
+                        <div class="code-block">
+<pre><code class="language-javascript">// Request
+GET /api/books?search=quijote&status=tengo&limit=10
+
+// Response
+{
+  "success": true,
+  "data": {
+    "books": [...],
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "total": 1,
+      "pages": 1
+    }
+  }
+}</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="text-muted mt-5">
+                    <small><i class="fas fa-calendar-alt me-2"></i>Última actualización: 18 de agosto de 2025</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script>
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Logging - Mi Biblioteca Personal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css" rel="stylesheet">
+    <style>
+        .help-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+        }
+        .help-section {
+            margin: 2rem 0;
+        }
+        .feature-card {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: transform 0.2s;
+        }
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .code-block {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+        .warning-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .info-box {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .success-box {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .breadcrumb {
+            background-color: transparent;
+            margin-bottom: 1rem;
+        }
+        pre {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 1rem;
+            overflow-x: auto;
+        }
+        .toc-sticky {
+            position: sticky;
+            top: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="help-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="fas fa-file-contract me-3"></i>Sistema de Logging</h1>
+                    <p class="lead mb-0">Documentación del sistema de logging estructurado</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button onclick="window.history.back()" class="btn btn-light me-2">
+                        <i class="fas fa-arrow-left me-2"></i>Volver
+                    </button>
+                    <button onclick="window.close()" class="btn btn-light">
+                        <i class="fas fa-times me-2"></i>Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container my-5">
+        
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="../../frontend/public/help.html">Documentación</a></li>
+                <li class="breadcrumb-item"><a href="../README.html">Docs</a></li><li class="breadcrumb-item"><a href="../LOGGING_SYSTEM.md/README.html">LOGGING_SYSTEM.md</a></li><li class="breadcrumb-item active" aria-current="page">Sistema de Logging</li>
+            </ol>
+        </nav>
+
+        <div class="row">
+            
+        <div class="col-md-3">
+            <div class="card toc-sticky">
+                <div class="card-header">
+                    <h5><i class="fas fa-list me-2"></i>Navegación</h5>
+                </div>
+                <div class="card-body">
+                    <nav class="nav flex-column">
+                        <a class="nav-link" href="../README.html">📚 Documentación Principal</a>
+                        <a class="nav-link" href="../frontend/README.html">🖥️ Frontend</a>
+                        <a class="nav-link" href="../api/README.html">🔌 API</a>
+                        <a class="nav-link" href="../architecture/backend.html">🏗️ Arquitectura</a>
+                    </nav>
+                </div>
+            </div>
+        </div>
+            
+            <div class="col-md-9">
+                <h2>Sistema de Logging Estructurado</h2>
+
+<h3>Descripción</h3>
+
+Este proyecto implementa un sistema de logging estructurado usando <strong>Monolog</strong> que proporciona logging profesional con contexto JSON, rotación automática de archivos y configuración flexible para diferentes entornos.
+
+<h3>Características</h3><ul><li>✅ <strong>Logging estructurado</strong> con contexto JSON</li><li>✅ <strong>Rotación automática</strong> de archivos de log</li><li>✅ <strong>Múltiples canales</strong> (API, Database, Auth, Security, Application)</li><li>✅ <strong>Configuración por entorno</strong> (development, testing, staging, production)</li><li>✅ <strong>Handlers múltiples</strong> (archivo, consola, navegador)</li><li>✅ <strong>Helpers de conveniencia</strong> para diferentes tipos de eventos</li><li>✅ <strong>Integración con manejo de errores</strong> de PHP</li><li>✅ <strong>Logging de performance</strong> y métricas</li>
+
+<h3>Instalación</h3>
+
+El sistema ya está instalado y configurado. Solo necesitas:<li>Copiar el archivo de configuración de entorno:</li>
+``<code>bash
+cp .env.example .env.development
+</code>`<code><li>Ajustar las variables de entorno según tu necesidad:</li>
+</code>`<code>bash
+LOG_LEVEL=debug
+LOG_CONSOLE=true
+LOG_JSON_FORMAT=false
+</code>`<code>
+
+<h3>Estructura de Archivos</h3>
+
+</code>`<code>
+backend/
+├── config/
+│   ├── logging.php          # Configuración de logging
+│   └── helpers.php          # Funciones helper para configuración
+├── src/Infrastructure/Logging/
+│   ├── LoggerFactory.php    # Factory para crear loggers
+│   ├── LogHelper.php        # Helper con métodos de conveniencia
+│   ├── LoggingService.php   # Servicio centralizado
+│   └── functions.php        # Funciones globales de logging
+├── storage/logs/            # Directorio de archivos de log
+├── .env.example            # Variables de entorno de ejemplo
+├── .env.development        # Configuración para desarrollo
+└── logging_examples.php    # Ejemplos de uso
+</code>`<code>
+
+<h3>Configuración</h3>
+
+<h4>Variables de Entorno</h4>
+
+</code>`<code>bash
+<h2>Configuración básica</h2>
+APP_ENV=development
+LOG_LEVEL=debug
+LOG_PATH=./storage/logs
+LOG_MAX_FILES=7
+LOG_CONSOLE=true
+LOG_JSON_FORMAT=false
+
+<h2>Configuración por canal</h2>
+LOG_LEVEL_API=debug
+LOG_LEVEL_DATABASE=info
+LOG_LEVEL_AUTH=debug
+LOG_LEVEL_SECURITY=warning
+LOG_LEVEL_APPLICATION=debug
+</code>`<code>
+
+<h4>Niveles de Log</h4><li></code>debug<code> - Información detallada para debugging</li><li></code>info<code> - Información general de funcionamiento</li><li></code>notice<code> - Eventos normales pero significativos</li><li></code>warning<code> - Advertencias que no son errores</li><li></code>error<code> - Errores que no detienen la aplicación</li><li></code>critical<code> - Errores críticos</li><li></code>alert<code> - Acción inmediata requerida</li><li></code>emergency<code> - Sistema inutilizable</li>
+
+<h3>Uso Básico</h3>
+
+<h4>Funciones de Conveniencia</h4>
+
+</code>`<code>php
+// Logging básico
+log_info('Usuario autenticado exitosamente');
+log_error('Error al conectar con la base de datos');
+log_debug('Variables de configuración cargadas');
+log_warning('Memoria alta detectada');
+
+// Logging de excepciones
+try {
+    // código que puede fallar
+} catch (\Exception $e) {
+    log_exception($e, 'Error en procesamiento de datos');
+}
+</code>`<code>
+
+<h4>Logging con Contexto</h4>
+
+</code>`<code>php
+// Obtener logger específico
+$logger = logger('api');
+
+$logger->info('Nueva búsqueda realizada', [
+    'user_id' => 123,
+    'search_term' => 'Harry Potter',
+    'results_count' => 15,
+    'filters' => ['author' => 'J.K. Rowling']
+]);
+</code>`<code>
+
+<h3>Logging Especializado</h3>
+
+<h4>HTTP Requests y Responses</h4>
+
+</code>`<code>php
+$logger = logger('api');
+
+// Log de request
+$logger->httpRequest('POST', '/api/books', [
+    'content_length' => 1024,
+    'auth_type' => 'google_oauth'
+]);
+
+// Log de response
+$logger->httpResponse(200, $duration, [
+    'action' => 'add_book',
+    'response_size' => 512
+]);
+</code>`<code>
+
+<h4>Base de Datos</h4>
+
+</code>`<code>php
+$logger = logger('database');
+
+$logger->database('SELECT', 'books', $duration, [
+    'query' => 'SELECT * FROM books WHERE user_id = ?',
+    'params' => [123],
+    'result_count' => 42
+]);
+</code>`<code>
+
+<h4>Autenticación</h4>
+
+</code>`<code>php
+$logger = logger('auth');
+
+// Login exitoso
+$logger->auth('login', $userId, true, [
+    'provider' => 'google',
+    'first_login' => false
+]);
+
+// Login fallido
+$logger->auth('login', null, false, [
+    'error' => 'invalid_credentials'
+]);
+</code>`<code>
+
+<h4>Seguridad</h4>
+
+</code>`<code>php
+$logger = logger('security');
+
+$logger->security('multiple_failed_login_attempts', 'medium', [
+    'attempts_count' => 5,
+    'time_window' => '5 minutes',
+    'ip_address' => '192.168.1.100'
+]);
+</code>`<code>
+
+<h4>Performance</h4>
+
+</code>`<code>php
+$logger = logger('application');
+
+$logger->performance('book_search', $duration, [
+    'database_queries' => 3,
+    'external_api_calls' => 1,
+    'cache_hits' => 5
+]);
+</code>`<code>
+
+<h3>Canales de Logging</h3>
+
+<h4>Canal API (</code>api.log<code>)</h4><li>Requests HTTP</li><li>Responses HTTP</li><li>Errores de API</li><li>Validaciones de entrada</li>
+
+<h4>Canal Database (</code>database.log<code>)</h4><li>Consultas SQL</li><li>Conexiones a BD</li><li>Errores de base de datos</li><li>Performance de queries</li>
+
+<h4>Canal Auth (</code>auth.log<code>)</h4><li>Autenticación de usuarios</li><li>Autorizaciones</li><li>Sesiones</li><li>Tokens JWT</li>
+
+<h4>Canal Security (</code>security.log<code>)</h4><li>Intentos de acceso no autorizado</li><li>Rate limiting</li><li>Ataques detectados</li><li>Eventos sospechosos</li>
+
+<h4>Canal Application (</code>application.log<code>)</h4><li>Lógica de negocio</li><li>Use cases</li><li>Errores de aplicación</li><li>Métricas de performance</li>
+
+<h3>Integración en Controladores</h3>
+
+</code>`<code>php
+class BookController
+{
+    public function search(Request $request)
+    {
+        $startTime = microtime(true);
+        $logger = logger('api');
+        
+        $logger->httpRequest($request->getMethod(), $request->getUri());
+        
+        try {
+            $results = $this->bookService->search($request->getSearchTerm());
+            
+            $logger->info('Book search completed', [
+                'search_term' => $request->getSearchTerm(),
+                'results_count' => count($results)
+            ]);
+            
+            $duration = microtime(true) - $startTime;
+            $logger->httpResponse(200, $duration);
+            
+            return $this->jsonResponse(['books' => $results]);
+            
+        } catch (\Exception $e) {
+            $logger->exception($e, 'Error in book search');
+            $logger->httpResponse(500, microtime(true) - $startTime);
+            
+            return $this->errorResponse('Search failed');
+        }
+    }
+}
+</code>`<code>
+
+<h3>Integración en Use Cases</h3>
+
+</code>`<code>php
+class AddBookUseCase
+{
+    public function execute(array $bookData): Book
+    {
+        $logger = logger('application');
+        
+        $logger->info('Adding new book', [
+            'title' => $bookData['title'],
+            'author' => $bookData['author']
+        ]);
+        
+        try {
+            $book = $this->bookRepository->save(new Book($bookData));
+            
+            $logger->info('Book added successfully', [
+                'book_id' => $book->getId(),
+                'title' => $book->getTitle()
+            ]);
+            
+            return $book;
+            
+        } catch (\Exception $e) {
+            $logger->exception($e, 'Failed to add book', $bookData);
+            throw $e;
+        }
+    }
+}
+</code>`<code>
+
+<h3>Archivos de Log</h3>
+
+Los logs se organizan automáticamente en archivos separados:
+
+</code>`<code>
+storage/logs/
+├── app.log              # Log general de aplicación
+├── api.log              # Logs de API
+├── database.log         # Logs de base de datos
+├── auth.log             # Logs de autenticación
+├── security.log         # Logs de seguridad
+├── application.log      # Logs de lógica de negocio
+└── errors.log           # Todos los errores (ERROR y superior)
+</code>`<code>
+
+<h4>Rotación de Archivos</h4>
+
+Los archivos se rotan automáticamente:<li>Mantiene 7 días por defecto (configurable)</li><li>Archivos antiguos se comprimen automáticamente</li><li>Formato: </code>app.log<code>, </code>app-2024-08-15.log<code>, </code>app-2024-08-14.log<code>, etc.</li>
+
+<h3>Configuración por Entorno</h3>
+
+<h4>Desarrollo</h4><li>Nivel: </code>DEBUG<code></li><li>Formato: Texto legible</li><li>Salida: Archivo + Consola + Navegador</li>
+
+<h4>Testing</h4><li>Nivel: </code>WARNING<code></li><li>Formato: JSON</li><li>Salida: Solo archivo</li>
+
+<h4>Producción</h4><li>Nivel: </code>INFO<code></li><li>Formato: JSON</li><li>Salida: Solo archivo</li><li>Rotación: 30 días</li>
+
+<h3>Ejemplos de Logs</h3>
+
+<h4>Formato JSON (Producción)</h4>
+</code>`<code>json
+{
+  "message": "Book search completed",
+  "context": {
+    "search_term": "Harry Potter",
+    "results_count": 15,
+    "user_id": 123
+  },
+  "level": 200,
+  "level_name": "INFO",
+  "channel": "api",
+  "datetime": "2024-08-16T10:30:45.123456+00:00",
+  "extra": {
+    "memory_usage": 12345678,
+    "ip": "192.168.1.100",
+    "request_id": "req_66c0123456789"
+  }
+}
+</code>`<code>
+
+<h4>Formato Texto (Desarrollo)</h4>
+</code>`<code>
+2024-08-16 10:30:45 [INFO] api: Book search completed {"search_term":"Harry Potter","results_count":15,"user_id":123}
+</code>`<code>
+
+<h3>Mejores Prácticas</h3><li><strong>Usa contexto estructurado</strong> siempre que sea posible</li><li><strong>No logees información sensible</strong> (passwords, tokens completos)</li><li><strong>Usa el canal apropiado</strong> para cada tipo de evento</li><li><strong>Incluye IDs únicos</strong> para trackear operaciones</li><li><strong>Logea tanto éxitos como fallos</strong> importantes</li><li><strong>Usa niveles apropiados</strong> (no todo es ERROR)</li><li><strong>Incluye timing</strong> para operaciones importantes</li></ul>
+
+<h3>Monitoreo y Alertas</h3>
+
+Puedes configurar alertas basadas en los logs:
+
+</code>`<code>bash
+<h2>Buscar errores críticos</h2>
+grep "CRITICAL\|EMERGENCY" storage/logs/*.log
+
+<h2>Buscar eventos de seguridad</h2>
+grep "security" storage/logs/security.log
+
+<h2>Monitorear performance</h2>
+grep "duration_ms.*[5-9][0-9][0-9][0-9]" storage/logs/api.log
+</code>`<code>
+
+<h3>Testing</h3>
+
+Para testing, puedes usar:
+
+</code>`<code>php
+// En tests
+use App\Infrastructure\Logging\LoggingService;
+
+class SomeTest extends TestCase
+{
+    protected function setUp(): void
+    {
+        LoggingService::reset(); // Limpiar estado
+    }
+}
+</code>``
+</p>
+                
+                <div class="text-muted mt-5">
+                    <small><i class="fas fa-calendar-alt me-2"></i>Última actualización: 18 de agosto de 2025</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script>
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

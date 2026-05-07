@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend Vue.js - Mi Biblioteca Personal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css" rel="stylesheet">
+    <style>
+        .help-header {
+            background: linear-gradient(135deg, #42b883 0%, #347474 100%);
+            color: white;
+            padding: 2rem 0;
+        }
+        .help-section {
+            margin: 2rem 0;
+        }
+        .feature-card {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: transform 0.2s;
+        }
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .code-block {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+        .warning-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .info-box {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .success-box {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .tech-badge {
+            background-color: #42b883;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+            margin: 0.25rem;
+            display: inline-block;
+        }
+        .breadcrumb {
+            background-color: transparent;
+            margin-bottom: 1rem;
+        }
+        .file-tree {
+            font-family: 'Courier New', monospace;
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+        }
+        .toc-sticky {
+            position: sticky;
+            top: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="help-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="fab fa-vuejs me-3"></i>Frontend Vue.js</h1>
+                    <p class="lead mb-0">Documentación técnica del frontend de Library Vue</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button onclick="window.history.back()" class="btn btn-light me-2">
+                        <i class="fas fa-arrow-left me-2"></i>Volver
+                    </button>
+                    <button onclick="window.close()" class="btn btn-light">
+                        <i class="fas fa-times me-2"></i>Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container my-5">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="../../frontend/public/help.html">Documentación</a></li>
+                <li class="breadcrumb-item"><a href="../README.html">Docs</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Frontend</li>
+            </ol>
+        </nav>
+
+        <div class="row">
+            <!-- Tabla de contenidos lateral -->
+            <div class="col-md-3">
+                <div class="card toc-sticky">
+                    <div class="card-header">
+                        <h5><i class="fas fa-list me-2"></i>Contenidos</h5>
+                    </div>
+                    <div class="card-body">
+                        <nav class="nav flex-column">
+                            <a class="nav-link" href="#overview">Visión General</a>
+                            <a class="nav-link" href="#tech-stack">Stack Tecnológico</a>
+                            <a class="nav-link" href="#structure">Estructura del Proyecto</a>
+                            <a class="nav-link" href="#components">Componentes</a>
+                            <a class="nav-link" href="#composables">Composables</a>
+                            <a class="nav-link" href="#routing">Routing</a>
+                            <a class="nav-link" href="#state-management">Gestión de Estado</a>
+                            <a class="nav-link" href="#development">Desarrollo</a>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-9">
+                <!-- Overview -->
+                <section id="overview" class="help-section">
+                    <h2><i class="fas fa-eye me-2"></i>Visión General</h2>
+                    <div class="info-box">
+                        <p class="mb-0">El frontend de Library Vue está construido con Vue.js 3, utilizando Composition API, Pinia para gestión de estado, y Vue Router para navegación. La arquitectura está diseñada para ser modular, reutilizable y fácil de mantener.</p>
+                    </div>
+                </section>
+
+                <!-- Technology Stack -->
+                <section id="tech-stack" class="help-section">
+                    <h2><i class="fas fa-stack-overflow me-2"></i>Stack Tecnológico</h2>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <h5><i class="fab fa-vuejs text-success me-2"></i>Core Framework</h5>
+                                <div class="mt-3">
+                                    <span class="tech-badge">Vue.js 3</span>
+                                    <span class="tech-badge">Composition API</span>
+                                    <span class="tech-badge">Vue Router</span>
+                                    <span class="tech-badge">Vite</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <h5><i class="fas fa-database text-primary me-2"></i>Estado y Datos</h5>
+                                <div class="mt-3">
+                                    <span class="tech-badge">Pinia</span>
+                                    <span class="tech-badge">Axios</span>
+                                    <span class="tech-badge">Composables</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <h5><i class="fas fa-paint-brush text-warning me-2"></i>Estilos y UI</h5>
+                                <div class="mt-3">
+                                    <span class="tech-badge">Bootstrap 5</span>
+                                    <span class="tech-badge">Font Awesome</span>
+                                    <span class="tech-badge">CSS Custom</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <h5><i class="fas fa-code text-info me-2"></i>Desarrollo</h5>
+                                <div class="mt-3">
+                                    <span class="tech-badge">TypeScript</span>
+                                    <span class="tech-badge">ESLint</span>
+                                    <span class="tech-badge">Prettier</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Project Structure -->
+                <section id="structure" class="help-section">
+                    <h2><i class="fas fa-folder-tree me-2"></i>Estructura del Proyecto</h2>
+
+                    <div class="file-tree">
+<pre>frontend/
+├── src/
+│   ├── components/           # Componentes reutilizables
+│   │   ├── ui/              # Componentes básicos de UI
+│   │   │   ├── BaseButton.vue
+│   │   │   ├── BaseInput.vue
+│   │   │   ├── BaseModal.vue
+│   │   │   └── LoadingSpinner.vue
+│   │   ├── forms/           # Componentes de formularios
+│   │   │   ├── BookForm.vue
+│   │   │   ├── MovieForm.vue
+│   │   │   └── SearchForm.vue
+│   │   ├── library/         # Componentes de biblioteca
+│   │   │   ├── BookCard.vue
+│   │   │   ├── MovieCard.vue
+│   │   │   ├── BookList.vue
+│   │   │   └── MovieList.vue
+│   │   └── layout/          # Componentes de layout
+│   │       ├── Header.vue
+│   │       ├── Sidebar.vue
+│   │       └── Footer.vue
+│   ├── composables/         # Composables de Vue 3
+│   │   ├── useAuth.js
+│   │   ├── useBooks.js
+│   │   ├── useMovies.js
+│   │   └── useSearch.js
+│   ├── stores/              # Stores de Pinia
+│   │   ├── auth.js
+│   │   ├── books.js
+│   │   └── movies.js
+│   ├── views/               # Páginas principales
+│   │   ├── Home.vue
+│   │   ├── Books.vue
+│   │   ├── Movies.vue
+│   │   └── Profile.vue
+│   ├── router/              # Configuración de rutas
+│   │   └── index.js
+│   ├── services/            # Servicios API
+│   │   ├── api.js
+│   │   ├── authService.js
+│   │   └── libraryService.js
+│   └── utils/               # Utilidades
+│       ├── constants.js
+│       ├── helpers.js
+│       └── validators.js
+├── public/                  # Archivos públicos
+│   ├── index.html
+│   ├── help.html
+│   └── favicon.ico
+└── package.json             # Dependencias del proyecto</pre>
+                    </div>
+                </section>
+
+                <!-- Components -->
+                <section id="components" class="help-section">
+                    <h2><i class="fas fa-puzzle-piece me-2"></i>Componentes</h2>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <h5><i class="fas fa-layer-group text-primary me-2"></i>UI Components</h5>
+                                <ul>
+                                    <li><strong>BaseButton:</strong> Botón reutilizable con variantes</li>
+                                    <li><strong>BaseInput:</strong> Input con validación</li>
+                                    <li><strong>BaseModal:</strong> Modal genérico</li>
+                                    <li><strong>LoadingSpinner:</strong> Indicador de carga</li>
+                                    <li><strong>RatingComponent:</strong> Sistema de calificación con estrellas</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <h5><i class="fas fa-book text-success me-2"></i>Library Components</h5>
+                                <ul>
+                                    <li><strong>BookCard:</strong> Tarjeta de libro con acciones</li>
+                                    <li><strong>MovieCard:</strong> Tarjeta de película</li>
+                                    <li><strong>BookForm:</strong> Formulario para agregar/editar libros</li>
+                                    <li><strong>MovieForm:</strong> Formulario para películas</li>
+                                    <li><strong>SearchForm:</strong> Búsqueda avanzada</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-box">
+                        <h6><i class="fas fa-lightbulb me-2"></i>Patrón de Componentes</h6>
+                        <p class="mb-0">Todos los componentes siguen el patrón de Composition API con props tipados, eventos bien definidos y slots para máxima reutilización.</p>
+                    </div>
+                </section>
+
+                <!-- Composables -->
+                <section id="composables" class="help-section">
+                    <h2><i class="fas fa-cubes me-2"></i>Composables</h2>
+
+                    <div class="feature-card">
+                        <h5><i class="fas fa-link me-2"></i>Sistema de Composables</h5>
+                        <p>Los composables proporcionan lógica reutilizable para diferentes aspectos de la aplicación:</p>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-shield-alt text-primary me-2"></i>Autenticación</h6>
+                                <ul>
+                                    <li><code>useAuth</code> - Gestión de autenticación principal</li>
+                                    <li><code>useGoogleAuth</code> - Integración con Google OAuth</li>
+                                    <li><code>usePermissions</code> - Control de permisos</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-books text-success me-2"></i>Biblioteca</h6>
+                                <ul>
+                                    <li><code>useBooks</code> - Gestión de libros</li>
+                                    <li><code>useMovies</code> - Gestión de películas</li>
+                                    <li><code>useSearch</code> - Búsqueda avanzada</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="mt-3">
+                            <a href="composables.html" class="btn btn-primary">
+                                <i class="fas fa-book me-2"></i>Ver Documentación Completa de Composables
+                            </a>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Routing -->
+                <section id="routing" class="help-section">
+                    <h2><i class="fas fa-route me-2"></i>Routing</h2>
+
+                    <div class="feature-card">
+                        <h5>Configuración de Rutas</h5>
+                        <div class="code-block">
+<pre><code class="language-javascript">// router/index.js
+import { createRouter, createWebHistory } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
+
+const routes = [
+  {
+    path: '/',
+    name: 'Home',
+    component: () => import('@/views/Home.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/books',
+    name: 'Books',
+    component: () => import('@/views/Books.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/movies',
+    name: 'Movies',
+    component: () => import('@/views/Movies.vue'),
+    meta: { requiresAuth: true }
+  }
+]</code></pre>
+                        </div>
+
+                        <div class="warning-box">
+                            <h6><i class="fas fa-shield-alt me-2"></i>Protección de Rutas</h6>
+                            <p class="mb-0">Todas las rutas principales requieren autenticación. El guard de navegación verifica el estado de autenticación antes de permitir el acceso.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- State Management -->
+                <section id="state-management" class="help-section">
+                    <h2><i class="fas fa-database me-2"></i>Gestión de Estado</h2>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <h5><i class="fas fa-store text-primary me-2"></i>Pinia Stores</h5>
+                                <ul>
+                                    <li><strong>Auth Store:</strong> Estado de autenticación global</li>
+                                    <li><strong>Books Store:</strong> Estado de libros</li>
+                                    <li><strong>Movies Store:</strong> Estado de películas</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <h5><i class="fas fa-cubes text-success me-2"></i>Composables</h5>
+                                <ul>
+                                    <li>Lógica reactiva encapsulada</li>
+                                    <li>Reutilización entre componentes</li>
+                                    <li>Testeo más sencillo</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-box">
+                        <h6><i class="fas fa-lightbulb me-2"></i>Patrón Híbrido</h6>
+                        <p class="mb-0">Utilizamos una combinación de Pinia stores para estado global y composables para lógica específica, aprovechando lo mejor de ambos enfoques.</p>
+                    </div>
+                </section>
+
+                <!-- Development -->
+                <section id="development" class="help-section">
+                    <h2><i class="fas fa-code me-2"></i>Desarrollo</h2>
+
+                    <div class="feature-card">
+                        <h5>Comandos de Desarrollo</h5>
+                        <div class="code-block">
+<pre><code class="language-bash"># Instalar dependencias
+npm install
+
+# Servidor de desarrollo
+npm run dev
+
+# Build para producción
+npm run build
+
+# Previsualizar build
+npm run preview
+
+# Linting
+npm run lint
+
+# Testing
+npm run test</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="success-box">
+                                <h6><i class="fas fa-check-circle me-2"></i>Mejores Prácticas</h6>
+                                <ul class="mb-0">
+                                    <li>Usar Composition API</li>
+                                    <li>Componentes pequeños y enfocados</li>
+                                    <li>Props y eventos bien tipados</li>
+                                    <li>Nomenclatura consistente</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="warning-box">
+                                <h6><i class="fas fa-exclamation-triangle me-2"></i>Consideraciones</h6>
+                                <ul class="mb-0">
+                                    <li>Lazy loading de rutas</li>
+                                    <li>Optimización de bundle</li>
+                                    <li>Manejo de errores global</li>
+                                    <li>Accesibilidad (a11y)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="text-muted mt-5">
+                    <small><i class="fas fa-calendar-alt me-2"></i>Última actualización: 18 de agosto de 2025</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script>
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

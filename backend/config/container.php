@@ -34,7 +34,9 @@ return function (): ContainerInterface {
         },
         
         SessionManager::class => DI\autowire(),
-        
+
+        \App\Infrastructure\Auth\JWTService::class => DI\autowire(),
+
         // ===========================
         // DATA MAPPERS
         // ===========================

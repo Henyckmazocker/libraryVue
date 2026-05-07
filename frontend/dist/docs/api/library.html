@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library API - Mi Biblioteca Personal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css" rel="stylesheet">
+    <style>
+        .help-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+        }
+        .help-section {
+            margin: 2rem 0;
+        }
+        .feature-card {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: transform 0.2s;
+        }
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .code-block {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+        .warning-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .info-box {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .success-box {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .breadcrumb {
+            background-color: transparent;
+            margin-bottom: 1rem;
+        }
+        pre {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 1rem;
+            overflow-x: auto;
+        }
+        .toc-sticky {
+            position: sticky;
+            top: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="help-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="fas fa-library me-3"></i>Library API</h1>
+                    <p class="lead mb-0">Endpoints generales de biblioteca</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button onclick="window.history.back()" class="btn btn-light me-2">
+                        <i class="fas fa-arrow-left me-2"></i>Volver
+                    </button>
+                    <button onclick="window.close()" class="btn btn-light">
+                        <i class="fas fa-times me-2"></i>Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container my-5">
+        
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="../../frontend/public/help.html">Documentación</a></li>
+                <li class="breadcrumb-item"><a href="../README.html">Docs</a></li><li class="breadcrumb-item"><a href="../api/README.html">Api</a></li><li class="breadcrumb-item active" aria-current="page">Library API</li>
+            </ol>
+        </nav>
+
+        <div class="row">
+            
+        <div class="col-md-3">
+            <div class="card toc-sticky">
+                <div class="card-header">
+                    <h5><i class="fas fa-list me-2"></i>Navegación</h5>
+                </div>
+                <div class="card-body">
+                    <nav class="nav flex-column">
+                        <a class="nav-link" href="../README.html">📚 Documentación Principal</a>
+                        <a class="nav-link" href="../frontend/README.html">🖥️ Frontend</a>
+                        <a class="nav-link" href="../api/README.html">🔌 API</a>
+                        <a class="nav-link" href="../architecture/backend.html">🏗️ Arquitectura</a>
+                    </nav>
+                </div>
+            </div>
+        </div>
+            
+            <div class="col-md-9">
+                <h2>Library API</h2>
+
+<h3>Overview</h3>
+
+Endpoints para gestión general de la biblioteca, incluyendo vistas unificadas, importación de archivos y estadísticas generales.
+
+<h3>Endpoints</h3>
+
+<h4>Get Library Overview</h4>
+
+<strong>GET</strong> <code>/api/library</code>
+
+Obtiene una vista unificada de toda la biblioteca con resumen de libros y películas.
+
+#### Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| <code>limit</code> | integer | 10 | Elementos por categoría |
+| <code>include_recent</code> | boolean | true | Incluir elementos recientes |
+| <code>include_stats</code> | boolean | true | Incluir estadísticas |
+
+#### Response Example
+
+``<code>json
+{
+  "success": true,
+  "data": {
+    "overview": {
+      "recent_books": [
+        {
+          "id": 1,
+          "title": "The Hobbit",
+          "author": "J.R.R. Tolkien",
+          "status": "read",
+          "rating": 4,
+          "date_read": "2025-08-15"
+        }
+      ],
+      "recent_movies": [
+        {
+          "id": 1,
+          "title": "Inception",
+          "director": "Christopher Nolan",
+          "status": "watched",
+          "rating": 5,
+          "date_watched": "2025-08-10"
+        }
+      ],
+      "stats": {
+        "total_books": 150,
+        "total_movies": 89,
+        "books_read_this_month": 4,
+        "movies_watched_this_month": 6,
+        "total_reading_time": "2450 hours",
+        "total_watch_time": "178 hours"
+      },
+      "reading_goals": {
+        "books_goal_this_year": 50,
+        "books_completed": 23,
+        "progress_percentage": 46
+      }
+    }
+  }
+}
+</code>`<code>
+
+<h4>Search All Library</h4>
+
+<strong>GET</strong> </code>/api/library/search<code>
+
+Búsqueda unificada en toda la biblioteca (libros y películas).
+
+#### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| </code>q<code> | string | Término de búsqueda general |
+| </code>type<code> | string | Tipo de contenido: 'books', 'movies', 'all' |
+| </code>limit<code> | integer | Límite de resultados por tipo |
+
+#### Search Response
+
+</code>`<code>json
+{
+  "success": true,
+  "data": {
+    "results": {
+      "books": [
+        {
+          "id": 1,
+          "type": "book",
+          "title": "Harry Potter and the Sorcerer's Stone",
+          "author": "J.K. Rowling",
+          "genre": "Fantasy",
+          "status": "read",
+          "rating": 5
+        }
+      ],
+      "movies": [
+        {
+          "id": 1,
+          "type": "movie",
+          "title": "Harry Potter and the Philosopher's Stone",
+          "director": "Chris Columbus",
+          "year": 2001,
+          "status": "watched",
+          "rating": 4
+        }
+      ],
+      "total_results": 2,
+      "search_term": "harry potter"
+    }
+  }
+}
+</code>`<code>
+
+<h4>Import from File</h4>
+
+<strong>POST</strong> </code>/api/library/import<code>
+
+Importa libros o películas desde un archivo CSV o JSON.
+
+#### Request (Multipart Form)
+
+</code>`<code>
+Content-Type: multipart/form-data
+
+file: [archivo CSV/JSON]
+type: "books" | "movies"
+options: {
+  "skip_duplicates": true,
+  "update_existing": false,
+  "dry_run": false
+}
+</code>`<code>
+
+#### Import Response
+
+</code>`<code>json
+{
+  "success": true,
+  "data": {
+    "import_summary": {
+      "total_rows": 150,
+      "imported": 125,
+      "skipped": 20,
+      "errors": 5,
+      "duplicates": 15,
+      "processing_time": "2.34 seconds"
+    },
+    "errors": [
+      {
+        "row": 12,
+        "error": "Invalid ISBN format",
+        "data": {"title": "Invalid Book", "isbn": "invalid-isbn"}
+      }
+    ],
+    "imported_items": [
+      {
+        "id": 151,
+        "title": "Newly Imported Book",
+        "author": "New Author",
+        "status": "to-read"
+      }
+    ]
+  },
+  "message": "Importación completada: 125 elementos importados"
+}
+</code>`<code>
+
+<h4>Export Library</h4>
+
+<strong>GET</strong> </code>/api/library/export<code>
+
+Exporta la biblioteca completa o filtrada en formato CSV o JSON.
+
+#### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| </code>format<code> | string | Formato: 'csv', 'json' |
+| </code>type<code> | string | Tipo: 'books', 'movies', 'all' |
+| </code>status<code> | string | Filtrar por estado |
+| </code>include_notes<code> | boolean | Incluir notas personales |
+
+#### Export Response
+
+</code>`<code>
+Content-Type: application/csv / application/json
+Content-Disposition: attachment; filename="library_export_2025-08-18.csv"
+
+[Archivo CSV/JSON con los datos]
+</code>`<code>
+
+<h4>Get Reading/Watching Activity</h4>
+
+<strong>GET</strong> </code>/api/library/activity<code>
+
+Obtiene actividad reciente de lectura y visualización.
+
+#### Activity Response
+
+</code>`<code>json
+{
+  "success": true,
+  "data": {
+    "activity": [
+      {
+        "date": "2025-08-18",
+        "type": "book_completed",
+        "item": {
+          "id": 45,
+          "title": "The Martian",
+          "author": "Andy Weir"
+        },
+        "rating": 4,
+        "notes": "Great science fiction read"
+      },
+      {
+        "date": "2025-08-17",
+        "type": "movie_watched",
+        "item": {
+          "id": 23,
+          "title": "Blade Runner 2049",
+          "director": "Denis Villeneuve"
+        },
+        "rating": 5
+      }
+    ],
+    "timeline": {
+      "books_this_week": 2,
+      "movies_this_week": 3,
+      "pages_read_this_week": 850,
+      "hours_watched_this_week": 8.5
+    }
+  }
+}
+</code>`<code>
+
+<h4>Get Library Statistics</h4>
+
+<strong>GET</strong> </code>/api/library/stats<code>
+
+Estadísticas completas y detalladas de toda la biblioteca.
+
+#### Complete Stats Response
+
+</code>`<code>json
+{
+  "success": true,
+  "data": {
+    "stats": {
+      "totals": {
+        "books": 150,
+        "movies": 89,
+        "total_items": 239
+      },
+      "books": {
+        "read": 89,
+        "reading": 3,
+        "to_read": 58,
+        "total_pages": 45280,
+        "average_rating": 4.2,
+        "top_genres": ["Fantasy", "Science Fiction", "Mystery"]
+      },
+      "movies": {
+        "watched": 56,
+        "to_watch": 33,
+        "total_runtime": 8940,
+        "average_rating": 4.1,
+        "top_genres": ["Science Fiction", "Action", "Drama"]
+      },
+      "yearly_progress": {
+        "2025": {
+          "books_read": 23,
+          "movies_watched": 18,
+          "pages_read": 7850,
+          "hours_watched": 36
+        }
+      },
+      "reading_goals": {
+        "yearly_book_goal": 50,
+        "books_completed": 23,
+        "books_remaining": 27,
+        "days_remaining": 135,
+        "books_per_week_needed": 1.4
+      }
+    }
+  }
+}
+</code>`<code>
+
+<h4>Set Reading Goals</h4>
+
+<strong>POST</strong> </code>/api/library/goals<code>
+
+Establece o actualiza metas de lectura/visualización.
+
+#### Goals Request
+
+</code>`<code>json
+{
+  "yearly_books_goal": 50,
+  "yearly_movies_goal": 40,
+  "monthly_books_goal": 4,
+  "pages_per_day_goal": 25
+}
+</code>`<code>
+
+#### Goals Response
+
+</code>`<code>json
+{
+  "success": true,
+  "data": {
+    "goals": {
+      "yearly_books_goal": 50,
+      "yearly_movies_goal": 40,
+      "monthly_books_goal": 4,
+      "pages_per_day_goal": 25,
+      "created_at": "2025-08-18T10:30:00Z"
+    },
+    "current_progress": {
+      "books_progress": 46,
+      "movies_progress": 45,
+      "on_track": true
+    }
+  },
+  "message": "Metas actualizadas exitosamente"
+}
+</code>`<code>
+
+<h3>Import File Formats</h3>
+
+<h4>CSV Format for Books</h4>
+
+</code>`<code>csv
+title,author,isbn,genre,publication_year,pages,status,rating
+"The Hobbit","J.R.R. Tolkien","9780547928227","Fantasy",1937,366,"read",4
+"1984","George Orwell","9780451524935","Dystopian",1949,328,"to-read",
+</code>`<code>
+
+<h4>CSV Format for Movies</h4>
+
+</code>`<code>csv
+title,director,year,genre,duration,status,rating
+"Inception","Christopher Nolan",2010,"Science Fiction",148,"watched",5
+"The Matrix","The Wachowskis",1999,"Science Fiction",136,"to-watch",
+</code>`<code>
+
+<h4>JSON Format</h4>
+
+</code>`<code>json
+{
+  "books": [
+    {
+      "title": "The Hobbit",
+      "author": "J.R.R. Tolkien",
+      "isbn": "9780547928227",
+      "genre": "Fantasy",
+      "publication_year": 1937,
+      "pages": 366,
+      "status": "read",
+      "rating": 4
+    }
+  ]
+}
+</code>`<code>
+
+<h3>Activity Types</h3>
+
+| Type | Description |
+|------|-------------|
+| </code>book_added<code> | Libro añadido a la biblioteca |
+| </code>book_started<code> | Comenzó a leer un libro |
+| </code>book_completed<code> | Terminó de leer un libro |
+| </code>book_rated<code> | Calificó un libro |
+| </code>movie_added<code> | Película añadida a la biblioteca |
+| </code>movie_watched<code> | Vio una película |
+| </code>movie_rated<code> | Calificó una película |
+| </code>goal_set<code> | Estableció una nueva meta |
+| </code>goal_achieved<code> | Alcanzó una meta |
+
+<h3>Error Codes</h3>
+
+| Code | Description |
+|------|-------------|
+| </code>IMPORT_FAILED<code> | Error durante la importación |
+| </code>INVALID_FILE_FORMAT<code> | Formato de archivo no válido |
+| </code>FILE_TOO_LARGE<code> | Archivo excede tamaño máximo |
+| </code>INVALID_CSV_STRUCTURE<code> | Estructura CSV inválida |
+| </code>EXPORT_FAILED<code> | Error durante la exportación |
+| </code>GOAL_VALIDATION_ERROR` | Error en validación de metas |
+
+---
+
+<em>Última actualización: 18 de Agosto de 2025</em>
+</p>
+                
+                <div class="text-muted mt-5">
+                    <small><i class="fas fa-calendar-alt me-2"></i>Última actualización: 18 de agosto de 2025</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script>
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

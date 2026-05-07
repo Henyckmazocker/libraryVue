@@ -16,7 +16,13 @@
       </button>
       
       <template v-if="!isLoggedIn && !isLoading">
-        <div id="g_id_signin"></div>
+        <!-- Botón nativo Capacitor -->
+        <button v-if="isNative" @click="nativeSignIn" class="app-header__native-signin">
+          <i class="fab fa-google"></i>
+          Iniciar sesión con Google
+        </button>
+        <!-- Botón SDK web -->
+        <div v-else id="g_id_signin"></div>
       </template>
       
       <template v-if="isLoading">
@@ -73,8 +79,10 @@ const {
 
 const {
   isGoogleReady,
+  isNative,
   renderGoogleButton,
   showGoogleOneTap,
+  nativeSignIn,
   googleError,
   clearGoogleError
 } = useGoogleAuth();
@@ -317,6 +325,28 @@ const handleLogout = async () => {
   
   .app-header__user-name {
     display: none;
+  }
+}
+
+.app-header__native-signin {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+  color: var(--color-text);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:active {
+    background: var(--color-background-mute);
+  }
+
+  i {
+    color: #4285F4;
   }
 }
 </style>

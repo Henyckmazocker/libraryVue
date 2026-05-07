@@ -1,4 +1,6 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { Capacitor } from '@capacitor/core';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { useAuth } from './useAuth';
 import Logger from '@/utils/logger';
 
@@ -80,7 +82,18 @@ export function useGoogleAuth() {
         throw new Error('Google Client ID not configured');
       }
 
-      Logger.auth('[useGoogleAuth] Initializing Google OAuth...');
+      // --- Plataforma nativa (Capacitor) ---
+      if (Capacitor.isNativePlatform()) {
+        GoogleAuth.initialize({
+          clientId: GOOGLE_CLIENT_ID,
+          scopes: ['profile', 'email'],
+          grantOfflineAccess: false,
+        });
+        isGoogleSDKLoaded.value = true;
+        isGoogleInitialized.value = true;
+        Logger.auth('[useGoogleAuth] Google OAuth initialized (native)');
+        return;
+      }
       
       // Cargar SDK si no está cargado
       if (!isGoogleSDKLoaded.value) {
@@ -123,7 +136,35 @@ export function useGoogleAuth() {
   };
 
   /**
-   * Maneja la respuesta de Google OAuth
+   * Sign-In nativo para Capacitor (Android/iOS).
+   * Lanza el selector de cuentas de Google del SO.
+   */
+  const nativeSignIn = async () => {
+    try {
+      Logger.auth('[useGoogleAuth] Starting native Google Sign-In...');
+      const googleUser = await GoogleAuth.signIn();
+      const idToken = googleUser.authentication?.idToken;
+
+      if (!idToken) {
+        throw new Error('No idToken received from native Google Sign-In');
+      }
+
+      googleCredential.value = idToken;
+      const result = await login(idToken);
+
+      if (!result.success) {
+        throw new Error(result.message || 'Login failed');
+      }
+
+      Logger.auth('[useGoogleAuth] Native Google Sign-In successful');
+    } catch (err) {
+      googleError.value = err.message;
+      Logger.error('[useGoogleAuth] Native Google Sign-In error:', err);
+    }
+  };
+
+  /**
+   * Maneja la respuesta de Google OAuth (flujo web)
    * @param {Object} response - Respuesta de Google
    */
   const handleGoogleResponse = async (response) => {
@@ -157,6 +198,9 @@ export function useGoogleAuth() {
    * @param {Object} options - Opciones de configuración del botón
    */
   const renderGoogleButton = (elementId, options = {}) => {
+    // En plataforma nativa no se usa el botón del SDK web
+    if (Capacitor.isNativePlatform()) return;
+
     if (!isGoogleInitialized.value) {
       Logger.warn('[useGoogleAuth] Google OAuth not initialized');
       return;
@@ -189,6 +233,9 @@ export function useGoogleAuth() {
    * Muestra el prompt de Google One Tap
    */
   const showGoogleOneTap = () => {
+    // One Tap no está disponible en plataforma nativa
+    if (Capacitor.isNativePlatform()) return;
+
     if (!isGoogleInitialized.value) {
       Logger.warn('[useGoogleAuth] Google OAuth not initialized');
       return;
@@ -242,6 +289,8 @@ export function useGoogleAuth() {
     isGoogleSDKLoaded.value && isGoogleInitialized.value
   );
 
+  const isNative = computed(() => Capacitor.isNativePlatform());
+
   const hasGoogleError = computed(() => 
     googleError.value !== null || error.value !== null
   );
@@ -277,6 +326,7 @@ export function useGoogleAuth() {
 
     // Métodos
     initializeGoogleAuth,
+    nativeSignIn,
     renderGoogleButton,
     showGoogleOneTap,
     cancelGoogleOneTap,
@@ -284,6 +334,7 @@ export function useGoogleAuth() {
     clearGoogleError,
     
     // Configuración
+    isNative,
     GOOGLE_CLIENT_ID: computed(() => GOOGLE_CLIENT_ID)
   };
 }

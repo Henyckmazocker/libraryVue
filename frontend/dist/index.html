@@ -1,8 +1,32 @@
-<!doctype html><html lang=""><head><script src="https://accounts.google.com/gsi/client" async defer="defer" onload="initGoogleSignIn()"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="/favicon.ico"><title>Library</title><script defer="defer" src="/js/chunk-vendors.14e38713.js"></script><script defer="defer" src="/js/app.8aa08d70.js"></script><link href="/css/app.9ae7c493.css" rel="stylesheet"></head><body><noscript><strong>We're sorry but Library doesn't work properly without JavaScript enabled. Please enable it to continue.</strong></noscript><div id="app"></div><script>// Global flag para indicar cuando Google Identity Services está cargado
+<!DOCTYPE html>
+<html lang="">
+  <head>
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer onload="initGoogleSignIn()"></script>
+  <!-- FontAwesome for icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <link rel="icon" href="favicon.ico">
+    <title>Library</title>
+  <script defer src="js/chunk-vendors.js"></script><script defer src="js/app.js"></script></head>
+  <body>
+    <noscript>
+      <strong>We're sorry but Library doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+    </noscript>
+    <div id="app"></div>
+    <!-- built files will be auto injected -->
+    
+    <script>
+      // Global flag para indicar cuando Google Identity Services está cargado
       window.googleSignInReady = false;
       
       function initGoogleSignIn() {
         window.googleSignInReady = true;
         // Emitir evento personalizado para notificar que Google está listo
         window.dispatchEvent(new CustomEvent('googleSignInLoaded'));
-      }</script></body></html>
+      }
+    </script>
+  </body>
+</html>

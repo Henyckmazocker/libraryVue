@@ -9,6 +9,7 @@ services:
       args:
         VUE_APP_API_URL: https://library.dcahomelab.com/api
         VUE_APP_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+        VUE_APP_OMDB_API_KEY: ${OMDB_API_KEY}
     ports:
       - "8082:80"
     environment:

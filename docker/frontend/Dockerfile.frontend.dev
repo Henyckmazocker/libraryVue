@@ -9,7 +9,8 @@ WORKDIR /app
 COPY frontend/package*.json ./
 
 # Install project dependencies
-RUN npm install
+# --legacy-peer-deps needed for @codetrix-studio/capacitor-google-auth (declares peer @capacitor/core@^6, project uses ^8)
+RUN npm install --legacy-peer-deps
 
 # Copy the rest of the application's source code (this will be largely overridden by volume mounts)
 # However, it's good to have a base if volumes are ever misconfigured, and for node_modules to be in the right place relative to the app.

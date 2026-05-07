@@ -124,18 +124,20 @@ ask_if_empty() {
 # ---------------------------------------------------------------------------
 setup_prod_env() {
   local google_client_id spotify_client_id spotify_client_secret
-  local lastfm_api_key mysql_root_password mysql_password
+  local lastfm_api_key omdb_api_key mysql_root_password mysql_password
 
   google_client_id=$(env_get      "$ENV_FILE" GOOGLE_CLIENT_ID)
   spotify_client_id=$(env_get     "$ENV_FILE" SPOTIFY_CLIENT_ID)
   spotify_client_secret=$(env_get "$ENV_FILE" SPOTIFY_CLIENT_SECRET)
   lastfm_api_key=$(env_get        "$ENV_FILE" LASTFM_API_KEY)
+  omdb_api_key=$(env_get          "$ENV_FILE" OMDB_API_KEY)
   mysql_root_password=$(env_get   "$ENV_FILE" MYSQL_ROOT_PASSWORD)
   mysql_password=$(env_get        "$ENV_FILE" MYSQL_PASSWORD)
 
   local needs_input=false
   [[ -z "$google_client_id" || -z "$spotify_client_id" || -z "$spotify_client_secret" \
-     || -z "$lastfm_api_key" || -z "$mysql_root_password" || -z "$mysql_password" ]] \
+     || -z "$lastfm_api_key" || -z "$omdb_api_key" \
+     || -z "$mysql_root_password" || -z "$mysql_password" ]] \
     && needs_input=true
 
   if [[ "$needs_input" == "true" ]]; then
@@ -146,6 +148,7 @@ setup_prod_env() {
     spotify_client_id=$(ask_if_empty     "Spotify Client ID"       "$spotify_client_id")
     spotify_client_secret=$(ask_if_empty "Spotify Client Secret"   "$spotify_client_secret" "yes")
     lastfm_api_key=$(ask_if_empty        "Last.fm API Key"         "$lastfm_api_key")
+    omdb_api_key=$(ask_if_empty          "OMDb API Key (películas)" "$omdb_api_key")
 
     echo ""
     echo -e "${YELLOW}=== Contraseñas MySQL (producción — usa valores seguros) ===${NC}"
@@ -170,6 +173,9 @@ SPOTIFY_CLIENT_SECRET=${spotify_client_secret}
 
 # Last.fm API
 LASTFM_API_KEY=${lastfm_api_key}
+
+# OMDb API (movie search)
+OMDB_API_KEY=${omdb_api_key}
 
 # Database
 MYSQL_ROOT_PASSWORD=${mysql_root_password}

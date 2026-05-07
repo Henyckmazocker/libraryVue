@@ -75,9 +75,9 @@ check_deps() {
 
 compose_cmd() {
   if docker compose version &>/dev/null 2>&1; then
-    docker compose -f "$COMPOSE_FILE" "$@"
+    docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
   else
-    docker-compose -f "$COMPOSE_FILE" "$@"
+    docker-compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
   fi
 }
 
@@ -233,14 +233,14 @@ deploy_services() {
 
   if [[ "$no_cache" == "yes" ]]; then
     info "Rebuilding imágenes sin caché..."
-    compose_cmd build --no-cache --env-file "$ENV_FILE"
+    compose_cmd build --no-cache
   else
     info "Construyendo imágenes (solo si hay cambios)..."
-    compose_cmd build --env-file "$ENV_FILE"
+    compose_cmd build
   fi
 
   info "Arrancando servicios de producción..."
-  compose_cmd up -d --env-file "$ENV_FILE"
+  compose_cmd up -d
 
   # Esperar MySQL
   info "Esperando a que MySQL esté disponible..."

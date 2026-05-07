@@ -16,6 +16,7 @@ Thumbs.db
 # ----------------------------------------------------------------------------
 node_modules/
 /dist
+frontend/dist/
 /vendor/
 /src/vendor/
 composer.lock

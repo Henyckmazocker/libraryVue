@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arquitectura Backend - Mi Biblioteca Personal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css" rel="stylesheet">
+    <style>
+        .help-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+        }
+        .help-section {
+            margin: 2rem 0;
+        }
+        .feature-card {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: transform 0.2s;
+        }
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .code-block {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+        .warning-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .info-box {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .success-box {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .breadcrumb {
+            background-color: transparent;
+            margin-bottom: 1rem;
+        }
+        pre {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 1rem;
+            overflow-x: auto;
+        }
+        .toc-sticky {
+            position: sticky;
+            top: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="help-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="fas fa-server me-3"></i>Arquitectura Backend</h1>
+                    <p class="lead mb-0">Estructura y patrones de diseño del backend</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button onclick="window.history.back()" class="btn btn-light me-2">
+                        <i class="fas fa-arrow-left me-2"></i>Volver
+                    </button>
+                    <button onclick="window.close()" class="btn btn-light">
+                        <i class="fas fa-times me-2"></i>Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container my-5">
+        
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="../../frontend/public/help.html">Documentación</a></li>
+                <li class="breadcrumb-item"><a href="../README.html">Docs</a></li><li class="breadcrumb-item"><a href="../architecture/README.html">Architecture</a></li><li class="breadcrumb-item active" aria-current="page">Arquitectura Backend</li>
+            </ol>
+        </nav>
+
+        <div class="row">
+            
+        <div class="col-md-3">
+            <div class="card toc-sticky">
+                <div class="card-header">
+                    <h5><i class="fas fa-list me-2"></i>Navegación</h5>
+                </div>
+                <div class="card-body">
+                    <nav class="nav flex-column">
+                        <a class="nav-link" href="../README.html">📚 Documentación Principal</a>
+                        <a class="nav-link" href="../frontend/README.html">🖥️ Frontend</a>
+                        <a class="nav-link" href="../api/README.html">🔌 API</a>
+                        <a class="nav-link" href="../architecture/backend.html">🏗️ Arquitectura</a>
+                    </nav>
+                </div>
+            </div>
+        </div>
+            
+            <div class="col-md-9">
+                <h2>Backend Architecture Details</h2>
+
+<h3>Domain-Driven Design Implementation</h3>
+
+<h4>Domain Layer</h4>
+
+El dominio representa el corazón de la aplicación con lógica de negocio pura, independiente de frameworks y tecnologías externas.
+
+#### Entities (Domain Models)
+
+``<code>php
+// src/Domain/Model/Book.php
+class Book
+{
+    private int $id;
+    private string $title;
+    private string $author;
+    private ?string $isbn;
+    private ReadingStatus $status;
+    private ?Rating $rating;
+    
+    public function markAsRead(Rating $rating, DateTimeInterface $dateRead): void
+    {
+        $this->status = ReadingStatus::READ();
+        $this->rating = $rating;
+        $this->dateRead = $dateRead;
+        
+        // Domain events could be fired here
+        $this->raise(new BookCompletedEvent($this));
+    }
+    
+    public function isValidForReading(): bool
+    {
+        return $this->status->equals(ReadingStatus::toRead()) ||
+               $this->status->equals(ReadingStatus::reading());
+    }
+}
+</code>`<code>
+
+#### Value Objects
+
+</code>`<code>php
+// src/Domain/Model/Rating.php
+class Rating
+{
+    private int $value;
+    
+    public function __construct(int $value)
+    {
+        if ($value < 1 || $value > 5) {
+            throw new InvalidRatingException('Rating must be between 1 and 5');
+        }
+        $this->value = $value;
+    }
+    
+    public function getValue(): int
+    {
+        return $this->value;
+    }
+    
+    public function isExcellent(): bool
+    {
+        return $this->value >= 4;
+    }
+}
+</code>`<code>
+
+#### Repository Interfaces
+
+</code>`<code>php
+// src/Domain/Repository/BookRepositoryInterface.php
+interface BookRepositoryInterface
+{
+    public function findById(int $id): ?Book;
+    public function findByUser(int $userId): array;
+    public function findByStatus(int $userId, ReadingStatus $status): array;
+    public function save(Book $book): void;
+    public function delete(int $id): void;
+    public function searchBooks(SearchCriteria $criteria): BookCollection;
+}
+</code>`<code>
+
+<h4>Application Layer (Use Cases)</h4>
+
+Los casos de uso orchestran la lógica de dominio y coordinan entre diferentes servicios.
+
+#### Use Case Structure
+
+</code>`<code>php
+// src/Domain/UseCases/Books/AddBookUseCase.php
+class AddBookUseCase
+{
+    public function __construct(
+        private BookRepositoryInterface $bookRepository,
+        private UserRepositoryInterface $userRepository,
+        private DuplicateBookChecker $duplicateChecker,
+        private LoggerInterface $logger
+    ) {}
+    
+    public function execute(AddBookRequest $request): AddBookResponse
+    {
+        $this->logger->info('Adding new book', ['title' => $request->title]);
+        
+        // Validate user exists
+        $user = $this->userRepository->findById($request->userId);
+        if (!$user) {
+            throw new UserNotFoundException();
+        }
+        
+        // Check for duplicates
+        if ($this->duplicateChecker->exists($request->isbn, $request->userId)) {
+            throw new DuplicateBookException();
+        }
+        
+        // Create domain entity
+        $book = Book::create(
+            $request->title,
+            $request->author,
+            $request->isbn,
+            $request->genre,
+            $request->userId
+        );
+        
+        // Persist
+        $this->bookRepository->save($book);
+        
+        $this->logger->info('Book added successfully', ['book_id' => $book->getId()]);
+        
+        return new AddBookResponse($book);
+    }
+}
+</code>`<code>
+
+#### Request/Response DTOs
+
+</code>`<code>php
+// src/Domain/UseCases/Books/AddBookRequest.php
+class AddBookRequest
+{
+    public function __construct(
+        public readonly string $title,
+        public readonly string $author,
+        public readonly ?string $isbn,
+        public readonly ?string $genre,
+        public readonly int $userId,
+        public readonly ?int $publicationYear = null,
+        public readonly ?int $pages = null
+    ) {}
+    
+    public static function fromArray(array $data): self
+    {
+        return new self(
+            title: $data['title'] ?? throw new InvalidArgumentException('Title is required'),
+            author: $data['author'] ?? throw new InvalidArgumentException('Author is required'),
+            isbn: $data['isbn'] ?? null,
+            genre: $data['genre'] ?? null,
+            userId: $data['user_id'] ?? throw new InvalidArgumentException('User ID is required'),
+            publicationYear: $data['publication_year'] ?? null,
+            pages: $data['pages'] ?? null
+        );
+    }
+}
+</code>`<code>
+
+<h4>Infrastructure Layer</h4>
+
+#### Repository Implementations
+
+</code>`<code>php
+// src/Infrastructure/Persistence/MySqlBookRepository.php
+class MySqlBookRepository implements BookRepositoryInterface
+{
+    public function __construct(
+        private PDO $pdo,
+        private BookMapper $mapper
+    ) {}
+    
+    public function findById(int $id): ?Book
+    {
+        $stmt = $this->pdo->prepare('
+            SELECT * FROM books WHERE id = :id
+        ');
+        $stmt->execute(['id' => $id]);
+        
+        $data = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        return $data ? $this->mapper->toDomain($data) : null;
+    }
+    
+    public function save(Book $book): void
+    {
+        if ($book->getId()) {
+            $this->update($book);
+        } else {
+            $this->insert($book);
+        }
+    }
+    
+    private function insert(Book $book): void
+    {
+        $stmt = $this->pdo->prepare('
+            INSERT INTO books (title, author, isbn, genre, user_id, status, created_at)
+            VALUES (:title, :author, :isbn, :genre, :user_id, :status, NOW())
+        ');
+        
+        $data = $this->mapper->toDatabase($book);
+        $stmt->execute($data);
+        
+        $book->setId((int) $this->pdo->lastInsertId());
+    }
+}
+</code>`<code>
+
+#### Database Mapper
+
+</code>`<code>php
+// src/Infrastructure/Persistence/BookMapper.php
+class BookMapper
+{
+    public function toDomain(array $data): Book
+    {
+        return new Book(
+            id: (int) $data['id'],
+            title: $data['title'],
+            author: $data['author'],
+            isbn: $data['isbn'],
+            genre: $data['genre'],
+            status: ReadingStatus::fromString($data['status']),
+            rating: $data['rating'] ? new Rating((int) $data['rating']) : null,
+            userId: (int) $data['user_id'],
+            createdAt: new DateTimeImmutable($data['created_at'])
+        );
+    }
+    
+    public function toDatabase(Book $book): array
+    {
+        return [
+            'title' => $book->getTitle(),
+            'author' => $book->getAuthor(),
+            'isbn' => $book->getIsbn(),
+            'genre' => $book->getGenre(),
+            'status' => $book->getStatus()->getValue(),
+            'rating' => $book->getRating()?->getValue(),
+            'user_id' => $book->getUserId()
+        ];
+    }
+}
+</code>`<code>
+
+<h4>Presentation Layer (Controllers)</h4>
+
+#### Controller Structure
+
+</code>`<code>php
+// src/Controllers/BookController.php
+class BookController extends BaseController
+{
+    public function __construct(
+        private AddBookUseCase $addBookUseCase,
+        private GetBooksUseCase $getBooksUseCase,
+        private UpdateBookUseCase $updateBookUseCase,
+        private DeleteBookUseCase $deleteBookUseCase,
+        private SearchBooksUseCase $searchBooksUseCase,
+        private SessionManager $sessionManager,
+        private LoggerInterface $logger
+    ) {}
+    
+    public function handleRequest(string $action, array $data): array
+    {
+        $this->logger->info('Book controller handling request', [
+            'action' => $action,
+            'user_id' => $this->sessionManager->getUserId()
+        ]);
+        
+        return match ($action) {
+            'add' => $this->addBook($data),
+            'list' => $this->getBooks($data),
+            'get' => $this->getBook($data),
+            'update' => $this->updateBook($data),
+            'delete' => $this->deleteBook($data),
+            'search' => $this->searchBooks($data),
+            default => throw new InvalidActionException("Unknown action: $action")
+        };
+    }
+    
+    private function addBook(array $data): array
+    {
+        try {
+            $this->validateAuthentication();
+            
+            $request = AddBookRequest::fromArray([
+                ...$data,
+                'user_id' => $this->sessionManager->getUserId()
+            ]);
+            
+            $response = $this->addBookUseCase->execute($request);
+            
+            return $this->successResponse($response->toArray(), 'Book added successfully');
+            
+        } catch (ValidationException $e) {
+            return $this->errorResponse($e->getMessage(), 'VALIDATION_ERROR', 422);
+        } catch (DuplicateBookException $e) {
+            return $this->errorResponse('Book already exists', 'DUPLICATE_BOOK', 409);
+        } catch (Exception $e) {
+            $this->logger->error('Error adding book', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->errorResponse('Internal server error', 'INTERNAL_ERROR', 500);
+        }
+    }
+}
+</code>`<code>
+
+#### Base Controller
+
+</code>`<code>php
+// src/Controllers/BaseController.php
+abstract class BaseController
+{
+    protected function successResponse(array $data, string $message = ''): array
+    {
+        return [
+            'success' => true,
+            'data' => $data,
+            'message' => $message,
+            'timestamp' => date('c')
+        ];
+    }
+    
+    protected function errorResponse(
+        string $error, 
+        string $code = 'ERROR', 
+        int $statusCode = 400
+    ): array {
+        http_response_code($statusCode);
+        
+        return [
+            'success' => false,
+            'error' => $error,
+            'code' => $code,
+            'timestamp' => date('c')
+        ];
+    }
+    
+    protected function validateAuthentication(): void
+    {
+        if (!$this->sessionManager->isAuthenticated()) {
+            throw new UnauthenticatedException('User not authenticated');
+        }
+    }
+    
+    protected function validatePermission(string $permission): void
+    {
+        if (!$this->sessionManager->hasPermission($permission)) {
+            throw new UnauthorizedException('Insufficient permissions');
+        }
+    }
+}
+</code>`<code>
+
+<h3>Services Layer</h3>
+
+<h4>Application Service</h4>
+
+</code>`<code>php
+// src/Services/ApplicationService.php
+class ApplicationService
+{
+    private ContainerInterface $container;
+    
+    public function __construct()
+    {
+        $this->container = $this->buildContainer();
+    }
+    
+    public function handleRequest(): array
+    {
+        try {
+            $requestData = $this->parseRequest();
+            $controller = $this->getController($requestData['controller']);
+            
+            return $controller->handleRequest(
+                $requestData['action'], 
+                $requestData['data']
+            );
+            
+        } catch (NotFoundException $e) {
+            return $this->errorResponse('Not found', 'NOT_FOUND', 404);
+        } catch (Exception $e) {
+            error_log("Application error: " . $e->getMessage());
+            return $this->errorResponse('Internal server error', 'INTERNAL_ERROR', 500);
+        }
+    }
+    
+    private function getController(string $controllerName): BaseController
+    {
+        return match ($controllerName) {
+            'auth' => $this->container->get(AuthController::class),
+            'books' => $this->container->get(BookController::class),
+            'movies' => $this->container->get(MovieController::class),
+            'library' => $this->container->get(LibraryController::class),
+            default => throw new NotFoundException("Controller not found: $controllerName")
+        };
+    }
+}
+</code>`<code>
+
+<h4>Service Configuration</h4>
+
+</code>`<code>php
+// config/dependencies.php - Service definitions
+return [
+    // Core Infrastructure
+    PDO::class => function (ContainerInterface $c) {
+        $dbConnector = $c->get(DatabaseConnector::class);
+        return $dbConnector->getConnection();
+    },
+    
+    DatabaseConnector::class => autowire(),
+    SessionManager::class => autowire(),
+    
+    // Mappers
+    BookMapper::class => autowire(),
+    MovieMapper::class => autowire(),
+    UserMapper::class => autowire(),
+    
+    // Repositories
+    BookRepositoryInterface::class => autowire(MySqlBookRepository::class),
+    MovieRepositoryInterface::class => autowire(MySqlMovieRepository::class),
+    UserRepositoryInterface::class => autowire(MySqlUserRepository::class),
+    
+    // Domain Services
+    DuplicateBookChecker::class => autowire(),
+    PasswordHasher::class => autowire(),
+    GoogleAuthValidator::class => autowire(),
+    
+    // Use Cases
+    AddBookUseCase::class => autowire(),
+    GetBooksUseCase::class => autowire(),
+    UpdateBookUseCase::class => autowire(),
+    DeleteBookUseCase::class => autowire(),
+    SearchBooksUseCase::class => autowire(),
+    
+    // Controllers
+    AuthController::class => autowire(),
+    BookController::class => autowire(),
+    MovieController::class => autowire(),
+    LibraryController::class => autowire(),
+    
+    // Logging
+    LoggerInterface::class => function (ContainerInterface $c) {
+        $loggerFactory = $c->get(LoggerFactory::class);
+        return $loggerFactory->createLogger('app');
+    },
+    
+    LoggerFactory::class => autowire(),
+];
+</code>`<code>
+
+<h3>Error Handling Strategy</h3>
+
+<h4>Exception Hierarchy</h4>
+
+</code>`<code>php
+// Custom exceptions with proper inheritance
+abstract class DomainException extends Exception {}
+abstract class ApplicationException extends Exception {}
+abstract class InfrastructureException extends Exception {}
+
+// Domain exceptions
+class InvalidRatingException extends DomainException {}
+class InvalidBookStatusException extends DomainException {}
+
+// Application exceptions
+class BookNotFoundException extends ApplicationException {}
+class DuplicateBookException extends ApplicationException {}
+class ValidationException extends ApplicationException {}
+
+// Infrastructure exceptions
+class DatabaseConnectionException extends InfrastructureException {}
+class SessionException extends InfrastructureException {}
+</code>`<code>
+
+<h4>Global Error Handler</h4>
+
+</code>`<code>php
+// Error handling in ApplicationService
+private function handleException(Throwable $e): array
+{
+    $this->logger->error('Application error', [
+        'exception' => get_class($e),
+        'message' => $e->getMessage(),
+        'file' => $e->getFile(),
+        'line' => $e->getLine(),
+        'trace' => $e->getTraceAsString()
+    ]);
+    
+    return match (true) {
+        $e instanceof ValidationException => 
+            $this->errorResponse($e->getMessage(), 'VALIDATION_ERROR', 422),
+        $e instanceof NotFoundException => 
+            $this->errorResponse('Resource not found', 'NOT_FOUND', 404),
+        $e instanceof UnauthorizedException => 
+            $this->errorResponse('Unauthorized', 'UNAUTHORIZED', 401),
+        $e instanceof DuplicateBookException => 
+            $this->errorResponse('Resource already exists', 'DUPLICATE', 409),
+        default => 
+            $this->errorResponse('Internal server error', 'INTERNAL_ERROR', 500)
+    };
+}
+</code>``
+
+---
+
+<em>Documentación actualizada: 18 de Agosto de 2025</em>
+</p>
+                
+                <div class="text-muted mt-5">
+                    <small><i class="fas fa-calendar-alt me-2"></i>Última actualización: 18 de agosto de 2025</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script>
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

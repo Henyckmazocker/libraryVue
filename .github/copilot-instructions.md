@@ -689,10 +689,56 @@ composer install
   - Games use `id` (IGDB ID - legacy naming kept for consistency across API calls)
   - **IMPORTANT**: Although semantically incorrect for Movies, `isbn` is used in all API calls to avoid massive refactoring
 
+## Mobile Architecture (Capacitor)
+
+The Vue.js frontend also runs as a native Android app via **Capacitor v8.3.1**.
+
+**Full documentation**: [`.github/skills/mobile.md`](skills/mobile.md)
+
+### Stack
+
+- Capacitor v8.3.1 (`@capacitor/core`, `@capacitor/cli`, `@capacitor/android`)
+- `@codetrix-studio/capacitor-google-auth` v3.4.0-rc.4 (native Google Sign-In)
+- `firebase/php-jwt` (backend JWT for stateless mobile auth)
+- Build: `npm run build:mobile` → `--mode mobile` → loads `frontend/.env.mobile`
+
+### Platform bifurcation
+
+Always use `Capacitor.isNativePlatform()` to detect native vs. web at runtime. Never use `VUE_APP_MODE` for runtime checks — it's only for build config.
+
+### Auth on mobile
+
+Mobile cannot use cross-origin cookies. Full JWT flow:
+1. Login returns `jwt_token` from `AuthController`
+2. Frontend stores in `localStorage`, sends as `Authorization: Bearer <token>`
+3. `AuthenticationMiddleware` accepts both session (web) and JWT (mobile)
+4. `CSRFMiddleware` skips when `auth_method === 'jwt'`
+
+### Key pitfalls
+
+- **`androidScheme`**: Use `'http'` in dev (HTTP backend), `'https'` in production. Wrong value = silent mixed-content blocking.
+- **`publicPath`**: Must be `'./'` for mobile builds (set via `vue.config.js` when `VUE_APP_MODE=mobile`).
+- **Hash router**: Mobile builds use `createWebHashHistory` (no server to resolve routes).
+- **API keys in `.env.mobile`**: Only vars the frontend calls directly need to be here. Currently: `VUE_APP_OMDB_API_KEY` (OMDb), `VUE_APP_GOOGLE_CLIENT_ID`.
+- **New write actions**: Add to `protectedActions` in `store/auth.js` for CSRF on web. Mobile bypasses CSRF via JWT.
+- **`secrets.xml`**: Google OAuth client ID goes in `android/app/src/main/res/values/secrets.xml` (gitignored), NOT `strings.xml`.
+
+### Build workflow (development)
+
+```bash
+export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh"
+cd frontend
+npm run build:mobile && npx cap sync android
+npx cap open android   # → Run ▶ in Android Studio
+```
+
+---
+
 ## Environment Files
 
 - Backend: `.env` (copy from `.env.docker-development` for Docker)
-- Frontend: `.env.local` or env vars in `docker compose.yml`
+- Frontend web: `.env.local` or env vars in `docker compose.yml`
+- Frontend mobile: `frontend/.env.mobile` (gitignored) — see Mobile Architecture section above
 
 ## Common Pitfalls
 
@@ -1016,9 +1062,15 @@ When an API call from the frontend gets an error response but no useful backend 
 - `backend/src/Router/ActionRouter.php` - Action → controller mapping
 - `backend/src/Domain/DTO/` - Commands and Queries for CQRS
 - `backend/src/Infrastructure/Cache/CacheService.php` - Caching implementation
+- `backend/src/Infrastructure/Auth/JWTService.php` - JWT for mobile auth
 - `backend/phpunit.xml` - PHPUnit configuration
 - `backend/tests/Unit/` - All unit tests (74 files, 743 tests)
 - `frontend/src/main.js` - App setup, PrimeVue theme
 - `frontend/src/store/` - Pinia stores (books, games, movies, auth, sessions)
 - `frontend/src/composables/` - UI-specific wrappers and reusable logic
+- `frontend/capacitor.config.ts` - Capacitor project config (mobile)
+- `frontend/.env.mobile` - Mobile env vars (gitignored)
+- `frontend/src/components/common/MobileNavBar.vue` - Mobile bottom nav
+- `frontend/src/composables/useGoogleAuth.js` - Native Google Sign-In
 - `docker-compose.yml` - Service configuration
+- `.github/skills/mobile.md` - Full mobile/Capacitor documentation

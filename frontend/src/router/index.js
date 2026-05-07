@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHistory, createWebHashHistory } from 'vue-router';
 
 // Importar eagerly las vistas de detalle para transiciones instantáneas
 import BookDetailView from '../views/BookDetailView.vue';
@@ -106,8 +106,11 @@ const routes = [
   }
 ];
 
+// En build móvil (Capacitor) se usa hash history — no hay servidor que maneje rutas SPA.
+const isMobile = process.env.VUE_APP_MODE === 'mobile'
+
 const router = createRouter({
-  history: createWebHistory(process.env.BASE_URL),
+  history: isMobile ? createWebHashHistory() : createWebHistory(process.env.BASE_URL),
   routes
 });
 

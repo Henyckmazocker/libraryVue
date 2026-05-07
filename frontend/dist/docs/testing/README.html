@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testing - Mi Biblioteca Personal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css" rel="stylesheet">
+    <style>
+        .help-header {
+            background: linear-gradient(135deg, #e83e8c 0%, #fd7e14 100%);
+            color: white;
+            padding: 2rem 0;
+        }
+        .help-section {
+            margin: 2rem 0;
+        }
+        .feature-card {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: transform 0.2s;
+        }
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .code-block {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+        .warning-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .info-box {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .success-box {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .breadcrumb {
+            background-color: transparent;
+            margin-bottom: 1rem;
+        }
+        .test-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+        .test-unit { background-color: #28a745; color: white; }
+        .test-integration { background-color: #ffc107; color: black; }
+        .test-e2e { background-color: #dc3545; color: white; }
+        .toc-sticky {
+            position: sticky;
+            top: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="help-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="fas fa-vial me-3"></i>Testing</h1>
+                    <p class="lead mb-0">Guía de testing para Library Vue</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button onclick="window.history.back()" class="btn btn-light me-2">
+                        <i class="fas fa-arrow-left me-2"></i>Volver
+                    </button>
+                    <button onclick="window.close()" class="btn btn-light">
+                        <i class="fas fa-times me-2"></i>Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container my-5">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="../../frontend/public/help.html">Documentación</a></li>
+                <li class="breadcrumb-item"><a href="../README.html">Docs</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Testing</li>
+            </ol>
+        </nav>
+
+        <div class="row">
+            <!-- Tabla de contenidos lateral -->
+            <div class="col-md-3">
+                <div class="card toc-sticky">
+                    <div class="card-header">
+                        <h5><i class="fas fa-list me-2"></i>Contenidos</h5>
+                    </div>
+                    <div class="card-body">
+                        <nav class="nav flex-column">
+                            <a class="nav-link" href="#overview">Visión General</a>
+                            <a class="nav-link" href="#test-types">Tipos de Tests</a>
+                            <a class="nav-link" href="#frontend-testing">Testing Frontend</a>
+                            <a class="nav-link" href="#backend-testing">Testing Backend</a>
+                            <a class="nav-link" href="#running-tests">Ejecutar Tests</a>
+                            <a class="nav-link" href="#best-practices">Mejores Prácticas</a>
+                            <a class="nav-link" href="#ci-cd">CI/CD</a>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-9">
+                <!-- Overview -->
+                <section id="overview" class="help-section">
+                    <h2><i class="fas fa-eye me-2"></i>Visión General</h2>
+                    
+                    <div class="info-box">
+                        <h6><i class="fas fa-info-circle me-2"></i>Estrategia de Testing</h6>
+                        <p class="mb-0">Library Vue implementa una estrategia de testing multinivel que incluye tests unitarios, de integración y end-to-end para garantizar la calidad del código y la funcionalidad de la aplicación.</p>
+                    </div>
+
+                    <div class="warning-box">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Estado Actual</h6>
+                        <p class="mb-0">El sistema de testing está en desarrollo. Esta documentación describe la estructura planificada y las implementaciones actuales.</p>
+                    </div>
+                </section>
+
+                <!-- Test Types -->
+                <section id="test-types" class="help-section">
+                    <h2><i class="fas fa-layer-group me-2"></i>Tipos de Tests</h2>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="feature-card text-center">
+                                <h5><span class="test-badge test-unit">Unit</span></h5>
+                                <h6>Tests Unitarios</h6>
+                                <ul class="list-unstyled">
+                                    <li>✅ Composables</li>
+                                    <li>✅ Utilidades</li>
+                                    <li>✅ Servicios API</li>
+                                    <li>✅ Componentes aislados</li>
+                                </ul>
+                                <p class="text-muted">Rápidos y específicos</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="feature-card text-center">
+                                <h5><span class="test-badge test-integration">Integration</span></h5>
+                                <h6>Tests de Integración</h6>
+                                <ul class="list-unstyled">
+                                    <li>🔄 API Endpoints</li>
+                                    <li>🔄 Database queries</li>
+                                    <li>🔄 Flujos completos</li>
+                                    <li>🔄 Auth workflows</li>
+                                </ul>
+                                <p class="text-muted">Verifican interacciones</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="feature-card text-center">
+                                <h5><span class="test-badge test-e2e">E2E</span></h5>
+                                <h6>Tests End-to-End</h6>
+                                <ul class="list-unstyled">
+                                    <li>📋 Casos de uso completos</li>
+                                    <li>📋 User journeys</li>
+                                    <li>📋 Cross-browser</li>
+                                    <li>📋 UI interactions</li>
+                                </ul>
+                                <p class="text-muted">Simulan usuario real</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Frontend Testing -->
+                <section id="frontend-testing" class="help-section">
+                    <h2><i class="fab fa-vuejs me-2"></i>Testing Frontend</h2>
+
+                    <div class="feature-card">
+                        <h5>Stack de Testing Frontend</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-tools text-primary me-2"></i>Herramientas</h6>
+                                <ul>
+                                    <li><strong>Vitest:</strong> Test runner rápido</li>
+                                    <li><strong>Vue Test Utils:</strong> Testing utilities para Vue</li>
+                                    <li><strong>@testing-library/vue:</strong> Testing centrado en usuario</li>
+                                    <li><strong>MSW:</strong> Mock Service Worker para APIs</li>
+                                    <li><strong>Cypress:</strong> E2E testing</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-folder text-success me-2"></i>Estructura</h6>
+                                <div class="code-block">
+<pre><code>frontend/tests/
+├── unit/
+│   ├── components/
+│   ├── composables/
+│   └── utils/
+├── integration/
+│   ├── api/
+│   └── workflows/
+└── e2e/
+    ├── specs/
+    └── fixtures/</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4>Ejemplo: Test de Composable</h4>
+                    <div class="code-block">
+<pre><code class="language-javascript">// tests/unit/composables/useBooks.test.js
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { useBooks } from '@/composables/useBooks'
+import * as api from '@/services/api'
+
+// Mock API
+vi.mock('@/services/api')
+
+describe('useBooks', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should fetch books successfully', async () => {
+    // Arrange
+    const mockBooks = [
+      { id: 1, title: 'Test Book', author: 'Test Author' }
+    ]
+    api.getBooks.mockResolvedValue({ data: mockBooks })
+
+    // Act
+    const { books, fetchBooks, isLoading } = useBooks()
+    await fetchBooks()
+
+    // Assert
+    expect(isLoading.value).toBe(false)
+    expect(books.value).toEqual(mockBooks)
+    expect(api.getBooks).toHaveBeenCalledOnce()
+  })
+
+  it('should handle fetch errors', async () => {
+    // Arrange
+    const errorMessage = 'Network error'
+    api.getBooks.mockRejectedValue(new Error(errorMessage))
+
+    // Act
+    const { error, fetchBooks } = useBooks()
+    await fetchBooks()
+
+    // Assert
+    expect(error.value).toContain(errorMessage)
+  })
+})</code></pre>
+                    </div>
+
+                    <h4>Ejemplo: Test de Componente</h4>
+                    <div class="code-block">
+<pre><code class="language-javascript">// tests/unit/components/BookCard.test.js
+import { describe, it, expect } from 'vitest'
+import { mount } from '@vue/test-utils'
+import BookCard from '@/components/BookCard.vue'
+
+describe('BookCard', () => {
+  const mockBook = {
+    id: 1,
+    title: 'Harry Potter',
+    author: 'J.K. Rowling',
+    status: 'read',
+    user_rating: 5
+  }
+
+  it('renders book information correctly', () => {
+    const wrapper = mount(BookCard, {
+      props: { book: mockBook }
+    })
+
+    expect(wrapper.text()).toContain('Harry Potter')
+    expect(wrapper.text()).toContain('J.K. Rowling')
+    expect(wrapper.find('.rating-stars').exists()).toBe(true)
+  })
+
+  it('emits edit event when edit button is clicked', async () => {
+    const wrapper = mount(BookCard, {
+      props: { book: mockBook }
+    })
+
+    await wrapper.find('.edit-button').trigger('click')
+    
+    expect(wrapper.emitted().edit).toBeTruthy()
+    expect(wrapper.emitted().edit[0]).toEqual([mockBook])
+  })
+})</code></pre>
+                    </div>
+                </section>
+
+                <!-- Backend Testing -->
+                <section id="backend-testing" class="help-section">
+                    <h2><i class="fas fa-server me-2"></i>Testing Backend</h2>
+
+                    <div class="feature-card">
+                        <h5>Stack de Testing Backend</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-tools text-primary me-2"></i>Herramientas</h6>
+                                <ul>
+                                    <li><strong>PHPUnit:</strong> Framework de testing PHP</li>
+                                    <li><strong>Mockery:</strong> Mocking library</li>
+                                    <li><strong>Database Transactions:</strong> Tests aislados</li>
+                                    <li><strong>Faker:</strong> Generación de datos de prueba</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-folder text-success me-2"></i>Estructura</h6>
+                                <div class="code-block">
+<pre><code>backend/tests/
+├── Unit/
+│   ├── UseCases/
+│   ├── Controllers/
+│   └── Services/
+├── Integration/
+│   ├── API/
+│   └── Database/
+└── fixtures/
+    └── testdata.sql</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4>Ejemplo: Test de Use Case</h4>
+                    <div class="code-block">
+<pre><code class="language-php">&lt;?php
+// tests/Unit/UseCases/AddBookUseCaseTest.php
+
+namespace Tests\Unit\UseCases;
+
+use PHPUnit\Framework\TestCase;
+use Mockery as m;
+use App\Domain\UseCases\AddBookUseCase;
+use App\Domain\Repository\BookRepositoryInterface;
+
+class AddBookUseCaseTest extends TestCase
+{
+    private $bookRepository;
+    private $addBookUseCase;
+
+    protected function setUp(): void
+    {
+        $this->bookRepository = m::mock(BookRepositoryInterface::class);
+        $this->addBookUseCase = new AddBookUseCase($this->bookRepository);
+    }
+
+    protected function tearDown(): void
+    {
+        m::close();
+    }
+
+    public function testExecuteSuccessfully()
+    {
+        // Arrange
+        $bookData = [
+            'title' => 'Test Book',
+            'author' => 'Test Author',
+            'isbn' => '9781234567890'
+        ];
+        $userId = 1;
+
+        $this->bookRepository
+            ->shouldReceive('addUserBook')
+            ->once()
+            ->with($userId, $bookData)
+            ->andReturn(['id' => 123] + $bookData);
+
+        // Act
+        $result = $this->addBookUseCase->execute($userId, $bookData);
+
+        // Assert
+        $this->assertEquals(123, $result['id']);
+        $this->assertEquals('Test Book', $result['title']);
+    }
+
+    public function testExecuteWithInvalidData()
+    {
+        // Arrange
+        $invalidData = ['title' => '']; // Missing required fields
+        $userId = 1;
+
+        // Act & Assert
+        $this->expectException(\InvalidArgumentException::class);
+        $this->addBookUseCase->execute($userId, $invalidData);
+    }
+}</code></pre>
+                    </div>
+
+                    <h4>Ejemplo: Test de API</h4>
+                    <div class="code-block">
+<pre><code class="language-php">&lt;?php
+// tests/Integration/API/BooksAPITest.php
+
+namespace Tests\Integration\API;
+
+use Tests\TestCase;
+
+class BooksAPITest extends TestCase
+{
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->authenticateUser();
+    }
+
+    public function testGetBooksReturnsUserBooks()
+    {
+        // Arrange
+        $this->createTestBooks();
+
+        // Act
+        $response = $this->get('/api/books');
+
+        // Assert
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'success',
+            'data' => [
+                'books' => [
+                    '*' => ['id', 'title', 'author', 'status']
+                ],
+                'pagination'
+            ]
+        ]);
+    }
+
+    public function testAddBookSuccessfully()
+    {
+        // Arrange
+        $bookData = [
+            'title' => 'New Test Book',
+            'author' => 'Test Author',
+            'isbn' => '9781234567890'
+        ];
+
+        // Act
+        $response = $this->post('/api/books', $bookData);
+
+        // Assert
+        $response->assertStatus(201);
+        $response->assertJson([
+            'success' => true,
+            'data' => [
+                'title' => 'New Test Book'
+            ]
+        ]);
+
+        $this->assertDatabaseHas('user_books', [
+            'title' => 'New Test Book',
+            'user_id' => $this->user->id
+        ]);
+    }
+}</code></pre>
+                    </div>
+                </section>
+
+                <!-- Running Tests -->
+                <section id="running-tests" class="help-section">
+                    <h2><i class="fas fa-play me-2"></i>Ejecutar Tests</h2>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <h5><i class="fab fa-vuejs text-success me-2"></i>Frontend</h5>
+                                <div class="code-block">
+<pre><code class="language-bash"># Todos los tests
+npm run test
+
+# Tests en modo watch
+npm run test:watch
+
+# Tests con coverage
+npm run test:coverage
+
+# E2E tests
+npm run test:e2e
+
+# Tests específicos
+npm run test -- BookCard.test.js</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <h5><i class="fas fa-server text-primary me-2"></i>Backend</h5>
+                                <div class="code-block">
+<pre><code class="language-bash"># Todos los tests
+./vendor/bin/phpunit
+
+# Tests con coverage
+./vendor/bin/phpunit --coverage-html coverage
+
+# Tests específicos
+./vendor/bin/phpunit tests/Unit/UseCases
+
+# Tests de integración
+./vendor/bin/phpunit tests/Integration</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="success-box">
+                        <h6><i class="fas fa-rocket me-2"></i>Docker Testing</h6>
+                        <div class="code-block">
+<pre><code class="language-bash"># Tests en contenedores Docker
+docker-compose exec frontend npm run test
+docker-compose exec backend ./vendor/bin/phpunit
+
+# Setup de testing database
+docker-compose exec backend php artisan migrate:fresh --env=testing</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Best Practices -->
+                <section id="best-practices" class="help-section">
+                    <h2><i class="fas fa-star me-2"></i>Mejores Prácticas</h2>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="success-box">
+                                <h6><i class="fas fa-check-circle me-2"></i>✅ Hacer</h6>
+                                <ul class="mb-0">
+                                    <li>Tests pequeños y enfocados</li>
+                                    <li>Nombres descriptivos</li>
+                                    <li>Arrange-Act-Assert pattern</li>
+                                    <li>Mock dependencias externas</li>
+                                    <li>Tests independientes</li>
+                                    <li>Cleanup después de tests</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="warning-box">
+                                <h6><i class="fas fa-exclamation-triangle me-2"></i>❌ Evitar</h6>
+                                <ul class="mb-0">
+                                    <li>Tests que dependen del orden</li>
+                                    <li>Hard-coded values</li>
+                                    <li>Tests que tocan servicios reales</li>
+                                    <li>Tests demasiado complejos</li>
+                                    <li>Duplicación de lógica de tests</li>
+                                    <li>Aserciones múltiples por concepto</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="feature-card">
+                        <h5>Estructura de Test Recomendada</h5>
+                        <div class="code-block">
+<pre><code class="language-javascript">describe('Component/Function Name', () => {
+  // Setup
+  beforeEach(() => {
+    // Common setup
+  })
+
+  describe('when condition', () => {
+    it('should do expected behavior', () => {
+      // Arrange - Setup test data
+      const input = 'test data'
+      
+      // Act - Execute the function/action
+      const result = functionUnderTest(input)
+      
+      // Assert - Verify results
+      expect(result).toBe('expected output')
+    })
+  })
+})</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- CI/CD -->
+                <section id="ci-cd" class="help-section">
+                    <h2><i class="fas fa-infinity me-2"></i>CI/CD</h2>
+
+                    <div class="info-box">
+                        <h6><i class="fas fa-info-circle me-2"></i>Estado del CI/CD</h6>
+                        <p class="mb-0">El pipeline de CI/CD está planificado para incluir ejecución automática de tests en cada push y pull request.</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <h5>Pipeline Planificado</h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <h6><i class="fas fa-code text-primary me-2"></i>Desarrollo</h6>
+                                <ul>
+                                    <li>Pre-commit hooks</li>
+                                    <li>Linting automático</li>
+                                    <li>Tests unitarios</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4">
+                                <h6><i class="fas fa-merge text-warning me-2"></i>Pull Request</h6>
+                                <ul>
+                                    <li>Tests completos</li>
+                                    <li>Coverage report</li>
+                                    <li>Security scan</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4">
+                                <h6><i class="fas fa-rocket text-success me-2"></i>Deploy</h6>
+                                <ul>
+                                    <li>E2E tests</li>
+                                    <li>Performance tests</li>
+                                    <li>Smoke tests</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4>GitHub Actions Ejemplo</h4>
+                    <div class="code-block">
+<pre><code class="language-yaml"># .github/workflows/test.yml
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  frontend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - run: cd frontend && npm ci
+      - run: cd frontend && npm run test:coverage
+      
+  backend-tests:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+    steps:
+      - uses: actions/checkout@v3
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+      - run: cd backend && composer install
+      - run: cd backend && ./vendor/bin/phpunit</code></pre>
+                    </div>
+                </section>
+
+                <div class="text-muted mt-5">
+                    <small><i class="fas fa-calendar-alt me-2"></i>Última actualización: 18 de agosto de 2025</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script>
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

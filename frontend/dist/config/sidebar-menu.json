@@ -1,0 +1,56 @@
+{
+  "menu": [
+    {
+      "title": "Principal",
+      "items": [
+        {
+          "name": "Biblioteca",
+          "path": "/library",
+          "icon": "fas fa-bookmark",
+          "description": "Tu biblioteca personal"
+        },
+        {
+          "name": "Estadísticas",
+          "path": "/dashboard",
+          "icon": "fas fa-chart-bar",
+          "description": "Estadísticas de tu biblioteca"
+        },
+        {
+          "name": "Mi Perfil",
+          "path": "/profile",
+          "icon": "fas fa-user-cog",
+          "description": "Configuración de tu perfil"
+        }
+      ]
+    },
+    {
+      "title": "Buscar",
+      "items": [
+        {
+          "name": "Buscar Libros",
+          "path": "/books",
+          "icon": "fas fa-book",
+          "description": "Buscar nuevos libros"
+        },
+        {
+          "name": "Buscar Películas/Series",
+          "path": "/movies",
+          "icon": "fas fa-film",
+          "description": "Buscar nuevas películas"
+        },
+        {
+          "name": "Buscar Videojuegos",
+          "path": "/games",
+          "icon": "fas fa-gamepad",
+          "description": "Buscar nuevos videojuegos"
+        },
+        {
+          "name": "Buscar Álbumes",
+          "path": "/albums",
+          "icon": "fas fa-music",
+          "description": "Buscar álbumes en Spotify"
+        }
+      ]
+    }
+  ]
+}

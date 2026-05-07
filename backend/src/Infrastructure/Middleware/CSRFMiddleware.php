@@ -18,6 +18,15 @@ class CSRFMiddleware implements MiddlewareInterface
 
     public function handle(array $request, callable $next): array
     {
+        // JWT-authenticated requests (mobile/Capacitor) don't use session cookies,
+        // so CSRF protection via session token is not applicable — skip it.
+        if (($request['auth_method'] ?? '') === 'jwt') {
+            $this->logger->debug('CSRF skipped for JWT auth', [
+                'action' => $request['action'] ?? 'unknown',
+            ]);
+            return $next($request);
+        }
+
         // Session is already started in Application::bootstrap()
         // Check if CSRF token exists in request
         $csrfToken = $request['csrf_token'] ?? null;

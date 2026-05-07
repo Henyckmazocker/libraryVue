@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movies API - Mi Biblioteca Personal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css" rel="stylesheet">
+    <style>
+        .help-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+        }
+        .help-section {
+            margin: 2rem 0;
+        }
+        .feature-card {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: transform 0.2s;
+        }
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .code-block {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+        .warning-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .info-box {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .success-box {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .breadcrumb {
+            background-color: transparent;
+            margin-bottom: 1rem;
+        }
+        pre {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 1rem;
+            overflow-x: auto;
+        }
+        .toc-sticky {
+            position: sticky;
+            top: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="help-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="fas fa-film me-3"></i>Movies API</h1>
+                    <p class="lead mb-0">Endpoints para gestión de películas</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button onclick="window.history.back()" class="btn btn-light me-2">
+                        <i class="fas fa-arrow-left me-2"></i>Volver
+                    </button>
+                    <button onclick="window.close()" class="btn btn-light">
+                        <i class="fas fa-times me-2"></i>Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container my-5">
+        
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="../../frontend/public/help.html">Documentación</a></li>
+                <li class="breadcrumb-item"><a href="../README.html">Docs</a></li><li class="breadcrumb-item"><a href="../api/README.html">Api</a></li><li class="breadcrumb-item active" aria-current="page">Movies API</li>
+            </ol>
+        </nav>
+
+        <div class="row">
+            
+        <div class="col-md-3">
+            <div class="card toc-sticky">
+                <div class="card-header">
+                    <h5><i class="fas fa-list me-2"></i>Navegación</h5>
+                </div>
+                <div class="card-body">
+                    <nav class="nav flex-column">
+                        <a class="nav-link" href="../README.html">📚 Documentación Principal</a>
+                        <a class="nav-link" href="../frontend/README.html">🖥️ Frontend</a>
+                        <a class="nav-link" href="../api/README.html">🔌 API</a>
+                        <a class="nav-link" href="../architecture/backend.html">🏗️ Arquitectura</a>
+                    </nav>
+                </div>
+            </div>
+        </div>
+            
+            <div class="col-md-9">
+                <h2>Movies API</h2>
+
+<h3>Overview</h3>
+
+Endpoints para la gestión completa de películas en la biblioteca personal.
+
+<h3>Endpoints</h3>
+
+<h4>Get All Movies</h4>
+
+<strong>GET</strong> <code>/api/movies</code>
+
+Obtiene lista paginada de todas las películas.
+
+#### Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| <code>page</code> | integer | 1 | Número de página |
+| <code>limit</code> | integer | 20 | Elementos por página |
+| <code>search</code> | string | - | Búsqueda por título o director |
+| <code>genre</code> | string | - | Filtrar por género |
+| <code>year</code> | integer | - | Filtrar por año |
+| <code>status</code> | string | - | Filtrar por estado (watched, to-watch) |
+
+#### Response Structure
+
+``<code>json
+{
+  "success": true,
+  "data": {
+    "movies": [
+      {
+        "id": 1,
+        "title": "Inception",
+        "director": "Christopher Nolan",
+        "year": 2010,
+        "genre": "Science Fiction",
+        "duration": 148,
+        "rating": 5,
+        "status": "watched",
+        "poster": "https://example.com/posters/inception.jpg",
+        "synopsis": "A thief who steals corporate secrets...",
+        "date_watched": "2025-01-15",
+        "notes": "Mind-bending masterpiece",
+        "created_at": "2025-01-10T10:30:00Z",
+        "updated_at": "2025-01-16T15:45:00Z"
+      }
+    ],
+    "pagination": {
+      "current_page": 1,
+      "per_page": 20,
+      "total": 89,
+      "total_pages": 5,
+      "has_next_page": true,
+      "has_prev_page": false
+    }
+  }
+}
+</code>`<code>
+
+<h4>Get Movie by ID</h4>
+
+<strong>GET</strong> </code>/api/movies/{id}<code>
+
+Obtiene una película específica por su ID.
+
+#### Response Example
+
+</code>`<code>json
+{
+  "success": true,
+  "data": {
+    "movie": {
+      "id": 1,
+      "title": "Inception",
+      "director": "Christopher Nolan",
+      "year": 2010,
+      "genre": "Science Fiction",
+      "duration": 148,
+      "rating": 5,
+      "status": "watched",
+      "poster": "https://example.com/posters/inception.jpg",
+      "synopsis": "A thief who steals corporate secrets through dream-sharing technology...",
+      "date_watched": "2025-01-15",
+      "notes": "Mind-bending masterpiece with incredible visuals",
+      "cast": ["Leonardo DiCaprio", "Marion Cotillard", "Tom Hardy"],
+      "created_at": "2025-01-10T10:30:00Z",
+      "updated_at": "2025-01-16T15:45:00Z"
+    }
+  }
+}
+</code>`<code>
+
+<h4>Create Movie</h4>
+
+<strong>POST</strong> </code>/api/movies<code>
+
+Añade una nueva película a la biblioteca.
+
+#### Request Body Example
+
+</code>`<code>json
+{
+  "title": "The Matrix",
+  "director": "The Wachowskis",
+  "year": 1999,
+  "genre": "Science Fiction",
+  "duration": 136,
+  "status": "to-watch",
+  "poster": "https://example.com/posters/matrix.jpg",
+  "synopsis": "A computer hacker learns about the true nature of reality...",
+  "cast": ["Keanu Reeves", "Laurence Fishburne", "Carrie-Anne Moss"]
+}
+</code>`<code>
+
+#### Success Response
+
+</code>`<code>json
+{
+  "success": true,
+  "data": {
+    "movie": {
+      "id": 2,
+      "title": "The Matrix",
+      "director": "The Wachowskis",
+      "year": 1999,
+      "genre": "Science Fiction",
+      "duration": 136,
+      "rating": null,
+      "status": "to-watch",
+      "poster": "https://example.com/posters/matrix.jpg",
+      "synopsis": "A computer hacker learns about the true nature of reality...",
+      "date_watched": null,
+      "cast": ["Keanu Reeves", "Laurence Fishburne", "Carrie-Anne Moss"],
+      "created_at": "2025-08-18T10:30:00Z",
+      "updated_at": "2025-08-18T10:30:00Z"
+    }
+  },
+  "message": "Película creada exitosamente"
+}
+</code>`<code>
+
+<h4>Update Movie</h4>
+
+<strong>PUT</strong> </code>/api/movies/{id}<code>
+
+Actualiza una película existente.
+
+#### Request Body for Status Update
+
+</code>`<code>json
+{
+  "status": "watched",
+  "rating": 5,
+  "date_watched": "2025-08-18",
+  "notes": "Revolutionary movie that changed cinema forever"
+}
+</code>`<code>
+
+#### Update Response
+
+</code>`<code>json
+{
+  "success": true,
+  "data": {
+    "movie": {
+      "id": 2,
+      "title": "The Matrix",
+      "status": "watched",
+      "rating": 5,
+      "date_watched": "2025-08-18",
+      "notes": "Revolutionary movie that changed cinema forever",
+      "updated_at": "2025-08-18T14:20:00Z"
+    }
+  },
+  "message": "Película actualizada exitosamente"
+}
+</code>`<code>
+
+<h4>Delete Movie</h4>
+
+<strong>DELETE</strong> </code>/api/movies/{id}<code>
+
+Elimina una película de la biblioteca.
+
+#### Delete Response
+
+</code>`<code>json
+{
+  "success": true,
+  "message": "Película eliminada exitosamente"
+}
+</code>`<code>
+
+<h4>Search Movies</h4>
+
+<strong>GET</strong> </code>/api/movies/search<code>
+
+Búsqueda avanzada de películas.
+
+#### Search Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| </code>q<code> | string | Término de búsqueda general |
+| </code>title<code> | string | Búsqueda específica por título |
+| </code>director<code> | string | Búsqueda específica por director |
+| </code>actor<code> | string | Búsqueda por actor en el cast |
+| </code>genre<code> | string | Filtrar por género |
+| </code>year_from<code> | integer | Año desde |
+| </code>year_to<code> | integer | Año hasta |
+| </code>duration_min<code> | integer | Duración mínima en minutos |
+| </code>duration_max<code> | integer | Duración máxima en minutos |
+| </code>rating_min<code> | integer | Rating mínimo (1-5) |
+| </code>status<code> | string | Estado de la película |
+
+<h4>Get Movie Statistics</h4>
+
+<strong>GET</strong> </code>/api/movies/stats<code>
+
+Obtiene estadísticas de la colección de películas.
+
+#### Statistics Response
+
+</code>`<code>json
+{
+  "success": true,
+  "data": {
+    "stats": {
+      "total_movies": 89,
+      "movies_watched": 56,
+      "movies_to_watch": 33,
+      "total_runtime": 8940,
+      "average_rating": 4.1,
+      "average_duration": 118,
+      "genres": {
+        "Science Fiction": 18,
+        "Action": 15,
+        "Drama": 12,
+        "Comedy": 10,
+        "Thriller": 8,
+        "Horror": 6
+      },
+      "decades": {
+        "2020s": 15,
+        "2010s": 25,
+        "2000s": 20,
+        "1990s": 15,
+        "1980s": 8,
+        "1970s": 4,
+        "Earlier": 2
+      },
+      "watching_stats": {
+        "movies_this_year": 18,
+        "hours_watched_this_year": 36,
+        "favorite_genre": "Science Fiction"
+      }
+    }
+  }
+}
+</code>`<code>
+
+<h3>Movie Status Values</h3>
+
+| Status | Description |
+|--------|-------------|
+| </code>to-watch<code> | Película pendiente de ver |
+| </code>watched<code> | Película ya vista |
+| </code>abandoned<code> | Película abandonada/no terminada |
+
+<h3>Genre Categories</h3>
+
+Géneros principales soportados:<ul><li>Action</li><li>Adventure  </li><li>Animation</li><li>Comedy</li><li>Crime</li><li>Documentary</li><li>Drama</li><li>Fantasy</li><li>Horror</li><li>Music</li><li>Mystery</li><li>Romance</li><li>Science Fiction</li><li>Thriller</li><li>War</li><li>Western</li>
+
+<h3>Validation Rules</h3>
+
+<h4>Required Fields</h4><li></code>title<code>: Mínimo 1 carácter, máximo 255</li><li></code>director<code>: Mínimo 1 carácter, máximo 255</li><li></code>year<code>: Entre 1888 y año actual + 5</li>
+
+<h4>Optional Fields</h4><li></code>duration<code>: Número entero positivo (minutos)</li><li></code>rating<code>: Entre 1 y 5</li><li></code>genre<code>: Uno de los géneros válidos</li><li></code>status<code>: Uno de los estados válidos</li><li></code>cast<code>: Array de strings con nombres de actores</li></ul>
+
+<h3>Error Codes</h3>
+
+| Code | Description |
+|------|-------------|
+| </code>MOVIE_NOT_FOUND<code> | Película no encontrada |
+| </code>DUPLICATE_MOVIE<code> | Película ya existe (mismo título y año) |
+| </code>INVALID_YEAR<code> | Año de película inválido |
+| </code>INVALID_DURATION<code> | Duración inválida |
+| </code>INVALID_RATING<code> | Rating debe estar entre 1 y 5 |
+| </code>INVALID_STATUS<code> | Estado de película inválido |
+| </code>INVALID_GENRE<code> | Género no válido |
+| </code>VALIDATION_ERROR` | Error en validación de campos |
+
+---
+
+<em>Última actualización: 18 de Agosto de 2025</em>
+</p>
+                
+                <div class="text-muted mt-5">
+                    <small><i class="fas fa-calendar-alt me-2"></i>Última actualización: 18 de agosto de 2025</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script>
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

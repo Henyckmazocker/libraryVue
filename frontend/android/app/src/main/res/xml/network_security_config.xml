@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Permite HTTP cleartext solo hacia 10.0.2.2 (localhost del host en el emulador de Android).
+  En producción se usará HTTPS y este dominio no aplica.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>

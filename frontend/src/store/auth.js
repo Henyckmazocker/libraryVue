@@ -150,6 +150,10 @@ export const useAuthStore = defineStore('auth', {
         'add_album', 'delete_album', 'update_album_rating', 'update_album_user_statuses',
         'edit_user_album', 'create_user_album_tag', 'update_album_tags',
         'add_album_note', 'update_album_note', 'delete_album_note',
+        // Videos
+        'add_video', 'delete_video', 'update_video_rating', 'update_video_user_statuses',
+        'edit_user_video', 'create_user_video_tag', 'update_video_tags',
+        'add_video_note', 'update_video_note', 'delete_video_note',
         // Perfil de usuario
         'update_user_profile',
         // Sesiones de lectura

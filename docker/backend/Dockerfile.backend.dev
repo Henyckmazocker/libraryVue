@@ -26,8 +26,16 @@ RUN a2enmod rewrite headers
 RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
 RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/apache2.conf
 
-# Create backend directory and set permissions for development (less strict)
-RUN mkdir -p /var/www/html && chown -R www-data:www-data /var/www/html
+# Create backend directory and cache subdirectories, set permissions for development (less strict)
+RUN mkdir -p /var/www/html \
+    && mkdir -p /var/www/html/storage/cache/googlebooks \
+    && mkdir -p /var/www/html/storage/cache/openlibrary \
+    && mkdir -p /var/www/html/storage/cache/spotify \
+    && mkdir -p /var/www/html/storage/cache/lastfm \
+    && mkdir -p /var/www/html/storage/cache/youtube \
+    && mkdir -p /var/www/html/storage/logs \
+    && mkdir -p /var/www/html/storage/sessions \
+    && chown -R www-data:www-data /var/www/html
 
 # Expose port 80 for Apache
 EXPOSE 80

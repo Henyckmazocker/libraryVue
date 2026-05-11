@@ -22,6 +22,7 @@
           :movie="type === 'movies' ? item : undefined"
           :game="type === 'games' ? item : undefined"
           :album="type === 'albums' ? item : undefined"
+          :video="type === 'videos' ? item : undefined"
           @click="handleItemClick(item)"
         />
       </HorizontalCarousel>
@@ -55,7 +56,7 @@ const props = defineProps({
   type: {
     type: String,
     required: true,
-    validator: (value) => ['books', 'movies', 'games', 'albums'].includes(value)
+    validator: (value) => ['books', 'movies', 'games', 'albums', 'videos'].includes(value)
   },
   
   itemComponent: {
@@ -92,6 +93,8 @@ const getItemKey = (item) => {
     return item.igdbId || item.gameId || item.id || item.title;
   } else if (props.type === 'albums') {
     return item.spotify_id || item.spotifyId || item.id || item.title;
+  } else if (props.type === 'videos') {
+    return item.youtube_id || item.youtubeId || item.id || item.title;
   } else {
     // Para películas, el campo es 'isbn' (que es el imdb_id)
     return item.isbn || item.imdb_id || item.title;

@@ -146,6 +146,22 @@
             </div>
           </section>
 
+          <!-- Sección: detalles específicos del vídeo -->
+          <section v-if="itemType === 'video'" class="edit-modal__section edit-modal__section--card">
+            <h3 class="edit-modal__section-title">Detalles del vídeo</h3>
+
+            <div class="edit-modal__field">
+              <label for="video-personal-notes">Notas personales</label>
+              <textarea
+                id="video-personal-notes"
+                v-model="localPersonalNotes"
+                rows="3"
+                placeholder="Tus notas sobre este vídeo..."
+                class="edit-modal__textarea"
+              ></textarea>
+            </div>
+          </section>
+
           <!-- Sección: detalles específicos del álbum -->
           <section v-if="itemType === 'album'" class="edit-modal__section edit-modal__section--card">
             <h3 class="edit-modal__section-title">Detalles del álbum</h3>
@@ -228,6 +244,11 @@
               v-if="itemType === 'album' && item?.id"
               :album-id="item.id"
             />
+
+            <VideoNotes
+              v-if="itemType === 'video' && (item?.youtube_id || item?.youtubeId)"
+              :youtube-id="item.youtube_id || item.youtubeId"
+            />
           </section>
         </div>
 
@@ -265,6 +286,7 @@ import ReadingStatusWidget from '@/components/Books/ReadingStatusWidget.vue'
 import MovieNotes from '@/components/Movies/MovieNotes.vue'
 import GameNotes from '@/components/Games/GameNotes.vue'
 import AlbumNotes from '@/components/Albums/AlbumNotes.vue'
+import VideoNotes from '@/components/Videos/VideoNotes.vue'
 import { useBooks } from '@/composables/useBooks'
 import { useMovies } from '@/composables/useMovies'
 import { useGames } from '@/composables/useGames'
@@ -281,7 +303,7 @@ const props = defineProps({
   itemType: {
     type: String,
     required: true,
-    validator: (value) => ['book', 'movie', 'game', 'album'].includes(value)
+    validator: (value) => ['book', 'movie', 'game', 'album', 'video'].includes(value)
   },
   allowedStatuses: {
     type: Array,
@@ -337,7 +359,7 @@ const progressBarRef = ref(null)
 // Reset all local state when the item prop changes (handles modal reuse)
 const resetLocalState = (item) => {
   localRating.value = item?.user_rating ?? null
-  localStatuses.value = item?.userStatuses ? [...item.userStatuses] : []
+  localStatuses.value = (item?.userStatuses || []).map(s => (typeof s === 'object' && s !== null) ? s.name : s)
   localTags.value = item?.tags ? [...item.tags] : []
   localCurrentPage.value = item?.currentPage ?? 0
   localTotalPages.value = item?.pages || item?.totalPages || 0
@@ -483,6 +505,8 @@ const handleSave = async () => {
       itemId = props.item.id || props.item.rawgId
     } else if (props.itemType === 'album') {
       itemId = props.item.id
+    } else if (props.itemType === 'video') {
+      itemId = props.item.youtube_id || props.item.youtubeId
     }
     
     // Get current page from ReadingProgressBar component if it exists
@@ -520,6 +544,13 @@ const handleSave = async () => {
       if (localDateFinished.value) {
         data.dateFinished = localDateFinished.value
       }
+      if (localPersonalNotes.value) {
+        data.personalNotes = localPersonalNotes.value
+      }
+    }
+
+    // Add video-specific fields
+    if (props.itemType === 'video') {
       if (localPersonalNotes.value) {
         data.personalNotes = localPersonalNotes.value
       }
@@ -564,7 +595,7 @@ const handleSave = async () => {
       }
 
       // Show success message
-      const itemTypeName = props.itemType === 'book' ? 'Libro' : props.itemType === 'movie' ? 'Película' : props.itemType === 'album' ? 'Álbum' : 'Juego'
+      const itemTypeName = props.itemType === 'book' ? 'Libro' : props.itemType === 'movie' ? 'Película' : props.itemType === 'album' ? 'Álbum' : props.itemType === 'video' ? 'Vídeo' : 'Juego'
       if (notifications) {
         notifications.showSuccess(`${itemTypeName} actualizado correctamente`)
       }
@@ -603,6 +634,9 @@ const handleSave = async () => {
         updatedItem.dateStarted = localDateStarted.value
         updatedItem.dateFinished = localDateFinished.value
         updatedItem.personalNotes = localPersonalNotes.value
+      } else if (props.itemType === 'video') {
+        updatedItem.youtube_id = props.item.youtube_id || props.item.youtubeId
+        updatedItem.personalNotes = localPersonalNotes.value
       }
 
       // Update ownership format for all types
@@ -617,14 +651,14 @@ const handleSave = async () => {
       emit('close')
     } else {
       // Show error message
-      const itemTypeName = props.itemType === 'book' ? 'el libro' : props.itemType === 'movie' ? 'la película' : props.itemType === 'album' ? 'el álbum' : 'el juego'
+      const itemTypeName = props.itemType === 'book' ? 'el libro' : props.itemType === 'movie' ? 'la película' : props.itemType === 'album' ? 'el álbum' : props.itemType === 'video' ? 'el vídeo' : 'el juego'
       if (notifications) {
         notifications.showError(result.message || `Error al guardar ${itemTypeName}`)
       }
     }
   } catch (error) {
     Logger.error('Error saving item:', error)
-    const itemTypeName = props.itemType === 'book' ? 'el libro' : props.itemType === 'movie' ? 'la película' : props.itemType === 'album' ? 'el álbum' : 'el juego'
+    const itemTypeName = props.itemType === 'book' ? 'el libro' : props.itemType === 'movie' ? 'la película' : props.itemType === 'album' ? 'el álbum' : props.itemType === 'video' ? 'el vídeo' : 'el juego'
     if (notifications) {
       notifications.showError(`Error al guardar ${itemTypeName}`)
     }
@@ -647,6 +681,7 @@ const hasNotesSection = computed(() => {
   }
   if (props.itemType === 'movie') return Boolean(props.item?.isbn)
   if (props.itemType === 'game' || props.itemType === 'album') return Boolean(props.item?.id)
+  if (props.itemType === 'video') return Boolean(props.item?.youtube_id || props.item?.youtubeId)
   return false
 })
 </script>

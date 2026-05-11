@@ -66,6 +66,11 @@ return function (): ContainerInterface {
         \App\Domain\Repository\Album\UserAlbumRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Album\MySqlUserAlbumRepository::class),
         \App\Domain\Repository\Album\AlbumTagRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Album\MySqlAlbumTagRepository::class),
         \App\Domain\Repository\Album\AlbumNoteRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Album\MySqlAlbumNoteRepository::class),
+        // Video repositories
+        \App\Domain\Repository\Video\VideoRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Video\MySqlVideoRepository::class),
+        \App\Domain\Repository\Video\UserVideoRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Video\MySqlUserVideoRepository::class),
+        \App\Domain\Repository\Video\VideoTagRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Video\MySqlVideoTagRepository::class),
+        \App\Domain\Repository\Video\VideoNoteRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Video\MySqlVideoNoteRepository::class),
         // Owned-format lookup repository (shared across all entity types)
         \App\Domain\Repository\OwnedFormatRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Common\MySqlOwnedFormatRepository::class),
         \App\Domain\Repository\Book\WorkRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Book\MySqlWorkRepository::class),
@@ -110,6 +115,18 @@ return function (): ContainerInterface {
         \App\Infrastructure\Persistence\Movie\MySqlMovieNoteRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Movie\MySqlSeriesSeasonRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Book\MySqlEditionNoteRepository::class => DI\autowire(),
+        // Video persistence
+        \App\Infrastructure\Persistence\Video\MySqlVideoRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Video\MySqlUserVideoRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Video\MySqlVideoTagRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Video\MySqlVideoNoteRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Video\Mappers\VideoDataMapper::class => DI\autowire(),
+        // Video persistence
+        \App\Infrastructure\Persistence\Video\MySqlVideoRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Video\MySqlUserVideoRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Video\MySqlVideoTagRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Video\MySqlVideoNoteRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Video\Mappers\VideoDataMapper::class => DI\autowire(),
         
         // ===========================
         // DOMAIN SERVICES
@@ -140,6 +157,10 @@ return function (): ContainerInterface {
             ->constructorParameter('logger', DI\get(LoggerInterface::class)),
 
         \App\Domain\Services\LastFmService::class => DI\autowire()
+            ->constructorParameter('cache', DI\get(\App\Infrastructure\Cache\CacheService::class))
+            ->constructorParameter('logger', DI\get(LoggerInterface::class)),
+
+        \App\Domain\Services\YouTubeService::class => DI\autowire()
             ->constructorParameter('cache', DI\get(\App\Infrastructure\Cache\CacheService::class))
             ->constructorParameter('logger', DI\get(LoggerInterface::class)),
             
@@ -208,6 +229,23 @@ return function (): ContainerInterface {
         \App\Domain\UseCases\Albums\EditUserAlbumUseCase::class => DI\autowire(),
         \App\Domain\UseCases\Albums\GetTrendingAlbumsUseCase::class => DI\autowire(),
         \App\Domain\UseCases\Albums\GetListeningStatsUseCase::class => DI\autowire(),
+
+        // ===========================
+        // USE CASES - Videos
+        // ===========================
+
+        \App\Domain\UseCases\Videos\AddVideoUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Videos\DeleteVideoUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Videos\EditUserVideoUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Videos\GetVideosUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Videos\GetVideoAllowedStatusesUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Videos\GetTrendingVideosUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Videos\UpdateVideoRatingUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Videos\UpdateVideoUserStatusesUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Videos\AddVideoNoteUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Videos\GetVideoNotesUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Videos\UpdateVideoNoteUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Videos\DeleteVideoNoteUseCase::class => DI\autowire(),
         
         // ===========================
         // USE CASES - Library
@@ -234,6 +272,7 @@ return function (): ContainerInterface {
         \App\Controllers\MovieController::class => DI\autowire(),
         \App\Controllers\GameController::class => DI\autowire(),
         \App\Controllers\AlbumController::class => DI\autowire(),
+        \App\Controllers\VideoController::class => DI\autowire(),
         \App\Controllers\LibraryController::class => DI\autowire(),
         \App\Controllers\LibraryXController::class => DI\autowire(),
         \App\Controllers\StatsController::class => DI\autowire(),

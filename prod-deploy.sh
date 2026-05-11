@@ -124,19 +124,20 @@ ask_if_empty() {
 # ---------------------------------------------------------------------------
 setup_prod_env() {
   local google_client_id spotify_client_id spotify_client_secret
-  local lastfm_api_key omdb_api_key mysql_root_password mysql_password
+  local lastfm_api_key youtube_api_key omdb_api_key mysql_root_password mysql_password
 
   google_client_id=$(env_get      "$ENV_FILE" GOOGLE_CLIENT_ID)
   spotify_client_id=$(env_get     "$ENV_FILE" SPOTIFY_CLIENT_ID)
   spotify_client_secret=$(env_get "$ENV_FILE" SPOTIFY_CLIENT_SECRET)
   lastfm_api_key=$(env_get        "$ENV_FILE" LASTFM_API_KEY)
+  youtube_api_key=$(env_get       "$ENV_FILE" YOUTUBE_API_KEY)
   omdb_api_key=$(env_get          "$ENV_FILE" OMDB_API_KEY)
   mysql_root_password=$(env_get   "$ENV_FILE" MYSQL_ROOT_PASSWORD)
   mysql_password=$(env_get        "$ENV_FILE" MYSQL_PASSWORD)
 
   local needs_input=false
   [[ -z "$google_client_id" || -z "$spotify_client_id" || -z "$spotify_client_secret" \
-     || -z "$lastfm_api_key" || -z "$omdb_api_key" \
+     || -z "$lastfm_api_key" || -z "$youtube_api_key" || -z "$omdb_api_key" \
      || -z "$mysql_root_password" || -z "$mysql_password" ]] \
     && needs_input=true
 
@@ -148,6 +149,7 @@ setup_prod_env() {
     spotify_client_id=$(ask_if_empty     "Spotify Client ID"       "$spotify_client_id")
     spotify_client_secret=$(ask_if_empty "Spotify Client Secret"   "$spotify_client_secret" "yes")
     lastfm_api_key=$(ask_if_empty        "Last.fm API Key"         "$lastfm_api_key")
+    youtube_api_key=$(ask_if_empty       "YouTube Data API Key"    "$youtube_api_key")
     omdb_api_key=$(ask_if_empty          "OMDb API Key (películas)" "$omdb_api_key")
 
     echo ""
@@ -174,6 +176,9 @@ SPOTIFY_CLIENT_SECRET=${spotify_client_secret}
 # Last.fm API
 LASTFM_API_KEY=${lastfm_api_key}
 
+# YouTube Data API v3
+YOUTUBE_API_KEY=${youtube_api_key}
+
 # OMDb API (movie search)
 OMDB_API_KEY=${omdb_api_key}
 
@@ -189,29 +194,33 @@ EOF
 # ---------------------------------------------------------------------------
 # Crear backend/.env.docker-production (si no existe)
 # ---------------------------------------------------------------------------
+# Helper: escribe o actualiza una clave en un .env file
+env_set() {
+  local file="$1" key="$2" value="$3"
+  [[ -z "$value" ]] && return
+  if grep -qE "^${key}=" "$file" 2>/dev/null; then
+    sed -i "s|^${key}=.*|${key}=${value}|" "$file"
+  else
+    echo "${key}=${value}" >> "$file"
+  fi
+}
+
 setup_backend_prod_env() {
-  if [[ -f "$BACKEND_ENV_FILE" ]]; then
-    success "backend/.env.docker-production ya existe — sin cambios."
-    return
+  if [[ ! -f "$BACKEND_ENV_FILE" ]]; then
+    info "Creando backend/.env.docker-production desde el ejemplo..."
+    cp "$ROOT_DIR/backend/.env.docker-production.example" "$BACKEND_ENV_FILE"
+    warn "Revisa $BACKEND_ENV_FILE antes de continuar (especialmente CORS_ALLOWED_ORIGINS y SESSION_*)."
   fi
 
-  info "Creando backend/.env.docker-production desde el ejemplo..."
-  cp "$ROOT_DIR/backend/.env.docker-production.example" "$BACKEND_ENV_FILE"
-
-  # Sincronizar contraseñas
-  local mysql_password google_client_id spotify_client_id spotify_client_secret lastfm_api_key
-  mysql_password=$(env_get        "$ENV_FILE" MYSQL_PASSWORD)
-  google_client_id=$(env_get      "$ENV_FILE" GOOGLE_CLIENT_ID)
-  spotify_client_id=$(env_get     "$ENV_FILE" SPOTIFY_CLIENT_ID)
-  spotify_client_secret=$(env_get "$ENV_FILE" SPOTIFY_CLIENT_SECRET)
-  lastfm_api_key=$(env_get        "$ENV_FILE" LASTFM_API_KEY)
-
-  sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${mysql_password}|"             "$BACKEND_ENV_FILE"
-  sed -i "s|^MYSQL_PASSWORD=.*|MYSQL_PASSWORD=${mysql_password}|"       "$BACKEND_ENV_FILE"
-  sed -i "s|^GOOGLE_CLIENT_ID=.*|GOOGLE_CLIENT_ID=${google_client_id}|" "$BACKEND_ENV_FILE"
-  sed -i "s|^SPOTIFY_CLIENT_ID=.*|SPOTIFY_CLIENT_ID=${spotify_client_id}|"         "$BACKEND_ENV_FILE"
-  sed -i "s|^SPOTIFY_CLIENT_SECRET=.*|SPOTIFY_CLIENT_SECRET=${spotify_client_secret}|" "$BACKEND_ENV_FILE"
-  sed -i "s|^LASTFM_API_KEY=.*|LASTFM_API_KEY=${lastfm_api_key}|"       "$BACKEND_ENV_FILE"
+  # Sincronizar TODAS las claves API desde .env raíz (en creación y actualización)
+  env_set "$BACKEND_ENV_FILE" DB_PASSWORD           "$(env_get "$ENV_FILE" MYSQL_PASSWORD)"
+  env_set "$BACKEND_ENV_FILE" MYSQL_PASSWORD        "$(env_get "$ENV_FILE" MYSQL_PASSWORD)"
+  env_set "$BACKEND_ENV_FILE" GOOGLE_CLIENT_ID      "$(env_get "$ENV_FILE" GOOGLE_CLIENT_ID)"
+  env_set "$BACKEND_ENV_FILE" GOOGLE_BOOKS_API_KEY  "$(env_get "$ENV_FILE" GOOGLE_BOOKS_API_KEY)"
+  env_set "$BACKEND_ENV_FILE" SPOTIFY_CLIENT_ID     "$(env_get "$ENV_FILE" SPOTIFY_CLIENT_ID)"
+  env_set "$BACKEND_ENV_FILE" SPOTIFY_CLIENT_SECRET "$(env_get "$ENV_FILE" SPOTIFY_CLIENT_SECRET)"
+  env_set "$BACKEND_ENV_FILE" LASTFM_API_KEY        "$(env_get "$ENV_FILE" LASTFM_API_KEY)"
+  env_set "$BACKEND_ENV_FILE" YOUTUBE_API_KEY       "$(env_get "$ENV_FILE" YOUTUBE_API_KEY)"
 
   # Generar JWT_SECRET seguro automáticamente si no está configurado
   local current_jwt
@@ -241,8 +250,13 @@ deploy_services() {
     info "Rebuilding imágenes sin caché..."
     compose_cmd build --no-cache
   else
-    info "Construyendo imágenes (solo si hay cambios)..."
-    compose_cmd build
+    if docker image inspect libraryvue_prod-backend:latest &>/dev/null \
+       && docker image inspect libraryvue_prod-frontend:latest &>/dev/null; then
+      info "Imágenes Docker ya existen — saltando build. Usa --no-cache para reconstruir."
+    else
+      info "Construyendo imágenes Docker..."
+      compose_cmd build
+    fi
   fi
 
   info "Arrancando servicios de producción..."

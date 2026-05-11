@@ -59,6 +59,14 @@ const routes = [
     redirect: '/dashboard?tab=games'
   },
   {
+    path: '/dashboard/albums',
+    redirect: '/dashboard?tab=albums'
+  },
+  {
+    path: '/dashboard/videos',
+    redirect: '/dashboard?tab=videos'
+  },
+  {
     path: '/profile',
     name: 'UserProfile',
     component: UserProfileView,
@@ -96,6 +104,19 @@ const routes = [
     path: '/albums/:albumId',
     name: 'AlbumDetail',
     component: AlbumDetailView,
+    props: true,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/videos',
+    name: 'Videos',
+    component: () => import('../components/Videos/VideoSearch.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/videos/:youtubeId',
+    name: 'VideoDetail',
+    component: () => import('../views/VideoDetailView.vue'),
     props: true,
     meta: { requiresAuth: true }
   },

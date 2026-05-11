@@ -81,6 +81,18 @@ class StatsService {
     }
   }
 
+  async getVideoStats() {
+    try {
+      Logger.info('[StatsService] Fetching video statistics...');
+      const data = await this._apiCall('get_video_stats');
+      Logger.info('[StatsService] Video statistics fetched successfully');
+      return data;
+    } catch (error) {
+      Logger.error('[StatsService] Error fetching video statistics:', error);
+      throw error;
+    }
+  }
+
   /**
    * Transformar datos de géneros para Chart.js
    * @param {Object} genreStats - Estadísticas de géneros

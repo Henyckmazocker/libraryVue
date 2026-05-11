@@ -757,6 +757,9 @@ npx cap open android   # → Run ▶ in Android Studio
 13. **Master mixin selector vs accent decoupling** - Family master mixins like `detail-view-page($entity, $selector)` need TWO parameters when an entity inherits another's color but keeps its own template selectors. `SeriesDetailView` uses `('movie', 'series')` to render `.series-header { border-top: 3px solid var(--color-card-movie-accent); }`. Coupling them causes the inheriting entity (Series) to lose ALL prefixed selector styles silently — visible only as missing card containers / borders / fade-in animations in the rendered page.
 14. **Dead CSS in `<style>` blocks** - When refactoring families, search for class selectors that appear in `<style>` but NOT in the `<template>`. Common in older components (e.g. `GameSearch.vue` had `.trending-section`, `.trending-title` defined but never rendered). Always grep the template before preserving a style rule.
 15. **PrimeVue vars vs project tokens** - Older components use PrimeVue Lara vars (`--surface-card`, `--text-color`, `--primary-color`, `--text-color-secondary`). Refactor these to project tokens (`--color-background-mute`, `--color-text`, `--color-primary`, `--color-text-secondary`). PrimeVue components themselves keep their vars; only your custom selectors should use project tokens.
+16. **Dual registration required for new backend actions** - Adding a route to `config/routes.php` is **not enough**. Every action also needs an entry in the `match($request['action'])` inside `ActionRouter::executeController()`. Missing it causes `500 "Controller method not mapped for action: xyz"`. The `routes.php` entry controls middleware; the `ActionRouter` match controls the actual method dispatch.
+17. **MySQL DATETIME rejects ISO 8601** - DB `DATETIME` columns require `Y-m-d H:i:s` format. When persisting dates received from external APIs (e.g. YouTube `publishedAt: "2026-04-12T13:51:06Z"`), convert in `toPersistence()`: `(new \DateTime($value))->format('Y-m-d H:i:s')`.
+18. **`CacheService::set` parameter order** - Signature is `set(string $key, mixed $value, int $ttl, string $namespace)`. TTL is the **3rd** parameter, namespace is the **4th**. Reversing them causes the data to be cached in the wrong namespace with an integer key.
 
 
 ## Data Flow & Debugging Guide
@@ -986,6 +989,8 @@ require '/var/www/html/bootstrap.php';
     'BookController' => App\Controllers\BookController::class,
     'MovieController' => App\Controllers\MovieController::class,
     'GameController' => App\Controllers\GameController::class,
+    'AlbumController' => App\Controllers\AlbumController::class,
+    'VideoController' => App\Controllers\VideoController::class,
     'AuthController' => App\Controllers\AuthController::class,
     'LibraryController' => App\Controllers\LibraryController::class,
     'LibraryXController' => App\Controllers\LibraryXController::class,
@@ -995,7 +1000,7 @@ foreach (\$controllers as \$name => \$class) {
     try { \$container->get(\$class); echo \$name . ': OK' . PHP_EOL; }
     catch (\Throwable \$e) { echo \$name . ': FAIL - ' . \$e->getMessage() . PHP_EOL; }
 }
-" 2>&1 | grep -E "^(Book|Movie|Game|Auth|Library|Stats)"
+" 2>&1 | grep -E "^(Book|Movie|Game|Album|Video|Auth|Library|Stats)"
 ```
 
 **Find UseCase classes missing abstract methods**:

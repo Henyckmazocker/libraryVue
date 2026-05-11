@@ -8,6 +8,7 @@ use App\Domain\Repository\Book\WorkRepositoryInterface;
 use App\Domain\Repository\Movie\UserMovieRepositoryInterface;
 use App\Domain\Repository\Game\UserGameRepositoryInterface;
 use App\Domain\Repository\Album\UserAlbumRepositoryInterface;
+use App\Domain\Repository\Video\UserVideoRepositoryInterface;
 use App\Domain\Repository\Book\ReadingProgressRepositoryInterface;
 use App\Infrastructure\Middleware\AuthMiddleware;
 
@@ -19,6 +20,7 @@ class StatsController extends BaseController implements StatsControllerInterface
     private UserMovieRepositoryInterface $userMovieRepository;
     private UserGameRepositoryInterface $userGameRepository;
     private UserAlbumRepositoryInterface $userAlbumRepository;
+    private UserVideoRepositoryInterface $userVideoRepository;
     private ReadingProgressRepositoryInterface $readingProgressRepository;
     private AuthMiddleware $authMiddleware;
 
@@ -29,6 +31,7 @@ class StatsController extends BaseController implements StatsControllerInterface
         UserMovieRepositoryInterface $userMovieRepository,
         UserGameRepositoryInterface $userGameRepository,
         UserAlbumRepositoryInterface $userAlbumRepository,
+        UserVideoRepositoryInterface $userVideoRepository,
         ReadingProgressRepositoryInterface $readingProgressRepository,
         AuthMiddleware $authMiddleware
     ) {
@@ -38,6 +41,7 @@ class StatsController extends BaseController implements StatsControllerInterface
         $this->userMovieRepository = $userMovieRepository;
         $this->userGameRepository = $userGameRepository;
         $this->userAlbumRepository = $userAlbumRepository;
+        $this->userVideoRepository = $userVideoRepository;
         $this->readingProgressRepository = $readingProgressRepository;
         $this->authMiddleware = $authMiddleware;
     }
@@ -666,6 +670,156 @@ class StatsController extends BaseController implements StatsControllerInterface
             'totalListens'      => $totalListens,
             'albumsWithListens' => $albumsWithListens,
             'averageListens'    => $albumsWithListens > 0 ? round($totalListens / $albumsWithListens, 1) : 0,
+        ];
+    }
+
+    // ============================================================================
+    // VIDEO STATS
+    // ============================================================================
+
+    public function getVideoStats(int $userId): array
+    {
+        try {
+            $videos = $this->userVideoRepository->findByUser($userId);
+
+            $stats = [
+                'totalVideos'   => count($videos),
+                'statusStats'   => $this->calculateVideoStatusStats($videos),
+                'ratingStats'   => $this->calculateVideoRatingStats($videos),
+                'categoryStats' => $this->calculateVideoCategoryStats($videos),
+                'monthlyStats'  => $this->calculateVideoMonthlyStats($videos),
+                'channelStats'  => $this->calculateVideoChannelStats($videos),
+                'watchStats'    => $this->calculateVideoWatchStats($videos),
+            ];
+
+            return $this->successResponse('Video statistics retrieved successfully', $stats);
+        } catch (\Exception $e) {
+            error_log('[StatsController] Error getting video stats: ' . $e->getMessage());
+            return $this->errorResponse('Failed to retrieve video statistics: ' . $e->getMessage(), 500);
+        }
+    }
+
+    private function calculateVideoStatusStats(array $videos): array
+    {
+        $statusCounts = [];
+        foreach ($videos as $video) {
+            foreach ($video->getUserStatuses() as $status) {
+                $statusCounts[$status] = ($statusCounts[$status] ?? 0) + 1;
+            }
+        }
+        return $statusCounts;
+    }
+
+    private function calculateVideoRatingStats(array $videos): array
+    {
+        $ratingCounts = [];
+        $totalRated   = 0;
+        $sumRatings   = 0;
+
+        foreach ($videos as $video) {
+            $rating = $video->getUserRating();
+            if ($rating !== null) {
+                $ratingValue = $rating->toFloat();
+                if ($ratingValue > 0) {
+                    $rounded = round($ratingValue * 2) / 2;
+                    if ($rounded >= 1 && $rounded <= 5) {
+                        $key = (string)$rounded;
+                        $ratingCounts[$key] = ($ratingCounts[$key] ?? 0) + 1;
+                        $totalRated++;
+                        $sumRatings += $ratingValue;
+                    }
+                }
+            }
+        }
+
+        ksort($ratingCounts);
+
+        return [
+            'distribution'  => $ratingCounts,
+            'totalRated'    => $totalRated,
+            'averageRating' => $totalRated > 0 ? round($sumRatings / $totalRated, 1) : 0,
+        ];
+    }
+
+    private function calculateVideoCategoryStats(array $videos): array
+    {
+        $categoryCounts = [];
+        $totalWithCategories = 0;
+
+        foreach ($videos as $video) {
+            $categories = $video->getCategories();
+            if (!empty($categories) && is_array($categories)) {
+                $totalWithCategories++;
+                foreach ($categories as $category) {
+                    $name = is_string($category) ? $category : ($category['name'] ?? (string)$category);
+                    if (!empty($name)) {
+                        $categoryCounts[$name] = ($categoryCounts[$name] ?? 0) + 1;
+                    }
+                }
+            }
+        }
+
+        arsort($categoryCounts);
+        $topGenres = array_slice($categoryCounts, 0, 10, true);
+
+        return [
+            'topGenres'             => $topGenres,
+            'totalCategories'       => count($categoryCounts),
+            'videosWithCategories'  => $totalWithCategories,
+            'videosWithoutCategories' => count($videos) - $totalWithCategories,
+        ];
+    }
+
+    private function calculateVideoMonthlyStats(array $videos): array
+    {
+        $monthlyCounts = [];
+        foreach ($videos as $video) {
+            $ts = $video->getAddedTimestamp();
+            if ($ts) {
+                $month = date('Y-m', $ts->toUnixTimestamp());
+                $monthlyCounts[$month] = ($monthlyCounts[$month] ?? 0) + 1;
+            }
+        }
+
+        $monthlyData = [];
+        for ($i = 11; $i >= 0; $i--) {
+            $month = date('Y-m', strtotime("-$i months"));
+            $monthlyData[$month] = $monthlyCounts[$month] ?? 0;
+        }
+
+        return $monthlyData;
+    }
+
+    private function calculateVideoChannelStats(array $videos): array
+    {
+        $channelCounts = [];
+        foreach ($videos as $video) {
+            $channel = $video->getChannelName();
+            if (!empty($channel)) {
+                $channelCounts[$channel] = ($channelCounts[$channel] ?? 0) + 1;
+            }
+        }
+        arsort($channelCounts);
+        return array_slice($channelCounts, 0, 10, true);
+    }
+
+    private function calculateVideoWatchStats(array $videos): array
+    {
+        $totalWatches      = 0;
+        $videosWithWatches = 0;
+
+        foreach ($videos as $video) {
+            $count = $video->getWatchCount();
+            if ($count !== null && $count > 0) {
+                $totalWatches += $count;
+                $videosWithWatches++;
+            }
+        }
+
+        return [
+            'totalWatches'      => $totalWatches,
+            'videosWithWatches' => $videosWithWatches,
+            'averageWatches'    => $videosWithWatches > 0 ? round($totalWatches / $videosWithWatches, 1) : 0,
         ];
     }
 }

@@ -49,6 +49,12 @@
           "path": "/albums",
           "icon": "fas fa-music",
           "description": "Buscar álbumes en Spotify"
+        },
+        {
+          "name": "Buscar Vídeos",
+          "path": "/videos",
+          "icon": "fab fa-youtube",
+          "description": "Buscar vídeos en YouTube"
         }
       ]
     }

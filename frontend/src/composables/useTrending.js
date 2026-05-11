@@ -11,14 +11,17 @@ export function useTrending() {
   const trendingMovies = ref([]);
   const trendingGames = ref([]);
   const trendingAlbums = ref([]);
+  const trendingVideos = ref([]);
   const isLoadingBooks = ref(false);
   const isLoadingMovies = ref(false);
   const isLoadingGames = ref(false);
   const isLoadingAlbums = ref(false);
+  const isLoadingVideos = ref(false);
   const errorBooks = ref(null);
   const errorMovies = ref(null);
   const errorGames = ref(null);
   const errorAlbums = ref(null);
+  const errorVideos = ref(null);
   
   const authStore = useAuthStore();
 
@@ -186,6 +189,38 @@ export function useTrending() {
     errorAlbums.value = null;
   };
 
+  const fetchTrendingVideos = async (limit = 10) => {
+    isLoadingVideos.value = true;
+    errorVideos.value = null;
+
+    try {
+      Logger.info('Fetching trending videos', { limit });
+
+      const response = await authStore.authenticatedApiCall('get_trending_videos', {
+        limit
+      });
+
+      if (response.data?.status === 'success' && response.data?.data) {
+        trendingVideos.value = response.data.data;
+        Logger.info(`Trending videos loaded: ${trendingVideos.value.length} items`);
+      } else {
+        throw new Error('Invalid response format');
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Error al cargar vídeos trending';
+      errorVideos.value = errorMessage;
+      Logger.error('Error fetching trending videos:', error);
+      trendingVideos.value = [];
+    } finally {
+      isLoadingVideos.value = false;
+    }
+  };
+
+  const clearTrendingVideos = () => {
+    trendingVideos.value = [];
+    errorVideos.value = null;
+  };
+
   /**
    * Limpia todos los datos trending
    */
@@ -194,6 +229,7 @@ export function useTrending() {
     clearTrendingMovies();
     clearTrendingGames();
     clearTrendingAlbums();
+    clearTrendingVideos();
   };
 
   return {
@@ -202,24 +238,29 @@ export function useTrending() {
     trendingMovies,
     trendingGames,
     trendingAlbums,
+    trendingVideos,
     isLoadingBooks,
     isLoadingMovies,
     isLoadingGames,
     isLoadingAlbums,
+    isLoadingVideos,
     errorBooks,
     errorMovies,
     errorGames,
     errorAlbums,
+    errorVideos,
 
     // Methods
     fetchTrendingBooks,
     fetchTrendingMovies,
     fetchTrendingGames,
     fetchTrendingAlbums,
+    fetchTrendingVideos,
     clearTrendingBooks,
     clearTrendingMovies,
     clearTrendingGames,
     clearTrendingAlbums,
+    clearTrendingVideos,
     clearAll
   };
 }

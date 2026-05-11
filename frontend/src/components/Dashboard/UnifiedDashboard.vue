@@ -28,6 +28,10 @@
           <i class="fas fa-music"></i>
           <span>Música</span>
         </Tab>
+        <Tab value="videos">
+          <i class="fab fa-youtube"></i>
+          <span>Vídeos</span>
+        </Tab>
       </TabList>
 
       <TabPanels>
@@ -42,6 +46,9 @@
         </TabPanel>
         <TabPanel value="albums">
           <AlbumsDashboardContent />
+        </TabPanel>
+        <TabPanel value="videos">
+          <VideosDashboardContent />
         </TabPanel>
       </TabPanels>
     </Tabs>
@@ -60,6 +67,7 @@ import BooksDashboardContent from './BooksDashboardContent.vue';
 import MoviesDashboardContent from './MoviesDashboardContent.vue';
 import GamesDashboardContent from './GamesDashboardContent.vue';
 import AlbumsDashboardContent from './AlbumsDashboardContent.vue';
+import VideosDashboardContent from './VideosDashboardContent.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -67,7 +75,7 @@ const router = useRouter();
 // Determine initial tab from route query or default to 'books'
 const getInitialTab = () => {
   const tab = route.query.tab;
-  if (['books', 'movies', 'games', 'albums'].includes(tab)) return tab;
+  if (['books', 'movies', 'games', 'albums', 'videos'].includes(tab)) return tab;
   return 'books';
 };
 

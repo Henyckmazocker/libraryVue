@@ -578,6 +578,15 @@ return [
         'validation' => []
     ],
 
+    'get_video_stats' => [
+        'controller' => ['StatsController', 'getVideoStats'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
     // ============================================================================
     // READING SESSIONS ROUTES
     // ============================================================================
@@ -1178,5 +1187,191 @@ return [
             LoggingMiddleware::class
         ],
         'validation' => []
-    ]
+    ],
+
+    // =========================================================================
+    // VIDEOS — YouTube video management
+    // =========================================================================
+
+    'add_video' => [
+        'controller' => ['VideoController', 'addVideo'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['title']]]
+        ],
+        'validation' => ['title']
+    ],
+
+    'delete_video' => [
+        'controller' => ['VideoController', 'deleteVideo'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['youtubeId']]]
+        ],
+        'validation' => ['youtubeId']
+    ],
+
+    'update_video_rating' => [
+        'controller' => ['VideoController', 'updateVideoRating'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['youtubeId', 'rating']]]
+        ],
+        'validation' => ['youtubeId', 'rating']
+    ],
+
+    'update_video_user_statuses' => [
+        'controller' => ['VideoController', 'updateVideoUserStatuses'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['youtubeId', 'statuses']]]
+        ],
+        'validation' => ['youtubeId', 'statuses']
+    ],
+
+    'edit_user_video' => [
+        'controller' => ['VideoController', 'editUserVideo'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['youtubeId']]]
+        ],
+        'validation' => ['youtubeId']
+    ],
+
+    // VIDEO — Read operations
+    'get_video_allowed_statuses' => [
+        'controller' => ['VideoController', 'getVideoAllowedStatuses'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => []
+    ],
+
+    'get_videos' => [
+        'controller' => ['VideoController', 'getVideos'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
+    'get_trending_videos' => [
+        'controller' => ['VideoController', 'getTrendingVideos'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
+    // VIDEO TAGS
+    'get_user_video_tags' => [
+        'controller' => ['VideoController', 'getUserVideoTags'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
+    'create_user_video_tag' => [
+        'controller' => ['VideoController', 'createUserVideoTag'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['name']]]
+        ],
+        'validation' => ['name']
+    ],
+
+    'delete_user_video_tag' => [
+        'controller' => ['VideoController', 'deleteUserVideoTag'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['tagId']]]
+        ],
+        'validation' => ['tagId']
+    ],
+
+    'get_video_tags' => [
+        'controller' => ['VideoController', 'getVideoTags'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
+    'update_video_tags' => [
+        'controller' => ['VideoController', 'updateVideoTags'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['videoId', 'tag_ids']]]
+        ],
+        'validation' => ['videoId', 'tag_ids']
+    ],
+
+    // VIDEO NOTES
+    'get_video_notes' => [
+        'controller' => ['VideoController', 'getVideoNotes'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
+    'add_video_note' => [
+        'controller' => ['VideoController', 'addVideoNote'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['youtubeId', 'noteText']]]
+        ],
+        'validation' => ['youtubeId', 'noteText']
+    ],
+
+    'update_video_note' => [
+        'controller' => ['VideoController', 'updateVideoNote'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['noteId', 'noteText']]]
+        ],
+        'validation' => ['noteId', 'noteText']
+    ],
+
+    'delete_video_note' => [
+        'controller' => ['VideoController', 'deleteVideoNote'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['noteId']]]
+        ],
+        'validation' => ['noteId']
+    ],
+
+    // YOUTUBE API PROXY
+    'search_youtube_videos' => [
+        'controller' => ['VideoController', 'searchVideos'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => ['query']
+    ],
 ];

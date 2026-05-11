@@ -12,6 +12,7 @@ use App\Controllers\GameController;
 use App\Controllers\LibraryController;
 use App\Controllers\LibraryXController;
 use App\Controllers\StatsController;
+use App\Controllers\VideoController;
 use App\Infrastructure\Middleware\MiddlewarePipeline;
 use App\Domain\DTO\Commands\AddBookCommand;
 use App\Domain\DTO\Commands\DeleteBookCommand;
@@ -54,6 +55,11 @@ use App\Domain\DTO\Commands\UpdateAlbumStatusesCommand;
 use App\Domain\DTO\Commands\EditUserAlbumCommand;
 use App\Domain\DTO\Queries\GetTrendingAlbumsQuery;
 use App\Domain\DTO\Queries\GetLastFmStatsQuery;
+use App\Domain\DTO\Commands\AddVideoCommand;
+use App\Domain\DTO\Commands\DeleteVideoCommand;
+use App\Domain\DTO\Commands\UpdateVideoRatingCommand;
+use App\Domain\DTO\Commands\UpdateVideoStatusesCommand;
+use App\Domain\DTO\Commands\EditUserVideoCommand;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 
@@ -82,6 +88,7 @@ class ActionRouter
     private ?LibraryController $libraryController = null;
     private ?LibraryXController $libraryXController = null;
     private ?StatsController $statsController = null;
+    private ?VideoController $videoController = null;
 
     public function __construct(
         array $routes,
@@ -456,6 +463,7 @@ class ActionRouter
             'get_movie_stats' => $controller->getMovieStats($userId),
             'get_game_stats'  => $controller->getGameStats($userId),
             'get_album_stats' => $controller->getAlbumStats($userId),
+            'get_video_stats' => $controller->getVideoStats($userId),
             
             // READING SESSIONS - Use Command/Query DTOs
             'create_reading_session' => $controller->createReadingSession(
@@ -504,6 +512,42 @@ class ActionRouter
             'get_current_reading_sessions' => $controller->getCurrentReadingSessions(
                 GetUserReadingStatsQuery::fromArray($data, $userId)
             ),
+
+            // VIDEOS - YouTube video management
+            'add_video' => $controller->addVideo(
+                AddVideoCommand::fromArray($data, $userId)
+            ),
+            'delete_video' => $controller->deleteVideo(
+                DeleteVideoCommand::fromArray($data, $userId)
+            ),
+            'update_video_rating' => $controller->updateVideoRating(
+                UpdateVideoRatingCommand::fromArray($data, $userId)
+            ),
+            'update_video_user_statuses' => $controller->updateVideoUserStatuses(
+                UpdateVideoStatusesCommand::fromArray($data, $userId)
+            ),
+            'edit_user_video' => $controller->editUserVideo(
+                EditUserVideoCommand::fromArray($data, $userId)
+            ),
+            'get_video_allowed_statuses' => $controller->getVideoAllowedStatuses(),
+            'get_videos' => $controller->getVideos([
+                'userId'  => $userId,
+                'filters' => $data['filters'] ?? []
+            ]),
+            'get_trending_videos' => $controller->getTrendingVideos([
+                'userId' => $userId,
+                'limit'  => $data['limit'] ?? 10
+            ]),
+            'get_user_video_tags'    => $controller->getUserVideoTags($userId),
+            'create_user_video_tag'  => $controller->createUserVideoTag($userId, $data['name'] ?? '', $data['color'] ?? '#c0392b'),
+            'delete_user_video_tag'  => $controller->deleteUserVideoTag($userId, $data['tagId'] ?? 0),
+            'get_video_tags'         => $controller->getVideoTags($userId, $data['videoId'] ?? 0),
+            'update_video_tags'      => $controller->updateVideoTags($userId, $data['videoId'] ?? 0, $data['tag_ids'] ?? []),
+            'get_video_notes'        => $controller->getVideoNotes($userId, $data['youtubeId'] ?? ''),
+            'add_video_note'         => $controller->addVideoNote($userId, $data['youtubeId'] ?? '', $data['noteText'] ?? '', $data['noteType'] ?? 'note'),
+            'update_video_note'      => $controller->updateVideoNote($data['noteId'] ?? 0, $userId, $data['noteText'] ?? '', $data['noteType'] ?? 'note'),
+            'delete_video_note'      => $controller->deleteVideoNote($data['noteId'] ?? 0, $userId),
+            'search_youtube_videos'  => $controller->searchVideos($data),
             
             default => [
                 'status' => 'error',
@@ -527,6 +571,7 @@ class ActionRouter
             'LibraryController' => $this->libraryController ??= $this->container->get(LibraryController::class),
             'LibraryXController' => $this->libraryXController ??= $this->container->get(LibraryXController::class),
             'StatsController' => $this->statsController ??= $this->container->get(StatsController::class),
+            'VideoController' => $this->videoController ??= $this->container->get(VideoController::class),
             default => throw new \RuntimeException("Unknown controller: {$controllerName}")
         };
     }

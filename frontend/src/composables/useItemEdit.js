@@ -2,6 +2,7 @@ import { useBooks } from './useBooks'
 import { useMovies } from './useMovies'
 import { useGames } from './useGames'
 import { useAlbums } from './useAlbums'
+import { useVideosStore } from '@/store/videos'
 import Logger from '@/utils/logger'
 
 /**
@@ -12,6 +13,7 @@ export function useItemEdit() {
   const moviesComposable = useMovies()
   const gamesComposable = useGames()
   const albumsComposable = useAlbums()
+  const videosStore = useVideosStore()
   
   const editItem = async (itemType, id, data, tags = [], notes = []) => {
     try {
@@ -26,6 +28,8 @@ export function useItemEdit() {
         result = await gamesComposable.editUserGame(id, data.userId || data.user_id, data, tags, notes)
       } else if (itemType === 'album') {
         result = await albumsComposable.editUserAlbum(id, data.userId || data.user_id, data, tags, notes)
+      } else if (itemType === 'video') {
+        result = await videosStore.editVideo(id, { ...data, statuses: data.statuses })
       } else {
         throw new Error(`Tipo de item no soportado: ${itemType}`)
       }

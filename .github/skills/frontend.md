@@ -159,11 +159,14 @@ Each entity type follows the same component structure:
 
 ### Dashboard Components
 
-- **`UnifiedDashboard.vue`** — Tab container (books/movies/games tabs via query param)
+- **`UnifiedDashboard.vue`** — Tab container (books/movies/games/albums/videos tabs via query param)
 - **`{Entity}Dashboard.vue`** — Tab wrapper per entity
-- **`{Entity}DashboardContent.vue`** — Actual dashboard content with stats and charts
+- **`{Entity}DashboardContent.vue`** — Actual dashboard content with stats and charts. Supported entities: `books`, `movies`, `games`, `albums`, `videos`
 - **`DashboardChartsGrid.vue`** — Reusable charts layout
 - **`DashboardStatsGrid.vue`** — Reusable stats cards
+
+**`extractMockStats(rawStats, itemType)` in `composables/useDashboardCharts.js`**:
+Normalizes raw API stats into display-ready objects. Supported `itemType` values: `'books'`, `'games'`, `'albums'`, `'videos'`, and default (`'movies'`/series). When adding a new entity, add its case here alongside the null-fallback and the populated-stats branches.
 
 ### Shared Edit Modal
 
@@ -284,7 +287,7 @@ export function useNewFeature() {
 |---|---|---|
 | `FileProcessorService` | `services/FileProcessorService.js` | Parses CSV/XML (Goodreads, Letterboxd, Palomitacas, Serialized formats), enriches via OMDb API |
 | `ImportService` | `services/ImportService.js` | Orchestrates file processing → backend `import_data` action |
-| `StatsService` | `services/StatsService.js` | Fetches book/movie/game stats via `fetch()` directly |
+| `StatsService` | `services/StatsService.js` | Fetches stats per entity via `_apiCall()`: `getBookStats()`, `getMovieStats()`, `getGameStats()`, `getAlbumStats()`, `getVideoStats()`. Also provides `transformStatusDataForChart()`, `transformRatingDataForChart()`, `transformGenreDataForChart()`, `transformMonthlyDataForChart()` helpers used by `*DashboardContent` components |
 
 ## Debugging
 

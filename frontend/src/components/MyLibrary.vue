@@ -8,6 +8,7 @@
         <label class="filter-checkbox-pill"><input type="checkbox" v-model="showMovies" /> <i class="fas fa-film"></i></label>
         <label class="filter-checkbox-pill"><input type="checkbox" v-model="showGames" /> <i class="fas fa-gamepad"></i></label>
         <label class="filter-checkbox-pill"><input type="checkbox" v-model="showAlbums" /> <i class="fas fa-music"></i></label>
+        <label class="filter-checkbox-pill"><input type="checkbox" v-model="showVideos" /> <i class="fab fa-youtube"></i></label>
         <button @click="openImportModal" class="import-button">
           <i class="fas fa-folder-open"></i>
         </button>
@@ -91,6 +92,13 @@
           @click="navigateToAlbumDetail(item)"
           class="book-item"
         />
+        <VideoListItem
+          v-else-if="item.itemType === 'video'"
+          :video="item"
+          :allowedStatuses="allowedUserStatusesList('video')"
+          @click="navigateToVideoDetail(item)"
+          class="book-item"
+        />
       </template>
     </div>
 
@@ -110,6 +118,7 @@ import { useBooks } from '@/composables/useBooks';
 import { useMovies } from '@/composables/useMovies';
 import { useGames } from '@/composables/useGames';
 import { useAlbums } from '@/composables/useAlbums';
+import { useVideosStore } from '@/store/videos';
 import { useSearch } from '@/composables/useSearch';
 import { useUIStore } from '@/store/ui';
 import { useAuth } from '@/composables/useAuth';
@@ -118,6 +127,7 @@ import BookListItem from './Books/BookListItem.vue';
 import MovieListItem from './Movies/MovieListItem.vue';
 import GameListItem from './Games/GameListItem.vue';
 import AlbumListItem from './Albums/AlbumListItem.vue';
+import VideoListItem from './Videos/VideoListItem.vue';
 import ImportModal from './ImportModal.vue';
 
 // Composables
@@ -128,6 +138,7 @@ const moviesComposable = useMovies();
   const gamesComposable = useGames();
   const albumsComposable = useAlbums();
   const uiStore = useUIStore();
+const videosStore = useVideosStore();
 const searchSystem = useSearch({
   debounceDelay: 300,
   minQueryLength: 2
@@ -138,6 +149,7 @@ const showBooks = ref(true);
 const showMovies = ref(true);
 const showGames = ref(true);
 const showAlbums = ref(true);
+const showVideos = ref(true);
 const fetchError = ref("");
 const sortField = ref('date');
 const sortDirection = ref('desc');
@@ -161,7 +173,7 @@ const toggleSort = (field) => {
 
 // Estados computados combinados
 const isLoading = computed(() =>
-  booksComposable.isLoading.value || moviesComposable.isLoading.value || gamesComposable.isLoading.value || albumsComposable.isLoading.value
+  booksComposable.isLoading.value || moviesComposable.isLoading.value || gamesComposable.isLoading.value || albumsComposable.isLoading.value || videosStore.isLoading
 );
 
 const items = computed(() => {
@@ -169,13 +181,15 @@ const items = computed(() => {
   const movies = moviesComposable.movies.value.map(movie => ({ ...movie, itemType: 'movie' }));
   const games = gamesComposable.games.value.map(game => ({ ...game, itemType: 'game' }));
   const albums = albumsComposable.albums.value.map(album => ({ ...album, itemType: 'album' }));
-  return [...books, ...movies, ...games, ...albums];
+  const videos = videosStore.videos.map(video => ({ ...video, itemType: 'video' }));
+  return [...books, ...movies, ...games, ...albums, ...videos];
 });
 
 const allowedBookUserStatuses = computed(() => booksComposable.allowedStatuses.value);
 const allowedMovieUserStatuses = computed(() => moviesComposable.allowedStatuses.value);
 const allowedGameUserStatuses = computed(() => gamesComposable.allowedStatuses.value);
 const allowedAlbumUserStatuses = computed(() => albumsComposable.allowedStatuses.value);
+const allowedVideoUserStatuses = computed(() => videosStore.allowedStatuses.map(s => (typeof s === 'object' && s !== null) ? s.name : s));
 
 const allowedUserStatusesList = (itemType, mediaType = null) => {
   if (itemType === 'movie') {
@@ -189,6 +203,7 @@ const allowedUserStatusesList = (itemType, mediaType = null) => {
   }
   if (itemType === 'game') return allowedGameUserStatuses.value;
   if (itemType === 'album') return allowedAlbumUserStatuses.value;
+  if (itemType === 'video') return allowedVideoUserStatuses.value;
   return allowedBookUserStatuses.value;
 };
 
@@ -204,7 +219,9 @@ const fetchLibrary = async () => {
       booksComposable.fetchAllowedStatuses(),
       moviesComposable.fetchAllowedStatuses(),
       gamesComposable.fetchAllowedStatuses(),
-      albumsComposable.fetchAllowedStatuses()
+      albumsComposable.fetchAllowedStatuses(),
+      videosStore.fetchVideos(),
+      videosStore.fetchAllowedStatuses()
     ]);
 
     // Verificar errores de los composables
@@ -227,6 +244,7 @@ const displayedItems = computed(() => {
     if (item.itemType === 'movie' && !showMovies.value) return false;
     if (item.itemType === 'game' && !showGames.value) return false;
     if (item.itemType === 'album' && !showAlbums.value) return false;
+    if (item.itemType === 'video' && !showVideos.value) return false;
     return true;
   });
   
@@ -318,6 +336,14 @@ const navigateToAlbumDetail = (album) => {
     name: 'AlbumDetail',
     params: { albumId: album.spotify_id || album.id },
     state: { album: JSON.parse(JSON.stringify(album)) }
+  })
+};
+
+const navigateToVideoDetail = (video) => {
+  router.push({
+    name: 'VideoDetail',
+    params: { youtubeId: video.youtube_id || video.youtubeId },
+    state: { video: JSON.parse(JSON.stringify(video)) }
   })
 };
 

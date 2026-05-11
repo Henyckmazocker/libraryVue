@@ -1025,3 +1025,143 @@ CREATE TABLE IF NOT EXISTS user_album_notes (
     INDEX idx_user_album_notes_user_album (user_id, album_id),
     INDEX idx_user_album_notes_created (created_at)
 );
+
+-- ============================================================================
+-- MIGRACIÓN 002: Sistema de Videos de YouTube
+-- Descripción: Crea las tablas para guardar videos de YouTube en la biblioteca
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS videos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    youtube_id VARCHAR(11) NOT NULL UNIQUE,
+    title VARCHAR(500) NOT NULL,
+    channel_name VARCHAR(255) DEFAULT NULL,
+    channel_id VARCHAR(24) DEFAULT NULL,
+    cover_url VARCHAR(1024) DEFAULT NULL,
+    duration VARCHAR(20) DEFAULT NULL,
+    duration_seconds INT UNSIGNED DEFAULT NULL,
+    view_count BIGINT UNSIGNED DEFAULT NULL,
+    like_count BIGINT UNSIGNED DEFAULT NULL,
+    published_at DATETIME DEFAULT NULL,
+    description TEXT DEFAULT NULL,
+    categories JSON DEFAULT NULL,
+    tags JSON DEFAULT NULL,
+    addedTimestamp INT UNSIGNED DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Videos de YouTube con datos de YouTube Data API v3';
+
+CREATE INDEX idx_videos_youtube_id ON videos(youtube_id);
+CREATE INDEX idx_videos_title ON videos(title);
+CREATE INDEX idx_videos_channel_id ON videos(channel_id);
+CREATE INDEX idx_videos_channel_name ON videos(channel_name);
+CREATE INDEX idx_videos_published_at ON videos(published_at);
+CREATE INDEX idx_videos_added_timestamp ON videos(addedTimestamp);
+
+CREATE TABLE IF NOT EXISTS video_statuses (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE
+);
+
+INSERT INTO video_statuses (name) VALUES
+('saved'),
+('watched'),
+('watching'),
+('in-watchlist'),
+('want-to-watch'),
+('re-watching'),
+('abandoned');
+
+CREATE TABLE IF NOT EXISTS video_has_statuses (
+    video_id INT NOT NULL,
+    status_id INT NOT NULL,
+    PRIMARY KEY (video_id, status_id),
+    FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (status_id) REFERENCES video_statuses(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_video_has_statuses_status_id ON video_has_statuses(status_id);
+
+CREATE TABLE IF NOT EXISTS user_videos (
+    user_id INT NOT NULL,
+    video_id INT NOT NULL,
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    watched_at TIMESTAMP NULL DEFAULT NULL,
+    personal_rating DECIMAL(2,1) DEFAULT NULL,
+    personal_notes TEXT DEFAULT NULL,
+    watch_count INT UNSIGNED DEFAULT 0,
+    PRIMARY KEY (user_id, video_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE,
+    INDEX idx_user_videos_user_added (user_id, added_at),
+    INDEX idx_user_videos_watched (user_id, watched_at),
+    INDEX idx_user_videos_rating (user_id, personal_rating),
+    INDEX idx_user_videos_watch_count (user_id, watch_count),
+    CONSTRAINT check_user_video_rating CHECK (
+        personal_rating IS NULL OR (
+            personal_rating >= 0.5 AND personal_rating <= 5.0
+            AND MOD(personal_rating * 2, 1) = 0
+        )
+    ),
+    CONSTRAINT check_user_video_watch_count CHECK (watch_count >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Biblioteca personal de videos de YouTube de cada usuario';
+
+CREATE TABLE IF NOT EXISTS user_video_statuses (
+    user_id INT NOT NULL,
+    video_id INT NOT NULL,
+    status_id INT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, video_id, status_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE,
+    FOREIGN KEY (status_id) REFERENCES video_statuses(id) ON DELETE CASCADE,
+    INDEX idx_user_video_statuses_user_status (user_id, status_id),
+    INDEX idx_user_video_statuses_updated (user_id, updated_at)
+);
+
+CREATE TABLE IF NOT EXISTS user_video_tags (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    color VARCHAR(7) DEFAULT '#c0392b',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_user_video_tag (user_id, name),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_video_tags_user (user_id),
+    INDEX idx_user_video_tags_name (user_id, name)
+);
+
+CREATE TABLE IF NOT EXISTS user_video_tag_assignments (
+    user_id INT NOT NULL,
+    video_id INT NOT NULL,
+    tag_id INT NOT NULL,
+    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, video_id, tag_id),
+    FOREIGN KEY (user_id, video_id) REFERENCES user_videos(user_id, video_id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES user_video_tags(id) ON DELETE CASCADE,
+    INDEX idx_video_tag_assignments_tag (tag_id),
+    INDEX idx_video_tag_assignments_video (user_id, video_id),
+    INDEX idx_video_tag_assignments_user (user_id)
+);
+
+CREATE TABLE IF NOT EXISTS user_video_notes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    video_id INT NOT NULL,
+    note_text TEXT NOT NULL,
+    note_type VARCHAR(20) DEFAULT 'note',
+    is_private TINYINT(1) DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE,
+    INDEX idx_user_video_notes_user_video (user_id, video_id),
+    INDEX idx_user_video_notes_created (created_at)
+);
+
+INSERT INTO item_owned_formats (entity_type, value, label, sort_order) VALUES
+('video', 'online',     'Online',       1),
+('video', 'downloaded', 'Descargado',   2),
+('video', 'offline',    'Sin conexión', 3);

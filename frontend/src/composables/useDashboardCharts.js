@@ -306,6 +306,18 @@ export const extractMockStats = (rawStats, itemType = 'books') => {
         totalListens: 0,
         averageListens: 'N/A'
       };
+    } else if (itemType === 'videos') {
+      return {
+        totalVideos: 0,
+        watchedVideos: 0,
+        pendingVideos: 0,
+        watchingVideos: 0,
+        averageRating: 0,
+        favoriteChannel: 'N/A',
+        favoriteCategory: 'N/A',
+        totalWatches: 0,
+        averageWatches: 'N/A'
+      };
     } else {
       return {
         totalMovies: 0,
@@ -325,6 +337,7 @@ export const extractMockStats = (rawStats, itemType = 'books') => {
   const isBooks = itemType === 'books';
   const isGames = itemType === 'games';
   const isAlbums = itemType === 'albums';
+  const isVideos = itemType === 'videos';
 
   if (isBooks) {
     return {
@@ -361,6 +374,18 @@ export const extractMockStats = (rawStats, itemType = 'books') => {
       favoriteGenre: rawStats.genreStats?.topGenres ? Object.keys(rawStats.genreStats.topGenres)[0] : 'N/A',
       totalListens: rawStats.listenStats?.totalListens || 0,
       averageListens: rawStats.listenStats?.averageListens ? `${rawStats.listenStats.averageListens}` : 'N/A'
+    };
+  } else if (isVideos) {
+    return {
+      totalVideos: rawStats.totalVideos || 0,
+      watchedVideos: statusStats.watched || statusStats.visto || statusStats.vista || 0,
+      pendingVideos: statusStats.to_watch || statusStats['por ver'] || statusStats.deseado || 0,
+      watchingVideos: statusStats.watching || statusStats.viendo || 0,
+      averageRating: rawStats.ratingStats?.averageRating || 0,
+      favoriteChannel: rawStats.channelStats ? Object.keys(rawStats.channelStats)[0] : 'N/A',
+      favoriteCategory: rawStats.categoryStats?.topGenres ? Object.keys(rawStats.categoryStats.topGenres)[0] : 'N/A',
+      totalWatches: rawStats.watchStats?.totalWatches || 0,
+      averageWatches: rawStats.watchStats?.averageWatches ? `${rawStats.watchStats.averageWatches}` : 'N/A'
     };
   } else {
     return {

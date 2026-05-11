@@ -172,6 +172,23 @@ export const useMenuStore = defineStore('menu', {
             ]
           },
           {
+            title: "Vídeos",
+            items: [
+              {
+                name: "Buscar Vídeos",
+                path: "/videos",
+                icon: "fab fa-youtube",
+                description: "Buscar vídeos en YouTube"
+              },
+              {
+                name: "Mis Vídeos",
+                path: "/dashboard/videos",
+                icon: "fas fa-film",
+                description: "Dashboard de tus vídeos"
+              }
+            ]
+          },
+          {
             title: "Próximamente",
             items: [
               {

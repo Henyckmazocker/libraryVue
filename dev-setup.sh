@@ -126,20 +126,21 @@ ask_if_empty() {
 setup_root_env() {
   # Leer valores actuales si el archivo ya existe
   local google_client_id google_books_api_key spotify_client_id spotify_client_secret
-  local lastfm_api_key mysql_root_password mysql_password
+  local lastfm_api_key youtube_api_key mysql_root_password mysql_password
 
   google_client_id=$(env_get "$ENV_FILE"      GOOGLE_CLIENT_ID)
   google_books_api_key=$(env_get "$ENV_FILE"  GOOGLE_BOOKS_API_KEY)
   spotify_client_id=$(env_get "$ENV_FILE"     SPOTIFY_CLIENT_ID)
   spotify_client_secret=$(env_get "$ENV_FILE" SPOTIFY_CLIENT_SECRET)
   lastfm_api_key=$(env_get "$ENV_FILE"        LASTFM_API_KEY)
+  youtube_api_key=$(env_get "$ENV_FILE"       YOUTUBE_API_KEY)
   mysql_root_password=$(env_get "$ENV_FILE"   MYSQL_ROOT_PASSWORD)
   mysql_password=$(env_get "$ENV_FILE"        MYSQL_PASSWORD)
 
   # Detectar si falta alguna clave antes de mostrar el bloque interactivo
   local needs_input=false
   [[ -z "$google_client_id" || -z "$google_books_api_key" || -z "$spotify_client_id" \
-     || -z "$spotify_client_secret" || -z "$lastfm_api_key" \
+     || -z "$spotify_client_secret" || -z "$lastfm_api_key" || -z "$youtube_api_key" \
      || -z "$mysql_root_password" || -z "$mysql_password" ]] && needs_input=true
 
   if [[ "$needs_input" == "true" ]]; then
@@ -151,6 +152,7 @@ setup_root_env() {
     spotify_client_id=$(ask_if_empty   "Spotify Client ID"      "$spotify_client_id")
     spotify_client_secret=$(ask_if_empty "Spotify Client Secret" "$spotify_client_secret" "yes")
     lastfm_api_key=$(ask_if_empty      "Last.fm API Key"        "$lastfm_api_key")
+    youtube_api_key=$(ask_if_empty     "YouTube Data API Key"   "$youtube_api_key")
 
     echo ""
     echo -e "${YELLOW}=== Contraseñas MySQL ===${NC}"
@@ -178,6 +180,9 @@ SPOTIFY_CLIENT_SECRET=${spotify_client_secret}
 # Last.fm API
 LASTFM_API_KEY=${lastfm_api_key}
 
+# YouTube Data API v3
+YOUTUBE_API_KEY=${youtube_api_key}
+
 # Database
 MYSQL_ROOT_PASSWORD=${mysql_root_password}
 MYSQL_PASSWORD=${mysql_password}
@@ -189,30 +194,39 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# Crear backend/.env.docker-development (si no existe)
+# Helper: escribe o actualiza una clave en un .env file
+# ---------------------------------------------------------------------------
+env_set() {
+  local file="$1" key="$2" value="$3"
+  [[ -z "$value" ]] && return
+  if grep -qE "^${key}=" "$file" 2>/dev/null; then
+    sed -i "s|^${key}=.*|${key}=${value}|" "$file"
+  else
+    echo "${key}=${value}" >> "$file"
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Crear/sincronizar backend/.env.docker-development
 # ---------------------------------------------------------------------------
 setup_backend_env() {
-  if [[ -f "$BACKEND_ENV_FILE" ]]; then
-    success "backend/.env.docker-development ya existe — sin cambios."
-    return
+  if [[ ! -f "$BACKEND_ENV_FILE" ]]; then
+    info "Creando backend/.env.docker-development desde el ejemplo..."
+    cp "$ROOT_DIR/backend/.env.docker-development.example" "$BACKEND_ENV_FILE"
+    warn "Revisa $BACKEND_ENV_FILE y ajusta JWT_SECRET si es necesario."
   fi
 
-  info "Creando backend/.env.docker-development desde el ejemplo..."
-  cp "$ROOT_DIR/backend/.env.docker-development.example" "$BACKEND_ENV_FILE"
+  # Sincronizar TODAS las claves API desde .env raíz (en creación y actualización)
+  env_set "$BACKEND_ENV_FILE" DB_PASSWORD           "$(env_get "$ENV_FILE" MYSQL_PASSWORD)"
+  env_set "$BACKEND_ENV_FILE" MYSQL_PASSWORD        "$(env_get "$ENV_FILE" MYSQL_PASSWORD)"
+  env_set "$BACKEND_ENV_FILE" GOOGLE_CLIENT_ID      "$(env_get "$ENV_FILE" GOOGLE_CLIENT_ID)"
+  env_set "$BACKEND_ENV_FILE" GOOGLE_BOOKS_API_KEY  "$(env_get "$ENV_FILE" GOOGLE_BOOKS_API_KEY)"
+  env_set "$BACKEND_ENV_FILE" SPOTIFY_CLIENT_ID     "$(env_get "$ENV_FILE" SPOTIFY_CLIENT_ID)"
+  env_set "$BACKEND_ENV_FILE" SPOTIFY_CLIENT_SECRET "$(env_get "$ENV_FILE" SPOTIFY_CLIENT_SECRET)"
+  env_set "$BACKEND_ENV_FILE" LASTFM_API_KEY        "$(env_get "$ENV_FILE" LASTFM_API_KEY)"
+  env_set "$BACKEND_ENV_FILE" YOUTUBE_API_KEY       "$(env_get "$ENV_FILE" YOUTUBE_API_KEY)"
 
-  # Sincronizar contraseñas con lo que el usuario escribió en .env
-  local mysql_password
-  mysql_password=$(env_get "$ENV_FILE" MYSQL_PASSWORD)
-  sed -i "s/^DB_PASSWORD=.*/DB_PASSWORD=${mysql_password}/" "$BACKEND_ENV_FILE"
-  sed -i "s/^MYSQL_PASSWORD=.*/MYSQL_PASSWORD=${mysql_password}/" "$BACKEND_ENV_FILE"
-
-  # Sincronizar Google Client ID
-  local google_client_id
-  google_client_id=$(env_get "$ENV_FILE" GOOGLE_CLIENT_ID)
-  sed -i "s/^GOOGLE_CLIENT_ID=.*/GOOGLE_CLIENT_ID=${google_client_id}/" "$BACKEND_ENV_FILE"
-
-  success "backend/.env.docker-development creado."
-  warn "Revisa $BACKEND_ENV_FILE y ajusta JWT_SECRET y otras claves si es necesario."
+  success "backend/.env.docker-development sincronizado."
 }
 
 # ---------------------------------------------------------------------------
@@ -228,8 +242,16 @@ start_services() {
     info "Rebuilding imágenes Docker (sin caché)..."
     compose_cmd build --no-cache
   else
-    info "Construyendo imágenes Docker (si hay cambios)..."
-    compose_cmd build
+    # Si las imágenes ya existen localmente, saltamos el build.
+    # El código fuente se sirve vía volúmenes montados, no necesita rebuild para cambios de código.
+    # Usa --reset para forzar reconstrucción (p.ej. al cambiar dependencias en composer.json/package.json).
+    if docker image inspect libraryvue-backend:latest &>/dev/null \
+       && docker image inspect libraryvue-frontend:latest &>/dev/null; then
+      info "Imágenes Docker ya existen — saltando build. Usa --reset para reconstruir."
+    else
+      info "Construyendo imágenes Docker..."
+      compose_cmd build
+    fi
   fi
 
   info "Arrancando servicios (MySQL, Backend, Frontend)..."

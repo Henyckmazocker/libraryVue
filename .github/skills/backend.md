@@ -23,37 +23,44 @@ backend/
 ├── public/index.php               # Entry point → Application::run()
 ├── src/
 │   ├── Application.php            # CORS, session init, DI container, dispatches to ActionRouter
-│   ├── Controllers/               # 7 controllers + Contracts/ interfaces
+│   ├── Controllers/               # 9 controllers + Contracts/ interfaces
 │   │   ├── BaseController.php     # successResponse(), errorResponse(), validateRequiredFields()
 │   │   ├── BookController.php     # 15+ use case dependencies
 │   │   ├── MovieController.php    # 8 use cases + tag/note repos
 │   │   ├── GameController.php     # 8 use cases + IGDB service
+│   │   ├── AlbumController.php    # 8 use cases + Spotify service + tag/note repos
+│   │   ├── VideoController.php    # 8 use cases + YouTubeService + tag/note repos
 │   │   ├── AuthController.php     # Login/logout/session
 │   │   ├── LibraryController.php  # Cross-entity library operations
 │   │   ├── LibraryXController.php # URL management
-│   │   └── StatsController.php    # Statistics endpoints
+│   │   └── StatsController.php    # Statistics: books, movies, games, albums, videos
 │   ├── Domain/
 │   │   ├── Model/                 # Entities: Book, Movie, Game, User, Work, Edition, etc.
 │   │   │   └── ValueObjects/      # Email, ISBN, Rating, Genre, Status, Timestamp, etc.
-│   │   ├── Repository/            # Interfaces organized by entity (Book/, Movie/, Game/, User/)
+│   │   ├── Repository/            # Interfaces organized by entity (Book/, Movie/, Game/, Album/, Video/, User/)
 │   │   ├── DTO/
-│   │   │   ├── Commands/          # 26 write DTOs (final readonly class + fromArray())
-│   │   │   └── Queries/           # 14 read DTOs
-│   │   ├── Services/              # External: IGDBService, GoogleBooksService, OpenLibraryService
+│   │   │   ├── Commands/          # 35+ write DTOs (final readonly class + fromArray())
+│   │   │   └── Queries/           # 14+ read DTOs
+│   │   ├── Services/              # External: IGDBService, GoogleBooksService, OpenLibraryService, SpotifyService, YouTubeService
 │   │   │                          # Domain: WorkSearchService, BookImportService, UserLibraryStatisticsService
-│   │   └── UseCases/              # 37 use cases organized by entity
+│   │   └── UseCases/              # 50+ use cases organized by entity
 │   │       ├── Books/ (15)
 │   │       ├── Movies/ (12)
 │   │       ├── Games/ (8)
+│   │       ├── Albums/ (8+)
+│   │       ├── Videos/ (12)
 │   │       ├── Auth/ (1)
-│   │       └── Users/ (empty)
+│   │       └── Library/ (2)
 │   ├── Infrastructure/
 │   │   ├── Persistence/           # MySQL repositories + Mappers/ per entity
 │   │   │   ├── Book/ (10 repos + 4 mappers)
 │   │   │   ├── Movie/ (4 repos + 1 mapper)
 │   │   │   ├── Game/ (4 repos + 1 mapper)
+│   │   │   ├── Album/ (4 repos + 1 mapper)
+│   │   │   ├── Video/ (4 repos + 1 mapper)
 │   │   │   └── User/ (1 repo + 1 mapper)
 │   │   ├── Cache/CacheService.php # File-based caching with TTL
+│   │   │                          # set(key, value, ttl_seconds, namespace) — TTL is 3rd param, namespace 4th
 │   │   ├── Database/              # DatabaseConnector (PDO factory)
 │   │   ├── Middleware/            # Auth, CSRF, Validation, Logging, Pipeline
 │   │   ├── Auth/                  # GoogleOAuthVerifier
@@ -63,7 +70,7 @@ backend/
 │   └── Services/ApplicationService.php
 ├── config/
 │   ├── container.php              # DI container factory (returns closure) + all DI bindings
-│   ├── routes.php                 # ~80 route definitions with middleware stacks
+│   ├── routes.php                 # ~90+ route definitions with middleware stacks
 │   ├── logging.php                # Monolog configuration
 │   └── helpers.php                # Helper functions (env(), config())
 └── storage/
@@ -166,9 +173,9 @@ final readonly class GetGamesByUserQuery
 
 ### Complete DTO Inventory
 
-**Commands (26)**: AddBook, DeleteBook, UpdateBookRating, UpdateBookStatuses, EditUserBook, AddEditionNote, UpdateEditionNote, DeleteEditionNote, AddMovie, DeleteMovie, UpdateMovieRating, UpdateMovieStatuses, EditUserMovie, AddMovieNote, UpdateMovieNote, DeleteMovieNote, AddGame, DeleteGame, UpdateGameRating, UpdateGameStatuses, EditUserGame, CreateReadingSession, CompleteReadingSession, UpdateReadingProgress, ManageReadingSession, LoginUser
+**Commands (35+)**: AddBook, DeleteBook, UpdateBookRating, UpdateBookStatuses, EditUserBook, AddEditionNote, UpdateEditionNote, DeleteEditionNote, AddMovie, DeleteMovie, UpdateMovieRating, UpdateMovieStatuses, EditUserMovie, AddMovieNote, UpdateMovieNote, DeleteMovieNote, AddGame, DeleteGame, UpdateGameRating, UpdateGameStatuses, EditUserGame, AddAlbum, DeleteAlbum, UpdateAlbumRating, UpdateAlbumStatuses, EditUserAlbum, AddVideo, DeleteVideo, UpdateVideoRating, UpdateVideoStatuses, EditUserVideo, AddVideoNote, UpdateVideoNote, DeleteVideoNote, CreateReadingSession, CompleteReadingSession, UpdateReadingProgress, ManageReadingSession, LoginUser
 
-**Queries (14)**: GetBooksByUser, GetMoviesByUser, GetAllBooks, GetAllowedStatuses, GetTrendingBooks, GetTrendingMovies, GetTrendingGames, GetReadingSession, GetUserReadingStats, GetEditionNotes, GetEditionNote, GetMovieNotes, GetLibraryItems, GetLibrary
+**Queries (14+)**: GetBooksByUser, GetMoviesByUser, GetAllBooks, GetAllowedStatuses, GetTrendingBooks, GetTrendingMovies, GetTrendingGames, GetReadingSession, GetUserReadingStats, GetEditionNotes, GetEditionNote, GetMovieNotes, GetLibraryItems, GetLibrary
 
 ## Use Case Pattern
 
@@ -642,7 +649,12 @@ require '/var/www/html/bootstrap.php';
     'BookController' => App\Controllers\BookController::class,
     'MovieController' => App\Controllers\MovieController::class,
     'GameController' => App\Controllers\GameController::class,
+    'AlbumController' => App\Controllers\AlbumController::class,
+    'VideoController' => App\Controllers\VideoController::class,
     'AuthController' => App\Controllers\AuthController::class,
+    'StatsController' => App\Controllers\StatsController::class,
+    'LibraryController' => App\Controllers\LibraryController::class,
+    'LibraryXController' => App\Controllers\LibraryXController::class,
 ];
 foreach (\$controllers as \$name => \$class) {
     try { \$container->get(\$class); echo \$name . ': OK' . PHP_EOL; }
@@ -679,3 +691,6 @@ docker compose restart backend
 7. **Null vs empty array**: `?array $statuses = null` means "don't touch"; `[]` means "clear all"
 8. **Silent failures**: If auth log exists but no completion log → DI resolution failure
 9. **Mapper extraction**: Every SQL column MUST be extracted in mapper's `toDomain()` or data is silently lost
+10. **Dual registration required for new actions**: Adding a route to `config/routes.php` is NOT enough. Every new action also requires an entry in the `match($request['action'])` statement inside `ActionRouter::executeController()`. Missing this causes `"Controller method not mapped for action: xyz"` (HTTP 500). The `routes.php` entry controls middleware; the `ActionRouter` match controls the actual method call.
+11. **MySQL DATETIME format**: The DB column type `DATETIME` rejects ISO 8601 (`2026-04-12T13:51:06Z`). Convert in `toPersistence()`: `(new \DateTime($value))->format('Y-m-d H:i:s')`
+12. **`CacheService::set` signature**: `set(string $key, mixed $value, int $ttl, string $namespace)` — TTL is the **3rd** param, namespace is the **4th**. Swapping them causes cache namespacing bugs.

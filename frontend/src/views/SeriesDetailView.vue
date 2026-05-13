@@ -276,13 +276,12 @@ const fetchSeriesDetails = async (imdbId) => {
   if (!isBackground) isLoading.value = true;
   error.value = null;
   try {
-    const apiKey = process.env.VUE_APP_OMDB_API_KEY;
-    const url = `https://www.omdbapi.com/?apikey=${apiKey}&i=${imdbId}&plot=full`;
-    const response = await axios.get(url);
-    if (response.data && response.data.Response === 'True') {
-      series.value = transformSeriesData(response.data);
+    const apiUrl = process.env.VUE_APP_API_URL || '/index.php';
+    const response = await axios.post(apiUrl, { action: 'get_movie_details_omdb', imdbId, plot: 'full' });
+    if (response.data?.status === 'success' && response.data?.data) {
+      series.value = transformSeriesData(response.data.data);
     } else {
-      error.value = response.data.Error || 'No se encontró información de la serie.';
+      error.value = response.data?.message || 'No se encontró información de la serie.';
     }
   } catch (err) {
     error.value = 'No se pudo obtener información de la serie.';

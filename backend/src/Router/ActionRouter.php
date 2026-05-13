@@ -6,6 +6,8 @@ namespace App\Router;
 
 use App\Controllers\AlbumController;
 use App\Controllers\AuthController;
+use App\Controllers\FeedController;
+use App\Controllers\SocialController;
 use App\Controllers\BookController;
 use App\Controllers\MovieController;
 use App\Controllers\GameController;
@@ -55,6 +57,16 @@ use App\Domain\DTO\Commands\UpdateAlbumStatusesCommand;
 use App\Domain\DTO\Commands\EditUserAlbumCommand;
 use App\Domain\DTO\Queries\GetTrendingAlbumsQuery;
 use App\Domain\DTO\Queries\GetLastFmStatsQuery;
+use App\Domain\DTO\Commands\AcceptFriendRequestCommand;
+use App\Domain\DTO\Commands\RejectFriendRequestCommand;
+use App\Domain\DTO\Commands\RemoveFriendCommand;
+use App\Domain\DTO\Commands\SendFriendRequestCommand;
+use App\Domain\DTO\Commands\UpdatePrivacySettingsCommand;
+use App\Domain\DTO\Queries\GetFeedQuery;
+use App\Domain\DTO\Queries\GetFriendRequestsQuery;
+use App\Domain\DTO\Queries\GetFriendsQuery;
+use App\Domain\DTO\Queries\GetPublicProfileQuery;
+use App\Domain\DTO\Queries\SearchUsersQuery;
 use App\Domain\DTO\Commands\AddVideoCommand;
 use App\Domain\DTO\Commands\DeleteVideoCommand;
 use App\Domain\DTO\Commands\UpdateVideoRatingCommand;
@@ -89,6 +101,8 @@ class ActionRouter
     private ?LibraryXController $libraryXController = null;
     private ?StatsController $statsController = null;
     private ?VideoController $videoController = null;
+    private ?SocialController $socialController = null;
+    private ?FeedController $feedController = null;
 
     public function __construct(
         array $routes,
@@ -236,6 +250,7 @@ class ActionRouter
             'get_work_editions' => $controller->getWorkEditions($data),
             'validate_isbn' => $controller->validateISBN($data),
             'search_google_books_isbn' => $controller->searchGoogleBooksByISBN($data),
+            'get_openlibrary_book_by_isbn' => $controller->getOpenLibraryBookByISBN($data),
             
             // BOOK TAGS - Tag management endpoints
             'get_user_book_tags' => $controller->getUserBookTags($userId),
@@ -248,11 +263,11 @@ class ActionRouter
             'update_book_tags' => $controller->updateBookTags($userId, $data['isbn'] ?? '', $data['tag_ids'] ?? []),
             
             // EDITION NOTES - Note management endpoints
-            'add_edition_note' => $controller->addEditionNote($data),
-            'update_edition_note' => $controller->updateEditionNote($data),
-            'delete_edition_note' => $controller->deleteEditionNote($data),
-            'get_edition_notes' => $controller->getEditionNotes($data),
-            'get_edition_note' => $controller->getEditionNote($data),
+            'add_edition_note' => $controller->addEditionNote($data, $userId),
+            'update_edition_note' => $controller->updateEditionNote($data, $userId),
+            'delete_edition_note' => $controller->deleteEditionNote($data, $userId),
+            'get_edition_notes' => $controller->getEditionNotes($data, $userId),
+            'get_edition_note' => $controller->getEditionNote($data, $userId),
             
             // MOVIES - Use Command DTOs
             'add_movie' => $controller->addMovie(
@@ -309,6 +324,11 @@ class ActionRouter
             'get_series_progress' => $controller->getSeriesProgress(
                 GetSeriesProgressQuery::fromArray($data, $userId)
             ),
+
+            // OMDB PROXY
+            'search_movies_omdb'      => $controller->searchMoviesOmdb($data),
+            'get_movie_details_omdb'  => $controller->getMovieDetailsOmdb($data),
+            'get_season_episodes_omdb'=> $controller->getSeasonEpisodesOmdb($data),
 
             // GAMES - Use Command DTOs
             'add_game' => $controller->addGame(
@@ -548,6 +568,41 @@ class ActionRouter
             'update_video_note'      => $controller->updateVideoNote($data['noteId'] ?? 0, $userId, $data['noteText'] ?? '', $data['noteType'] ?? 'note'),
             'delete_video_note'      => $controller->deleteVideoNote($data['noteId'] ?? 0, $userId),
             'search_youtube_videos'  => $controller->searchVideos($data),
+
+            // SOCIAL - Friends
+            'send_friend_request' => $controller->sendFriendRequest(
+                SendFriendRequestCommand::fromArray($data, $userId)
+            ),
+            'accept_friend_request' => $controller->acceptFriendRequest(
+                AcceptFriendRequestCommand::fromArray($data, $userId)
+            ),
+            'reject_friend_request' => $controller->rejectFriendRequest(
+                RejectFriendRequestCommand::fromArray($data, $userId)
+            ),
+            'remove_friend' => $controller->removeFriend(
+                RemoveFriendCommand::fromArray($data, $userId)
+            ),
+            'get_friends' => $controller->getFriends(
+                new GetFriendsQuery($userId)
+            ),
+            'get_friend_requests' => $controller->getFriendRequests(
+                new GetFriendRequestsQuery($userId)
+            ),
+            'search_users' => $controller->searchUsers(
+                SearchUsersQuery::fromArray($data, $userId)
+            ),
+            'get_public_profile' => $controller->getPublicProfile(
+                GetPublicProfileQuery::fromArray($data, $userId)
+            ),
+
+            // SOCIAL - Feed
+            'get_feed' => $controller->getFeed(
+                GetFeedQuery::fromArray($data, $userId)
+            ),
+            'get_privacy_settings' => $controller->getPrivacySettings($userId),
+            'update_privacy_settings' => $controller->updatePrivacySettings(
+                UpdatePrivacySettingsCommand::fromArray($data, $userId)
+            ),
             
             default => [
                 'status' => 'error',
@@ -572,6 +627,8 @@ class ActionRouter
             'LibraryXController' => $this->libraryXController ??= $this->container->get(LibraryXController::class),
             'StatsController' => $this->statsController ??= $this->container->get(StatsController::class),
             'VideoController' => $this->videoController ??= $this->container->get(VideoController::class),
+            'SocialController' => $this->socialController ??= $this->container->get(SocialController::class),
+            'FeedController' => $this->feedController ??= $this->container->get(FeedController::class),
             default => throw new \RuntimeException("Unknown controller: {$controllerName}")
         };
     }

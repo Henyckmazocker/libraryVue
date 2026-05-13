@@ -8,6 +8,7 @@ use App\Domain\Model\Movie;
 use App\Domain\Repository\Movie\MovieRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Movie\UserMovieRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\AddMovieCommand;
 use Psr\Log\LoggerInterface;
@@ -19,6 +20,7 @@ class AddMovieUseCase extends AbstractUseCase
         private readonly MovieRepositoryInterface $movieRepository,
         private readonly UserRepositoryInterface $userRepository,
         private readonly UserMovieRepositoryInterface $userMovieRepository,
+        private readonly FeedEventService $feedEventService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -66,6 +68,14 @@ class AddMovieUseCase extends AbstractUseCase
         
         // Note: Rating is already handled in the add() method above
         // No need for separate updateRating call
+
+        $this->feedEventService->recordItemAdded(
+            $command->userId,
+            'movie',
+            $command->id->toString(),
+            $movie->getTitle(),
+            $movie->getCoverUrl()
+        );
         
         return $movie;
     }

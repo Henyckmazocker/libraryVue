@@ -269,11 +269,11 @@ async function loadEpisodes(seasonNumber) {
   if (!props.imdbId) return;
   loadingEpisodes.value = true;
   try {
-    const apiKey = process.env.VUE_APP_OMDB_API_KEY;
-    const url = `https://www.omdbapi.com/?apikey=${apiKey}&i=${props.imdbId}&Season=${seasonNumber}`;
-    const { data } = await axios.get(url);
-    if (data.Response === 'True' && data.Episodes) {
-      episodes.value = { ...episodes.value, [seasonNumber]: data.Episodes };
+    const apiUrl = process.env.VUE_APP_API_URL || '/index.php';
+    const response = await axios.post(apiUrl, { action: 'get_season_episodes_omdb', imdbId: props.imdbId, season: seasonNumber });
+    const episodeList = response.data?.data;
+    if (Array.isArray(episodeList) && episodeList.length > 0) {
+      episodes.value = { ...episodes.value, [seasonNumber]: episodeList };
     }
   } finally {
     loadingEpisodes.value = false;

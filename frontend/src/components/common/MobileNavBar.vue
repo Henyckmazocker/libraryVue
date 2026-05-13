@@ -36,7 +36,7 @@ const tabs = [
   { path: '/books',     icon: 'fas fa-book',        label: 'Libros'     },
   { path: '/movies',    icon: 'fas fa-film',        label: 'Películas'  },
   { path: '/games',     icon: 'fas fa-gamepad',     label: 'Juegos'     },
-  { path: '/albums',    icon: 'fas fa-music',       label: 'Música'     },
+  { path: '/friends',   icon: 'fas fa-users',       label: 'Social'     },
 ];
 
 const isActive = (path) => route.path.startsWith(path);

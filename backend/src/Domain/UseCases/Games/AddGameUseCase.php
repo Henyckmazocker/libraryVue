@@ -8,6 +8,7 @@ use App\Domain\Model\Game;
 use App\Domain\Repository\Game\GameRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Game\UserGameRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\AddGameCommand;
 use Psr\Log\LoggerInterface;
@@ -19,6 +20,7 @@ class AddGameUseCase extends AbstractUseCase
         private readonly GameRepositoryInterface $gameRepository,
         private readonly UserRepositoryInterface $userRepository,
         private readonly UserGameRepositoryInterface $userGameRepository,
+        private readonly FeedEventService $feedEventService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -73,7 +75,15 @@ class AddGameUseCase extends AbstractUseCase
             $command->dateFinished,
             $command->ownershipFormatId
         );
-        
+
+        $this->feedEventService->recordItemAdded(
+            $command->userId,
+            'game',
+            (string) $command->id->toInt(),
+            $game->getTitle(),
+            $game->getCoverUrl()
+        );
+
         return $game;
     }
 

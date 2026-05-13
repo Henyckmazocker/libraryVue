@@ -8,6 +8,7 @@ use App\Domain\UseCases\Movies\AddMovieUseCase;
 use App\Domain\Repository\Movie\MovieRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Movie\UserMovieRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\DTO\Commands\AddMovieCommand;
 use App\Domain\Model\User;
 use App\Domain\Model\Movie;
@@ -25,17 +26,20 @@ class AddMovieUseCaseTest extends TestCase
     private MovieRepositoryInterface $movieRepo;
     private UserRepositoryInterface $userRepo;
     private UserMovieRepositoryInterface $userMovieRepo;
+    private FeedEventService $feedEventService;
 
     protected function setUp(): void
     {
         $this->movieRepo = $this->createMock(MovieRepositoryInterface::class);
         $this->userRepo = $this->createMock(UserRepositoryInterface::class);
         $this->userMovieRepo = $this->createMock(UserMovieRepositoryInterface::class);
+        $this->feedEventService = $this->createMock(FeedEventService::class);
 
         $this->useCase = new AddMovieUseCase(
             $this->movieRepo,
             $this->userRepo,
             $this->userMovieRepo,
+            $this->feedEventService,
             new NullLogger()
         );
     }

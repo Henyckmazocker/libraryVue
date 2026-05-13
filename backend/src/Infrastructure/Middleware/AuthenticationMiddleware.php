@@ -46,14 +46,6 @@ class AuthenticationMiddleware implements MiddlewareInterface
             $payload = $this->jwtService->validate($token);
 
             if ($payload !== null && isset($payload['user_id'])) {
-                // Populate $_SESSION so downstream code that reads it still works
-                $_SESSION['user_data'] = [
-                    'id'        => (int) $payload['user_id'],
-                    'email'     => $payload['email']   ?? '',
-                    'name'      => $payload['name']    ?? '',
-                    'picture'   => $payload['picture'] ?? '',
-                    'is_active' => true,
-                ];
                 $request['user_id']     = (int) $payload['user_id'];
                 $request['auth_method'] = 'jwt';
 

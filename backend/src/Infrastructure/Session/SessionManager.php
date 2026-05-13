@@ -62,12 +62,6 @@ class SessionManager
             
             // Update last activity
             $_SESSION['last_activity'] = time();
-            
-            // Debug: Log cookie and header information
-            $sessionId = session_id();
-            $headers = headers_list();
-            $cookieParams = session_get_cookie_params();
-            error_log("Session Debug - ID: {$sessionId}, Cookie Params: " . json_encode($cookieParams) . ", Headers: " . json_encode($headers));
         }
     }
 
@@ -108,16 +102,6 @@ class SessionManager
         $hasUserKey = isset($_SESSION[self::USER_KEY]);
         $userDataNotEmpty = !empty($_SESSION[self::USER_KEY]);
         $sessionNotExpired = !$this->isSessionExpired();
-        
-        // Log for debugging
-        logger('auth')->info('Session status check', [
-            'session_id' => session_id(),
-            'has_user_key' => $hasUserKey,
-            'user_data_not_empty' => $userDataNotEmpty,
-            'session_not_expired' => $sessionNotExpired,
-            'session_data' => $_SESSION ?? [],
-            'cookie_data' => $_COOKIE ?? []
-        ]);
         
         return $hasUserKey && $userDataNotEmpty && $sessionNotExpired;
     }

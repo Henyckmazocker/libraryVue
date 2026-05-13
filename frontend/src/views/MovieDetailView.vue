@@ -339,16 +339,15 @@ const fetchMovieDetails = async (imdbId) => {
   try {
     Logger.debug(`[MovieDetailView] Fetching details for IMDb ID: ${imdbId}`);
     
-    const apiKey = process.env.VUE_APP_OMDB_API_KEY;
-    const url = `https://www.omdbapi.com/?apikey=${apiKey}&i=${imdbId}&plot=full`;
-    const response = await axios.get(url);
+    const apiUrl = process.env.VUE_APP_API_URL || '/index.php';
+    const response = await axios.post(apiUrl, { action: 'get_movie_details_omdb', imdbId, plot: 'full' });
     
-    if (response.data && response.data.Response === 'True') {
-      movie.value = transformMovieData(response.data);
+    if (response.data?.status === 'success' && response.data?.data) {
+      movie.value = transformMovieData(response.data.data);
       Logger.debug(`[MovieDetailView] Movie loaded successfully:`, movie.value.title);
     } else {
-      error.value = response.data.Error || 'No se encontró información de la película.';
-      Logger.error(`[MovieDetailView] OMDb API error:`, response.data.Error);
+      error.value = response.data?.message || 'No se encontró información de la película.';
+      Logger.error(`[MovieDetailView] OMDb API error:`, response.data?.message);
     }
   } catch (err) {
     error.value = 'No se pudo obtener información de la película. Verifica el IMDb ID.';

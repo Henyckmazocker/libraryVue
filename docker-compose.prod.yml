@@ -9,7 +9,6 @@ services:
       args:
         VUE_APP_API_URL: https://library.dcahomelab.com/api
         VUE_APP_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-        VUE_APP_OMDB_API_KEY: ${OMDB_API_KEY}
     ports:
       - "8082:80"
     environment:
@@ -43,6 +42,7 @@ services:
       - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID}
       - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
       - LASTFM_API_KEY=${LASTFM_API_KEY}
+      - OMDB_API_KEY=${OMDB_API_KEY}
       - CORS_ALLOWED_ORIGINS=https://library.dcahomelab.com
     command: >
       bash -c "cd /var/www/html && 

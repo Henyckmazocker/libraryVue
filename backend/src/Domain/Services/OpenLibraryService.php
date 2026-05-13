@@ -352,6 +352,72 @@ class OpenLibraryService
     }
 
     /**
+     * Get full book data by ISBN using the OpenLibrary Books API.
+     * Also fetches the edition to extract the work key.
+     *
+     * Returns an array with keys: edition (from /isbn/{isbn}.json) and book (from /api/books).
+     *
+     * @param string $isbn ISBN-10 or ISBN-13
+     * @return array|null Combined data or null if not found
+     */
+    public function getBookByISBN(string $isbn): ?array
+    {
+        $cacheKey = 'book_isbn_' . $isbn;
+        $cached   = $this->cache->get($cacheKey, 'openlibrary');
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        $result = [];
+
+        // 1. Edition data (work_key extraction)
+        try {
+            $editionResponse = $this->client->get("/isbn/{$isbn}.json");
+            $result['edition'] = json_decode($editionResponse->getBody()->getContents(), true) ?? [];
+        } catch (GuzzleException $e) {
+            $this->logger->debug('OpenLibrary: could not fetch edition for ISBN', [
+                'isbn'  => $isbn,
+                'error' => $e->getMessage(),
+            ]);
+            $result['edition'] = [];
+        }
+
+        // 2. Full book metadata via Books API
+        try {
+            $booksClient  = new \GuzzleHttp\Client([
+                'timeout'         => 5.0,
+                'connect_timeout' => 2.0,
+                'headers'         => [
+                    'User-Agent' => 'LibraryVue/1.0 (Educational Project)',
+                    'Accept'     => 'application/json',
+                ],
+            ]);
+            $bookResponse = $booksClient->get('https://openlibrary.org/api/books', [
+                'query' => [
+                    'bibkeys' => "ISBN:{$isbn}",
+                    'format'  => 'json',
+                    'jscmd'   => 'data',
+                ],
+            ]);
+            $bookData     = json_decode($bookResponse->getBody()->getContents(), true) ?? [];
+            $result['book'] = $bookData["ISBN:{$isbn}"] ?? null;
+        } catch (GuzzleException $e) {
+            $this->logger->error('OpenLibrary: Books API failed for ISBN', [
+                'isbn'  => $isbn,
+                'error' => $e->getMessage(),
+            ]);
+            $result['book'] = null;
+        }
+
+        if (empty($result['edition']) && $result['book'] === null) {
+            return null;
+        }
+
+        $this->cache->set($cacheKey, $result, self::CACHE_TTL_EDITIONS, 'openlibrary');
+        return $result;
+    }
+
+    /**
      * Normalize work key (remove /works/ prefix if present)
      *
      * @param string $workKey Work key

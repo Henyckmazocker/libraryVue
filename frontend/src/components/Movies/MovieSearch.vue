@@ -112,15 +112,15 @@ const searchMovies = async (query, searchType) => {
   if (searchType === 'title') {
     try {
       Logger.debug('[MovieSearch] Searching movies:', query);
-      const apiKey = process.env.VUE_APP_OMDB_API_KEY;
-      const url = `https://www.omdbapi.com/?apikey=${apiKey}&s=${encodeURIComponent(query)}`;
-      const response = await axios.get(url);
+      const apiUrl = process.env.VUE_APP_API_URL || '/index.php';
+      const response = await axios.post(apiUrl, { action: 'search_movies_omdb', title: query });
       
-      if (response.data && response.data.Response === 'True') {
-        Logger.debug(`[MovieSearch] Found ${response.data.Search.length} movies`);
-        return response.data.Search;
+      const results = response.data?.data ?? [];
+      if (response.data?.status === 'success' && Array.isArray(results) && results.length > 0) {
+        Logger.debug(`[MovieSearch] Found ${results.length} movies`);
+        return results;
       } else {
-        throw new Error(response.data.Error || 'No se encontraron resultados.');
+        throw new Error(response.data?.message || 'No se encontraron resultados.');
       }
     } catch (error) {
       Logger.error('[MovieSearch] Error searching movies:', error);

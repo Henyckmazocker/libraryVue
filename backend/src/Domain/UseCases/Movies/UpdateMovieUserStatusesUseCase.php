@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Domain\UseCases\Movies;
 
+use App\Domain\Repository\Movie\MovieRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Movie\UserMovieRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\UpdateMovieStatusesCommand;
 use Psr\Log\LoggerInterface;
@@ -16,6 +18,8 @@ class UpdateMovieUserStatusesUseCase extends AbstractUseCase
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
         private readonly UserMovieRepositoryInterface $userMovieRepository,
+        private readonly MovieRepositoryInterface $movieRepository,
+        private readonly FeedEventService $feedEventService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -40,6 +44,19 @@ class UpdateMovieUserStatusesUseCase extends AbstractUseCase
 
         // Update the user's statuses for this movie
         $this->userMovieRepository->updateStatuses($command->userId, $command->id->toString(), $command->statuses);
+
+        $movie = $this->movieRepository->findById($command->id->toString());
+        if ($movie && !empty($command->statuses)) {
+            $this->feedEventService->recordStatusChanged(
+                $command->userId,
+                'movie',
+                $command->id->toString(),
+                $movie->getTitle(),
+                $movie->getCoverUrl(),
+                '',
+                implode(', ', $command->statuses)
+            );
+        }
         
         return true;
     }

@@ -57,6 +57,17 @@
           "description": "Buscar vídeos en YouTube"
         }
       ]
+    },
+    {
+      "title": "Social",
+      "items": [
+        {
+          "name": "Amigos y Feed",
+          "path": "/friends",
+          "icon": "fas fa-users",
+          "description": "Feed de actividad y amigos"
+        }
+      ]
     }
   ]
 }

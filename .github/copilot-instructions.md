@@ -265,9 +265,9 @@ frontend/src/
 │   ├── ImportModal.vue     # CSV/XML import
 │   ├── MyLibrary.vue       # Unified library view
 │   └── HomePage.vue        # Landing page
-├── composables/        # 24 composables (UI wrappers around stores)
-├── store/              # 8 Pinia stores (auth, books, movies, games, sessions, ui, menu)
-├── views/              # BookDetailView.vue, MovieDetailView.vue, GameDetailView.vue, NotFoundView.vue
+├── composables/        # 30+ composables (UI wrappers around stores)
+├── store/              # 9 Pinia stores (auth, books, movies, games, albums, videos, sessions, social, ui, menu)
+├── views/              # BookDetailView.vue, MovieDetailView.vue, GameDetailView.vue, AlbumDetailView.vue, VideoDetailView.vue, SeriesDetailView.vue, UserProfileView.vue, NotFoundView.vue
 ├── services/           # StatsService.js, ImportService.js, FileProcessorService.js
 ├── utils/              # logger.js, storeHelpers.js, languageConstants.js
 ├── router/index.js     # Routes with meta.requiresAuth
@@ -277,7 +277,7 @@ frontend/src/
 ### State Management
 
 **Hybrid approach** - state management via:
-1. **Pinia stores** (`store/`) - Core state logic (books, movies, games, auth, sessions)
+1. **Pinia stores** (`store/`) - Core state logic (books, movies, games, albums, videos, auth, sessions, social)
 2. **Composables** (`composables/`) - UI-specific wrappers around stores, reusable logic
 3. **Component props/emits** - Parent-child communication
 4. **Session storage** - Auth persistence
@@ -459,7 +459,7 @@ When refactoring component families that share structure but differ by entity (e
 
 ### Test Suite Overview
 
-The backend has a comprehensive PHPUnit test suite: **743 tests, 2,071 assertions** across **74 test files**.
+The backend has a comprehensive PHPUnit test suite: **961 tests, 2,600 assertions**.
 
 - **Framework**: PHPUnit 11.5, PHP 8.2
 - **Test attributes**: Uses `#[Test]` attributes (not `@test` annotations)
@@ -477,12 +477,15 @@ backend/tests/
 │   │   ├── DTO/
 │   │   │   ├── Commands/        # 6 tests: BookCommands, GameCommands, MovieCommands, NoteCommands, ReadingSessionCommands, LoginUserCommand
 │   │   │   └── Queries/         # 5 tests: BookQueries, MovieQueries, EditionQueries, ReadingQueries, LibraryQueries
-│   │   └── UseCases/            # 38 tests organized by entity:
+│   │   └── UseCases/            # organized by entity:
 │   │       ├── Books/ (15)      # Add, Delete, Edit, Get, GetAll, GetAllowedStatuses, GetTrending, UpdateRating, UpdateStatuses
 │   │       │                    # + EditionNotes (Add, Delete, Update, Get, GetAll) + UpdateReadingProgress
 │   │       ├── Games/ (8)       # Add, Delete, Edit, Get, GetAllowedStatuses, GetTrending, UpdateRating, UpdateStatuses
 │   │       ├── Movies/ (12)     # Add, Delete, Edit, Get, GetAllowedStatuses, GetTrending, UpdateRating, UpdateStatuses
 │   │       │                    # + MovieNotes (Add, Delete, Update, GetNotes)
+│   │       ├── Albums/ (8)      # Add, Delete, Edit, Get, GetAllowedStatuses, GetTrending, UpdateRating, UpdateStatuses
+│   │       ├── Videos/ (5)      # Add, Delete, GetAllowedStatuses, GetVideos, UpdateRating
+│   │       ├── Social/ (6)      # Send/Accept/Reject FriendRequest, RemoveFriend, GetFeed, GetFriends+SearchUsers, PrivacySettings
 │   │       ├── Auth/ (1)        # LoginUserUseCase
 │   │       └── Library/ (2)     # GetLibraryUseCase, GetLibraryItemsUseCase
 │   └── Infrastructure/
@@ -760,6 +763,9 @@ npx cap open android   # → Run ▶ in Android Studio
 16. **Dual registration required for new backend actions** - Adding a route to `config/routes.php` is **not enough**. Every action also needs an entry in the `match($request['action'])` inside `ActionRouter::executeController()`. Missing it causes `500 "Controller method not mapped for action: xyz"`. The `routes.php` entry controls middleware; the `ActionRouter` match controls the actual method dispatch.
 17. **MySQL DATETIME rejects ISO 8601** - DB `DATETIME` columns require `Y-m-d H:i:s` format. When persisting dates received from external APIs (e.g. YouTube `publishedAt: "2026-04-12T13:51:06Z"`), convert in `toPersistence()`: `(new \DateTime($value))->format('Y-m-d H:i:s')`.
 18. **`CacheService::set` parameter order** - Signature is `set(string $key, mixed $value, int $ttl, string $namespace)`. TTL is the **3rd** parameter, namespace is the **4th**. Reversing them causes the data to be cached in the wrong namespace with an integer key.
+19. **Never edit `init.sql` for incremental schema changes** - `init.sql` / `init.prod.sql` are the **baseline** (fresh install only). All schema changes on running databases go in `docker/database/migrations/YYYYMMDD_HHMMSS_description.sql`. Run `./dev-setup.sh --migrate` (dev) or `./prod-deploy.sh --migrate` (prod) to apply pending migrations without resetting data.
+20. **`feed_events.entity_type` ENUM does NOT include `video`** - The `feed_events` table has a DB ENUM with only `book`, `movie`, `game`, `album`. Calling `FeedEventService` with `'video'` as entity type will throw a DB constraint error. Until a migration adds `'video'` to the ENUM, video use cases should NOT emit feed events.
+21. **`user_follows` table was dropped** - The `friendships` table replaced `user_follows` in migration `20260513_120000_friends_and_feed.sql`. Do not reference `user_follows` in any query.
 
 
 ## Data Flow & Debugging Guide
@@ -769,7 +775,9 @@ npx cap open android   # → Run ▶ in Android Studio
 When adding a new field (e.g., `date_started` to games), you must update **every layer**:
 
 1. **Database Schema**
-   - Add column to table: `ALTER TABLE user_games ADD COLUMN date_started DATE NULL;`
+   - **Create a migration file** in `docker/database/migrations/YYYYMMDD_HHMMSS_description.sql` (never edit `init.sql` for incremental changes)
+   - Use `ALTER TABLE ... ADD COLUMN IF NOT EXISTS ...`
+   - Apply it: `./dev-setup.sh --migrate`
    - Verify with: `docker compose exec mysql mysql -u library_user -plibrary_pass library_db -e "DESCRIBE user_games;"`
    - **CRITICAL**: Code changes mean nothing if DB column doesn't exist
 
@@ -841,6 +849,28 @@ When data doesn't appear in frontend after saving:
    - Verify ref initialization handles both formats: `props.game.dateStarted || props.game.date_started`
    - Add watcher with `{ immediate: true }` to react on mount
    - Check browser console for debug messages
+
+### Database Migrations
+
+**Schema changes go in migration files, not in `init.sql`.**
+
+```
+docker/database/migrations/YYYYMMDD_HHMMSS_description.sql
+```
+
+```bash
+# Apply pending migrations (dev — without resetting data)
+./dev-setup.sh --migrate
+
+# Apply pending migrations (prod — without resetting data)
+./prod-deploy.sh --migrate
+```
+
+- The runner tracks applied migrations in the `schema_migrations` table (auto-created on first run).
+- Migration files are applied exactly once, in filename order.
+- Use `IF NOT EXISTS` / `IF EXISTS` in migration SQL for safety.
+- `init.sql` is only used for fresh installs — never modify it for incremental changes.
+- Full documentation: [`docker/database/migrations/README.md`](../docker/database/migrations/README.md)
 
 ### Database Credentials & Access
 
@@ -1071,7 +1101,7 @@ When an API call from the frontend gets an error response but no useful backend 
 - `backend/phpunit.xml` - PHPUnit configuration
 - `backend/tests/Unit/` - All unit tests (74 files, 743 tests)
 - `frontend/src/main.js` - App setup, PrimeVue theme
-- `frontend/src/store/` - Pinia stores (books, games, movies, auth, sessions)
+- `frontend/src/store/` - Pinia stores (books, games, movies, albums, videos, auth, sessions, social)
 - `frontend/src/composables/` - UI-specific wrappers and reusable logic
 - `frontend/capacitor.config.ts` - Capacitor project config (mobile)
 - `frontend/.env.mobile` - Mobile env vars (gitignored)

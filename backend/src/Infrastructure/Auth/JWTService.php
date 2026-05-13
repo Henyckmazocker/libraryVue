@@ -19,7 +19,8 @@ class JWTService
 
     public function __construct()
     {
-        $this->secret = $_ENV['JWT_SECRET'] ?? 'fallback_secret_change_in_production';
+        $this->secret = $_ENV['JWT_SECRET']
+            ?? throw new \RuntimeException('JWT_SECRET environment variable is required and must not be empty');
     }
 
     /**

@@ -8,6 +8,7 @@ use App\Domain\UseCases\Albums\AddAlbumUseCase;
 use App\Domain\Repository\Album\AlbumRepositoryInterface;
 use App\Domain\Repository\Album\UserAlbumRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\DTO\Commands\AddAlbumCommand;
 use App\Domain\Model\Album;
 use App\Domain\Model\User;
@@ -25,6 +26,7 @@ class AddAlbumUseCaseTest extends TestCase
     private AlbumRepositoryInterface $albumRepo;
     private UserAlbumRepositoryInterface $userAlbumRepo;
     private UserRepositoryInterface $userRepo;
+    private FeedEventService $feedEventService;
 
     private const SPOTIFY_ID = '4aawyAB9vmqN3uQ7FjRGTy';
 
@@ -33,11 +35,13 @@ class AddAlbumUseCaseTest extends TestCase
         $this->albumRepo     = $this->createMock(AlbumRepositoryInterface::class);
         $this->userAlbumRepo = $this->createMock(UserAlbumRepositoryInterface::class);
         $this->userRepo      = $this->createMock(UserRepositoryInterface::class);
+        $this->feedEventService = $this->createMock(FeedEventService::class);
 
         $this->useCase = new AddAlbumUseCase(
             $this->albumRepo,
             $this->userAlbumRepo,
             $this->userRepo,
+            $this->feedEventService,
             new NullLogger()
         );
     }

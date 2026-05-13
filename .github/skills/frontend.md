@@ -20,42 +20,53 @@ This skill covers all frontend development: Vue 3 components, Pinia stores, comp
 frontend/src/
 ├── main.js                    # App entry, PrimeVue setup, custom theme preset
 ├── App.vue                    # Root component
-├── router/index.js            # 12 routes with lazy loading
+├── router/index.js            # 20+ routes with lazy loading
 ├── components/
 │   ├── Books/                 # 9 components (BookSearch, EditionSelector, EditionNotes, etc.)
-│   ├── Movies/                # 5 components (MovieSearch, MovieNotes, etc.)
+│   ├── Movies/                # 5 components (MovieSearch, MovieNotes, SeriesSeasonTracker, etc.)
 │   ├── Games/                 # 6 components (GameSearch, GameNotes, etc.)
+│   ├── Albums/                # 6 components (AlbumSearch, AlbumNotes, LibraryAlbumItem, ListeningStats, etc.)
+│   ├── Videos/                # 6 components (VideoSearch, VideoNotes, LibraryVideoItem, VideoCarouselItem, VideoListItem, etc.)
 │   ├── Dashboard/             # 11+ components (UnifiedDashboard, *DashboardContent, charts)
-│   ├── common/                # 9 shared components (Header, Sidebar, StatusSelector, TagSelector, etc.)
-│   ├── shared/                # GenericSearch, HorizontalCarousel
+│   ├── common/                # 9 shared components (Header, Sidebar, StatusSelector, TagSelector, MobileNavBar, etc.)
+│   ├── shared/                # GenericSearch, HorizontalCarousel, TrendingCarousel
 │   ├── import/                # Import workflow components
 │   ├── EditItemModal.vue      # Shared edit modal for all entity types
 │   ├── ImportModal.vue        # CSV/XML import
 │   ├── MyLibrary.vue          # Unified library view
 │   └── HomePage.vue           # Landing page
-├── composables/               # 24 composables (see below)
-├── store/                     # 8 Pinia stores
+├── composables/               # 30+ composables (see below)
+├── store/                     # 9 Pinia stores
 ├── services/                  # FileProcessorService, ImportService, StatsService
-├── utils/                     # logger.js, languageConstants.js
-├── views/                     # BookDetailView, MovieDetailView, GameDetailView
-├── config/                    # App configuration
+├── utils/                     # logger.js, languageConstants.js, storeHelpers.js
+├── views/                     # BookDetailView, MovieDetailView, GameDetailView, AlbumDetailView, VideoDetailView, SeriesDetailView, UserProfileView, NotFoundView
+├── config/                    # design-tokens.js, primevue-preset.js
 └── assets/styles/             # CSS/SCSS files
 ```
 
 ## Routes
 
-| Path | Component | Lazy | Auth Required |
-|---|---|---|---|
-| `/` | HomePage | No | No |
-| `/books` | BookSearch | No | No |
-| `/movies` | MovieSearch | No | No |
-| `/games` | GameSearch | No | No |
-| `/library` | MyLibrary | Yes | Yes |
-| `/dashboard` | UnifiedDashboard | Yes | Yes |
-| `/dashboard/books` | Redirect → `/dashboard?tab=books` | — | — |
-| `/books/:isbn` | BookDetailView | Yes | Yes |
-| `/movies/:imdbId` | MovieDetailView | Yes | Yes |
-| `/games/:gameId` | GameDetailView | Yes | Yes |
+| Path | Component | Auth Required |
+|---|---|---|
+| `/` | HomePage | No |
+| `/books` | BookSearch | No |
+| `/movies` | MovieSearch | No |
+| `/games` | GameSearch | No |
+| `/albums` | AlbumSearch | No |
+| `/videos` | VideoSearch | Yes |
+| `/library` | MyLibrary | Yes |
+| `/dashboard` | UnifiedDashboard | Yes |
+| `/dashboard/books’,’/movies’,’/games’,’/albums’,’/videos` | Redirect → `/dashboard?tab=*` | — |
+| `/profile` | UserProfileView | Yes |
+| `/books/:isbn` | BookDetailView | Yes |
+| `/movies/:imdbId` | MovieDetailView | Yes |
+| `/series/:imdbId` | SeriesDetailView | Yes |
+| `/games/:gameId` | GameDetailView | Yes |
+| `/albums/:albumId` | AlbumDetailView | Yes |
+| `/videos/:youtubeId` | VideoDetailView | Yes |
+| `/friends` | FriendsView | Yes |
+| `/user/:username` | PublicProfileView | Yes |
+| `/:pathMatch(.*)` | NotFoundView | No |
 
 Router `afterEach` hook applies dark mode theme from `ui` store.
 
@@ -71,7 +82,10 @@ Business logic and API communication live in stores:
 | `books` | `store/books.js` | books[], allowedStatuses[], userTags[], searchResults[] | `fetchBooks()`, `addBook()`, `deleteBook()`, `updateBookRating()`, `editUserBook()` |
 | `movies` | `store/movies.js` | movies[], allowedStatuses[], userTags[], searchResults[] | `fetchMovies()`, `addMovie()`, `deleteMovie()`, `editUserMovie()` |
 | `games` | `store/games.js` | games[], allowedStatuses[], userTags[], gameNotes{}, searchResults[] | `fetchGames()`, `addGame()`, `deleteGame()`, `editUserGame()` |
+| `albums` | `store/albums.js` | albums[], allowedStatuses[], userTags[], searchResults[] | `fetchAlbums()`, `addAlbum()`, `deleteAlbum()`, `editUserAlbum()` |
+| `videos` | `store/videos.js` | videos[], allowedStatuses[], userTags[], videoNotes{}, searchResults[] | `fetchVideos()`, `addVideo()`, `deleteVideo()`, `editUserVideo()`, `searchYouTubeVideos()` |
 | `sessions` | `store/sessions.js` | activeSessions{}, sessionHistories{} | `createSession()`, `completeSession()`, `pauseSession()`, `resumeSession()` |
+| `social` | `store/social.js` | friends[], pendingRequests[], feed[], privacySettings, searchResults[] | `fetchFriends()`, `sendFriendRequest()`, `acceptFriendRequest()`, `loadFeed()`, `updatePrivacySettings()` |
 | `ui` | `store/ui.js` | modals{}, notifications[], theme, sidebarOpen, globalLoading | `showConfirmation()`, `showNotification()`, `toggleTheme()` |
 | `menu` | `store/menu.js` | menuData, isLoading | `loadMenu()` (from sidebar-menu.json) |
 
@@ -102,17 +116,21 @@ UI-specific wrappers around stores and reusable logic:
 | Composable | Purpose | Pattern |
 |---|---|---|
 | `useAuth` | Auth state + login/logout | Wraps auth store |
-| `useBooks` | Book operations + confirmations | Wraps books store, adds delete confirmation |
+| `useBooks` | Book operations + confirmations | Wraps books store |
 | `useMovies` | Movie operations | Wraps movies store |
 | `useGames` | Game operations | Wraps games store |
+| `useAlbums` | Album operations | Wraps albums store |
 | `useSearch` | Generic search debounce/results | Standalone logic |
 | `useWorkSearch` | OpenLibrary work/edition search | Orchestrates book search flow |
-| `useTrending` | Trending items across types | Fetches from API |
+| `useTrending` | Trending items across all entity types | Fetches from API |
 | `useReadingProgress` | Page progress tracking | Wraps sessions store |
 | `useReadingSessions` | Session CRUD | Wraps sessions store |
 | `useEditionNotes` | Book edition notes | CRUD operations |
 | `useGameNotes` | Game notes | CRUD operations |
 | `useMovieNotes` | Movie notes | CRUD operations |
+| `useAlbumNotes` | Album notes | CRUD operations |
+| `useVideoNotes` | Video notes | CRUD operations |
+| `useListeningStats` | Album listening statistics | Wraps StatsService |
 | `useItemEdit` | Edit modal logic | Shared across entity types |
 | `useItemModal` | Detail modal | Shared across entity types |
 | `useFileImport` | CSV/XML import workflow | File processing |
@@ -124,6 +142,10 @@ UI-specific wrappers around stores and reusable logic:
 | `useSessionFeedback` | Session action feedback | UX messages |
 | `useSidebarMenu` | Sidebar menu data | Wraps menu store |
 | `useTheme` | Dark/light toggle | Wraps ui store |
+| `useFeed` | Activity feed with infinite scroll | Wraps social store, uses IntersectionObserver |
+| `useFriends` | Friend operations | Wraps social store |
+| `useUserSearch` | Search other users | Wraps social store |
+| `usePrivacySettings` | Feed privacy preferences | Wraps social store |
 
 **Critical pattern**: Always use `storeToRefs()` to get reactive state from stores in composables:
 
@@ -144,6 +166,70 @@ export function useGames() {
   return { games, allowedStatuses, deleteGame, ...store };
 }
 ```
+
+## Social & Feed Feature
+
+### Stores & Composables
+
+- **`store/social.js`** — Manages friends, pending requests, activity feed, privacy settings, user search
+- **`useFeed`** — Activity feed with **IntersectionObserver-based infinite scroll** (`sentinel` ref + observer pattern)
+- **`useFriends`** — Friend CRUD operations
+- **`useUserSearch`** — Search users by name/username
+- **`usePrivacySettings`** — Load/save privacy toggles
+
+### Views
+
+- `/friends` → `FriendsView.vue` — Friend list + pending requests
+- `/user/:username` → `PublicProfileView.vue` — Public reading profile
+
+### API Actions (backend routes)
+
+| Action | Auth | CSRF |
+|---|---|---|
+| `send_friend_request` | Yes | Yes |
+| `accept_friend_request` | Yes | Yes |
+| `reject_friend_request` | Yes | Yes |
+| `remove_friend` | Yes | Yes |
+| `update_privacy_settings` | Yes | Yes |
+| `get_friends` | Yes | No |
+| `get_friend_requests` | Yes | No |
+| `search_users` | Yes | No |
+| `get_public_profile` | Yes | No |
+| `get_feed` | Yes | No |
+
+---
+
+## Social & Feed Feature
+
+### Stores & Composables
+
+- **`store/social.js`** — Manages friends, pending requests, activity feed, privacy settings, user search
+- **`useFeed`** — Activity feed with **IntersectionObserver-based infinite scroll** (`sentinel` ref + observer pattern)
+- **`useFriends`** — Friend CRUD operations
+- **`useUserSearch`** — Search users by name/username
+- **`usePrivacySettings`** — Load/save privacy toggles
+
+### Views
+
+- `/friends` → `FriendsView.vue` — Friend list + pending requests
+- `/user/:username` → `PublicProfileView.vue` — Public reading profile
+
+### API Actions (backend routes)
+
+| Action | Auth | CSRF |
+|---|---|---|
+| `send_friend_request` | Yes | Yes |
+| `accept_friend_request` | Yes | Yes |
+| `reject_friend_request` | Yes | Yes |
+| `remove_friend` | Yes | Yes |
+| `update_privacy_settings` | Yes | Yes |
+| `get_friends` | Yes | No |
+| `get_friend_requests` | Yes | No |
+| `search_users` | Yes | No |
+| `get_public_profile` | Yes | No |
+| `get_feed` | Yes | No |
+
+---
 
 ## Component Patterns
 

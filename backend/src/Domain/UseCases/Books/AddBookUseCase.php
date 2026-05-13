@@ -12,6 +12,7 @@ use App\Domain\Repository\Book\WorkRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Book\UserBookEditionRepositoryInterface;
 use App\Domain\Services\BookImportServiceInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\AddBookCommand;
 use Psr\Log\LoggerInterface;
@@ -26,6 +27,7 @@ class AddBookUseCase extends AbstractUseCase
         private readonly WorkRepositoryInterface $workRepository,
         private readonly UserRepositoryInterface $userRepository,
         private readonly UserBookEditionRepositoryInterface $userBookEditionRepository,
+        private readonly FeedEventService $feedEventService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -183,7 +185,17 @@ class AddBookUseCase extends AbstractUseCase
         }
 
         // Return in legacy format for frontend compatibility
-        return $edition->toLegacyFormat($work);
+        $legacyFormat = $edition->toLegacyFormat($work);
+
+        $this->feedEventService->recordItemAdded(
+            $command->userId,
+            'book',
+            $command->isbn->toString(),
+            $edition->getTitle(),
+            $legacyFormat['cover'] ?? null
+        );
+
+        return $legacyFormat;
     }
 
     protected function getLogContext(): string

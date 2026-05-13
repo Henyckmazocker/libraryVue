@@ -7,6 +7,8 @@ namespace Tests\Unit\Domain\UseCases\Movies;
 use App\Domain\UseCases\Movies\UpdateMovieUserStatusesUseCase;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Movie\UserMovieRepositoryInterface;
+use App\Domain\Repository\Movie\MovieRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\DTO\Commands\UpdateMovieStatusesCommand;
 use App\Domain\Model\User;
 use App\Domain\Model\ValueObjects\GoogleId;
@@ -22,15 +24,21 @@ class UpdateMovieUserStatusesUseCaseTest extends TestCase
     private UpdateMovieUserStatusesUseCase $useCase;
     private UserRepositoryInterface $userRepo;
     private UserMovieRepositoryInterface $userMovieRepo;
+    private MovieRepositoryInterface $movieRepo;
+    private FeedEventService $feedEventService;
 
     protected function setUp(): void
     {
         $this->userRepo = $this->createMock(UserRepositoryInterface::class);
         $this->userMovieRepo = $this->createMock(UserMovieRepositoryInterface::class);
+        $this->movieRepo = $this->createMock(MovieRepositoryInterface::class);
+        $this->feedEventService = $this->createMock(FeedEventService::class);
 
         $this->useCase = new UpdateMovieUserStatusesUseCase(
             $this->userRepo,
             $this->userMovieRepo,
+            $this->movieRepo,
+            $this->feedEventService,
             new NullLogger()
         );
     }

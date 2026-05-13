@@ -44,7 +44,6 @@ use App\Domain\Repository\Book\ReadingProgressRepositoryInterface;
 use App\Domain\Repository\Book\WorkRepositoryInterface;
 use App\Domain\Services\WorkSearchService;
 use App\Domain\Services\GoogleBooksService;
-use App\Infrastructure\Middleware\AuthMiddleware;
 use Psr\Log\LoggerInterface;
 
 class BookController extends BaseController implements Contracts\BookControllerInterface
@@ -61,7 +60,6 @@ class BookController extends BaseController implements Contracts\BookControllerI
     private BookTagRepositoryInterface $bookTagRepository;
     private ReadingSessionRepositoryInterface $readingSessionRepository;
     private ReadingProgressRepositoryInterface $readingProgressRepository;
-    private AuthMiddleware $authMiddleware;
     private EditUserBookUseCase $editUserBookUseCase;
     private GetTrendingBooksUseCase $getTrendingBooksUseCase;
     private UpdateReadingProgressUseCase $updateReadingProgressUseCase;
@@ -87,7 +85,6 @@ class BookController extends BaseController implements Contracts\BookControllerI
         BookTagRepositoryInterface $bookTagRepository,
         ReadingSessionRepositoryInterface $readingSessionRepository,
         ReadingProgressRepositoryInterface $readingProgressRepository,
-        AuthMiddleware $authMiddleware,
         EditUserBookUseCase $editUserBookUseCase,
         GetTrendingBooksUseCase $getTrendingBooksUseCase,
         UpdateReadingProgressUseCase $updateReadingProgressUseCase,
@@ -112,7 +109,6 @@ class BookController extends BaseController implements Contracts\BookControllerI
         $this->bookTagRepository = $bookTagRepository;
         $this->readingSessionRepository = $readingSessionRepository;
         $this->readingProgressRepository = $readingProgressRepository;
-        $this->authMiddleware = $authMiddleware;
         $this->editUserBookUseCase = $editUserBookUseCase;
         $this->getTrendingBooksUseCase = $getTrendingBooksUseCase;
         $this->updateReadingProgressUseCase = $updateReadingProgressUseCase;
@@ -689,15 +685,46 @@ class BookController extends BaseController implements Contracts\BookControllerI
     }
 
     /**
+     * Proxy for OpenLibrary book data by ISBN.
+     * Returns edition data (work_key extraction) + full book metadata.
+     *
+     * @param array $data Request data containing 'isbn'
+     * @return array
+     */
+    public function getOpenLibraryBookByISBN(array $data): array
+    {
+        $isbn = trim($data['isbn'] ?? '');
+        if (empty($isbn)) {
+            return $this->errorResponse('ISBN is required', 400);
+        }
+
+        try {
+            $result = $this->workSearchService->getOpenLibraryService()->getBookByISBN($isbn);
+
+            if ($result === null) {
+                return $this->errorResponse('Book not found in OpenLibrary', 404);
+            }
+
+            return $this->successResponse('OpenLibrary book data retrieved', $result);
+
+        } catch (\Exception $e) {
+            $this->logger->error('BookController: OpenLibrary ISBN lookup failed', [
+                'isbn'  => $isbn,
+                'error' => $e->getMessage(),
+            ]);
+            return $this->errorResponse('Failed to retrieve book from OpenLibrary: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
      * Add a note to a book edition
      * 
      * @param array $data Request data
      * @return array Success or error response
      */
-    public function addEditionNote(array $data): array
+    public function addEditionNote(array $data, int $userId): array
     {
         try {
-            $userId = $this->authMiddleware->getCurrentUserId();
             $command = AddEditionNoteCommand::fromArray($data, $userId);
             
             $result = $this->addEditionNoteUseCase->execute($command);
@@ -721,10 +748,9 @@ class BookController extends BaseController implements Contracts\BookControllerI
      * @param array $data Request data
      * @return array Success or error response
      */
-    public function updateEditionNote(array $data): array
+    public function updateEditionNote(array $data, int $userId): array
     {
         try {
-            $userId = $this->authMiddleware->getCurrentUserId();
             $command = UpdateEditionNoteCommand::fromArray($data, $userId);
             
             $result = $this->updateEditionNoteUseCase->execute($command);
@@ -748,10 +774,9 @@ class BookController extends BaseController implements Contracts\BookControllerI
      * @param array $data Request data
      * @return array Success or error response
      */
-    public function deleteEditionNote(array $data): array
+    public function deleteEditionNote(array $data, int $userId): array
     {
         try {
-            $userId = $this->authMiddleware->getCurrentUserId();
             $command = DeleteEditionNoteCommand::fromArray($data, $userId);
             
             $result = $this->deleteEditionNoteUseCase->execute($command);
@@ -775,10 +800,9 @@ class BookController extends BaseController implements Contracts\BookControllerI
      * @param array $data Request data
      * @return array Success or error response
      */
-    public function getEditionNotes(array $data): array
+    public function getEditionNotes(array $data, int $userId): array
     {
         try {
-            $userId = $this->authMiddleware->getCurrentUserId();
             $query = GetEditionNotesQuery::fromArray($data, $userId);
             
             $result = $this->getEditionNotesUseCase->execute($query);
@@ -802,10 +826,9 @@ class BookController extends BaseController implements Contracts\BookControllerI
      * @param array $data Request data
      * @return array Success or error response
      */
-    public function getEditionNote(array $data): array
+    public function getEditionNote(array $data, int $userId): array
     {
         try {
-            $userId = $this->authMiddleware->getCurrentUserId();
             $query = GetEditionNoteQuery::fromArray($data, $userId);
             
             $result = $this->getEditionNoteUseCase->execute($query);

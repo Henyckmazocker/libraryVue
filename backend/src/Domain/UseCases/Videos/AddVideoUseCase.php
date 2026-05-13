@@ -8,6 +8,7 @@ use App\Domain\Model\Video;
 use App\Domain\Repository\Video\VideoRepositoryInterface;
 use App\Domain\Repository\Video\UserVideoRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\AddVideoCommand;
 use Psr\Log\LoggerInterface;
@@ -19,6 +20,7 @@ class AddVideoUseCase extends AbstractUseCase
         private readonly VideoRepositoryInterface $videoRepository,
         private readonly UserVideoRepositoryInterface $userVideoRepository,
         private readonly UserRepositoryInterface $userRepository,
+        private readonly FeedEventService $feedEventService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -68,6 +70,14 @@ class AddVideoUseCase extends AbstractUseCase
             $command->statuses,
             $command->userRating?->toFloat(),
             $command->personalNotes
+        );
+
+        $this->feedEventService->recordItemAdded(
+            $command->userId,
+            'video',
+            (string) $video->getId(),
+            $video->getTitle(),
+            $video->getCoverUrl()
         );
 
         return $video;

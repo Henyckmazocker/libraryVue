@@ -7,6 +7,7 @@ namespace App\Domain\UseCases\Albums;
 use App\Domain\Repository\Album\UserAlbumRepositoryInterface;
 use App\Domain\Repository\Album\AlbumRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\UpdateAlbumStatusesCommand;
 use Psr\Log\LoggerInterface;
@@ -18,6 +19,7 @@ class UpdateAlbumUserStatusesUseCase extends AbstractUseCase
         private readonly UserAlbumRepositoryInterface $userAlbumRepository,
         private readonly AlbumRepositoryInterface $albumRepository,
         private readonly UserRepositoryInterface $userRepository,
+        private readonly FeedEventService $feedEventService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -53,6 +55,19 @@ class UpdateAlbumUserStatusesUseCase extends AbstractUseCase
             $command->albumId,
             $command->statuses
         );
+
+        $album = $this->albumRepository->findById($command->albumId);
+        if ($album && !empty($command->statuses)) {
+            $this->feedEventService->recordStatusChanged(
+                $command->userId,
+                'album',
+                (string) $command->albumId,
+                $album->getTitle(),
+                $album->getCoverUrl(),
+                '',
+                implode(', ', $command->statuses)
+            );
+        }
     }
 
     protected function getLogContext(): string

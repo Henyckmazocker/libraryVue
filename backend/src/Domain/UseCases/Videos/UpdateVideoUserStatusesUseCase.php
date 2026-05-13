@@ -7,6 +7,7 @@ namespace App\Domain\UseCases\Videos;
 use App\Domain\Repository\Video\VideoRepositoryInterface;
 use App\Domain\Repository\Video\UserVideoRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\UpdateVideoStatusesCommand;
 use Psr\Log\LoggerInterface;
@@ -18,6 +19,7 @@ class UpdateVideoUserStatusesUseCase extends AbstractUseCase
         private readonly VideoRepositoryInterface $videoRepository,
         private readonly UserVideoRepositoryInterface $userVideoRepository,
         private readonly UserRepositoryInterface $userRepository,
+        private readonly FeedEventService $feedEventService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -48,6 +50,18 @@ class UpdateVideoUserStatusesUseCase extends AbstractUseCase
             $video->getId(),
             $command->statuses
         );
+
+        if (!empty($command->statuses)) {
+            $this->feedEventService->recordStatusChanged(
+                $command->userId,
+                'video',
+                (string) $video->getId(),
+                $video->getTitle(),
+                $video->getCoverUrl(),
+                '',
+                implode(', ', $command->statuses)
+            );
+        }
 
         return true;
     }

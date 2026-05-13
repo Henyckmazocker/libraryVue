@@ -7,6 +7,7 @@ namespace App\Domain\UseCases\Games;
 use App\Domain\Repository\Game\UserGameRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Game\GameRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\UpdateGameStatusesCommand;
 use Psr\Log\LoggerInterface;
@@ -18,6 +19,7 @@ class UpdateGameUserStatusesUseCase extends AbstractUseCase
         private readonly UserGameRepositoryInterface $userGameRepository,
         private readonly UserRepositoryInterface $userRepository,
         private readonly GameRepositoryInterface $gameRepository,
+        private readonly FeedEventService $feedEventService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -54,6 +56,19 @@ class UpdateGameUserStatusesUseCase extends AbstractUseCase
             $command->gameId,
             $command->statuses
         );
+
+        $game = $this->gameRepository->findById($command->gameId);
+        if ($game && !empty($command->statuses)) {
+            $this->feedEventService->recordStatusChanged(
+                $command->userId,
+                'game',
+                (string) $command->gameId,
+                $game->getTitle(),
+                $game->getCoverUrl(),
+                '',
+                implode(', ', $command->statuses)
+            );
+        }
     }
 
     protected function getLogContext(): string

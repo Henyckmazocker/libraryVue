@@ -5,6 +5,7 @@ import App from './App.vue';
 import { createPinia } from 'pinia';
 import router from './router';
 import PrimeVue from 'primevue/config';
+import ToastService from 'primevue/toastservice';
 import MultiSelect from 'primevue/multiselect';
 import { CustomPreset } from '@/config/primevue-preset';
 
@@ -22,6 +23,7 @@ app.use(PrimeVue, {
         },
     }
   );
+app.use(ToastService);
 app.component('MultiSelect', MultiSelect);
 
 if (router) {

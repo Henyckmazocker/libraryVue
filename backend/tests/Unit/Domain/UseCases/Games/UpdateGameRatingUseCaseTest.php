@@ -7,6 +7,8 @@ namespace Tests\Unit\Domain\UseCases\Games;
 use App\Domain\UseCases\Games\UpdateGameRatingUseCase;
 use App\Domain\Repository\Game\UserGameRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
+use App\Domain\Repository\Game\GameRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\DTO\Commands\UpdateGameRatingCommand;
 use App\Domain\Model\User;
 use App\Domain\Model\ValueObjects\GoogleId;
@@ -22,15 +24,21 @@ class UpdateGameRatingUseCaseTest extends TestCase
     private UpdateGameRatingUseCase $useCase;
     private UserGameRepositoryInterface $userGameRepo;
     private UserRepositoryInterface $userRepo;
+    private GameRepositoryInterface $gameRepo;
+    private FeedEventService $feedEventService;
 
     protected function setUp(): void
     {
         $this->userGameRepo = $this->createMock(UserGameRepositoryInterface::class);
         $this->userRepo = $this->createMock(UserRepositoryInterface::class);
+        $this->gameRepo = $this->createMock(GameRepositoryInterface::class);
+        $this->feedEventService = $this->createMock(FeedEventService::class);
 
         $this->useCase = new UpdateGameRatingUseCase(
             $this->userGameRepo,
             $this->userRepo,
+            $this->gameRepo,
+            $this->feedEventService,
             new NullLogger()
         );
     }

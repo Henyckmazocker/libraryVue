@@ -46,28 +46,6 @@ abstract class BaseController
     }
 
     /**
-     * Validate authentication state and return user data
-     */
-    protected function validateAuth(): array
-    {
-        // This method would typically check session or token
-        // For now, throwing an exception to indicate it needs implementation
-        throw new InvalidArgumentException('Authentication validation not implemented in controller');
-    }
-
-    /**
-     * Get the authenticated user ID after validation
-     */
-    protected function getAuthenticatedUserId(): int
-    {
-        $authResult = $this->validateAuth();
-        if ($authResult['status'] === 'error') {
-            throw new InvalidArgumentException('User not authenticated');
-        }
-        return $authResult['user']['id'];
-    }
-    
-    /**
      * Extract numeric rating from input, handling null and zero values
      */
     protected function extractNumericRating($rating): ?float

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Domain\UseCases\Books;
 
 use App\Domain\Repository\User\UserRepositoryInterface;
+use App\Domain\Repository\Book\EditionRepositoryInterface;
 use App\Domain\Repository\Book\UserBookRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\UpdateBookStatusesCommand;
 use Psr\Log\LoggerInterface;
@@ -16,6 +18,8 @@ class UpdateBookUserStatusesUseCase extends AbstractUseCase
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
         private readonly UserBookRepositoryInterface $userBookRepository,
+        private readonly EditionRepositoryInterface $editionRepository,
+        private readonly FeedEventService $feedEventService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -40,6 +44,19 @@ class UpdateBookUserStatusesUseCase extends AbstractUseCase
 
         // Update the user's statuses for this book
         $this->userBookRepository->updateStatuses($command->userId, $command->isbn->toString(), $command->statuses);
+
+        $edition = $this->editionRepository->findByIsbn($command->isbn->toString());
+        if ($edition && !empty($command->statuses)) {
+            $this->feedEventService->recordStatusChanged(
+                $command->userId,
+                'book',
+                $command->isbn->toString(),
+                $edition->getTitle(),
+                null,
+                '',
+                implode(', ', $command->statuses)
+            );
+        }
         
         return true;
     }

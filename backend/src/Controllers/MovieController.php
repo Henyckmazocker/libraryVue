@@ -33,6 +33,7 @@ use App\Domain\DTO\Queries\GetMovieNotesQuery;
 use App\Domain\DTO\Queries\GetTrendingMoviesQuery;
 use App\Infrastructure\Middleware\AuthMiddleware;
 use App\Domain\Repository\Movie\MovieTagRepositoryInterface;
+use App\Domain\Services\OmdbService;
 
 class MovieController extends BaseController implements Contracts\MovieControllerInterface
 {
@@ -53,6 +54,7 @@ class MovieController extends BaseController implements Contracts\MovieControlle
     private DeleteMovieNoteUseCase $deleteMovieNoteUseCase;
     private TrackSeriesSeasonUseCase $trackSeriesSeasonUseCase;
     private GetSeriesProgressUseCase $getSeriesProgressUseCase;
+    private OmdbService $omdbService;
 
     public function __construct(
         AddMovieUseCase $addMovieUseCase,
@@ -70,7 +72,8 @@ class MovieController extends BaseController implements Contracts\MovieControlle
         UpdateMovieNoteUseCase $updateMovieNoteUseCase,
         DeleteMovieNoteUseCase $deleteMovieNoteUseCase,
         TrackSeriesSeasonUseCase $trackSeriesSeasonUseCase,
-        GetSeriesProgressUseCase $getSeriesProgressUseCase
+        GetSeriesProgressUseCase $getSeriesProgressUseCase,
+        OmdbService $omdbService
     ) {
         $this->addMovieUseCase = $addMovieUseCase;
         $this->deleteMovieUseCase = $deleteMovieUseCase;
@@ -88,6 +91,7 @@ class MovieController extends BaseController implements Contracts\MovieControlle
         $this->deleteMovieNoteUseCase = $deleteMovieNoteUseCase;
         $this->trackSeriesSeasonUseCase = $trackSeriesSeasonUseCase;
         $this->getSeriesProgressUseCase = $getSeriesProgressUseCase;
+        $this->omdbService = $omdbService;
     }
 
     /**
@@ -328,5 +332,45 @@ class MovieController extends BaseController implements Contracts\MovieControlle
     {
         $progress = $this->getSeriesProgressUseCase->execute($query);
         return $this->successResponse('Series progress retrieved', $progress);
+    }
+
+    // =========================================================================
+    // OMDb Proxy
+    // =========================================================================
+
+    public function searchMoviesOmdb(array $data): array
+    {
+        $title = trim($data['title'] ?? '');
+        if (empty($title)) {
+            return $this->errorResponse('Title is required', 400);
+        }
+        $type    = $data['type'] ?? '';
+        $results = $this->omdbService->searchByTitle($title, $type);
+        return $this->successResponse('OMDb search results', $results);
+    }
+
+    public function getMovieDetailsOmdb(array $data): array
+    {
+        $imdbId = trim($data['imdbId'] ?? $data['imdb_id'] ?? '');
+        if (empty($imdbId)) {
+            return $this->errorResponse('imdbId is required', 400);
+        }
+        $plot   = $data['plot'] ?? 'full';
+        $result = $this->omdbService->getDetailsByImdbId($imdbId, $plot);
+        if ($result === null) {
+            return $this->errorResponse('Movie not found in OMDb', 404);
+        }
+        return $this->successResponse('Movie details retrieved', $result);
+    }
+
+    public function getSeasonEpisodesOmdb(array $data): array
+    {
+        $imdbId = trim($data['imdbId'] ?? $data['imdb_id'] ?? '');
+        $season = (int) ($data['season'] ?? 0);
+        if (empty($imdbId) || $season < 1) {
+            return $this->errorResponse('imdbId and season are required', 400);
+        }
+        $episodes = $this->omdbService->getSeasonEpisodes($imdbId, $season);
+        return $this->successResponse('Season episodes retrieved', $episodes);
     }
 }

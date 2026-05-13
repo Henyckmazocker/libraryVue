@@ -7,6 +7,7 @@ namespace App\Domain\UseCases\Books;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Book\UserBookEditionRepositoryInterface;
 use App\Domain\Repository\Book\EditionRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\UpdateBookRatingCommand;
 use Psr\Log\LoggerInterface;
@@ -18,6 +19,7 @@ class UpdateBookRatingUseCase extends AbstractUseCase
         private readonly UserRepositoryInterface $userRepository,
         private readonly UserBookEditionRepositoryInterface $userBookEditionRepository,
         private readonly EditionRepositoryInterface $editionRepository,
+        private readonly FeedEventService $feedEventService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -55,6 +57,15 @@ class UpdateBookRatingUseCase extends AbstractUseCase
             $edition->getEditionId(),
             $command->rating->toFloat(), // work_rating
             null // edition_rating - could be added as optional parameter
+        );
+
+        $this->feedEventService->recordItemRated(
+            $command->userId,
+            'book',
+            $command->isbn->toString(),
+            $edition->getTitle(),
+            null,
+            $command->rating->toFloat()
         );
         
         return true;

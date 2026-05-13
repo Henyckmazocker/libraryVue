@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Domain\UseCases\Movies;
 
+use App\Domain\Repository\Movie\MovieRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Movie\UserMovieRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\UpdateMovieRatingCommand;
 use Psr\Log\LoggerInterface;
@@ -16,6 +18,8 @@ class UpdateMovieRatingUseCase extends AbstractUseCase
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
         private readonly UserMovieRepositoryInterface $userMovieRepository,
+        private readonly MovieRepositoryInterface $movieRepository,
+        private readonly FeedEventService $feedEventService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -44,6 +48,18 @@ class UpdateMovieRatingUseCase extends AbstractUseCase
             $command->id->toString(), 
             $command->rating->toFloat()
         );
+
+        $movie = $this->movieRepository->findById($command->id->toString());
+        if ($movie) {
+            $this->feedEventService->recordItemRated(
+                $command->userId,
+                'movie',
+                $command->id->toString(),
+                $movie->getTitle(),
+                $movie->getCoverUrl(),
+                $command->rating->toFloat()
+            );
+        }
         
         return true;
     }

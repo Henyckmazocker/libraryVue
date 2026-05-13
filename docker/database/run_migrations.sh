@@ -35,12 +35,13 @@ error()   { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 ENV_FILE_ARG=""
 COMPOSE_FILE_ARG=""
 
-for arg in "$@"; do
-  case "$arg" in
-    --env-file=*)     ENV_FILE_ARG="${arg#--env-file=}"     ;;
-    --env-file)       shift; ENV_FILE_ARG="$1"              ;;
-    --compose-file=*) COMPOSE_FILE_ARG="${arg#--compose-file=}" ;;
-    --compose-file)   shift; COMPOSE_FILE_ARG="$1"          ;;
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --env-file=*)     ENV_FILE_ARG="${1#--env-file=}"     ; shift ;;
+    --env-file)       ENV_FILE_ARG="$2"                   ; shift 2 ;;
+    --compose-file=*) COMPOSE_FILE_ARG="${1#--compose-file=}" ; shift ;;
+    --compose-file)   COMPOSE_FILE_ARG="$2"               ; shift 2 ;;
+    *)                shift ;;
   esac
 done
 

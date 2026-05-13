@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Domain\UseCases\Games;
 
+use App\Domain\Repository\Game\GameRepositoryInterface;
 use App\Domain\Repository\Game\UserGameRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\UpdateGameRatingCommand;
 use Psr\Log\LoggerInterface;
@@ -16,6 +18,8 @@ class UpdateGameRatingUseCase extends AbstractUseCase
     public function __construct(
         private readonly UserGameRepositoryInterface $userGameRepository,
         private readonly UserRepositoryInterface $userRepository,
+        private readonly GameRepositoryInterface $gameRepository,
+        private readonly FeedEventService $feedEventService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -44,6 +48,18 @@ class UpdateGameRatingUseCase extends AbstractUseCase
             $command->gameId,
             $command->rating->toFloat()
         );
+
+        $game = $this->gameRepository->findById($command->gameId);
+        if ($game) {
+            $this->feedEventService->recordItemRated(
+                $command->userId,
+                'game',
+                (string) $command->gameId,
+                $game->getTitle(),
+                $game->getCoverUrl(),
+                $command->rating->toFloat()
+            );
+        }
     }
 
     protected function getLogContext(): string

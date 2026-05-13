@@ -11,7 +11,7 @@ This skill covers all database-related tasks: schema design, queries, migrations
 - **Credentials**: `library_user` / password from `$DB_PASSWORD` env var (dev default: `library_pass`)
 - **Ports**: `3308` (host) → `3306` (container)
 - **Schema source**: `docker/database/init.sql` (development), `docker/database/init.prod.sql` (production)
-- **Migrations folder**: `backend/database/migrations/` (currently unused — schema managed via init.sql)
+- **Migrations folder**: `docker/database/migrations/` — SQL files named `YYYYMMDD_HHMMSS_description.sql`
 
 ## Access Commands
 
@@ -98,15 +98,38 @@ Per-entity custom tags:
 | `reading_sessions` | Sessions per edition: session_number, start_date, end_date, start_page, end_page, is_active |
 | `reading_progress_history` | Granular: current_page, previous_page, progress_type ENUM (manual, automatic, session_start, session_end) |
 
-### Other Tables
+### Video Tables
+
+| Table | PK | Purpose | Notable Columns |
+|---|---|---|---|
+| `videos` | `id` AUTO_INCREMENT | YouTube video catalog | youtube_id VARCHAR(11) UNIQUE, title, channel_name, channel_id, cover_url, duration, duration_seconds, view_count, like_count, published_at DATETIME, description, categories JSON |
+| `video_statuses` | `id` | Allowed status definitions | name (saved, watched, watch-later, abandoned, rewatching) |
+| `user_videos` | user_id + video_id | User's video collection | personal_rating DECIMAL(2,1), personal_notes, watch_count, watched_at |
+| `user_video_statuses` | user_id + video_id + status_id | User's video statuses | many-to-many |
+| `user_video_tags` + `user_video_tag_assignments` | per user | Custom tags for videos | name, color |
+| `user_video_notes` | `id` | Notes per video | note_text, note_type ENUM, is_private |
+
+### Social & Feed Tables (migration `20260513_120000_friends_and_feed`)
 
 | Table | Purpose |
 |---|---|
-| `users` | Google OAuth users: google_id, email, name, picture, preferences JSON, is_active |
+| `friendships` | Reciprocal friendships: requester_id, addressee_id, status ENUM('pending','accepted','rejected'), UNIQUE(requester_id, addressee_id) |
+| `feed_events` | Activity timeline: user_id, event_type ENUM, entity_type ENUM('book','movie','game','album'), entity_id, entity_title, entity_cover, metadata JSON |
+| `user_privacy_settings` | Per-user visibility flags for feed events (PK = user_id) |
+
+> **Note**: `user_follows` was **dropped** in migration `20260513_120000_friends_and_feed` (replaced by reciprocal `friendships` model). If you reference `user_follows` anywhere, remove it.
+
+| Table | Purpose |
+|---|---|
+| `users` | Google OAuth users: google_id, email, name, picture, username (unique, nullable), preferences JSON, is_active |
 | `user_preferences` | User preferences (JSON) |
-| `user_follows` | Social follow system (follower_id, followed_id, is_active) |
+| `friendships` | Reciprocal friend system: requester_id, addressee_id, status ENUM('pending','accepted','rejected') |
+| `feed_events` | Activity feed: user_id, event_type ENUM, entity_type ENUM('book','movie','game','album'), entity_id VARCHAR(50), entity_title, entity_cover, metadata JSON |
+| `user_privacy_settings` | Per-user feed visibility: show_additions, show_status_changes, show_ratings, show_notes, show_reading_sessions, show_achievements |
 | `admin_work_merges` | Audit log for work de-duplication |
 | `versions` | Application versioning |
+
+> **⚠ `feed_events.entity_type`** currently supports `book`, `movie`, `game`, `album` only. `video` is NOT in the ENUM. A migration is needed to add it when the Videos feed is implemented.
 
 ## Dev vs Production Schema Differences
 
@@ -118,18 +141,74 @@ Per-entity custom tags:
 | Status naming | Kebab-case (`to-read`, `want-to-buy`) | Spaces (`to read`, `want to buy`) |
 | Movies/Games | Identical | Identical |
 
+## Applied Migrations
+
+| File | Description |
+|---|---|
+| `20260513_120000_friends_and_feed.sql` | Drop `user_follows`, add `friendships`, `feed_events`, `user_privacy_settings`, add `users.username` |
+
+## Database Migrations
+
+### Migration System
+
+The project uses **file-based migrations** in `docker/database/migrations/`. The runner tracks applied migrations in the `schema_migrations` table (auto-created on first run).
+
+**File naming**: `YYYYMMDD_HHMMSS_description.sql`
+
+```bash
+# Apply pending migrations — DEV (without resetting)
+./dev-setup.sh --migrate
+
+# Apply pending migrations — PROD (without resetting)
+./prod-deploy.sh --migrate
+
+# Run the runner directly
+./docker/database/run_migrations.sh
+./docker/database/run_migrations.sh --env-file .env.prod --compose-file docker-compose.prod.yml
+```
+
+### Creating a Migration
+
+1. Create `docker/database/migrations/YYYYMMDD_HHMMSS_description.sql`
+2. Write the SQL (use `IF NOT EXISTS` / `IF EXISTS` for safety)
+3. Run `./dev-setup.sh --migrate` to apply it
+
+```sql
+-- 20260512_100000_add_runtime_to_movies.sql
+ALTER TABLE movie
+  ADD COLUMN IF NOT EXISTS runtime_minutes SMALLINT UNSIGNED NULL
+  COMMENT 'Duración en minutos';
+```
+
+### Inspecting Migration State
+
+```bash
+# See which migrations have been applied
+docker compose exec mysql mysql -u library_user -plibrary_pass library_db \
+  -e "SELECT filename, applied_at FROM schema_migrations ORDER BY applied_at;"
+```
+
+### When to Modify init.sql vs Create a Migration
+
+| Situation | Action |
+|---|---|
+| **New developer / fresh install** | `init.sql` is the baseline — no migration needed |
+| **Schema change on existing data** | Create a migration file |
+| **Reverting a change on fresh install** | Update `init.sql` AND create a migration |
+| **Production schema change** | Migration file (never direct `init.prod.sql` edit on running DB) |
+
 ## Common Operations
 
 ### Adding a New Column
 
 ```sql
--- 1. Add column
-ALTER TABLE user_games ADD COLUMN new_field VARCHAR(100) NULL;
+-- Create a migration file: docker/database/migrations/YYYYMMDD_HHMMSS_add_field.sql
+ALTER TABLE user_games ADD COLUMN IF NOT EXISTS new_field VARCHAR(100) NULL;
 
--- 2. Verify
-DESCRIBE user_games;
+-- Apply:
+--   ./dev-setup.sh --migrate
 
--- 3. THEN update backend layers (see backend skill)
+-- THEN update backend layers (see backend skill)
 ```
 
 ### Adding a New Status
@@ -159,8 +238,8 @@ GROUP BY g.id;
 
 ## Rules & Conventions
 
-1. **Always use `init.sql` as source of truth** for development schema
-2. **Never modify production schema** without updating `init.prod.sql` separately
+1. **Never modify `init.sql` directly for schema changes** — `init.sql` is the baseline (used for fresh installs). All incremental changes go in migration files under `docker/database/migrations/`.
+2. **Never modify a migration file that has already been applied** — add a new one instead.
 3. **JSON columns** (authors, subjects, genres, platforms, preferences) are stored as JSON type — use `JSON_EXTRACT()` for queries
 4. **Ratings** use `DECIMAL(2,1)` — range 0.0 to 5.0 (stored with CHECK constraints in some tables)
 5. **Timestamps**: `added_at` defaults `CURRENT_TIMESTAMP`, `completed_at` nullable

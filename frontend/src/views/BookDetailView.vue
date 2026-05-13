@@ -339,97 +339,80 @@ const fetchBookDetails = async (isbn) => {
 };
 
 const fetchFromOpenLibrary = async (isbn) => {
-  
-  // First get edition to extract work_key
-  let workKey = null;
-  try {
-    const editionUrl = `https://openlibrary.org/isbn/${isbn}.json`;
-    const editionResponse = await axios.get(editionUrl);
-    const editionData = editionResponse.data;
-    
-    if (editionData.works && editionData.works.length > 0) {
-      const workPath = editionData.works[0].key;
-      workKey = workPath.split('/').pop();
-      Logger.debug('[BookDetailView] Extracted work_key from OpenLibrary edition:', workKey);
-    }
-  } catch (editionErr) {
-    Logger.debug('[BookDetailView] Could not fetch edition for work_key:', editionErr.message);
-  }
-  
-  const openLibraryUrl = `https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`;
-  const response = await axios.get(openLibraryUrl);
-  const data = response.data;
-  const bookKey = `ISBN:${isbn}`;
+  const apiUrl = process.env.VUE_APP_API_URL || '/index.php';
+  const response = await axios.post(apiUrl, { action: 'get_openlibrary_book_by_isbn', isbn });
 
-  if (data[bookKey]) {
-    const bookData = data[bookKey];
-    
-    // Extraer ISBN-10 e ISBN-13
-    const isbn13 = bookData.identifiers?.isbn_13?.[0] || isbn;
-    const isbn10 = bookData.identifiers?.isbn_10?.[0] || null;
-    
-    book.value = {
-      isbn: isbn13,
-      isbn10: isbn10,
-      work_key: workKey, // Add work_key here
-      title: bookData.title || "Título no disponible",
-      author: (bookData.authors && bookData.authors.length > 0) 
-        ? bookData.authors.map(a => a.name).join(', ') 
-        : "Autor no disponible",
-      publisher: (bookData.publishers && bookData.publishers.length > 0)
-        ? bookData.publishers.map(p => p.name).join(', ')
-        : "",
-      publicationDate: bookData.publish_date || "",
-      coverUrl: bookData.cover?.large || bookData.cover?.medium || bookData.cover?.small || "",
-      pages: bookData.number_of_pages || (bookData.pagination ? (parseInt(String(bookData.pagination)) || null) : null) || null,
-      description: bookData.notes || "",
-      genres: bookData.subjects ? bookData.subjects.slice(0, 5).map(s => s.name) : [],
-      subjects: bookData.subjects || [],
-      publishers: (bookData.publishers && bookData.publishers.length > 0)
-        ? bookData.publishers.map(p => p.name)
-        : [],
-      openLibraryUrl: bookData.url || null,
-      classifications: bookData.classifications?.lc_classifications ? {
-        lc: bookData.classifications.lc_classifications
-      } : null,
-      rating: null,
-      user_rating: null,
-      userStatuses: []
-    };
-    Logger.debug(`[BookDetailView] Book loaded from OpenLibrary:`, book.value.title);
-  } else {
+  if (response.data?.status !== 'success' || !response.data?.data) {
     throw new Error('Book not found in OpenLibrary');
   }
+
+  const { edition, book: bookData } = response.data.data;
+
+  // Extract work_key from edition
+  let workKey = null;
+  if (edition?.works && edition.works.length > 0) {
+    const workPath = edition.works[0].key;
+    workKey = workPath.split('/').pop();
+    Logger.debug('[BookDetailView] Extracted work_key from OpenLibrary edition:', workKey);
+  }
+
+  if (!bookData) {
+    throw new Error('Book not found in OpenLibrary');
+  }
+
+  // Extraer ISBN-10 e ISBN-13
+  const isbn13 = bookData.identifiers?.isbn_13?.[0] || isbn;
+  const isbn10 = bookData.identifiers?.isbn_10?.[0] || null;
+    
+  book.value = {
+    isbn: isbn13,
+    isbn10: isbn10,
+    work_key: workKey,
+    title: bookData.title || "Título no disponible",
+    author: (bookData.authors && bookData.authors.length > 0) 
+      ? bookData.authors.map(a => a.name).join(', ') 
+      : "Autor no disponible",
+    publisher: (bookData.publishers && bookData.publishers.length > 0)
+      ? bookData.publishers.map(p => p.name).join(', ')
+      : "",
+    publicationDate: bookData.publish_date || "",
+    coverUrl: bookData.cover?.large || bookData.cover?.medium || bookData.cover?.small || "",
+    pages: bookData.number_of_pages || (bookData.pagination ? (parseInt(String(bookData.pagination)) || null) : null) || null,
+    description: bookData.notes || "",
+    genres: bookData.subjects ? bookData.subjects.slice(0, 5).map(s => s.name) : [],
+    subjects: bookData.subjects || [],
+    publishers: (bookData.publishers && bookData.publishers.length > 0)
+      ? bookData.publishers.map(p => p.name)
+      : [],
+    openLibraryUrl: bookData.url || null,
+    classifications: bookData.classifications?.lc_classifications ? {
+      lc: bookData.classifications.lc_classifications
+    } : null,
+    rating: null,
+    user_rating: null,
+    userStatuses: []
+  };
+  Logger.debug(`[BookDetailView] Book loaded from OpenLibrary:`, book.value.title);
 };
 
 const enrichWithOpenLibrary = async (isbn) => {
   Logger.debug(`[BookDetailView] Enriching with OpenLibrary data for ISBN: ${isbn}`);
   try {
-    // First, try to get edition info to extract work_key
-    const editionUrl = `https://openlibrary.org/isbn/${isbn}.json`;
-    try {
-      const editionResponse = await axios.get(editionUrl);
-      const editionData = editionResponse.data;
-      
-      // Extract work_key from edition
-      if (editionData.works && editionData.works.length > 0 && book.value) {
-        const workPath = editionData.works[0].key; // e.g., "/works/OL123456W"
-        book.value.work_key = workPath.split('/').pop(); // Extract "OL123456W"
-        Logger.debug('[BookDetailView] Extracted work_key:', book.value.work_key);
-      }
-    } catch (editionErr) {
-      Logger.debug('[BookDetailView] Could not fetch edition data:', editionErr.message);
-    }
-    
-    // Now get full book data
-    const openLibraryUrl = `https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`;
-    const response = await axios.get(openLibraryUrl);
-    const data = response.data;
-    const bookKey = `ISBN:${isbn}`;
+    const apiUrl = process.env.VUE_APP_API_URL || '/index.php';
+    const response = await axios.post(apiUrl, { action: 'get_openlibrary_book_by_isbn', isbn });
 
-    if (data[bookKey] && book.value) {
-      const olData = data[bookKey];
-      
+    if (response.data?.status !== 'success' || !response.data?.data) return;
+
+    const { edition, book: olData } = response.data.data;
+
+    // Extract work_key from edition
+    if (edition?.works && edition.works.length > 0 && book.value) {
+      const workPath = edition.works[0].key; // e.g., "/works/OL123456W"
+      book.value.work_key = workPath.split('/').pop(); // Extract "OL123456W"
+      Logger.debug('[BookDetailView] Extracted work_key:', book.value.work_key);
+    }
+
+    if (olData && book.value) {
       // Enriquecer con subjects si no los tenemos
       if (olData.subjects && olData.subjects.length > 0) {
         book.value.subjects = olData.subjects;

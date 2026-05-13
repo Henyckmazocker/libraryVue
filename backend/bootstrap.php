@@ -22,7 +22,7 @@ if (file_exists($envFile)) {
         $key = trim($key);
         $value = trim($value, " \t\n\r\0\x0B\"'");
         
-        if (!array_key_exists($key, $_ENV)) {
+        if (!array_key_exists($key, $_ENV) || $_ENV[$key] === '') {
             $_ENV[$key] = $value;
         }
     }

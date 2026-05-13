@@ -33,18 +33,20 @@ error()   { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 MODE="start"
 for arg in "$@"; do
   case "$arg" in
-    --reset)  MODE="reset"  ;;
-    --stop)   MODE="stop"   ;;
-    --logs)   MODE="logs"   ;;
-    --mobile) MODE="mobile" ;;
+    --reset)   MODE="reset"   ;;
+    --stop)    MODE="stop"    ;;
+    --logs)    MODE="logs"    ;;
+    --mobile)  MODE="mobile"  ;;
+    --migrate) MODE="migrate" ;;
     --help|-h)
-      echo "Uso: $0 [--reset|--stop|--logs|--mobile|--help]"
+      echo "Uso: $0 [--reset|--stop|--logs|--mobile|--migrate|--help]"
       echo ""
       echo "  (sin args)  Setup interactivo + arranque web (Docker)"
       echo "  --reset     Recrea contenedores y volúmenes desde cero"
       echo "  --stop      Detiene todos los contenedores"
       echo "  --logs      Logs en tiempo real de todos los servicios"
       echo "  --mobile    Prepara .env.mobile, secrets.xml, compila APK de debug"
+      echo "  --migrate   Aplica migraciones de BD pendientes (sin resetear la BD)"
       exit 0
       ;;
   esac
@@ -350,21 +352,18 @@ setup_mobile_env() {
   if [[ ! -f "$MOBILE_ENV_FILE" ]] || [[ "$update" =~ ^[sS]$ ]]; then
     info "Configurando frontend/.env.mobile..."
 
-    local api_url google_client_id omdb_api_key
+    local api_url google_client_id
     api_url=$(env_get "$MOBILE_ENV_FILE"          VUE_APP_API_URL)
     google_client_id=$(env_get "$MOBILE_ENV_FILE" VUE_APP_GOOGLE_CLIENT_ID)
-    omdb_api_key=$(env_get "$MOBILE_ENV_FILE"     VUE_APP_OMDB_API_KEY)
 
     # Fallbacks desde .env raíz
     [[ -z "$google_client_id" ]] && google_client_id=$(env_get "$ENV_FILE" GOOGLE_CLIENT_ID)
-    [[ -z "$omdb_api_key" ]]     && omdb_api_key=$(env_get "$ENV_FILE"     OMDB_API_KEY)
 
     echo ""
     echo -e "${YELLOW}=== Configuración móvil ===${NC}"
     warn "VUE_APP_API_URL usa 10.0.2.2 para emulador Android (= localhost del host)."
     api_url=$(ask_if_empty    "VUE_APP_API_URL"        "${api_url:-http://10.0.2.2:8888/index.php}")
     google_client_id=$(ask_if_empty "Google OAuth Client ID" "$google_client_id")
-    omdb_api_key=$(ask_if_empty     "OMDB API Key (películas)" "$omdb_api_key")
 
     cat > "$MOBILE_ENV_FILE" <<EOF
 # Mobile environment — Capacitor / Android
@@ -374,7 +373,6 @@ setup_mobile_env() {
 VUE_APP_API_URL=${api_url}
 VUE_APP_MODE=mobile
 VUE_APP_GOOGLE_CLIENT_ID=${google_client_id}
-VUE_APP_OMDB_API_KEY=${omdb_api_key}
 EOF
     success "frontend/.env.mobile creado/actualizado."
   fi
@@ -487,13 +485,20 @@ cmd_reset() {
   start_services "yes"
 }
 
+cmd_migrate() {
+  check_deps
+  info "Aplicando migraciones de base de datos pendientes..."
+  "$ROOT_DIR/docker/database/run_migrations.sh"
+}
+
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 case "$MODE" in
-  start)  cmd_start  ;;
-  reset)  cmd_reset  ;;
-  stop)   cmd_stop   ;;
-  logs)   cmd_logs   ;;
-  mobile) cmd_mobile ;;
+  start)   cmd_start   ;;
+  reset)   cmd_reset   ;;
+  stop)    cmd_stop    ;;
+  logs)    cmd_logs    ;;
+  mobile)  cmd_mobile  ;;
+  migrate) cmd_migrate ;;
 esac

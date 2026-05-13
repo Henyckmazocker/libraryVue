@@ -43,13 +43,19 @@ return [
     
     'log_frontend' => [
         'controller' => ['AuthController', 'logFrontend'],
-        'middleware' => [LoggingMiddleware::class],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
         'validation' => []
     ],
 
     'log_frontend_batch' => [
         'controller' => ['AuthController', 'logFrontendBatch'],
-        'middleware' => [LoggingMiddleware::class],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
         'validation' => []
     ],
 
@@ -130,7 +136,10 @@ return [
     
     'get_books' => [
         'controller' => ['BookController', 'getAllBooks'],
-        'middleware' => [LoggingMiddleware::class],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
         'validation' => []
     ],
     
@@ -181,6 +190,12 @@ return [
 
     'search_google_books_isbn' => [
         'controller' => ['BookController', 'searchGoogleBooksByISBN'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => []
+    ],
+
+    'get_openlibrary_book_by_isbn' => [
+        'controller' => ['BookController', 'getOpenLibraryBookByISBN'],
         'middleware' => [LoggingMiddleware::class],
         'validation' => []
     ],
@@ -364,6 +379,25 @@ return [
         'validation' => []
     ],
 
+    // OMDB PROXY - Public read-only endpoints (no auth, no CSRF)
+    'search_movies_omdb' => [
+        'controller' => ['MovieController', 'searchMoviesOmdb'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => []
+    ],
+
+    'get_movie_details_omdb' => [
+        'controller' => ['MovieController', 'getMovieDetailsOmdb'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => []
+    ],
+
+    'get_season_episodes_omdb' => [
+        'controller' => ['MovieController', 'getSeasonEpisodesOmdb'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => []
+    ],
+
     // MOVIE TAGS ROUTES
     'get_user_movie_tags' => [
         'controller' => ['MovieController', 'getUserMovieTags'],
@@ -486,7 +520,8 @@ return [
         'controller' => ['LibraryController', 'saveLibrary'],
         'middleware' => [
             LoggingMiddleware::class,
-            AuthenticationMiddleware::class
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class
         ],
         'validation' => []
     ],
@@ -512,7 +547,8 @@ return [
         'controller' => ['LibraryController', 'getOwnershipFormats'],
         'middleware' => [
             LoggingMiddleware::class,
-            AuthenticationMiddleware::class
+            AuthenticationMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['entityType']]]
         ],
         'validation' => ['entityType']
     ],
@@ -1374,4 +1410,109 @@ return [
         'middleware' => [LoggingMiddleware::class],
         'validation' => ['query']
     ],
+
+    // ============================================================================
+    // SOCIAL ROUTES - Friends + Feed
+    // ============================================================================
+
+    // Write operations (require Auth + CSRF)
+    'send_friend_request' => [
+        'controller' => ['SocialController', 'sendFriendRequest'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['addresseeId']]]
+        ],
+        'validation' => ['addresseeId']
+    ],
+
+    'accept_friend_request' => [
+        'controller' => ['SocialController', 'acceptFriendRequest'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['friendshipId']]]
+        ],
+        'validation' => ['friendshipId']
+    ],
+
+    'reject_friend_request' => [
+        'controller' => ['SocialController', 'rejectFriendRequest'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['friendshipId']]]
+        ],
+        'validation' => ['friendshipId']
+    ],
+
+    'remove_friend' => [
+        'controller' => ['SocialController', 'removeFriend'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['friendId']]]
+        ],
+        'validation' => ['friendId']
+    ],
+
+    'update_privacy_settings' => [
+        'controller' => ['FeedController', 'updatePrivacySettings'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+        ],
+        'validation' => []
+    ],
+
+    // Read operations (require Auth only)
+    'get_friends' => [
+        'controller' => ['SocialController', 'getFriends'],
+        'middleware' => [LoggingMiddleware::class, AuthenticationMiddleware::class],
+        'validation' => []
+    ],
+
+    'get_friend_requests' => [
+        'controller' => ['SocialController', 'getFriendRequests'],
+        'middleware' => [LoggingMiddleware::class, AuthenticationMiddleware::class],
+        'validation' => []
+    ],
+
+    'search_users' => [
+        'controller' => ['SocialController', 'searchUsers'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['term']]]
+        ],
+        'validation' => ['term']
+    ],
+
+    'get_public_profile' => [
+        'controller' => ['SocialController', 'getPublicProfile'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['username']]]
+        ],
+        'validation' => ['username']
+    ],
+
+    'get_feed' => [
+        'controller' => ['FeedController', 'getFeed'],
+        'middleware' => [LoggingMiddleware::class, AuthenticationMiddleware::class],
+        'validation' => []
+    ],
+
+    'get_privacy_settings' => [
+        'controller' => ['FeedController', 'getPrivacySettings'],
+        'middleware' => [LoggingMiddleware::class, AuthenticationMiddleware::class],
+        'validation' => []
+    ],
 ];
+

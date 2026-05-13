@@ -142,23 +142,29 @@ export const useAuthStore = defineStore('auth', {
         'import_data', 'edit_user_book','edit_user_movie', 'edit_user_game', 
         'create_user_book_tag', 'create_user_movie_tag', 'create_user_game_tag',
         'delete_user_game_tag', 'assign_tag_to_game', 'remove_tag_from_game',
+        'update_book_tags', 'update_movie_tags', 'update_game_tags',
         'add_game_note', 'update_game_note', 'delete_game_note',
         'add_edition_note', 'update_edition_note', 'delete_edition_note',
         'add_movie_note', 'update_movie_note', 'delete_movie_note',
         'track_series_season',
         // Álbumes
         'add_album', 'delete_album', 'update_album_rating', 'update_album_user_statuses',
-        'edit_user_album', 'create_user_album_tag', 'update_album_tags',
+        'edit_user_album', 'create_user_album_tag', 'delete_user_album_tag', 'update_album_tags',
         'add_album_note', 'update_album_note', 'delete_album_note',
         // Videos
         'add_video', 'delete_video', 'update_video_rating', 'update_video_user_statuses',
-        'edit_user_video', 'create_user_video_tag', 'update_video_tags',
+        'edit_user_video', 'create_user_video_tag', 'delete_user_video_tag', 'update_video_tags',
         'add_video_note', 'update_video_note', 'delete_video_note',
+        // Biblioteca
+        'save_library', 'libraryx_update_urls',
         // Perfil de usuario
         'update_user_profile',
         // Sesiones de lectura
         'create_reading_session', 'complete_reading_session', 'update_reading_progress',
-        'pause_reading_session', 'resume_reading_session', 'delete_reading_session'
+        'pause_reading_session', 'resume_reading_session', 'delete_reading_session',
+        // Social
+        'send_friend_request', 'accept_friend_request', 'reject_friend_request',
+        'remove_friend', 'update_privacy_settings'
       ]
 
       if (this.csrfToken && protectedActions.includes(action)) {

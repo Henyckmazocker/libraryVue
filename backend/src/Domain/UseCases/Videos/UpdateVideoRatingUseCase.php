@@ -7,6 +7,7 @@ namespace App\Domain\UseCases\Videos;
 use App\Domain\Repository\Video\VideoRepositoryInterface;
 use App\Domain\Repository\Video\UserVideoRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\UpdateVideoRatingCommand;
 use Psr\Log\LoggerInterface;
@@ -18,6 +19,7 @@ class UpdateVideoRatingUseCase extends AbstractUseCase
         private readonly VideoRepositoryInterface $videoRepository,
         private readonly UserVideoRepositoryInterface $userVideoRepository,
         private readonly UserRepositoryInterface $userRepository,
+        private readonly FeedEventService $feedEventService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -46,6 +48,15 @@ class UpdateVideoRatingUseCase extends AbstractUseCase
         $this->userVideoRepository->updateRating(
             $command->userId,
             $video->getId(),
+            $command->rating->toFloat()
+        );
+
+        $this->feedEventService->recordItemRated(
+            $command->userId,
+            'video',
+            (string) $video->getId(),
+            $video->getTitle(),
+            $video->getCoverUrl(),
             $command->rating->toFloat()
         );
 

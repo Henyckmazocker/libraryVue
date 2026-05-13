@@ -7,6 +7,8 @@ namespace Tests\Unit\Domain\UseCases\Books;
 use App\Domain\UseCases\Books\UpdateBookUserStatusesUseCase;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Book\UserBookRepositoryInterface;
+use App\Domain\Repository\Book\EditionRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\DTO\Commands\UpdateBookStatusesCommand;
 use App\Domain\Model\User;
 use App\Domain\Model\ValueObjects\GoogleId;
@@ -21,15 +23,21 @@ class UpdateBookUserStatusesUseCaseTest extends TestCase
     private UpdateBookUserStatusesUseCase $useCase;
     private UserRepositoryInterface $userRepo;
     private UserBookRepositoryInterface $userBookRepo;
+    private EditionRepositoryInterface $editionRepo;
+    private FeedEventService $feedEventService;
 
     protected function setUp(): void
     {
         $this->userRepo = $this->createMock(UserRepositoryInterface::class);
         $this->userBookRepo = $this->createMock(UserBookRepositoryInterface::class);
+        $this->editionRepo = $this->createMock(EditionRepositoryInterface::class);
+        $this->feedEventService = $this->createMock(FeedEventService::class);
 
         $this->useCase = new UpdateBookUserStatusesUseCase(
             $this->userRepo,
             $this->userBookRepo,
+            $this->editionRepo,
+            $this->feedEventService,
             new NullLogger()
         );
     }

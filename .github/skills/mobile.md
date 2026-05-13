@@ -104,15 +104,13 @@ All variables the mobile build needs that differ from the web build:
 VUE_APP_API_URL=http://10.0.2.2:8888/index.php   # 10.0.2.2 = host from emulator
 VUE_APP_MODE=mobile
 VUE_APP_GOOGLE_CLIENT_ID=<oauth_client_id>
-VUE_APP_OMDB_API_KEY=<omdb_key>                   # Movies call OMDB directly from frontend
 ```
 
 **APIs called directly from frontend** (need key in `.env.mobile`):
-- `VUE_APP_OMDB_API_KEY` → `MovieSearch.vue`, `SeriesSeasonTracker.vue`, `FileProcessorService.js`
 - `VUE_APP_GOOGLE_CLIENT_ID` → `useGoogleAuth.js`
 
 **APIs proxied through backend** (no key needed in `.env.mobile`):
-- IGDB (games), GoogleBooks, OpenLibrary, Spotify, Last.fm — all server-side
+- IGDB (games), GoogleBooks, OpenLibrary, Spotify, Last.fm, OMDb — all server-side
 
 ---
 

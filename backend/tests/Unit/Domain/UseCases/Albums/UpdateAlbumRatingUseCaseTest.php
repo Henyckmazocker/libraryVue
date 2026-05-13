@@ -6,7 +6,9 @@ namespace Tests\Unit\Domain\UseCases\Albums;
 
 use App\Domain\UseCases\Albums\UpdateAlbumRatingUseCase;
 use App\Domain\Repository\Album\UserAlbumRepositoryInterface;
+use App\Domain\Repository\Album\AlbumRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\DTO\Commands\UpdateAlbumRatingCommand;
 use App\Domain\Model\User;
 use App\Domain\Model\ValueObjects\GoogleId;
@@ -21,16 +23,22 @@ class UpdateAlbumRatingUseCaseTest extends TestCase
 {
     private UpdateAlbumRatingUseCase $useCase;
     private UserAlbumRepositoryInterface $userAlbumRepo;
+    private AlbumRepositoryInterface $albumRepo;
     private UserRepositoryInterface $userRepo;
+    private FeedEventService $feedEventService;
 
     protected function setUp(): void
     {
         $this->userAlbumRepo = $this->createMock(UserAlbumRepositoryInterface::class);
+        $this->albumRepo     = $this->createMock(AlbumRepositoryInterface::class);
         $this->userRepo      = $this->createMock(UserRepositoryInterface::class);
+        $this->feedEventService = $this->createMock(FeedEventService::class);
 
         $this->useCase = new UpdateAlbumRatingUseCase(
             $this->userAlbumRepo,
             $this->userRepo,
+            $this->albumRepo,
+            $this->feedEventService,
             new NullLogger()
         );
     }

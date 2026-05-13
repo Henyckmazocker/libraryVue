@@ -10,6 +10,7 @@ use App\Domain\Repository\Book\EditionRepositoryInterface;
 use App\Domain\Repository\Book\WorkRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Book\UserBookEditionRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\DTO\Commands\AddBookCommand;
 use App\Domain\Model\User;
 use App\Domain\Model\Edition;
@@ -31,6 +32,7 @@ class AddBookUseCaseTest extends TestCase
     private WorkRepositoryInterface $workRepo;
     private UserRepositoryInterface $userRepo;
     private UserBookEditionRepositoryInterface $userBookEditionRepo;
+    private FeedEventService $feedEventService;
 
     protected function setUp(): void
     {
@@ -39,6 +41,7 @@ class AddBookUseCaseTest extends TestCase
         $this->workRepo = $this->createMock(WorkRepositoryInterface::class);
         $this->userRepo = $this->createMock(UserRepositoryInterface::class);
         $this->userBookEditionRepo = $this->createMock(UserBookEditionRepositoryInterface::class);
+        $this->feedEventService = $this->createMock(FeedEventService::class);
 
         $this->useCase = new AddBookUseCase(
             $this->importService,
@@ -46,6 +49,7 @@ class AddBookUseCaseTest extends TestCase
             $this->workRepo,
             $this->userRepo,
             $this->userBookEditionRepo,
+            $this->feedEventService,
             new NullLogger()
         );
     }

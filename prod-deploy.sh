@@ -40,8 +40,9 @@ for arg in "$@"; do
     --logs)         MODE="logs"         ;;
     --status)       MODE="status"       ;;
     --mobile-build) MODE="mobile-build" ;;
+    --migrate)      MODE="migrate"      ;;
     --help|-h)
-      echo "Uso: $0 [--rebuild|--stop|--logs|--status|--mobile-build|--help]"
+      echo "Uso: $0 [--rebuild|--stop|--logs|--status|--mobile-build|--migrate|--help]"
       echo ""
       echo "  (sin args)      Deploy completo (build si hay cambios + up)"
       echo "  --rebuild       Fuerza rebuild de todas las imágenes sin caché"
@@ -49,6 +50,7 @@ for arg in "$@"; do
       echo "  --logs          Logs en tiempo real de todos los servicios"
       echo "  --status        Estado de contenedores y salud del servicio"
       echo "  --mobile-build  Compila APK/AAB de producción y sincroniza Android"
+      echo "  --migrate       Aplica migraciones de BD pendientes (sin resetear la BD)"
       exit 0
       ;;
   esac
@@ -336,22 +338,20 @@ check_deps_mobile() {
 }
 
 setup_mobile_prod_env() {
-  local google_client_id omdb_api_key
+  local google_client_id
   google_client_id=$(env_get "$MOBILE_PROD_ENV" VUE_APP_GOOGLE_CLIENT_ID)
-  omdb_api_key=$(env_get     "$MOBILE_PROD_ENV" VUE_APP_OMDB_API_KEY)
 
   # Fallbacks desde .env.prod
   [[ -z "$google_client_id" ]] && google_client_id=$(env_get "$ENV_FILE" GOOGLE_CLIENT_ID)
 
   local needs_input=false
-  [[ -z "$google_client_id" || -z "$omdb_api_key" ]] && needs_input=true
+  [[ -z "$google_client_id" ]] && needs_input=true
 
   if [[ "$needs_input" == "true" ]]; then
     info "Faltan claves en frontend/.env.production — solo se pedirán las vacías."
     echo ""
     echo -e "${YELLOW}=== App móvil producción ===${NC}"
     google_client_id=$(ask_if_empty "Google OAuth Client ID" "$google_client_id")
-    omdb_api_key=$(ask_if_empty     "OMDB API Key (películas)" "$omdb_api_key")
 
     cat > "$MOBILE_PROD_ENV" <<EOF
 # Frontend production env — usado por npm run build:mobile:prod
@@ -361,7 +361,6 @@ setup_mobile_prod_env() {
 VUE_APP_API_URL=${PROD_API_URL}
 VUE_APP_MODE=mobile
 VUE_APP_GOOGLE_CLIENT_ID=${google_client_id}
-VUE_APP_OMDB_API_KEY=${omdb_api_key}
 EOF
     success "frontend/.env.production creado/actualizado."
 
@@ -499,6 +498,14 @@ cmd_rebuild() {
   deploy_services "yes"
 }
 
+cmd_migrate() {
+  check_deps
+  info "Aplicando migraciones de base de datos pendientes..."
+  "$ROOT_DIR/docker/database/run_migrations.sh" \
+    --env-file "$ENV_FILE" \
+    --compose-file "$COMPOSE_FILE"
+}
+
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
@@ -509,4 +516,5 @@ case "$MODE" in
   logs)          cmd_logs          ;;
   status)        cmd_status        ;;
   mobile-build)  cmd_mobile_build  ;;
+  migrate)       cmd_migrate       ;;
 esac

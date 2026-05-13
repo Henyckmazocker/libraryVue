@@ -34,7 +34,6 @@ export class FileProcessorService {
           
           const movies = xmlDoc.querySelectorAll('pelicula');
           const processedMovies = [];
-          const apiKey = process.env.VUE_APP_OMDB_API_KEY;
           
           Logger.debug(`Found ${movies.length} movies in Palomitacas XML`);
           
@@ -53,12 +52,12 @@ export class FileProcessorService {
               }
               
               try {
-                // Obtener datos completos de OMDb
-                const omdbUrl = `https://www.omdbapi.com/?apikey=${apiKey}&i=${imdbID}`;
-                const omdbResponse = await axios.get(omdbUrl);
+                // Obtener datos completos de OMDb via backend proxy
+                const apiUrl = process.env.VUE_APP_API_URL || '/index.php';
+                const omdbResponse = await axios.post(apiUrl, { action: 'get_movie_details_omdb', imdbId: imdbID, plot: 'short' });
                 
-                if (omdbResponse.data && omdbResponse.data.Response === 'True') {
-                  const omdbData = omdbResponse.data;
+                if (omdbResponse.data?.status === 'success' && omdbResponse.data?.data) {
+                  const omdbData = omdbResponse.data.data;
                   
                   // Procesar rating de Palomitacas (rating del usuario)
                   const rawRating = movie.querySelector('mi_valoracion')?.textContent;

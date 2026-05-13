@@ -10,9 +10,9 @@ This skill covers all backend development: Clean Architecture, CQRS with DTOs, D
 - **Architecture**: Clean Architecture + Hexagonal + CQRS
 - **DI Container**: PHP-DI (autowiring)
 - **Logging**: Monolog (structured, multi-channel)
-- **External APIs**: IGDB (Twitch OAuth), GoogleBooks, OpenLibrary
+- **External APIs**: IGDB (Twitch OAuth), GoogleBooks, OpenLibrary, Spotify, YouTube Data API v3
 - **Cache**: File-based with TTL (`backend/storage/cache/`)
-- **Auth**: Google OAuth + server-side sessions
+- **Auth**: Google OAuth + server-side sessions + JWT (mobile)
 - **No framework** — custom routing, middleware pipeline, DI setup
 
 ## Directory Structure
@@ -23,32 +23,35 @@ backend/
 ├── public/index.php               # Entry point → Application::run()
 ├── src/
 │   ├── Application.php            # CORS, session init, DI container, dispatches to ActionRouter
-│   ├── Controllers/               # 9 controllers + Contracts/ interfaces
+│   ├── Controllers/               # 11 controllers + Contracts/ interfaces
 │   │   ├── BaseController.php     # successResponse(), errorResponse(), validateRequiredFields()
 │   │   ├── BookController.php     # 15+ use case dependencies
 │   │   ├── MovieController.php    # 8 use cases + tag/note repos
 │   │   ├── GameController.php     # 8 use cases + IGDB service
 │   │   ├── AlbumController.php    # 8 use cases + Spotify service + tag/note repos
-│   │   ├── VideoController.php    # 8 use cases + YouTubeService + tag/note repos
+│   │   ├── VideoController.php    # 12 use cases + YouTubeService + tag/note repos
 │   │   ├── AuthController.php     # Login/logout/session
 │   │   ├── LibraryController.php  # Cross-entity library operations
 │   │   ├── LibraryXController.php # URL management
-│   │   └── StatsController.php    # Statistics: books, movies, games, albums, videos
+│   │   ├── StatsController.php    # Statistics: books, movies, games, albums, videos
+│   │   ├── SocialController.php   # Friends: send/accept/reject request, remove, search users, public profile
+│   │   └── FeedController.php     # Activity feed: get feed, privacy settings
 │   ├── Domain/
-│   │   ├── Model/                 # Entities: Book, Movie, Game, User, Work, Edition, etc.
-│   │   │   └── ValueObjects/      # Email, ISBN, Rating, Genre, Status, Timestamp, etc.
-│   │   ├── Repository/            # Interfaces organized by entity (Book/, Movie/, Game/, Album/, Video/, User/)
+│   │   ├── Model/                 # Entities: Book, Movie, Game, User, Work, Edition, FeedEvent, Friendship, etc.
+│   │   │   └── ValueObjects/      # Email, ISBN, Rating, Genre, Status, Timestamp, YouTubeId, etc.
+│   │   ├── Repository/            # Interfaces organized by entity (Book/, Movie/, Game/, Album/, Video/, User/, Social/)
 │   │   ├── DTO/
-│   │   │   ├── Commands/          # 35+ write DTOs (final readonly class + fromArray())
-│   │   │   └── Queries/           # 14+ read DTOs
+│   │   │   ├── Commands/          # 40+ write DTOs (final readonly class + fromArray())
+│   │   │   └── Queries/           # 18+ read DTOs
 │   │   ├── Services/              # External: IGDBService, GoogleBooksService, OpenLibraryService, SpotifyService, YouTubeService
-│   │   │                          # Domain: WorkSearchService, BookImportService, UserLibraryStatisticsService
-│   │   └── UseCases/              # 50+ use cases organized by entity
+│   │   │                          # Domain: WorkSearchService, BookImportService, UserLibraryStatisticsService, FeedEventService
+│   │   └── UseCases/              # 62+ use cases organized by entity
 │   │       ├── Books/ (15)
 │   │       ├── Movies/ (12)
 │   │       ├── Games/ (8)
-│   │       ├── Albums/ (8+)
+│   │       ├── Albums/ (8)
 │   │       ├── Videos/ (12)
+│   │       ├── Social/ (12)        # Friends, Feed, Privacy
 │   │       ├── Auth/ (1)
 │   │       └── Library/ (2)
 │   ├── Infrastructure/
@@ -365,6 +368,22 @@ public function handle(array $request, callable $next): array
 - **Cache**: Responses cached in `storage/cache/openlibrary/`
 - **Use**: Work/edition search, cover images
 
+### Spotify API (Albums)
+
+- **Service**: `Domain/Services/SpotifyService.php`
+- **Auth**: Client credentials (token cached in `storage/cache/spotify_access_token.json`)
+- **Routes**: `search_spotify_albums`, `get_spotify_album`, `get_spotify_album_tracks`
+- **Note**: Response shape is `{ data: { album: {...} } }` (nested), not flat `{ data: {...} }`
+
+### YouTube Data API v3 (Videos)
+
+- **Service**: `Domain/Services/YouTubeService.php`
+- **Auth**: API key from `YOUTUBE_API_KEY` env var (no OAuth needed for public data)
+- **Cache**: Search results 30 min (`CACHE_SEARCH`), video details 24h (`CACHE_DETAILS`) in `storage/cache/youtube/`
+- **Routes**: `search_youtube_videos` (no auth required), `get_youtube_video_details`
+- **Value Object**: `Domain/Model/ValueObjects/YouTubeId.php` — exactly 11 chars `[a-zA-Z0-9_-]`
+- **⚠ Search route**: `search_youtube_videos` only has `LoggingMiddleware` (no auth). If the app becomes public, add `AuthenticationMiddleware` to avoid API quota exhaustion.
+
 ### Cache Service
 
 ```php
@@ -372,6 +391,49 @@ $cache = new CacheService('backend/storage/cache');
 $cache->set('key', $data, 'namespace', 3600);  // namespace: googlebooks/, openlibrary/
 $cached = $cache->get('key', 'namespace');       // Returns null if expired
 ```
+
+## Social & Feed Feature
+
+### Architecture
+
+The social system uses two controllers:
+- **`SocialController`** — Friend operations (send/accept/reject request, remove, search users, public profile)
+- **`FeedController`** — Activity feed + privacy settings
+
+### FeedEventService
+
+Use cases that modify the library inject `FeedEventService` to emit activity events:
+
+```php
+// In a UseCase constructor
+use App\Domain\Services\FeedEventService;
+
+public function __construct(
+    ...,
+    private readonly FeedEventService $feedEventService,
+    LoggerInterface $logger
+) { ... }
+
+// After a successful library operation:
+$this->feedEventService->recordItemAdded($userId, 'game', (string)$game->getId(), $game->getTitle(), $game->getCoverUrl());
+$this->feedEventService->recordItemRated($userId, 'book', $isbn, $title, $coverUrl, $rating);
+$this->feedEventService->recordStatusChanged($userId, 'movie', $id, $title, $cover, $oldStatus, $newStatus);
+$this->feedEventService->recordNotesUpdated($userId, 'album', $id, $title, $cover);
+$this->feedEventService->recordReadingSession($userId, $isbn, $title, $cover, $sessionData);
+```
+
+All errors are caught internally — feed failures never break the main operation.
+
+### Supported Entity Types (Feed)
+
+Feed events support: `book`, `movie`, `game`, `album` (constants in `FeedEvent::ENTITY_*`).  
+**`video` is NOT yet a valid `entity_type`** in `feed_events` DB column or `FeedEvent::VALID_ENTITY_TYPES`. VideoUse cases call `FeedEventService` but pass `'video'` as entity type — this silently fails validation. Needs a migration to extend the ENUM when ready.
+
+### Adding a New Use Case That Emits Feed Events
+
+Add `FeedEventService` as constructor dependency and register it in `config/container.php`. The DI container autowires it automatically if registered.
+
+---
 
 ## Adding a New Feature (Step by Step)
 
@@ -481,7 +543,7 @@ When adding a field to an entity, update **every layer**:
 - **Framework**: PHPUnit 11.5, PHP 8.2, Docker
 - **Test attributes**: `#[Test]` (NOT `@test` annotations)
 - **Config**: `backend/phpunit.xml` (suites: Unit, Integration)
-- **Current stats**: 743 tests, 2,071 assertions, 74 test files — ALL PASSING
+- **Current stats**: 961 tests, 2,600 assertions — ALL PASSING
 
 ### Running Tests
 
@@ -509,10 +571,13 @@ backend/tests/Unit/
 │   ├── DTO/
 │   │   ├── Commands/            # 6 command tests (BookCommands, GameCommands, MovieCommands, etc.)
 │   │   └── Queries/             # 5 query tests (BookQueries, MovieQueries, EditionQueries, etc.)
-│   └── UseCases/                # 38 use case tests organized by entity
+│   └── UseCases/                # use case tests organized by entity
 │       ├── Books/ (15)          # CRUD + EditionNotes + ReadingProgress
 │       ├── Games/ (8)           # CRUD + Rating + Statuses
 │       ├── Movies/ (12)         # CRUD + MovieNotes + Rating + Statuses
+│       ├── Albums/ (8)          # CRUD + Rating + Statuses + Trending
+│       ├── Videos/ (5)          # Add, Delete, GetAllowedStatuses, GetVideos, UpdateRating
+│       ├── Social/ (6)          # Send/Accept/Reject FriendRequest, RemoveFriend, GetFeed, Friends+Search, PrivacySettings
 │       ├── Auth/ (1)            # LoginUserUseCase
 │       └── Library/ (2)         # GetLibrary, GetLibraryItems
 └── Infrastructure/

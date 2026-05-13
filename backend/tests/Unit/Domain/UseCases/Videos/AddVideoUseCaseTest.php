@@ -8,6 +8,7 @@ use App\Domain\UseCases\Videos\AddVideoUseCase;
 use App\Domain\Repository\Video\VideoRepositoryInterface;
 use App\Domain\Repository\Video\UserVideoRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\DTO\Commands\AddVideoCommand;
 use App\Domain\Model\Video;
 use App\Domain\Model\User;
@@ -25,6 +26,7 @@ class AddVideoUseCaseTest extends TestCase
     private VideoRepositoryInterface $videoRepo;
     private UserVideoRepositoryInterface $userVideoRepo;
     private UserRepositoryInterface $userRepo;
+    private FeedEventService $feedEventService;
 
     private const YOUTUBE_ID = 'dQw4w9WgXcQ';
 
@@ -33,11 +35,13 @@ class AddVideoUseCaseTest extends TestCase
         $this->videoRepo     = $this->createMock(VideoRepositoryInterface::class);
         $this->userVideoRepo = $this->createMock(UserVideoRepositoryInterface::class);
         $this->userRepo      = $this->createMock(UserRepositoryInterface::class);
+        $this->feedEventService = $this->createMock(FeedEventService::class);
 
         $this->useCase = new AddVideoUseCase(
             $this->videoRepo,
             $this->userVideoRepo,
             $this->userRepo,
+            $this->feedEventService,
             new NullLogger()
         );
     }

@@ -121,6 +121,19 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/friends',
+    name: 'Friends',
+    component: () => import('../views/FriendsView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/user/:username',
+    name: 'PublicProfile',
+    component: () => import('../views/PublicProfileView.vue'),
+    props: true,
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('../views/NotFoundView.vue')

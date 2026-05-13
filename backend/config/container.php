@@ -13,7 +13,9 @@ return function (): ContainerInterface {
     $containerBuilder = new ContainerBuilder();
     
     // Enable compilation for production performance
-    // $containerBuilder->enableCompilation(__DIR__ . '/../var/cache');
+    if (($_ENV['APP_ENV'] ?? 'development') === 'production') {
+        $containerBuilder->enableCompilation(__DIR__ . '/../var/cache');
+    }
     
     $containerBuilder->addDefinitions([
         
@@ -86,6 +88,14 @@ return function (): ContainerInterface {
         \App\Domain\Repository\Movie\MovieNoteRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Movie\MySqlMovieNoteRepository::class),
         \App\Domain\Repository\Movie\SeriesSeasonRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Movie\MySqlSeriesSeasonRepository::class),
         \App\Domain\Repository\Book\EditionNoteRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Book\MySqlEditionNoteRepository::class),
+
+        // SOCIAL
+        \App\Domain\Repository\Social\FriendshipRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Social\MySqlFriendshipRepository::class),
+        \App\Domain\Repository\Social\FeedEventRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Social\MySqlFeedEventRepository::class),
+        \App\Domain\Repository\Social\PrivacySettingsRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Social\MySqlPrivacySettingsRepository::class),
+        \App\Infrastructure\Persistence\Social\MySqlFriendshipRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Social\MySqlFeedEventRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Social\MySqlPrivacySettingsRepository::class => DI\autowire(),
         
         // Note: Most repositories use 'db' as the constructor parameter name for PDO
         \App\Infrastructure\Persistence\Game\MySqlGameRepository::class => DI\autowire(),
@@ -121,12 +131,6 @@ return function (): ContainerInterface {
         \App\Infrastructure\Persistence\Video\MySqlVideoTagRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Video\MySqlVideoNoteRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Video\Mappers\VideoDataMapper::class => DI\autowire(),
-        // Video persistence
-        \App\Infrastructure\Persistence\Video\MySqlVideoRepository::class => DI\autowire(),
-        \App\Infrastructure\Persistence\Video\MySqlUserVideoRepository::class => DI\autowire(),
-        \App\Infrastructure\Persistence\Video\MySqlVideoTagRepository::class => DI\autowire(),
-        \App\Infrastructure\Persistence\Video\MySqlVideoNoteRepository::class => DI\autowire(),
-        \App\Infrastructure\Persistence\Video\Mappers\VideoDataMapper::class => DI\autowire(),
         
         // ===========================
         // DOMAIN SERVICES
@@ -149,6 +153,10 @@ return function (): ContainerInterface {
             ->constructorParameter('logger', DI\get(LoggerInterface::class)),
             
         \App\Domain\Services\IGDBService::class => DI\autowire()
+            ->constructorParameter('cache', DI\get(\App\Infrastructure\Cache\CacheService::class))
+            ->constructorParameter('logger', DI\get(LoggerInterface::class)),
+
+        \App\Domain\Services\OmdbService::class => DI\autowire()
             ->constructorParameter('cache', DI\get(\App\Infrastructure\Cache\CacheService::class))
             ->constructorParameter('logger', DI\get(LoggerInterface::class)),
 
@@ -254,6 +262,24 @@ return function (): ContainerInterface {
         \App\Domain\UseCases\GetLibraryUseCase::class => DI\autowire(),
         \App\Domain\UseCases\GetLibraryItemsUseCase::class => DI\autowire(),
         \App\Domain\UseCases\GetOwnershipFormatsUseCase::class => DI\autowire(),
+
+        // ===========================
+        // USE CASES - Social
+        // ===========================
+
+        \App\Domain\UseCases\Social\SendFriendRequestUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Social\AcceptFriendRequestUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Social\RejectFriendRequestUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Social\RemoveFriendUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Social\GetFriendsUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Social\GetFriendRequestsUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Social\SearchUsersUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Social\GetPublicProfileUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Social\GetFeedUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Social\GetPrivacySettingsUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Social\UpdatePrivacySettingsUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Social\CreateFeedEventUseCase::class => DI\autowire(),
+        \App\Domain\Services\FeedEventService::class => DI\autowire(),
         
         // ===========================
         // MIDDLEWARE
@@ -276,6 +302,8 @@ return function (): ContainerInterface {
         \App\Controllers\LibraryController::class => DI\autowire(),
         \App\Controllers\LibraryXController::class => DI\autowire(),
         \App\Controllers\StatsController::class => DI\autowire(),
+        \App\Controllers\SocialController::class => DI\autowire(),
+        \App\Controllers\FeedController::class => DI\autowire(),
         
         // ===========================
         // ROUTER

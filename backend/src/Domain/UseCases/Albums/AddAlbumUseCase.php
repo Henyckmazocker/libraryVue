@@ -8,6 +8,7 @@ use App\Domain\Model\Album;
 use App\Domain\Repository\Album\AlbumRepositoryInterface;
 use App\Domain\Repository\Album\UserAlbumRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\AddAlbumCommand;
 use Psr\Log\LoggerInterface;
@@ -19,6 +20,7 @@ class AddAlbumUseCase extends AbstractUseCase
         private readonly AlbumRepositoryInterface $albumRepository,
         private readonly UserAlbumRepositoryInterface $userAlbumRepository,
         private readonly UserRepositoryInterface $userRepository,
+        private readonly FeedEventService $feedEventService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -66,6 +68,14 @@ class AddAlbumUseCase extends AbstractUseCase
             $command->listenCount,
             $command->favoriteTrack,
             $command->ownershipFormatId
+        );
+
+        $this->feedEventService->recordItemAdded(
+            $command->userId,
+            'album',
+            (string) $album->getId(),
+            $album->getTitle(),
+            $album->getCoverUrl()
         );
 
         return $album;

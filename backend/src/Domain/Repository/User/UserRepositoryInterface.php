@@ -45,4 +45,17 @@ interface UserRepositoryInterface
      * Elimina un usuario (soft delete)
      */
     public function delete(int $id): void;
+
+    /**
+     * Busca un usuario por su username único
+     */
+    public function findByUsername(string $username): ?User;
+
+    /**
+     * Busca usuarios cuyo username contiene el término dado (LIKE)
+     * Excluye al usuario actual de los resultados
+     *
+     * @return User[]
+     */
+    public function searchByUsername(string $term, int $excludeUserId, int $limit = 10): array;
 }

@@ -235,6 +235,56 @@ class MySqlUserRepository implements UserRepositoryInterface
     /**
      * @inheritDoc
      */
+    public function findByUsername(string $username): ?User
+    {
+        try {
+            // Try exact username match first, then fall back to name match
+            $stmt = $this->db->prepare(
+                "SELECT * FROM " . self::TABLE
+                . " WHERE username = :username OR (username IS NULL AND name = :name)"
+                . " LIMIT 1"
+            );
+            $stmt->execute(['username' => $username, 'name' => $username]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$row) {
+                return null;
+            }
+            return $this->mapper->toDomain($row);
+        } catch (PDOException $e) {
+            $this->logError('Failed to find user by username', $e, ['username' => $username]);
+            throw $e;
+        }
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function searchByUsername(string $term, int $excludeUserId, int $limit = 10): array
+    {
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT * FROM " . self::TABLE
+                . " WHERE (username LIKE :term OR name LIKE :term2)"
+                . "   AND id != :exclude AND is_active = 1"
+                . " LIMIT :lim"
+            );
+            $like = '%' . $term . '%';
+            $stmt->bindValue(':term',    $like,          PDO::PARAM_STR);
+            $stmt->bindValue(':term2',   $like,          PDO::PARAM_STR);
+            $stmt->bindValue(':exclude', $excludeUserId, PDO::PARAM_INT);
+            $stmt->bindValue(':lim',     $limit,         PDO::PARAM_INT);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return $this->mapper->toDomainCollection($rows);
+        } catch (PDOException $e) {
+            $this->logError('Failed to search users by username', $e, ['term' => $term]);
+            throw $e;
+        }
+    }
+
+    /**
+     * @inheritDoc
+     */
     protected function getLogger(): ?LoggerInterface
     {
         return $this->logger;

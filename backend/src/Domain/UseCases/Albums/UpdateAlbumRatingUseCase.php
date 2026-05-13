@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Domain\UseCases\Albums;
 
+use App\Domain\Repository\Album\AlbumRepositoryInterface;
 use App\Domain\Repository\Album\UserAlbumRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\UpdateAlbumRatingCommand;
 use Psr\Log\LoggerInterface;
@@ -16,6 +18,8 @@ class UpdateAlbumRatingUseCase extends AbstractUseCase
     public function __construct(
         private readonly UserAlbumRepositoryInterface $userAlbumRepository,
         private readonly UserRepositoryInterface $userRepository,
+        private readonly AlbumRepositoryInterface $albumRepository,
+        private readonly FeedEventService $feedEventService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -43,6 +47,18 @@ class UpdateAlbumRatingUseCase extends AbstractUseCase
             $command->albumId,
             $command->rating->toFloat()
         );
+
+        $album = $this->albumRepository->findById($command->albumId);
+        if ($album) {
+            $this->feedEventService->recordItemRated(
+                $command->userId,
+                'album',
+                (string) $command->albumId,
+                $album->getTitle(),
+                $album->getCoverUrl(),
+                $command->rating->toFloat()
+            );
+        }
     }
 
     protected function getLogContext(): string

@@ -35,13 +35,14 @@ error()   { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 ENV_FILE_ARG=""
 COMPOSE_FILE_ARG=""
 
-for arg in "$@"; do
-  case "$arg" in
-    --env-file=*)     ENV_FILE_ARG="${arg#--env-file=}"     ;;
-    --env-file)       shift; ENV_FILE_ARG="$1"              ;;
-    --compose-file=*) COMPOSE_FILE_ARG="${arg#--compose-file=}" ;;
-    --compose-file)   shift; COMPOSE_FILE_ARG="$1"          ;;
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --env-file=*)     ENV_FILE_ARG="${1#--env-file=}"         ;;
+    --env-file)       shift; ENV_FILE_ARG="$1"                ;;
+    --compose-file=*) COMPOSE_FILE_ARG="${1#--compose-file=}" ;;
+    --compose-file)   shift; COMPOSE_FILE_ARG="$1"            ;;
   esac
+  shift
 done
 
 # ---------------------------------------------------------------------------
@@ -74,6 +75,13 @@ resolve_db_creds() {
   local env_source="${ENV_FILE_ARG:-$ROOT_DIR/.env}"
 
   DB_USER="${DB_USER:-library_user}"
+
+  if [[ -z "${DB_NAME:-}" ]]; then
+    DB_NAME="$(env_get "$env_source" MYSQL_DATABASE)"
+  fi
+  if [[ -z "${DB_NAME:-}" ]]; then
+    DB_NAME="$(env_get "$env_source" DB_DATABASE)"
+  fi
   DB_NAME="${DB_NAME:-library_db}"
 
   if [[ -z "${DB_PASS:-}" ]]; then

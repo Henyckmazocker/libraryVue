@@ -287,7 +287,7 @@ return function (): ContainerInterface {
         
         \App\Infrastructure\Middleware\AuthMiddleware::class => DI\autowire(),
         \App\Infrastructure\Middleware\LoggingMiddleware::class => DI\autowire(),
-        \App\Infrastructure\Middleware\CsrfMiddleware::class => DI\autowire(),
+        \App\Infrastructure\Middleware\CSRFMiddleware::class => DI\autowire(),
         
         // ===========================
         // CONTROLLERS

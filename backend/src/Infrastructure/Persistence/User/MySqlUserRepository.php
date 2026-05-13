@@ -23,11 +23,14 @@ class MySqlUserRepository implements UserRepositoryInterface
 
     private const TABLE = 'users';
 
+    private readonly UserDataMapper $mapper;
+
     public function __construct(
         private readonly PDO $db,
         private readonly ?LoggerInterface $logger = null,
-        private readonly UserDataMapper $mapper = new UserDataMapper()
+        ?UserDataMapper $mapper = null
     ) {
+        $this->mapper = $mapper ?? new UserDataMapper();
     }
 
     /**

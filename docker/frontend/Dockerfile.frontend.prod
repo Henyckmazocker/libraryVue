@@ -21,8 +21,10 @@ COPY frontend/vue.config.js .
 # This will be overridden at build time from docker-compose.prod.yml
 ARG VUE_APP_API_URL
 ARG VUE_APP_GOOGLE_CLIENT_ID
+ARG VUE_APP_OMDB_API_KEY
 ENV VUE_APP_API_URL=${VUE_APP_API_URL}
 ENV VUE_APP_GOOGLE_CLIENT_ID=${VUE_APP_GOOGLE_CLIENT_ID}
+ENV VUE_APP_OMDB_API_KEY=${VUE_APP_OMDB_API_KEY}
 
 # Build the application (outputs to /app/dist by default in vue.config.js)
 RUN npm run build

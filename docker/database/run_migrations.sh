@@ -37,12 +37,12 @@ COMPOSE_FILE_ARG=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --env-file=*)     ENV_FILE_ARG="${1#--env-file=}"     ; shift ;;
-    --env-file)       ENV_FILE_ARG="$2"                   ; shift 2 ;;
-    --compose-file=*) COMPOSE_FILE_ARG="${1#--compose-file=}" ; shift ;;
-    --compose-file)   COMPOSE_FILE_ARG="$2"               ; shift 2 ;;
-    *)                shift ;;
+    --env-file=*)     ENV_FILE_ARG="${1#--env-file=}"         ;;
+    --env-file)       shift; ENV_FILE_ARG="$1"                ;;
+    --compose-file=*) COMPOSE_FILE_ARG="${1#--compose-file=}" ;;
+    --compose-file)   shift; COMPOSE_FILE_ARG="$1"            ;;
   esac
+  shift
 done
 
 # ---------------------------------------------------------------------------
@@ -75,6 +75,13 @@ resolve_db_creds() {
   local env_source="${ENV_FILE_ARG:-$ROOT_DIR/.env}"
 
   DB_USER="${DB_USER:-library_user}"
+
+  if [[ -z "${DB_NAME:-}" ]]; then
+    DB_NAME="$(env_get "$env_source" MYSQL_DATABASE)"
+  fi
+  if [[ -z "${DB_NAME:-}" ]]; then
+    DB_NAME="$(env_get "$env_source" DB_DATABASE)"
+  fi
   DB_NAME="${DB_NAME:-library_db}"
 
   if [[ -z "${DB_PASS:-}" ]]; then

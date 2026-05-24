@@ -68,7 +68,9 @@ services:
       MYSQL_DATABASE: library_db
       MYSQL_USER: library_user
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-    command: --init-file /docker-entrypoint-initdb.d/init.sql
+    # NO usar --init-file: ejecutaría init.sql (que hace DROP DATABASE) en CADA
+    # arranque y borraría los datos. init.sql se monta en docker-entrypoint-initdb.d,
+    # que solo corre la primera vez (volumen vacío). Eso basta para inicializar.
     restart: always
     volumes:
       - mysql_data:/var/lib/mysql

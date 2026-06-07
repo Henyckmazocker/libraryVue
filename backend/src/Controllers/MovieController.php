@@ -344,9 +344,13 @@ class MovieController extends BaseController implements Contracts\MovieControlle
         if (empty($title)) {
             return $this->errorResponse('Title is required', 400);
         }
-        $type    = $data['type'] ?? '';
-        $results = $this->omdbService->searchByTitle($title, $type);
-        return $this->successResponse('OMDb search results', $results);
+        try {
+            $type    = $data['type'] ?? '';
+            $results = $this->omdbService->searchByTitle($title, $type);
+            return $this->successResponse('OMDb search results', $results);
+        } catch (\Exception $e) {
+            return $this->externalServiceError('OMDb');
+        }
     }
 
     public function getMovieDetailsOmdb(array $data): array
@@ -355,12 +359,16 @@ class MovieController extends BaseController implements Contracts\MovieControlle
         if (empty($imdbId)) {
             return $this->errorResponse('imdbId is required', 400);
         }
-        $plot   = $data['plot'] ?? 'full';
-        $result = $this->omdbService->getDetailsByImdbId($imdbId, $plot);
-        if ($result === null) {
-            return $this->errorResponse('Movie not found in OMDb', 404);
+        try {
+            $plot   = $data['plot'] ?? 'full';
+            $result = $this->omdbService->getDetailsByImdbId($imdbId, $plot);
+            if ($result === null) {
+                return $this->errorResponse('Movie not found in OMDb', 404);
+            }
+            return $this->successResponse('Movie details retrieved', $result);
+        } catch (\Exception $e) {
+            return $this->externalServiceError('OMDb');
         }
-        return $this->successResponse('Movie details retrieved', $result);
     }
 
     public function getSeasonEpisodesOmdb(array $data): array
@@ -370,7 +378,11 @@ class MovieController extends BaseController implements Contracts\MovieControlle
         if (empty($imdbId) || $season < 1) {
             return $this->errorResponse('imdbId and season are required', 400);
         }
-        $episodes = $this->omdbService->getSeasonEpisodes($imdbId, $season);
-        return $this->successResponse('Season episodes retrieved', $episodes);
+        try {
+            $episodes = $this->omdbService->getSeasonEpisodes($imdbId, $season);
+            return $this->successResponse('Season episodes retrieved', $episodes);
+        } catch (\Exception $e) {
+            return $this->externalServiceError('OMDb');
+        }
     }
 }

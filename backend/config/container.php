@@ -140,6 +140,11 @@ return function (): ContainerInterface {
             $cacheDir = __DIR__ . '/../storage/cache';
             return new \App\Infrastructure\Cache\CacheService($cacheDir, $c->get(LoggerInterface::class));
         },
+
+        \App\Infrastructure\RateLimit\FileRateLimitStore::class => function(ContainerInterface $c) {
+            $dir = __DIR__ . '/../storage/ratelimit';
+            return new \App\Infrastructure\RateLimit\FileRateLimitStore($dir, $c->get(LoggerInterface::class));
+        },
         
         \App\Domain\Services\BookImportServiceInterface::class => DI\get(\App\Domain\Services\BookImportService::class),
         \App\Domain\Services\BookImportService::class => DI\autowire(),
@@ -288,6 +293,7 @@ return function (): ContainerInterface {
         \App\Infrastructure\Middleware\AuthMiddleware::class => DI\autowire(),
         \App\Infrastructure\Middleware\LoggingMiddleware::class => DI\autowire(),
         \App\Infrastructure\Middleware\CSRFMiddleware::class => DI\autowire(),
+        \App\Infrastructure\RateLimit\RateLimitMiddleware::class => DI\autowire(),
         
         // ===========================
         // CONTROLLERS

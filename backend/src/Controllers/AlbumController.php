@@ -257,7 +257,7 @@ class AlbumController extends BaseController implements Contracts\AlbumControlle
                 'count'  => count($albums),
             ]);
         } catch (\Exception $e) {
-            return $this->errorResponse('Error searching albums: ' . $e->getMessage(), 500);
+            return $this->externalServiceError('Spotify');
         }
     }
 
@@ -278,7 +278,7 @@ class AlbumController extends BaseController implements Contracts\AlbumControlle
 
             return $this->successResponse('Album found', ['album' => $album]);
         } catch (\Exception $e) {
-            return $this->errorResponse('Error fetching album: ' . $e->getMessage(), 500);
+            return $this->externalServiceError('Spotify');
         }
     }
 
@@ -299,7 +299,7 @@ class AlbumController extends BaseController implements Contracts\AlbumControlle
 
             return $this->successResponse('Artist found', ['artist' => $artist]);
         } catch (\Exception $e) {
-            return $this->errorResponse('Error fetching artist: ' . $e->getMessage(), 500);
+            return $this->externalServiceError('Spotify');
         }
     }
 
@@ -318,7 +318,7 @@ class AlbumController extends BaseController implements Contracts\AlbumControlle
                 'count'  => count($tracks),
             ]);
         } catch (\Exception $e) {
-            return $this->errorResponse('Error fetching album tracks: ' . $e->getMessage(), 500);
+            return $this->externalServiceError('Spotify');
         }
     }
 
@@ -333,7 +333,7 @@ class AlbumController extends BaseController implements Contracts\AlbumControlle
                 'count'  => count($releases),
             ]);
         } catch (\Exception $e) {
-            return $this->errorResponse('Error fetching new releases: ' . $e->getMessage(), 500);
+            return $this->externalServiceError('Spotify');
         }
     }
 
@@ -349,7 +349,7 @@ class AlbumController extends BaseController implements Contracts\AlbumControlle
         } catch (\InvalidArgumentException $e) {
             return $this->errorResponse($e->getMessage(), 400);
         } catch (\Exception $e) {
-            return $this->errorResponse('Error fetching Last.fm stats: ' . $e->getMessage(), 500);
+            return $this->externalServiceError('Last.fm');
         }
     }
 }

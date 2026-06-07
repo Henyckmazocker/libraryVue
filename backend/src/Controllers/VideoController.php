@@ -117,7 +117,7 @@ class VideoController extends BaseController implements Contracts\VideoControlle
             $results = $this->youTubeService->searchVideos($query, $maxResults);
             return $this->successResponse('YouTube search results.', $results);
         } catch (\Exception $e) {
-            return $this->errorResponse('YouTube search failed: ' . $e->getMessage());
+            return $this->externalServiceError('YouTube');
         }
     }
 

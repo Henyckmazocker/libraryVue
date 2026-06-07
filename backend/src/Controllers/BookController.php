@@ -513,7 +513,7 @@ class BookController extends BaseController implements Contracts\BookControllerI
                 'trace' => $e->getTraceAsString()
             ]);
 
-            return $this->errorResponse('Failed to search works: ' . $e->getMessage(), 500);
+            return $this->externalServiceError('OpenLibrary');
         }
     }
 
@@ -553,7 +553,7 @@ class BookController extends BaseController implements Contracts\BookControllerI
                 'error' => $e->getMessage()
             ]);
 
-            return $this->errorResponse('Failed to get work details: ' . $e->getMessage(), 500);
+            return $this->externalServiceError('OpenLibrary');
         }
     }
 
@@ -609,7 +609,7 @@ class BookController extends BaseController implements Contracts\BookControllerI
                 'error' => $e->getMessage()
             ]);
 
-            return $this->errorResponse('Failed to get work editions: ' . $e->getMessage(), 500);
+            return $this->externalServiceError('OpenLibrary');
         }
     }
 
@@ -680,7 +680,7 @@ class BookController extends BaseController implements Contracts\BookControllerI
                 'error' => $e->getMessage()
             ]);
 
-            return $this->errorResponse('Failed to search Google Books: ' . $e->getMessage(), 500);
+            return $this->externalServiceError('Google Books');
         }
     }
 
@@ -712,7 +712,7 @@ class BookController extends BaseController implements Contracts\BookControllerI
                 'isbn'  => $isbn,
                 'error' => $e->getMessage(),
             ]);
-            return $this->errorResponse('Failed to retrieve book from OpenLibrary: ' . $e->getMessage(), 500);
+            return $this->externalServiceError('OpenLibrary');
         }
     }
 

@@ -305,14 +305,14 @@ class GameController extends BaseController implements Contracts\GameControllerI
             $clientId = $this->igdbService->getClientId();
             
             if (empty($clientId)) {
-                return $this->errorResponse('IGDB Client ID not configured', 500);
+                return $this->externalServiceError('IGDB');
             }
 
             return $this->successResponse('IGDB configuration retrieved', [
                 'clientId' => $clientId
             ]);
         } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage(), 500);
+            return $this->externalServiceError('IGDB');
         }
     }
 
@@ -329,7 +329,7 @@ class GameController extends BaseController implements Contracts\GameControllerI
 
             return $this->successResponse('IGDB token retrieved', $tokenInfo);
         } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage(), 500);
+            return $this->externalServiceError('IGDB');
         }
     }
 
@@ -356,7 +356,7 @@ class GameController extends BaseController implements Contracts\GameControllerI
                 'count' => count($games)
             ]);
         } catch (\Exception $e) {
-            return $this->errorResponse('Error searching games: ' . $e->getMessage(), 500);
+            return $this->externalServiceError('IGDB');
         }
     }
 
@@ -383,7 +383,7 @@ class GameController extends BaseController implements Contracts\GameControllerI
 
             return $this->successResponse('Game found', ['game' => $game]);
         } catch (\Exception $e) {
-            return $this->errorResponse('Error fetching game: ' . $e->getMessage(), 500);
+            return $this->externalServiceError('IGDB');
         }
     }
 
@@ -410,7 +410,7 @@ class GameController extends BaseController implements Contracts\GameControllerI
 
             return $this->successResponse('Game details retrieved', $gameDetails);
         } catch (\Exception $e) {
-            return $this->errorResponse('Error fetching game details: ' . $e->getMessage(), 500);
+            return $this->externalServiceError('IGDB');
         }
     }
 

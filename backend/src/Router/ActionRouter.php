@@ -16,6 +16,7 @@ use App\Controllers\LibraryXController;
 use App\Controllers\StatsController;
 use App\Controllers\VideoController;
 use App\Infrastructure\Middleware\MiddlewarePipeline;
+use App\Infrastructure\RateLimit\RateLimitMiddleware;
 use App\Domain\DTO\Commands\AddBookCommand;
 use App\Domain\DTO\Commands\DeleteBookCommand;
 use App\Domain\DTO\Commands\UpdateBookRatingCommand;
@@ -140,7 +141,15 @@ class ActionRouter
 
             // Build middleware pipeline
             $pipeline = new MiddlewarePipeline();
-            
+
+            // Apply a global default rate limiter (env-configured) to every route
+            // that does not declare its own RateLimitMiddleware. Routes needing a
+            // stricter/looser limit override it by listing RateLimitMiddleware
+            // explicitly with config in routes.php.
+            if (!$this->hasRateLimitMiddleware($route['middleware'])) {
+                $pipeline->add($this->container->get(RateLimitMiddleware::class));
+            }
+
             foreach ($route['middleware'] as $middlewareConfig) {
                 if (is_array($middlewareConfig)) {
                     // Middleware with configuration [MiddlewareClass::class, ['config' => 'value']]
@@ -194,8 +203,24 @@ class ActionRouter
     }
 
     /**
+     * Check whether a route's middleware stack already declares a RateLimitMiddleware
+     * (either as a bare class name or as a [class, config] pair).
+     */
+    private function hasRateLimitMiddleware(array $middlewares): bool
+    {
+        foreach ($middlewares as $middlewareConfig) {
+            $class = is_array($middlewareConfig) ? ($middlewareConfig[0] ?? null) : $middlewareConfig;
+            if ($class === RateLimitMiddleware::class) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Execute the controller action with Command DTOs
-     * 
+     *
      * @param array $controllerConfig [ControllerName, methodName]
      * @param array $request The request context (includes user_id from AuthMiddleware)
      * @return array Controller response

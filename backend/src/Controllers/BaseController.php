@@ -34,6 +34,20 @@ abstract class BaseController
     }
 
     /**
+     * Standard response for a failed external API call (Spotify, OMDb, IGDB, ...).
+     *
+     * Returns a clean 503 with a generic message instead of leaking the upstream
+     * error to the client. The real cause is already logged by the service.
+     */
+    protected function externalServiceError(string $service): array
+    {
+        return $this->errorResponse(
+            "The {$service} service is temporarily unavailable. Please try again later.",
+            503
+        );
+    }
+
+    /**
      * Validate that required fields are present in input data
      */
     protected function validateRequiredFields(array $data, array $requiredFields): void

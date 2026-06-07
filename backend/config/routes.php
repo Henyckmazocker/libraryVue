@@ -6,6 +6,7 @@ use App\Infrastructure\Middleware\AuthenticationMiddleware;
 use App\Infrastructure\Middleware\CSRFMiddleware;
 use App\Infrastructure\Middleware\LoggingMiddleware;
 use App\Infrastructure\Middleware\ValidationMiddleware;
+use App\Infrastructure\RateLimit\RateLimitMiddleware;
 
 /**
  * Routes Configuration
@@ -18,6 +19,12 @@ use App\Infrastructure\Middleware\ValidationMiddleware;
  * - 'controller': [ControllerClass::class, 'methodName']
  * - 'middleware': Array of middleware class names to apply
  * - 'validation': Optional array of required fields for ValidationMiddleware
+ *
+ * Rate limiting: every route gets a global default RateLimitMiddleware
+ * (env-configured, see RATE_LIMIT_*) applied automatically by ActionRouter.
+ * To use a stricter/looser limit, declare RateLimitMiddleware explicitly with
+ * config, e.g. [RateLimitMiddleware::class, ['limit' => 5, 'window' => 300,
+ * 'by' => 'ip']] — that overrides the global default for the route.
  */
 return [
     // ============================================================================
@@ -25,7 +32,11 @@ return [
     // ============================================================================
     'login' => [
         'controller' => ['AuthController', 'login'],
-        'middleware' => [LoggingMiddleware::class],
+        'middleware' => [
+            // Strict brute-force protection: 5 attempts / 5 min per IP.
+            [RateLimitMiddleware::class, ['limit' => 5, 'window' => 300, 'by' => 'ip']],
+            LoggingMiddleware::class
+        ],
         'validation' => []
     ],
     
@@ -41,11 +52,14 @@ return [
         'validation' => []
     ],
     
+    // Frontend log shipping: auth is optional (the controller adds user context
+    // from the session when present). Not requiring auth avoids 401 noise from
+    // logs flushed without an active session; the global rate limiter still
+    // protects these endpoints from abuse.
     'log_frontend' => [
         'controller' => ['AuthController', 'logFrontend'],
         'middleware' => [
-            LoggingMiddleware::class,
-            AuthenticationMiddleware::class
+            LoggingMiddleware::class
         ],
         'validation' => []
     ],
@@ -53,8 +67,7 @@ return [
     'log_frontend_batch' => [
         'controller' => ['AuthController', 'logFrontendBatch'],
         'middleware' => [
-            LoggingMiddleware::class,
-            AuthenticationMiddleware::class
+            LoggingMiddleware::class
         ],
         'validation' => []
     ],
@@ -188,9 +201,13 @@ return [
         'validation' => []
     ],
 
+    // Tighter limit to protect the third-party Google Books API quota.
     'search_google_books_isbn' => [
         'controller' => ['BookController', 'searchGoogleBooksByISBN'],
-        'middleware' => [LoggingMiddleware::class],
+        'middleware' => [
+            [RateLimitMiddleware::class, ['limit' => 30, 'window' => 60, 'by' => 'ip']],
+            LoggingMiddleware::class
+        ],
         'validation' => []
     ],
 
@@ -380,9 +397,13 @@ return [
     ],
 
     // OMDB PROXY - Public read-only endpoints (no auth, no CSRF)
+    // Tighter limit to protect the third-party OMDB API quota.
     'search_movies_omdb' => [
         'controller' => ['MovieController', 'searchMoviesOmdb'],
-        'middleware' => [LoggingMiddleware::class],
+        'middleware' => [
+            [RateLimitMiddleware::class, ['limit' => 30, 'window' => 60, 'by' => 'ip']],
+            LoggingMiddleware::class
+        ],
         'validation' => []
     ],
 

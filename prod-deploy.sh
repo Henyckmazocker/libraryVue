@@ -127,9 +127,11 @@ ask_if_empty() {
 setup_prod_env() {
   local google_client_id spotify_client_id spotify_client_secret
   local lastfm_api_key youtube_api_key tmdb_api_key mysql_root_password mysql_password
+  local google_books_api_key
   local mirror_password
 
   google_client_id=$(env_get      "$ENV_FILE" GOOGLE_CLIENT_ID)
+  google_books_api_key=$(env_get  "$ENV_FILE" GOOGLE_BOOKS_API_KEY)
   spotify_client_id=$(env_get     "$ENV_FILE" SPOTIFY_CLIENT_ID)
   spotify_client_secret=$(env_get "$ENV_FILE" SPOTIFY_CLIENT_SECRET)
   lastfm_api_key=$(env_get        "$ENV_FILE" LASTFM_API_KEY)
@@ -140,7 +142,7 @@ setup_prod_env() {
   mirror_password=$(env_get       "$ENV_FILE" DB_MIRROR_PASSWORD)
 
   local needs_input=false
-  [[ -z "$google_client_id" || -z "$spotify_client_id" || -z "$spotify_client_secret" \
+  [[ -z "$google_client_id" || -z "$google_books_api_key" || -z "$spotify_client_id" || -z "$spotify_client_secret" \
      || -z "$lastfm_api_key" || -z "$youtube_api_key" || -z "$tmdb_api_key" \
      || -z "$mysql_root_password" || -z "$mysql_password" || -z "$mirror_password" ]] \
     && needs_input=true
@@ -150,6 +152,7 @@ setup_prod_env() {
     echo ""
     echo -e "${YELLOW}=== APIs externas (producción) ===${NC}"
     google_client_id=$(ask_if_empty      "Google OAuth Client ID"  "$google_client_id")
+    google_books_api_key=$(ask_if_empty  "Google Books API Key"    "$google_books_api_key")
     spotify_client_id=$(ask_if_empty     "Spotify Client ID"       "$spotify_client_id")
     spotify_client_secret=$(ask_if_empty "Spotify Client Secret"   "$spotify_client_secret" "yes")
     lastfm_api_key=$(ask_if_empty        "Last.fm API Key"         "$lastfm_api_key")
@@ -178,6 +181,7 @@ setup_prod_env() {
 
 # Google OAuth
 GOOGLE_CLIENT_ID=${google_client_id}
+GOOGLE_BOOKS_API_KEY=${google_books_api_key}
 
 # Spotify API
 SPOTIFY_CLIENT_ID=${spotify_client_id}
@@ -612,6 +616,10 @@ cmd_rebuild() {
 cmd_migrate() {
   check_deps
   info "Aplicando migraciones de base de datos pendientes..."
+  # El nombre de la BD está hardcodeado en docker-compose.prod.yml, no en
+  # .env.prod: sin este DB_NAME, run_migrations.sh cae a su default library_db,
+  # que en producción no existe, y aborta sin mensaje (mysql_exec traga stderr).
+  DB_NAME=library_db_prod \
   "$ROOT_DIR/docker/database/run_migrations.sh" \
     --env-file "$ENV_FILE" \
     --compose-file "$COMPOSE_FILE"

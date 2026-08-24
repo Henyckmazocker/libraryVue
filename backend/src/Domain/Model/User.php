@@ -22,6 +22,7 @@ class User
     private bool $isActive;
     private ?string $lastfmUsername;
     private ?string $username;
+    private bool $isAdmin;
 
     public function __construct(
         ?int $id,
@@ -35,7 +36,8 @@ class User
         ?array $preferences = null,
         bool $isActive = true,
         ?string $lastfmUsername = null,
-        ?string $username = null
+        ?string $username = null,
+        bool $isAdmin = false
     ) {
         $this->id = $id;
         $this->googleId = $googleId;
@@ -49,6 +51,7 @@ class User
         $this->isActive = $isActive;
         $this->lastfmUsername = $lastfmUsername;
         $this->username = $username;
+        $this->isAdmin = $isAdmin;
     }
 
     // Getters
@@ -64,6 +67,7 @@ class User
     public function isActive(): bool { return $this->isActive; }
     public function getLastFmUsername(): ?string { return $this->lastfmUsername; }
     public function getUsername(): ?string { return $this->username; }
+    public function isAdmin(): bool { return $this->isAdmin; }
 
     // Setters with validation
     public function setGoogleId(GoogleId $googleId): void
@@ -171,6 +175,7 @@ class User
             'is_active' => $this->isActive,
             'lastfm_username' => $this->lastfmUsername,
             'username' => $this->username,
+            'is_admin' => $this->isAdmin,
         ];
     }
 
@@ -188,7 +193,8 @@ class User
             $data['preferences'] ?? null,
             $data['is_active'] ?? true,
             $data['lastfm_username'] ?? null,
-            $data['username'] ?? null
+            $data['username'] ?? null,
+            $data['is_admin'] ?? false
         );
     }
 }

@@ -79,8 +79,18 @@ backend/storage/logs/
 backend/storage/cache/
 backend/storage/sessions/
 backend/storage/uploads/
+# Portadas descargadas. En dev viven en el volumen covers_data, que se monta
+# encima de este directorio; el punto de montaje sí aparece en el árbol.
+backend/storage/covers/
+# Contadores del rate limiter: estado de runtime, con la IP del cliente en el
+# nombre del fichero. `backend/storage/*.json` no los cubre porque cuelgan de un
+# subdirectorio, y COPY backend/ los metía en la imagen de producción.
+backend/storage/ratelimit/
 backend/storage/*.json
 !backend/storage/.gitkeep
+
+# Caché de PHPUnit: cambia en cada ejecución de la suite.
+backend/.phpunit.cache/
 
 # ----------------------------------------------------------------------------
 # Database Files

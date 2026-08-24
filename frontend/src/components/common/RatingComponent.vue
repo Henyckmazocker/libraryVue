@@ -1,26 +1,48 @@
 <template>
   <div class="rating-section">
-    <div v-if="editable" class="stars-input">
-      <div v-for="starPosition in 5" :key="'star-' + starPosition" class="star-wrapper">
+    <div
+      v-if="editable"
+      class="stars-input"
+    >
+      <div
+        v-for="starPosition in 5"
+        :key="'star-' + starPosition"
+        class="star-wrapper"
+      >
         <!-- Single button that detects left/right hover -->
         <button
           type="button"
           class="star-button"
+          :aria-label="`Valorar con ${starPosition} ${starPosition === 1 ? 'estrella' : 'estrellas'}`"
+          :class="{ 'active': getVisualRating() >= starPosition - 0.5 }"
           @click="handleStarClick($event, starPosition)"
           @mousemove="handleStarHover($event, starPosition)"
           @mouseleave="hoverRating = 0"
-          :class="{ 'active': getVisualRating() >= starPosition - 0.5 }"
+          @focus="hoverRating = starPosition"
+          @blur="hoverRating = 0"
+          @keydown.left.prevent="focusStar(starPosition - 1)"
+          @keydown.right.prevent="focusStar(starPosition + 1)"
         >
-          <i :class="getEditableStarClass(starPosition)"></i>
+          <i
+            :class="getEditableStarClass(starPosition)"
+            aria-hidden="true"
+          />
         </button>
       </div>
     </div>
-    <div v-else class="stars-display">
-      <div v-for="starPosition in 5" :key="'display-star-' + starPosition" class="star-display-wrapper">
+    <div
+      v-else
+      class="stars-display"
+    >
+      <div
+        v-for="starPosition in 5"
+        :key="'display-star-' + starPosition"
+        class="star-display-wrapper"
+      >
         <i 
           class="star-icon"
           :class="getStarClass(starPosition)"
-        ></i>
+        />
       </div>
     </div>
   </div>
@@ -65,6 +87,14 @@ const setRating = (rating) => {
   currentRating.value = rating;
   emit('update:rating', rating);
   emit('rating-changed', rating);
+};
+
+// Flechas izquierda/derecha entre estrellas: con Tab se sale del grupo, que es
+// lo que se espera de un widget de valoración.
+const focusStar = (starPosition) => {
+  if (starPosition < 1 || starPosition > 5) return;
+  const buttons = document.querySelectorAll('.stars-input .star-button');
+  buttons[starPosition - 1]?.focus();
 };
 
 const handleStarHover = (event, starPosition) => {
@@ -136,7 +166,7 @@ watch(() => props.rating, (newValue) => {
 .current-rating {
   margin: 0 0 8px 0;
   font-weight: 500;
-  color: #e0e0e0;
+  color: var(--color-text);
 }
 
 .stars-input,
@@ -158,20 +188,20 @@ watch(() => props.rating, (newValue) => {
   padding: 4px;
   cursor: pointer;
   font-size: var(--star-size, 1.2rem);
-  color: #666;
+  color: var(--color-text-secondary);
   transition: all 0.2s ease;
   line-height: 1;
   border-radius: 4px;
 }
 
 .star-button:hover {
-  color: #ffd700;
+  color: var(--color-rating-star);
   transform: scale(1.1);
   background-color: rgba(255, 215, 0, 0.1);
 }
 
 .star-button.active {
-  color: #ffd700;
+  color: var(--color-rating-star);
   text-shadow: 0 0 3px rgba(255, 215, 0, 0.3);
 }
 
@@ -187,17 +217,17 @@ watch(() => props.rating, (newValue) => {
 }
 
 .star-icon.filled {
-  color: #ffd700;
+  color: var(--color-rating-star);
   text-shadow: 0 0 3px rgba(255, 215, 0, 0.3);
 }
 
 .star-icon.half-filled {
-  color: #ffd700;
+  color: var(--color-rating-star);
   text-shadow: 0 0 3px rgba(255, 215, 0, 0.3);
 }
 
 .star-icon.empty {
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 /* Size variations */

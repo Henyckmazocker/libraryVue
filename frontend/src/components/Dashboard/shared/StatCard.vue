@@ -1,11 +1,18 @@
 <template>
-  <div class="stat-card" :class="colorClass">
+  <div
+    class="stat-card"
+    :class="colorClass"
+  >
     <div class="stat-icon">
-      <i :class="icon"></i>
+      <i :class="icon" />
     </div>
     <div class="stat-content">
-      <h3 class="stat-number">{{ displayNumber }}</h3>
-      <p class="stat-label">{{ label }}</p>
+      <h3 class="stat-number">
+        {{ displayNumber }}
+      </h3>
+      <p class="stat-label">
+        {{ label }}
+      </p>
     </div>
   </div>
 </template>

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Infrastructure\Middleware\AdminMiddleware;
 use App\Infrastructure\Middleware\AuthenticationMiddleware;
 use App\Infrastructure\Middleware\CSRFMiddleware;
 use App\Infrastructure\Middleware\LoggingMiddleware;
@@ -48,7 +49,10 @@ return [
     
     'check_auth' => [
         'controller' => ['AuthController', 'checkAuth'],
-        'middleware' => [LoggingMiddleware::class],
+        // AuthenticationMiddleware acepta sesión **o** Bearer JWT y deja
+        // `user_id`/`auth_method` en la petición; el controller los usa para
+        // resolver el caso JWT, que antes caía siempre en 401.
+        'middleware' => [LoggingMiddleware::class, AuthenticationMiddleware::class],
         'validation' => []
     ],
     
@@ -396,12 +400,15 @@ return [
         'validation' => []
     ],
 
-    // OMDB PROXY - Public read-only endpoints (no auth, no CSRF)
-    // Tighter limit to protect the third-party OMDB API quota.
+    // CATÁLOGO DE PELÍCULAS - Public read-only endpoints (no auth, no CSRF)
+    // El límite era de 30/60 s para proteger la cuota de OMDB. Desde el mirror
+    // local esto es una consulta de milisegundos contra MySQL, sin cuota que
+    // agotar, así que el límite pasa a 120/60 s y sigue existiendo solo como
+    // freno al abuso.
     'search_movies_omdb' => [
         'controller' => ['MovieController', 'searchMoviesOmdb'],
         'middleware' => [
-            [RateLimitMiddleware::class, ['limit' => 30, 'window' => 60, 'by' => 'ip']],
+            [RateLimitMiddleware::class, ['limit' => 120, 'window' => 60, 'by' => 'ip']],
             LoggingMiddleware::class
         ],
         'validation' => []
@@ -581,7 +588,8 @@ return [
         'controller' => ['LibraryXController', 'getUrls'],
         'middleware' => [
             LoggingMiddleware::class,
-            AuthenticationMiddleware::class
+            AuthenticationMiddleware::class,
+            AdminMiddleware::class
         ],
         'validation' => []
     ],
@@ -591,7 +599,8 @@ return [
         'middleware' => [
             LoggingMiddleware::class,
             AuthenticationMiddleware::class,
-            CSRFMiddleware::class
+            CSRFMiddleware::class,
+            AdminMiddleware::class
         ],
         'validation' => []
     ],

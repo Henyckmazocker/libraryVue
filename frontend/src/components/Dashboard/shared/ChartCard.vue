@@ -1,7 +1,10 @@
 <template>
   <div class="chart-card">
     <h3 class="chart-title">
-      <i v-if="icon" :class="icon"></i>
+      <i
+        v-if="icon"
+        :class="icon"
+      />
       {{ title }}
     </h3>
     <div class="chart-container">

@@ -8,6 +8,7 @@ use App\Domain\Model\Video;
 use App\Domain\Repository\Video\VideoRepositoryInterface;
 use App\Domain\Repository\Video\UserVideoRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
+use App\Domain\Services\CoverService;
 use App\Domain\Services\FeedEventService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\AddVideoCommand;
@@ -21,6 +22,7 @@ class AddVideoUseCase extends AbstractUseCase
         private readonly UserVideoRepositoryInterface $userVideoRepository,
         private readonly UserRepositoryInterface $userRepository,
         private readonly FeedEventService $feedEventService,
+        private readonly CoverService $coverService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -75,8 +77,17 @@ class AddVideoUseCase extends AbstractUseCase
         $this->feedEventService->recordItemAdded(
             $command->userId,
             'video',
-            (string) $video->getId(),
+            $video->getYouTubeId()->toString(),
             $video->getTitle(),
+            $video->getCoverUrl()
+        );
+
+        // Copia local de la portada: registra la fila ahora (sin red) y deja la
+        // descarga para después de la respuesta. Un fallo aquí nunca afecta al
+        // guardado; lo pendiente lo recoge `bin/mirror covers:backfill`.
+        $this->coverService->recordCover(
+            'video',
+            $video->getYouTubeId()->toString(),
             $video->getCoverUrl()
         );
 

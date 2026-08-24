@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="">
   <head>
-  <!-- Google Identity Services -->
-  <script src="https://accounts.google.com/gsi/client" async defer onload="initGoogleSignIn()"></script>
-  <!-- FontAwesome for icons -->
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- El SDK de Google Identity NO se carga aquí: lo inyecta
+         `composables/useGoogleAuth.js` la primera vez que hace falta, es decir
+         solo cuando hay que pintar el botón de login. Traerlo en cada carga de
+         página costaba una petición a accounts.google.com también a los usuarios
+         con sesión abierta y a la app Capacitor, que usa el login nativo. -->
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -17,16 +18,5 @@
     </noscript>
     <div id="app"></div>
     <!-- built files will be auto injected -->
-    
-    <script>
-      // Global flag para indicar cuando Google Identity Services está cargado
-      window.googleSignInReady = false;
-      
-      function initGoogleSignIn() {
-        window.googleSignInReady = true;
-        // Emitir evento personalizado para notificar que Google está listo
-        window.dispatchEvent(new CustomEvent('googleSignInLoaded'));
-      }
-    </script>
   </body>
 </html>

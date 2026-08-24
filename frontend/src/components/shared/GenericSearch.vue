@@ -1,27 +1,50 @@
 <template>
   <div class="generic-search-container">
-    <h1 class="title">{{ config.title }}</h1>
+    <h1 class="title">
+      {{ config.title }}
+    </h1>
     
     <!-- Input groups dinámicos basados en configuración -->
-    <div v-for="(input, index) in config.inputs" :key="index" class="input-group">
+    <div
+      v-for="(input, index) in config.inputs"
+      :key="index"
+      class="input-group"
+    >
       <input 
+        v-model="inputValues[index]" 
         type="text" 
         class="search-input" 
+        :aria-label="input.placeholder" 
         :placeholder="input.placeholder" 
-        v-model="inputValues[index]" 
         @keyup.enter="() => handleSearch(input, index)"
-      />
-      <button @click="() => handleSearch(input, index)" class="search-button">
-        <i class="fas fa-search"></i>
-        <span v-if="input.buttonText" class="button-text">{{ input.buttonText }}</span>
+      >
+      <button
+        class="search-button"
+        @click="() => handleSearch(input, index)"
+      >
+        <i class="fas fa-search" />
+        <span
+          v-if="input.buttonText"
+          class="button-text"
+        >{{ input.buttonText }}</span>
       </button>
     </div>
     
-    <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
+    <div
+      v-if="errorMessage"
+      class="error-message"
+    >
+      {{ errorMessage }}
+    </div>
 
     <!-- Resultados en carrusel horizontal -->
-    <div v-if="results && results.length" class="results-section">
-      <h2 class="results-title">Resultados de búsqueda ({{ results.length }})</h2>
+    <div
+      v-if="results && results.length"
+      class="results-section"
+    >
+      <h2 class="results-title">
+        Resultados de búsqueda ({{ results.length }})
+      </h2>
       <HorizontalCarousel>
         <component
           :is="config.carouselItemComponent"
@@ -143,6 +166,8 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .generic-search-container {
   display: flex;
   flex-direction: column;
@@ -238,7 +263,7 @@ onMounted(async () => {
 }
 
 /* Responsive design */
-@media (max-width: 768px) {
+@include responsive-below(md) {
   .generic-search-container {
     padding: 20px;
     max-width: 100%;

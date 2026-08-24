@@ -105,4 +105,18 @@ class UpdateVideoRatingUseCaseTest extends TestCase
         $result = $this->useCase->execute($this->makeCommand());
         $this->assertTrue($result);
     }
+
+    #[Test]
+    public function records_the_feed_event_with_the_youtube_id_not_the_numeric_id(): void
+    {
+        $this->userRepo->method('findById')->willReturn($this->makeUser());
+        $this->videoRepo->method('findByYouTubeId')->willReturn($this->makeVideo(5));
+        $this->userVideoRepo->method('hasVideo')->willReturn(true);
+
+        $this->feedEventService->expects($this->once())
+            ->method('recordItemRated')
+            ->with(1, 'video', self::YOUTUBE_ID, 'Never Gonna Give You Up', null, 4.0);
+
+        $this->useCase->execute($this->makeCommand());
+    }
 }

@@ -54,7 +54,7 @@ class UpdateVideoRatingUseCase extends AbstractUseCase
         $this->feedEventService->recordItemRated(
             $command->userId,
             'video',
-            (string) $video->getId(),
+            $video->getYouTubeId()->toString(),
             $video->getTitle(),
             $video->getCoverUrl(),
             $command->rating->toFloat()

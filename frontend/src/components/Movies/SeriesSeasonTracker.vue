@@ -2,7 +2,7 @@
   <div class="series-season-tracker">
     <div class="tracker-header">
       <h3 class="tracker-title">
-        <i class="fas fa-layer-group"></i>
+        <i class="fas fa-layer-group" />
         Progreso de temporadas
       </h3>
       <div class="tracker-summary">
@@ -12,11 +12,11 @@
         <button
           v-if="watchedCount < totalSeasons"
           class="mark-all-btn"
-          @click="markAllViewed"
           :disabled="isSaving"
           title="Marcar todas como vistas"
+          @click="markAllViewed"
         >
-          <i class="fas fa-check-double"></i>
+          <i class="fas fa-check-double" />
           Marcar todas
         </button>
       </div>
@@ -27,40 +27,62 @@
           class="progress-bar-fill"
           :style="{ width: progressPercent + '%' }"
           :class="progressClass"
-        ></div>
+        />
       </div>
     </div>
 
     <!-- Grid de temporadas -->
     <div class="seasons-grid">
-      <div
+      <button
         v-for="n in totalSeasons"
         :key="n"
+        type="button"
         class="season-card"
         :class="seasonCardClass(n)"
+        :aria-label="`Temporada ${n}: ${seasonLabel(n)}`"
         @click="toggleSeason(n)"
       >
-        <div class="season-number">T{{ n }}</div>
-        <div class="season-status-icon">
-          <i :class="seasonIcon(n)"></i>
+        <div class="season-number">
+          T{{ n }}
         </div>
-        <div class="season-label">{{ seasonLabel(n) }}</div>
-      </div>
+        <div class="season-status-icon">
+          <i :class="seasonIcon(n)" />
+        </div>
+        <div class="season-label">
+          {{ seasonLabel(n) }}
+        </div>
+      </button>
     </div>
 
     <!-- Formulario de edición (aparece al expandir una temporada) -->
     <transition name="fade">
-      <div v-if="editing !== null" class="season-editor">
+      <div
+        v-if="editing !== null"
+        class="season-editor"
+      >
         <div class="editor-header">
-          <span><i class="fas fa-edit"></i> Temporada {{ editing }}</span>
-          <button class="close-btn" @click="closeEditor"><i class="fas fa-times"></i></button>
+          <span><i class="fas fa-edit" /> Temporada {{ editing }}</span>
+          <button
+            class="close-btn"
+            @click="closeEditor"
+          >
+            <i class="fas fa-times" />
+          </button>
         </div>
 
         <div class="editor-fields">
           <!-- Estado -->
           <div class="field-group">
-            <label>Estado</label>
-            <div class="status-options">
+            <!-- No hay un control único que etiquetar: es un grupo de botones. -->
+            <span
+              id="season-status-label"
+              class="field-label"
+            >Estado</span>
+            <div
+              class="status-options"
+              role="group"
+              aria-labelledby="season-status-label"
+            >
               <button
                 v-for="opt in statusOptions"
                 :key="opt.value"
@@ -68,20 +90,25 @@
                 :class="{ active: editForm.status === opt.value }"
                 @click="editForm.status = opt.value"
               >
-                <i :class="opt.icon"></i> {{ opt.label }}
+                <i :class="opt.icon" /> {{ opt.label }}
               </button>
             </div>
           </div>
 
           <!-- Fecha -->
           <div class="field-group">
-            <label>Fecha de finalización</label>
-            <input type="date" v-model="editForm.dateViewed" class="date-input" />
+            <label for="season-date-input">Fecha de finalización</label>
+            <input
+              id="season-date-input"
+              v-model="editForm.dateViewed"
+              type="date"
+              class="date-input"
+            >
           </div>
 
           <!-- Rating -->
           <div class="field-group">
-            <label>Valoración</label>
+            <span class="field-label">Valoración</span>
             <RatingComponent
               :rating="editForm.personalRating"
               :editable="true"
@@ -92,37 +119,62 @@
 
           <!-- Notas -->
           <div class="field-group">
-            <label>Notas</label>
-            <textarea v-model="editForm.notes" class="notes-input" rows="3" placeholder="Tus notas sobre esta temporada..."></textarea>
+            <label for="season-notes-input">Notas</label>
+            <textarea
+              id="season-notes-input"
+              v-model="editForm.notes"
+              class="notes-input"
+              rows="3"
+              placeholder="Tus notas sobre esta temporada..."
+            />
           </div>
 
           <!-- Acciones -->
           <div class="editor-actions">
-            <button class="save-btn" @click="saveSeason" :disabled="isSaving">
-              <i class="fas fa-save"></i> {{ isSaving ? 'Guardando...' : 'Guardar' }}
+            <button
+              class="save-btn"
+              :disabled="isSaving"
+              @click="saveSeason"
+            >
+              <i class="fas fa-save" /> {{ isSaving ? 'Guardando...' : 'Guardar' }}
             </button>
-            <button class="cancel-btn" @click="closeEditor">Cancelar</button>
+            <button
+              class="cancel-btn"
+              @click="closeEditor"
+            >
+              Cancelar
+            </button>
           </div>
         </div>
 
         <!-- Lista de episodios (lazy, solo UI) -->
-        <div v-if="episodes[editing]" class="episodes-list">
-          <h4><i class="fas fa-list"></i> Episodios</h4>
-          <div v-for="ep in episodes[editing]" :key="ep.Episode" class="episode-item">
+        <div
+          v-if="episodes[editing]"
+          class="episodes-list"
+        >
+          <h4><i class="fas fa-list" /> Episodios</h4>
+          <div
+            v-for="ep in episodes[editing]"
+            :key="ep.Episode"
+            class="episode-item"
+          >
             <span class="ep-number">{{ ep.Episode }}.</span>
             <span class="ep-title">{{ ep.Title }}</span>
-            <span v-if="ep.imdbRating && ep.imdbRating !== 'N/A'" class="ep-rating">
-              <i class="fab fa-imdb"></i> {{ ep.imdbRating }}
+            <span
+              v-if="ep.imdbRating && ep.imdbRating !== 'N/A'"
+              class="ep-rating"
+            >
+              <i class="fab fa-imdb" /> {{ ep.imdbRating }}
             </span>
           </div>
         </div>
         <button
           v-else-if="imdbId && editing !== null"
           class="load-episodes-btn"
-          @click="loadEpisodes(editing)"
           :disabled="loadingEpisodes"
+          @click="loadEpisodes(editing)"
         >
-          <i :class="loadingEpisodes ? 'fas fa-spinner fa-spin' : 'fas fa-list-ul'"></i>
+          <i :class="loadingEpisodes ? 'fas fa-spinner fa-spin' : 'fas fa-list-ul'" />
           {{ loadingEpisodes ? 'Cargando episodios...' : 'Ver episodios' }}
         </button>
       </div>
@@ -132,7 +184,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
-import axios from 'axios';
+import { useAuthStore } from '@/store/auth';
 import RatingComponent from '@/components/common/RatingComponent.vue';
 
 const props = defineProps({
@@ -143,6 +195,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['season-updated']);
+
+const authStore = useAuthStore();
 
 // ── Estado local ──────────────────────────────────────────
 const localProgress = ref({ ...props.progress });
@@ -269,8 +323,7 @@ async function loadEpisodes(seasonNumber) {
   if (!props.imdbId) return;
   loadingEpisodes.value = true;
   try {
-    const apiUrl = process.env.VUE_APP_API_URL || '/index.php';
-    const response = await axios.post(apiUrl, { action: 'get_season_episodes_omdb', imdbId: props.imdbId, season: seasonNumber });
+    const response = await authStore.apiCall('get_season_episodes_omdb', { imdbId: props.imdbId, season: seasonNumber });
     const episodeList = response.data?.data;
     if (Array.isArray(episodeList) && episodeList.length > 0) {
       episodes.value = { ...episodes.value, [seasonNumber]: episodeList };
@@ -282,8 +335,10 @@ async function loadEpisodes(seasonNumber) {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .series-season-tracker {
-  background: var(--surface-card, #1e1e2e);
+  background: var(--color-background-card);
   border-radius: 12px;
   padding: 1.5rem;
   border: 1px solid rgba(139, 92, 246, 0.2);
@@ -294,13 +349,13 @@ async function loadEpisodes(seasonNumber) {
 .tracker-title {
   font-size: 1.1rem;
   font-weight: 600;
-  color: var(--text-color, #fff);
+  color: var(--text-color, var(--color-text-light));
   margin-bottom: 0.75rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
-.tracker-title i { color: #a78bfa; }
+.tracker-title i { color: var(--color-card-movie-accent); }
 
 .tracker-summary {
   display: flex;
@@ -309,11 +364,11 @@ async function loadEpisodes(seasonNumber) {
   margin-bottom: 0.5rem;
 }
 
-.progress-text { font-size: 0.9rem; color: var(--text-color-secondary, #aaa); }
+.progress-text { font-size: 0.9rem; color: var(--text-color-secondary, var(--color-border)); }
 
 .mark-all-btn {
   background: rgba(139, 92, 246, 0.15);
-  color: #a78bfa;
+  color: var(--color-card-movie-accent);
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 6px;
   padding: 0.3rem 0.75rem;
@@ -338,9 +393,9 @@ async function loadEpisodes(seasonNumber) {
   border-radius: 3px;
   transition: width 0.4s ease;
 }
-.progress-bar-fill.low      { background: #a78bfa; }
-.progress-bar-fill.half     { background: #60a5fa; }
-.progress-bar-fill.complete { background: #34d399; }
+.progress-bar-fill.low      { background: var(--color-card-movie-accent); }
+.progress-bar-fill.half     { background: var(--color-info); }
+.progress-bar-fill.complete { background: var(--color-success); }
 
 /* Grid de temporadas */
 .seasons-grid {
@@ -351,6 +406,7 @@ async function loadEpisodes(seasonNumber) {
 }
 
 .season-card {
+  @include button-reset;
   background: rgba(255,255,255,0.05);
   border: 1.5px solid rgba(255,255,255,0.1);
   border-radius: 10px;
@@ -361,19 +417,19 @@ async function loadEpisodes(seasonNumber) {
   user-select: none;
 }
 .season-card:hover { border-color: rgba(139, 92, 246, 0.5); background: rgba(139, 92, 246, 0.1); }
-.season-card.seen   { border-color: #34d399; background: rgba(52, 211, 153, 0.1); }
-.season-card.partial{ border-color: #fbbf24; background: rgba(251, 191, 36, 0.1); }
-.season-card.skipped{ border-color: #6b7280; background: rgba(107, 114, 128, 0.1); }
+.season-card.seen   { border-color: var(--color-success); background: rgba(52, 211, 153, 0.1); }
+.season-card.partial{ border-color: var(--color-warning); background: rgba(251, 191, 36, 0.1); }
+.season-card.skipped{ border-color: var(--color-border); background: rgba(107, 114, 128, 0.1); }
 
-.season-number { font-weight: 700; font-size: 1rem; color: var(--text-color, #fff); }
+.season-number { font-weight: 700; font-size: 1rem; color: var(--text-color, var(--color-background-card)); }
 
 .season-status-icon { font-size: 1.2rem; margin: 0.3rem 0; }
-.seen   .season-status-icon { color: #34d399; }
-.partial .season-status-icon { color: #fbbf24; }
-.skipped .season-status-icon { color: #6b7280; }
+.seen   .season-status-icon { color: var(--color-success); }
+.partial .season-status-icon { color: var(--color-warning); }
+.skipped .season-status-icon { color: var(--color-border); }
 .unseen .season-status-icon  { color: rgba(255,255,255,0.25); }
 
-.season-label { font-size: 0.72rem; color: var(--text-color-secondary, #aaa); }
+.season-label { font-size: 0.72rem; color: var(--text-color-secondary, var(--color-border)); }
 
 /* Editor */
 .season-editor {
@@ -389,22 +445,25 @@ async function loadEpisodes(seasonNumber) {
   justify-content: space-between;
   align-items: center;
   font-weight: 600;
-  color: #a78bfa;
+  color: var(--color-card-movie-accent);
   margin-bottom: 1rem;
 }
 .close-btn {
   background: none;
   border: none;
-  color: var(--text-color-secondary, #aaa);
+  color: var(--text-color-secondary, var(--color-text-muted));
   cursor: pointer;
   font-size: 1rem;
 }
 
 .field-group { margin-bottom: 0.875rem; }
-.field-group label {
+// `.field-label` es un <span>: los dos grupos que no etiquetan un control único
+// (el de botones de estado y la valoración) no pueden usar <label>.
+.field-group label,
+.field-group .field-label {
   display: block;
   font-size: 0.82rem;
-  color: var(--text-color-secondary, #aaa);
+  color: var(--text-color-secondary, var(--color-text-muted));
   margin-bottom: 0.35rem;
 }
 
@@ -413,7 +472,7 @@ async function loadEpisodes(seasonNumber) {
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 6px;
-  color: var(--text-color, #fff);
+  color: var(--text-color, var(--color-text-light));
   padding: 0.35rem 0.75rem;
   cursor: pointer;
   font-size: 0.82rem;
@@ -423,9 +482,9 @@ async function loadEpisodes(seasonNumber) {
   transition: all 0.15s;
 }
 .status-opt-btn.active {
-  border-color: #a78bfa;
+  border-color: var(--color-card-movie-accent);
   background: rgba(139, 92, 246, 0.2);
-  color: #a78bfa;
+  color: var(--color-card-movie-accent);
 }
 .status-opt-btn:hover:not(.active) { border-color: rgba(139,92,246,0.4); }
 
@@ -433,7 +492,7 @@ async function loadEpisodes(seasonNumber) {
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.15);
   border-radius: 6px;
-  color: var(--text-color, #fff);
+  color: var(--text-color, var(--color-text-light));
   padding: 0.4rem 0.6rem;
   font-size: 0.9rem;
   width: 100%;
@@ -444,7 +503,7 @@ async function loadEpisodes(seasonNumber) {
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.15);
   border-radius: 6px;
-  color: var(--text-color, #fff);
+  color: var(--text-color, var(--color-text-light));
   padding: 0.5rem;
   font-size: 0.9rem;
   width: 100%;
@@ -457,7 +516,7 @@ async function loadEpisodes(seasonNumber) {
   background: rgba(139, 92, 246, 0.2);
   border: 1px solid rgba(139, 92, 246, 0.5);
   border-radius: 6px;
-  color: #a78bfa;
+  color: var(--color-card-movie-accent);
   padding: 0.45rem 1rem;
   cursor: pointer;
   font-weight: 600;
@@ -472,7 +531,7 @@ async function loadEpisodes(seasonNumber) {
   background: none;
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 6px;
-  color: var(--text-color-secondary, #aaa);
+  color: var(--text-color-secondary, var(--color-text-muted));
   padding: 0.45rem 0.85rem;
   cursor: pointer;
 }
@@ -484,7 +543,7 @@ async function loadEpisodes(seasonNumber) {
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 6px;
-  color: var(--text-color-secondary, #aaa);
+  color: var(--text-color-secondary, var(--color-text-muted));
   padding: 0.4rem 0.85rem;
   cursor: pointer;
   font-size: 0.85rem;
@@ -496,18 +555,18 @@ async function loadEpisodes(seasonNumber) {
 .load-episodes-btn:hover:not(:disabled) { border-color: rgba(139,92,246,0.4); }
 
 .episodes-list { margin-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.75rem; }
-.episodes-list h4 { font-size: 0.9rem; color: #a78bfa; margin-bottom: 0.5rem; }
+.episodes-list h4 { font-size: 0.9rem; color: var(--color-card-movie-accent); margin-bottom: 0.5rem; }
 .episode-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.25rem 0;
   font-size: 0.85rem;
-  color: var(--text-color, #fff);
+  color: var(--text-color, var(--color-text-light));
   border-bottom: 1px solid rgba(255,255,255,0.04);
 }
-.ep-number { color: var(--text-color-secondary, #aaa); min-width: 28px; }
-.ep-rating { margin-left: auto; color: #fbbf24; font-size: 0.8rem; }
+.ep-number { color: var(--text-color-secondary, var(--color-border)); min-width: 28px; }
+.ep-rating { margin-left: auto; color: var(--color-warning); font-size: 0.8rem; }
 
 /* Transición */
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s, transform 0.2s; }

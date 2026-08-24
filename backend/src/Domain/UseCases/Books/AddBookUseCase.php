@@ -12,6 +12,7 @@ use App\Domain\Repository\Book\WorkRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Book\UserBookEditionRepositoryInterface;
 use App\Domain\Services\BookImportServiceInterface;
+use App\Domain\Services\CoverService;
 use App\Domain\Services\FeedEventService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\AddBookCommand;
@@ -28,6 +29,7 @@ class AddBookUseCase extends AbstractUseCase
         private readonly UserRepositoryInterface $userRepository,
         private readonly UserBookEditionRepositoryInterface $userBookEditionRepository,
         private readonly FeedEventService $feedEventService,
+        private readonly CoverService $coverService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -192,6 +194,15 @@ class AddBookUseCase extends AbstractUseCase
             'book',
             $command->isbn->toString(),
             $edition->getTitle(),
+            $legacyFormat['cover'] ?? null
+        );
+
+        // Copia local de la portada: registra la fila ahora (sin red) y deja la
+        // descarga para después de la respuesta. Un fallo aquí nunca afecta al
+        // guardado; lo pendiente lo recoge `bin/mirror covers:backfill`.
+        $this->coverService->recordCover(
+            'book',
+            $command->isbn->toString(),
             $legacyFormat['cover'] ?? null
         );
 

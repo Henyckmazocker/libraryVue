@@ -2,20 +2,29 @@
   <div class="dashboard-header-wrapper">
     <div class="dashboard-header">
       <h1 class="dashboard-title">
-        <i v-if="icon" :class="icon"></i>
+        <i
+          v-if="icon"
+          :class="icon"
+        />
         {{ title }}
       </h1>
-      <p v-if="subtitle" class="dashboard-subtitle">
+      <p
+        v-if="subtitle"
+        class="dashboard-subtitle"
+      >
         {{ subtitle }}
       </p>
     </div>
 
-    <div v-if="libraryLink" class="quick-actions">
+    <div
+      v-if="libraryLink"
+      class="quick-actions"
+    >
       <router-link 
         :to="libraryLink" 
         class="btn btn--primary btn--large"
       >
-        <i class="fas fa-library"></i>
+        <i class="fas fa-library" />
         {{ linkText }}
       </router-link>
     </div>

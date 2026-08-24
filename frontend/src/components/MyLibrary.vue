@@ -1,105 +1,144 @@
 <template>
   <div class="library-container">
-    <h1 class="title">My Saved Books</h1>
+    <h1 class="title">
+      Mi biblioteca
+    </h1>
     
     <div class="controls-container">
       <div class="filter-checkboxes filter-checkboxes-row">
-        <label class="filter-checkbox-pill"><input type="checkbox" v-model="showBooks" /> <i class="fas fa-book"></i></label>
-        <label class="filter-checkbox-pill"><input type="checkbox" v-model="showMovies" /> <i class="fas fa-film"></i></label>
-        <label class="filter-checkbox-pill"><input type="checkbox" v-model="showGames" /> <i class="fas fa-gamepad"></i></label>
-        <label class="filter-checkbox-pill"><input type="checkbox" v-model="showAlbums" /> <i class="fas fa-music"></i></label>
-        <label class="filter-checkbox-pill"><input type="checkbox" v-model="showVideos" /> <i class="fab fa-youtube"></i></label>
-        <button @click="openImportModal" class="import-button">
-          <i class="fas fa-folder-open"></i>
+        <label class="filter-checkbox-pill"><input
+          v-model="showBooks"
+          type="checkbox"
+        > <i
+          class="fas fa-book"
+          aria-hidden="true"
+        /><span class="u-sr-only">Libros</span></label>
+        <label class="filter-checkbox-pill"><input
+          v-model="showMovies"
+          type="checkbox"
+        > <i
+          class="fas fa-film"
+          aria-hidden="true"
+        /><span class="u-sr-only">Películas</span></label>
+        <label class="filter-checkbox-pill"><input
+          v-model="showGames"
+          type="checkbox"
+        > <i
+          class="fas fa-gamepad"
+          aria-hidden="true"
+        /><span class="u-sr-only">Videojuegos</span></label>
+        <label class="filter-checkbox-pill"><input
+          v-model="showAlbums"
+          type="checkbox"
+        > <i
+          class="fas fa-music"
+          aria-hidden="true"
+        /><span class="u-sr-only">Álbumes</span></label>
+        <label class="filter-checkbox-pill"><input
+          v-model="showVideos"
+          type="checkbox"
+        > <i
+          class="fab fa-youtube"
+          aria-hidden="true"
+        /><span class="u-sr-only">Vídeos</span></label>
+        <button
+          class="import-button"
+          title="Importar datos"
+          aria-label="Importar datos desde un fichero"
+          @click="openImportModal"
+        >
+          <i
+            class="fas fa-folder-open"
+            aria-hidden="true"
+          />
         </button>
       </div>
       <div class="search-sort-row">
         <input 
-          type="text" 
           v-model="searchQuery" 
-          placeholder="Search by title or author..." 
+          type="text" 
+          aria-label="Buscar en tu biblioteca por título o autor"
+          placeholder="Buscar por título o autor..." 
           class="search-input"
-        />
+        >
         <div class="sort-buttons">
           <button 
-            @click="toggleSort('title')"
             :class="['sort-button', { active: sortField === 'title' }]"
+            @click="toggleSort('title')"
           >
-            Title
-            <i v-if="sortField === 'title'" :class="sortDirection === 'asc' ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"></i>
+            Título
+            <i
+              v-if="sortField === 'title'"
+              :class="sortDirection === 'asc' ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"
+            />
           </button>
           <button 
-            @click="toggleSort('author')"
             :class="['sort-button', { active: sortField === 'author' }]"
+            @click="toggleSort('author')"
           >
-            Author
-            <i v-if="sortField === 'author'" :class="sortDirection === 'asc' ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"></i>
+            Autor
+            <i
+              v-if="sortField === 'author'"
+              :class="sortDirection === 'asc' ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"
+            />
           </button>
           <button 
-            @click="toggleSort('rating')"
             :class="['sort-button', { active: sortField === 'rating' }]"
+            @click="toggleSort('rating')"
           >
-            Rating
-            <i v-if="sortField === 'rating'" :class="sortDirection === 'asc' ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"></i>
+            Valoración
+            <i
+              v-if="sortField === 'rating'"
+              :class="sortDirection === 'asc' ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"
+            />
           </button>
           <button 
-            @click="toggleSort('date')"
             :class="['sort-button', { active: sortField === 'date' }]"
+            @click="toggleSort('date')"
           >
-            Date
-            <i v-if="sortField === 'date'" :class="sortDirection === 'asc' ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"></i>
+            Fecha
+            <i
+              v-if="sortField === 'date'"
+              :class="sortDirection === 'asc' ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"
+            />
           </button>
         </div>
       </div>
     </div>
 
-    <div v-if="isLoading" class="loading-message">
-      <i class="fas fa-spinner fa-spin"></i> Cargando biblioteca...
+    <MediaSkeleton
+      v-if="isLoading"
+      variant="list-item"
+      :count="8"
+      label="Cargando biblioteca…"
+    />
+    <div
+      v-if="fetchError"
+      class="error-message"
+    >
+      {{ fetchError }}
     </div>
-    <div v-if="fetchError" class="error-message">{{ fetchError }}</div>
 
-    <div v-if="!isLoading && !fetchError && displayedItems.length === 0" class="empty-library-message">
-      Your library is currently empty. Add some books from the ISBN Finder!
+    <div
+      v-if="!isLoading && !fetchError && displayedItems.length === 0"
+      class="empty-library-message"
+    >
+      Tu biblioteca está vacía. Añade algo desde los buscadores.
     </div>
 
-    <div v-if="displayedItems.length > 0" class="book-list">
-      <template v-for="item in displayedItems" :key="item.itemType + '-' + (item.isbn || item.imdbID || item.id || item.rawgId)">
-        <BookListItem
-          v-if="item.itemType === 'book'"
-          :book="item"
-          :allowedStatuses="allowedUserStatusesList('book')"
-          @click="navigateToBookDetail(item)"
-          class="book-item"
-        />
-        <MovieListItem
-          v-else-if="item.itemType === 'movie'"
-          :movie="item"
-          :allowedStatuses="allowedUserStatusesList('movie', item.media_type || item.mediaType)"
-          @click="navigateToMovieDetail(item)"
-          class="book-item"
-        />
-        <GameListItem
-          v-else-if="item.itemType === 'game'"
-          :game="item"
-          :allowedStatuses="allowedUserStatusesList('game')"
-          @click="navigateToGameDetail(item)"
-          class="book-item"
-        />
-        <AlbumListItem
-          v-else-if="item.itemType === 'album'"
-          :album="item"
-          :allowedStatuses="allowedUserStatusesList('album')"
-          @click="navigateToAlbumDetail(item)"
-          class="book-item"
-        />
-        <VideoListItem
-          v-else-if="item.itemType === 'video'"
-          :video="item"
-          :allowedStatuses="allowedUserStatusesList('video')"
-          @click="navigateToVideoDetail(item)"
-          class="book-item"
-        />
-      </template>
+    <div
+      v-if="displayedItems.length > 0"
+      class="book-list"
+    >
+      <MediaListItem
+        v-for="item in displayedItems"
+        :key="item.itemType + '-' + (item.isbn || item.imdbID || item.id || item.rawgId)"
+        :media="item.itemType"
+        :item="item"
+        :allowed-statuses="statusesFor(item)"
+        class="book-item"
+        @click="navigateToDetail(item)"
+      />
     </div>
 
     <!-- Import Modal Component -->
@@ -123,11 +162,8 @@ import { useSearch } from '@/composables/useSearch';
 import { useUIStore } from '@/store/ui';
 import { useAuth } from '@/composables/useAuth';
 import Logger from '@/utils/logger';
-import BookListItem from './Books/BookListItem.vue';
-import MovieListItem from './Movies/MovieListItem.vue';
-import GameListItem from './Games/GameListItem.vue';
-import AlbumListItem from './Albums/AlbumListItem.vue';
-import VideoListItem from './Videos/VideoListItem.vue';
+import MediaListItem from './shared/MediaListItem.vue';
+import MediaSkeleton from './shared/MediaSkeleton.vue';
 import ImportModal from './ImportModal.vue';
 
 // Composables
@@ -347,6 +383,29 @@ const navigateToVideoDetail = (video) => {
   })
 };
 
+// El v-for pasa por un solo MediaListItem, así que el despacho por medio vive
+// aquí. Cada medio tiene su nombre de ruta y su parámetro, y las películas
+// eligen entre MovieDetail y SeriesDetail: no se unifican todavía.
+const navigateToDetail = (item) => {
+  switch (item.itemType) {
+    case 'book': return navigateToBookDetail(item);
+    case 'movie': return navigateToMovieDetail(item);
+    case 'game': return navigateToGameDetail(item);
+    case 'album': return navigateToAlbumDetail(item);
+    case 'video': return navigateToVideoDetail(item);
+    default:
+      Logger.warn('No hay detalle para este tipo de ítem', { itemType: item.itemType });
+  }
+};
+
+// Solo las películas necesitan el segundo argumento, para distinguir los
+// estados de serie de los de película.
+const statusesFor = (item) => {
+  return item.itemType === 'movie'
+    ? allowedUserStatusesList('movie', item.media_type || item.mediaType)
+    : allowedUserStatusesList(item.itemType);
+};
+
 // Import functionality methods
 const openImportModal = () => {
   showImportModal.value = true;
@@ -388,6 +447,8 @@ const searchQuery = searchSystem.query;
 </script>
 
 <style lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .library-container {
   display: flex;
   flex-direction: column;
@@ -460,21 +521,21 @@ const searchQuery = searchSystem.query;
 }
 
 /* Responsive adjustments para optimizar espacio */
-@media (max-width: 1400px) {
+@include responsive-below(2xl) {
   :deep(.book-item) {
     flex-basis: calc(25% - 12px); /* 4 items por fila */
     max-width: calc(25% - 12px);
   }
 }
 
-@media (max-width: 1200px) {
+@include responsive-below(xl) {
   :deep(.book-item) {
     flex-basis: calc(33.333% - 12px); /* 3 items por fila */
     max-width: calc(33.333% - 12px);
   }
 }
 
-@media (max-width: 768px) {
+@include responsive-below(md) {
   .library-container {
     padding: 5px 8px; /* Reducido padding lateral también en móvil */
     padding-top: 15px;
@@ -495,7 +556,7 @@ const searchQuery = searchSystem.query;
   }
 }
 
-@media (max-width: 480px) {
+@include responsive-below(sm) {
   :deep(.book-item) {
     flex-basis: 100%; /* 1 item por fila */
     max-width: 100%;
@@ -612,7 +673,7 @@ const searchQuery = searchSystem.query;
 }
 
 .filter-checkbox-pill input[type="checkbox"] {
-  accent-color: #007bff;
+  accent-color: var(--color-primary);
   margin-right: 8px;
   width: 18px;
   height: 18px;
@@ -626,7 +687,7 @@ const searchQuery = searchSystem.query;
 }
 
 .filter-checkboxes input[type="checkbox"] {
-  accent-color: #007bff;
+  accent-color: var(--color-primary);
   margin-right: 5px;
   width: 18px;
   height: 18px;

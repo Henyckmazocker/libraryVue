@@ -1,6 +1,12 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
 import Logger from '@/utils/logger'
+import { RateLimitError } from '@/utils/errors'
+import { useUIStore } from './ui'
+
+// Espera máxima que se absorbe con un reintento silencioso. Por encima de esto se
+// avisa al usuario en vez de dejar la interfaz colgada.
+const RATE_LIMIT_AUTO_RETRY_MAX_SECONDS = 10
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -184,7 +190,56 @@ export const useAuthStore = defineStore('auth', {
         config.headers['Authorization'] = `Bearer ${this.jwtToken}`
       }
 
-      return await axios.post(backendApiUrl, requestData, config)
+      try {
+        return await axios.post(backendApiUrl, requestData, config)
+      } catch (error) {
+        if (error.response?.status !== 429) {
+          throw error
+        }
+        return await this.handleRateLimit(error, action, backendApiUrl, requestData, config)
+      }
+    },
+
+    /**
+     * Responde a un 429 del backend (RateLimitMiddleware).
+     *
+     * La cabecera `Retry-After` trae los segundos exactos que faltan para que se
+     * libere la ventana, así que no hace falta backoff a ciegas: si la espera es
+     * corta se absorbe con un reintento y el usuario no se entera; si es larga se
+     * le avisa con los segundos reales.
+     */
+    async handleRateLimit(error, action, url, requestData, config) {
+      // axios normaliza los nombres de cabecera a minúsculas
+      const retryAfter = parseInt(error.response.headers['retry-after'], 10) || 0
+      const uiStore = useUIStore()
+
+      Logger.warn('Rate limit alcanzado', { action, retryAfter })
+
+      if (retryAfter > 0 && retryAfter <= RATE_LIMIT_AUTO_RETRY_MAX_SECONDS) {
+        await new Promise(resolve => setTimeout(resolve, retryAfter * 1000))
+        try {
+          return await axios.post(url, requestData, config)
+        } catch (retryError) {
+          if (retryError.response?.status !== 429) {
+            throw retryError
+          }
+          // El segundo 429 ya no se reintenta: se avisa con la espera actualizada
+          const secondRetryAfter = parseInt(retryError.response.headers['retry-after'], 10) || retryAfter
+          uiStore.showWarning(this.rateLimitMessage(secondRetryAfter), 'Demasiadas peticiones')
+          throw new RateLimitError(secondRetryAfter)
+        }
+      }
+
+      uiStore.showWarning(this.rateLimitMessage(retryAfter), 'Demasiadas peticiones')
+      throw new RateLimitError(retryAfter)
+    },
+
+    rateLimitMessage(seconds) {
+      if (seconds <= 0) {
+        return 'Has hecho demasiadas peticiones seguidas. Espera unos segundos y vuelve a intentarlo.'
+      }
+      const unidad = seconds === 1 ? 'segundo' : 'segundos'
+      return `Has hecho demasiadas peticiones seguidas. Vuelve a intentarlo en ${seconds} ${unidad}.`
     },
 
     updateCSRFToken(token) {

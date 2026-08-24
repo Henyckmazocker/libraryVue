@@ -5,12 +5,15 @@
       id="file-input"
       ref="fileInput"
       type="file" 
-      @change="handleFileSelect"
       accept=".csv,.json,.xml,.txt"
       class="file-input"
-    />
-    <div v-if="selectedFile" class="file-info">
-      <i class="fas fa-file"></i> 
+      @change="handleFileSelect"
+    >
+    <div
+      v-if="selectedFile"
+      class="file-info"
+    >
+      <i class="fas fa-file" /> 
       {{ selectedFile.name }} ({{ formatFileSize(selectedFile.size) }})
     </div>
   </div>
@@ -79,7 +82,7 @@ defineExpose({
 
 .form-group label {
   display: block;
-  color: #e0e0e0;
+  color: var(--color-text);
   font-weight: 500;
   margin-bottom: 8px;
   font-size: 1rem;
@@ -89,22 +92,22 @@ defineExpose({
   width: 100%;
   padding: 12px 15px;
   font-size: 1rem;
-  border: 2px dashed #555;
+  border: 2px dashed var(--color-background-mute);
   border-radius: 12px;
-  background-color: #3a3a3a;
-  color: #e0e0e0;
+  background-color: var(--color-background-mute);
+  color: var(--color-text);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .file-input:hover {
-  border-color: #007bff;
-  background-color: #404040;
+  border-color: var(--color-info);
+  background-color: var(--color-background-mute);
 }
 
 .file-input:focus {
   outline: none;
-  border-color: #007bff;
+  border-color: var(--color-info);
   border-style: solid;
 }
 
@@ -114,7 +117,7 @@ defineExpose({
   background: rgba(0, 123, 255, 0.1);
   border: 1px solid rgba(0, 123, 255, 0.3);
   border-radius: 8px;
-  color: #007bff;
+  color: var(--color-info);
   font-size: 0.9rem;
 }
 </style>

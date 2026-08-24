@@ -2,7 +2,7 @@
   <div class="unified-dashboard">
     <div class="dashboard-header">
       <h1 class="dashboard-title">
-        <i class="fas fa-chart-bar"></i>
+        <i class="fas fa-chart-bar" />
         Estadísticas
       </h1>
       <p class="dashboard-subtitle">
@@ -10,26 +10,30 @@
       </p>
     </div>
 
-    <Tabs :value="activeTab" @update:value="activeTab = $event" class="dashboard-tabs">
+    <Tabs
+      :value="activeTab"
+      class="dashboard-tabs"
+      @update:value="activeTab = $event"
+    >
       <TabList>
         <Tab value="books">
-          <i class="fas fa-book"></i>
+          <i class="fas fa-book" />
           <span>Libros</span>
         </Tab>
         <Tab value="movies">
-          <i class="fas fa-film"></i>
+          <i class="fas fa-film" />
           <span>Películas</span>
         </Tab>
         <Tab value="games">
-          <i class="fas fa-gamepad"></i>
+          <i class="fas fa-gamepad" />
           <span>Videojuegos</span>
         </Tab>
         <Tab value="albums">
-          <i class="fas fa-music"></i>
+          <i class="fas fa-music" />
           <span>Música</span>
         </Tab>
         <Tab value="videos">
-          <i class="fab fa-youtube"></i>
+          <i class="fab fa-youtube" />
           <span>Vídeos</span>
         </Tab>
       </TabList>

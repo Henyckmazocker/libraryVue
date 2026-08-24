@@ -8,6 +8,7 @@ use App\Domain\Model\Movie;
 use App\Domain\Repository\Movie\MovieRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Movie\UserMovieRepositoryInterface;
+use App\Domain\Services\CoverService;
 use App\Domain\Services\FeedEventService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\AddMovieCommand;
@@ -21,6 +22,7 @@ class AddMovieUseCase extends AbstractUseCase
         private readonly UserRepositoryInterface $userRepository,
         private readonly UserMovieRepositoryInterface $userMovieRepository,
         private readonly FeedEventService $feedEventService,
+        private readonly CoverService $coverService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -74,6 +76,15 @@ class AddMovieUseCase extends AbstractUseCase
             'movie',
             $command->id->toString(),
             $movie->getTitle(),
+            $movie->getCoverUrl()
+        );
+
+        // Copia local de la portada: registra la fila ahora (sin red) y deja la
+        // descarga para después de la respuesta. Un fallo aquí nunca afecta al
+        // guardado; lo pendiente lo recoge `bin/mirror covers:backfill`.
+        $this->coverService->recordCover(
+            'movie',
+            $command->id->toString(),
             $movie->getCoverUrl()
         );
         

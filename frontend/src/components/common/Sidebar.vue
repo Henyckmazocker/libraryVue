@@ -1,33 +1,51 @@
 <template>
-  <aside class="app-sidebar" :class="{ 'app-sidebar--collapsed': isCollapsed }">
+  <aside
+    class="app-sidebar"
+    :class="{ 'app-sidebar--collapsed': isCollapsed }"
+  >
     <!-- Toggle button -->
     <button 
       class="app-sidebar__toggle" 
       :class="{ 'app-sidebar__toggle--collapsed': isCollapsed }"
       @click="toggleSidebar"
     >
-      <i class="fas" :class="isCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
+      <i
+        class="fas"
+        :class="isCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'"
+      />
     </button>
 
     <!-- Sidebar content -->
     <div class="app-sidebar__content">
-      <div v-if="isLoading" class="app-sidebar__loading">
-        <i class="fas fa-spinner fa-spin"></i>
+      <div
+        v-if="isLoading"
+        class="app-sidebar__loading"
+      >
+        <i class="fas fa-spinner fa-spin" />
         <span v-if="!isCollapsed">Cargando menú...</span>
       </div>
 
-      <div v-else-if="hasError" class="app-sidebar__error">
-        <i class="fas fa-exclamation-triangle"></i>
+      <div
+        v-else-if="hasError"
+        class="app-sidebar__error"
+      >
+        <i class="fas fa-exclamation-triangle" />
         <span v-if="!isCollapsed">Error al cargar menú</span>
       </div>
 
-      <nav v-else class="app-sidebar__nav">
+      <nav
+        v-else
+        class="app-sidebar__nav"
+      >
         <div 
           v-for="section in menuItems" 
           :key="section.title" 
           class="app-sidebar__section"
         >
-          <h3 v-if="!isCollapsed" class="app-sidebar__section-title">
+          <h3
+            v-if="!isCollapsed"
+            class="app-sidebar__section-title"
+          >
             {{ section.title }}
           </h3>
           
@@ -46,8 +64,14 @@
                 :title="isCollapsed ? item.description : ''"
                 @click="item.disabled && $event.preventDefault()"
               >
-                <i :class="item.icon" class="app-sidebar__icon"></i>
-                <span v-if="!isCollapsed" class="app-sidebar__text">{{ item.name }}</span>
+                <i
+                  :class="item.icon"
+                  class="app-sidebar__icon"
+                />
+                <span
+                  v-if="!isCollapsed"
+                  class="app-sidebar__text"
+                >{{ item.name }}</span>
               </router-link>
             </li>
           </ul>
@@ -97,6 +121,8 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .app-sidebar {
   position: fixed;
   top: 70px; /* Altura del header */
@@ -261,7 +287,7 @@ onMounted(async () => {
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@include responsive-below(md) {
   .app-sidebar {
     width: 60px;
     z-index: 250;

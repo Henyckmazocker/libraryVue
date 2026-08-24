@@ -31,6 +31,34 @@ class AuthMiddleware
     }
 
     /**
+     * Resolve an already-authenticated user by id.
+     *
+     * AuthenticationMiddleware accepts a session **or** a Bearer JWT and puts
+     * `user_id` in the request. This lets a controller finish the check for the
+     * JWT case, where there is no PHP session to look at.
+     *
+     * @return array{status: string, user?: array, message?: string, code?: string, http_code?: int}
+     */
+    public function authenticateById(int $userId): array
+    {
+        $user = $this->userRepository->findById($userId);
+
+        if (!$user || !$user->isActive()) {
+            return [
+                'status' => 'error',
+                'message' => 'User account not found or inactive. Please log in again.',
+                'code' => 'USER_INACTIVE',
+                'http_code' => 401
+            ];
+        }
+
+        return [
+            'status' => 'success',
+            'user' => $user->toArray()
+        ];
+    }
+
+    /**
      * Check if user is authenticated for protected routes
      */
     public function requireAuth(): array

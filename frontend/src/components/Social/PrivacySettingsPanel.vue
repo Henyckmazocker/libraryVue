@@ -1,41 +1,70 @@
 <template>
   <div class="privacy-settings-panel">
-    <h3 class="privacy-settings-panel__title">Configuración de privacidad</h3>
+    <h3 class="privacy-settings-panel__title">
+      Configuración de privacidad
+    </h3>
 
-    <div v-if="privacySettings" class="privacy-settings-panel__form">
+    <div
+      v-if="privacySettings"
+      class="privacy-settings-panel__form"
+    >
       <div class="privacy-settings-panel__row">
-        <label>Visibilidad del perfil</label>
+        <!-- El <Select> de PrimeVue no es un control nativo al que un <label for>
+             pueda apuntar: se etiqueta por aria-labelledby. -->
+        <span
+          :id="'privacy-profile-label'"
+          class="privacy-settings-panel__row-label"
+        >Visibilidad del perfil</span>
         <Select
           v-model="localSettings.profileVisibility"
+          :aria-labelledby="'privacy-profile-label'"
           :options="visibilityOptions"
-          optionLabel="label"
-          optionValue="value"
+          option-label="label"
+          option-value="value"
         />
       </div>
 
       <div class="privacy-settings-panel__row">
-        <label>Visibilidad de la biblioteca</label>
+        <!-- El <Select> de PrimeVue no es un control nativo al que un <label for>
+             pueda apuntar: se etiqueta por aria-labelledby. -->
+        <span
+          :id="'privacy-library-label'"
+          class="privacy-settings-panel__row-label"
+        >Visibilidad de la biblioteca</span>
         <Select
           v-model="localSettings.libraryVisibility"
+          :aria-labelledby="'privacy-library-label'"
           :options="visibilityOptions"
-          optionLabel="label"
-          optionValue="value"
+          option-label="label"
+          option-value="value"
         />
       </div>
 
       <div class="privacy-settings-panel__row">
-        <label>Visibilidad del feed</label>
+        <!-- El <Select> de PrimeVue no es un control nativo al que un <label for>
+             pueda apuntar: se etiqueta por aria-labelledby. -->
+        <span
+          :id="'privacy-feed-label'"
+          class="privacy-settings-panel__row-label"
+        >Visibilidad del feed</span>
         <Select
           v-model="localSettings.feedVisibility"
+          :aria-labelledby="'privacy-feed-label'"
           :options="visibilityOptions"
-          optionLabel="label"
-          optionValue="value"
+          option-label="label"
+          option-value="value"
         />
       </div>
 
       <div class="privacy-settings-panel__row privacy-settings-panel__row--toggle">
-        <label>Permitir solicitudes de amistad</label>
-        <ToggleSwitch v-model="localSettings.allowFriendRequests" />
+        <span
+          id="privacy-requests-label"
+          class="privacy-settings-panel__row-label"
+        >Permitir solicitudes de amistad</span>
+        <ToggleSwitch
+          v-model="localSettings.allowFriendRequests"
+          aria-labelledby="privacy-requests-label"
+        />
       </div>
 
       <Button
@@ -46,7 +75,10 @@
       />
     </div>
 
-    <div v-else class="privacy-settings-panel__loading">
+    <div
+      v-else
+      class="privacy-settings-panel__loading"
+    >
       <i class="pi pi-spin pi-spinner" />
     </div>
   </div>
@@ -128,7 +160,10 @@ const save = async () => {
     justify-content: space-between;
     gap: spacing(md);
 
-    label {
+    // Las etiquetas son <span> porque los controles de PrimeVue no aceptan
+    // un <label for>: se asocian por aria-labelledby.
+    label,
+    &-label {
       font-size: 0.9rem;
       color: var(--color-text);
     }

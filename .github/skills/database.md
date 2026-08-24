@@ -114,22 +114,32 @@ Per-entity custom tags:
 | Table | Purpose |
 |---|---|
 | `friendships` | Reciprocal friendships: requester_id, addressee_id, status ENUM('pending','accepted','rejected'), UNIQUE(requester_id, addressee_id) |
-| `feed_events` | Activity timeline: user_id, event_type ENUM, entity_type ENUM('book','movie','game','album'), entity_id, entity_title, entity_cover, metadata JSON |
+| `feed_events` | Activity timeline: user_id, event_type ENUM, entity_type ENUM('book','movie','game','album','video'), entity_id, entity_title, entity_cover, metadata JSON |
 | `user_privacy_settings` | Per-user visibility flags for feed events (PK = user_id) |
 
 > **Note**: `user_follows` was **dropped** in migration `20260513_120000_friends_and_feed` (replaced by reciprocal `friendships` model). If you reference `user_follows` anywhere, remove it.
 
 | Table | Purpose |
 |---|---|
-| `users` | Google OAuth users: google_id, email, name, picture, username (unique, nullable), preferences JSON, is_active |
+| `users` | Google OAuth users: google_id, email, name, picture, username (unique, nullable), preferences JSON, is_active, is_admin |
 | `user_preferences` | User preferences (JSON) |
 | `friendships` | Reciprocal friend system: requester_id, addressee_id, status ENUM('pending','accepted','rejected') |
-| `feed_events` | Activity feed: user_id, event_type ENUM, entity_type ENUM('book','movie','game','album'), entity_id VARCHAR(50), entity_title, entity_cover, metadata JSON |
+| `feed_events` | Activity feed: user_id, event_type ENUM, entity_type ENUM('book','movie','game','album','video'), entity_id VARCHAR(50), entity_title, entity_cover, metadata JSON |
 | `user_privacy_settings` | Per-user feed visibility: show_additions, show_status_changes, show_ratings, show_notes, show_reading_sessions, show_achievements |
 | `admin_work_merges` | Audit log for work de-duplication |
 | `versions` | Application versioning |
 
-> **⚠ `feed_events.entity_type`** currently supports `book`, `movie`, `game`, `album` only. `video` is NOT in the ENUM. A migration is needed to add it when the Videos feed is implemented.
+> **⚠ `feed_events.entity_id` is the *external* identifier, never the numeric PK.** That is why the
+> column is `VARCHAR(50)`: ISBN for books, IMDb id for movies, IGDB id for games, Spotify id for
+> albums and **the `youtube_id` for videos** — these are what the frontend detail routes expect.
+> Storing the autoincrement produces a feed entry whose link resolves to nothing, and the failure
+> only shows up on click.
+>
+> **⚠ The list of valid entity types lives in two places** that nothing keeps in sync:
+> `feed_events.entity_type` (SQL) and `FeedEvent::VALID_ENTITY_TYPES`
+> (`src/Domain/Model/FeedEvent.php:32-38`). They drifted apart once already, when videos were added.
+> Since 2026-08-18 the drift is at least audible: `FeedEventService::dispatch()` logs a `warning`
+> with the rejected `entity_type` to `storage/logs/` instead of swallowing it.
 
 ## Dev vs Production Schema Differences
 
@@ -146,6 +156,8 @@ Per-entity custom tags:
 | File | Description |
 |---|---|
 | `20260513_120000_friends_and_feed.sql` | Drop `user_follows`, add `friendships`, `feed_events`, `user_privacy_settings`, add `users.username` |
+| `20260818_163500_feed_events_video.sql` | Add `'video'` to the `feed_events.entity_type` ENUM. **Applied in dev only** — production still needs `./prod-deploy.sh --migrate` |
+| `20260819_090000_users_is_admin.sql` | Add `users.is_admin` (TINYINT(1) NOT NULL DEFAULT 0) and seed the current administrator to `1`. **Applied in dev only** — production still needs `./prod-deploy.sh --migrate` |
 
 ## Database Migrations
 
@@ -170,15 +182,30 @@ The project uses **file-based migrations** in `docker/database/migrations/`. The
 ### Creating a Migration
 
 1. Create `docker/database/migrations/YYYYMMDD_HHMMSS_description.sql`
-2. Write the SQL (use `IF NOT EXISTS` / `IF EXISTS` for safety)
+2. Write the SQL (use `IF NOT EXISTS` / `IF EXISTS` where MySQL supports it — see the warning below)
 3. Run `./dev-setup.sh --migrate` to apply it
+
+> ⚠ **`ALTER TABLE ... ADD COLUMN IF NOT EXISTS` does not exist in MySQL 8.0.** It is MariaDB syntax
+> and fails with a syntax error, even though `docker/database/migrations/README.md` still recommends
+> it in its template. To add a column idempotently, query `INFORMATION_SCHEMA.COLUMNS` and run the
+> `ALTER` through `PREPARE`/`EXECUTE`. `CREATE TABLE IF NOT EXISTS` and `DROP TABLE IF EXISTS` **are**
+> valid. Verified on 2026-08-19.
 
 ```sql
 -- 20260512_100000_add_runtime_to_movies.sql
-ALTER TABLE movie
-  ADD COLUMN IF NOT EXISTS runtime_minutes SMALLINT UNSIGNED NULL
-  COMMENT 'Duración en minutos';
+SET @col_exists = (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'movie' AND COLUMN_NAME = 'runtime_minutes'
+);
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE movie ADD COLUMN runtime_minutes SMALLINT UNSIGNED NULL COMMENT ''Duración en minutos''',
+  'SELECT ''runtime_minutes column already exists'''
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 ```
+
+Working examples in the repo: `20260513_120000_friends_and_feed.sql:7-16` (adds `users.username`)
+and `20260819_090000_users_is_admin.sql`.
 
 ### Inspecting Migration State
 
@@ -203,12 +230,22 @@ docker compose exec mysql mysql -u library_user -plibrary_pass library_db \
 
 ```sql
 -- Create a migration file: docker/database/migrations/YYYYMMDD_HHMMSS_add_field.sql
-ALTER TABLE user_games ADD COLUMN IF NOT EXISTS new_field VARCHAR(100) NULL;
+-- MySQL 8.0 has no ADD COLUMN IF NOT EXISTS — go through INFORMATION_SCHEMA (see "Creating a Migration")
+SET @col_exists = (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_games' AND COLUMN_NAME = 'new_field'
+);
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE user_games ADD COLUMN new_field VARCHAR(100) NULL',
+  'SELECT ''new_field column already exists'''
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- Apply:
 --   ./dev-setup.sh --migrate
 
--- THEN update backend layers (see backend skill)
+-- THEN update backend layers (see backend skill) — a column that reaches the DB but not the
+-- mapper is lost in silence. For users.is_admin that meant User.php + UserDataMapper.php.
 ```
 
 ### Adding a New Status

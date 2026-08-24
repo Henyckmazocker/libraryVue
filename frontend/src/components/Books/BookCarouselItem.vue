@@ -1,39 +1,67 @@
 <template>
-  <div class="book-carousel-item" @click="handleClick">
+  <button
+    type="button"
+    class="book-carousel-item"
+    @click="handleClick"
+  >
     <div class="book-cover-wrapper">
       <img 
         v-if="book.coverUrl" 
         :src="book.coverUrl" 
         :alt="book.title"
-        class="book-cover" 
+        class="book-cover"
+        width="150"
+        height="225"
         loading="lazy"
-      />
-      <div v-else class="book-cover-placeholder">
-        <i class="fas fa-book"></i>
+        decoding="async"
+      >
+      <div
+        v-else
+        class="book-cover-placeholder"
+      >
+        <i class="fas fa-book" />
       </div>
       
       <!-- Badge de rating si existe -->
-      <div v-if="book.user_rating && book.user_rating > 0" class="rating-badge">
-        <i class="fas fa-star"></i>
+      <div
+        v-if="book.user_rating && book.user_rating > 0"
+        class="rating-badge"
+      >
+        <i class="fas fa-star" />
         <span>{{ book.user_rating }}</span>
       </div>
       
       <!-- Badge de "En tu biblioteca" -->
-      <div v-if="isInLibrary" class="library-badge" title="En tu biblioteca">
-        <i class="fas fa-bookmark"></i>
+      <div
+        v-if="isInLibrary"
+        class="library-badge"
+        title="En tu biblioteca"
+      >
+        <i
+          class="fas fa-bookmark"
+          aria-hidden="true"
+        />
+        <span class="u-sr-only">En tu biblioteca</span>
       </div>
       
       <!-- Badge de status si existe (para compatibilidad) -->
-      <div v-if="book.userStatuses && book.userStatuses.length > 0 && !isInLibrary" class="status-badge">
-        <i class="fas fa-check-circle"></i>
+      <div
+        v-if="book.userStatuses && book.userStatuses.length > 0 && !isInLibrary"
+        class="status-badge"
+      >
+        <i class="fas fa-check-circle" />
       </div>
     </div>
     
     <div class="book-info">
-      <h3 class="book-title">{{ truncateText(book.title, 40) }}</h3>
-      <p class="book-author">{{ truncateText(book.author || 'Autor desconocido', 30) }}</p>
+      <h3 class="book-title">
+        {{ truncateText(book.title, 40) }}
+      </h3>
+      <p class="book-author">
+        {{ truncateText(book.author || 'Autor desconocido', 30) }}
+      </p>
     </div>
-  </div>
+  </button>
 </template>
 
 <script setup>
@@ -73,13 +101,16 @@ const truncateText = (text, maxLength) => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .book-carousel-item {
+  @include button-reset;
   flex-shrink: 0;
   width: 150px;
   cursor: pointer;
   border-radius: 10px;
   overflow: hidden;
-  background: var(--surface-card, #2a2d36);
+  background: var(--color-background-card);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
@@ -95,7 +126,7 @@ const truncateText = (text, maxLength) => {
   width: 150px;
   height: 225px;
   overflow: hidden;
-  background: var(--surface-ground, #1e2127);
+  background: var(--color-background-mute);
 }
 
 .book-cover {
@@ -116,7 +147,7 @@ const truncateText = (text, maxLength) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1D4E4A, #2a5c58);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
 }
 
 .book-cover-placeholder i {
@@ -128,8 +159,8 @@ const truncateText = (text, maxLength) => {
   position: absolute;
   top: 8px;
   right: 8px;
-  background: rgba(255, 193, 7, 0.95);
-  color: #000;
+  background: var(--color-overlay-strong);
+  color: var(--color-rating-star);
   padding: 4px 8px;
   border-radius: 12px;
   font-size: 0.75rem;
@@ -163,8 +194,8 @@ const truncateText = (text, maxLength) => {
   position: absolute;
   top: 6px;
   left: 6px;
-  background: rgba(29, 78, 74, 0.9);
-  color: #4ade80;
+  background: var(--color-overlay-strong);
+  color: var(--color-on-overlay);
   font-size: 0.75rem;
   padding: 3px 6px;
   border-radius: 4px;
@@ -180,7 +211,7 @@ const truncateText = (text, maxLength) => {
 .book-title {
   font-size: 0.82rem;
   font-weight: 600;
-  color: var(--text-color, #e0e0e0);
+  color: var(--color-text);
   line-height: 1.3;
   margin: 0;
   min-height: 2.6em;
@@ -193,7 +224,7 @@ const truncateText = (text, maxLength) => {
 
 .book-author {
   font-size: 0.74rem;
-  color: var(--text-color-secondary, #9ca3af);
+  color: var(--color-text-secondary);
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -201,7 +232,7 @@ const truncateText = (text, maxLength) => {
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@include responsive-below(md) {
   .book-carousel-item {
     width: 130px;
   }
@@ -211,7 +242,7 @@ const truncateText = (text, maxLength) => {
   }
 }
 
-@media (max-width: 480px) {
+@include responsive-below(sm) {
   .book-carousel-item {
     width: 110px;
   }

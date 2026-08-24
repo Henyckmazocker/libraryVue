@@ -1,19 +1,34 @@
 <template>
   <div class="friend-requests">
-    <div v-if="requests.length === 0" class="friend-requests__empty">
+    <div
+      v-if="requests.length === 0"
+      class="friend-requests__empty"
+    >
       <i class="pi pi-inbox" />
       <p>No tienes solicitudes pendientes</p>
     </div>
 
-    <div v-else class="friend-requests__items">
+    <div
+      v-else
+      class="friend-requests__items"
+    >
       <div
         v-for="req in requests"
         :key="req.id"
         class="friend-requests__item"
       >
         <div class="friend-requests__avatar">
-          <img v-if="req.avatar" :src="req.avatar" :alt="req.username" />
-          <i v-else class="pi pi-user" />
+          <img
+            v-if="req.avatar"
+            :src="req.avatar"
+            :alt="req.username"
+            loading="lazy"
+            decoding="async"
+          >
+          <i
+            v-else
+            class="pi pi-user"
+          />
         </div>
         <div class="friend-requests__info">
           <span class="friend-requests__name">{{ req.username }}</span>
@@ -21,18 +36,18 @@
         </div>
         <div class="friend-requests__actions">
           <Button
+            v-tooltip.top="'Aceptar'"
             icon="pi pi-check"
             severity="success"
             size="small"
-            v-tooltip.top="'Aceptar'"
             @click="$emit('accept', req.friendship_id)"
           />
           <Button
+            v-tooltip.top="'Rechazar'"
             icon="pi pi-times"
             severity="danger"
             text
             size="small"
-            v-tooltip.top="'Rechazar'"
             @click="$emit('reject', req.friendship_id)"
           />
         </div>

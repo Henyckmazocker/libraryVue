@@ -383,6 +383,85 @@ export function useNewFeature() {
 - **Dual-format check**: If data doesn't show, check both `camelCase` and `snake_case` field names in API response
 - **Hot reload**: Frontend runs with HMR in dev mode via Docker volume mounts
 
+## Visual Verification (headless screenshots)
+
+**Why this exists**: the Vitest suite runs on jsdom, which **does not evaluate CSS** (`css: false` in
+`vitest.config.js`). A whole class of bugs is invisible to it — the one that bit us: Vue's `scoped`
+CSS reaches a child component's **root** and its **slot content**, but not the markup the child
+renders itself, so a generic view can render completely unstyled while every test stays green.
+Screenshots catch that; tests never will.
+
+**Requirements** (already on the dev machine): `firefox` and `geckodriver` (both from snap), plus the
+app running (`docker compose up -d`). No npm package is needed — geckodriver speaks the W3C WebDriver
+protocol over HTTP, so plain `curl` drives it.
+
+### 1. Start the driver and open a session
+
+```bash
+geckodriver --port 4444 &
+
+SID=$(curl -s -X POST http://127.0.0.1:4444/session \
+  -H 'Content-Type: application/json' \
+  -d '{"capabilities":{"alwaysMatch":{"browserName":"firefox",
+       "moz:firefoxOptions":{"args":["-headless","-width","1400","-height","1100"]}}}}' \
+  | python3 -c "import sys,json;print(json.load(sys.stdin)['value']['sessionId'])")
+B=http://127.0.0.1:4444/session/$SID
+```
+
+### 2. Authenticate
+
+Login is Google OAuth, and **Google refuses to sign in from an automated browser** ("this browser may
+not be secure"), so the session has to be borrowed. Two ways, both taken from a browser you are
+already logged into:
+
+- **JWT (preferred)** — run `copy(localStorage.getItem('jwt_token'))` in the DevTools console on
+  `localhost:8080`. Works since `check_auth` accepts Bearer tokens (fixed 2026-08-19; before that the
+  app wiped the token on boot).
+- **Session cookie** — `LIBRARY_SESSION` is `httpOnly`, so it is not readable from the console: copy
+  it from DevTools → Storage → Cookies → **`http://127.0.0.1:8888`** (the backend origin, *not*
+  `localhost:8080`), then `POST $B/cookie` with `{"cookie":{"name":"LIBRARY_SESSION","value":"…",
+  "domain":"127.0.0.1","path":"/"}}` while on that origin.
+
+```bash
+# You must be on the origin before writing its localStorage.
+curl -s -X POST $B/url -H 'Content-Type: application/json' -d '{"url":"http://localhost:8080/"}'
+curl -s -X POST $B/execute/sync -H 'Content-Type: application/json' \
+  -d '{"script":"localStorage.setItem(\"jwt_token\", arguments[0]); return true","args":["<TOKEN>"]}'
+curl -s -X POST $B/refresh -H 'Content-Type: application/json' -d '{}'
+```
+
+### 3. Navigate and capture
+
+```bash
+shot () {  # shot <url> <file.png> [seconds]
+  curl -s -X POST $B/url -H 'Content-Type: application/json' -d "{\"url\":\"$1\"}" > /dev/null
+  sleep "${3:-8}"   # external enrichment (OMDb, IGDB, Spotify, Google Books) is not instant
+  curl -s $B/screenshot | python3 -c \
+    "import sys,json,base64;open('$2','wb').write(base64.b64decode(json.load(sys.stdin)['value']))"
+}
+
+shot http://localhost:8080/videos/A9mvuAwl5eo video.png
+shot http://localhost:8080/albums/2bhYZTFBsnB3IXItHQBmUV album.png
+```
+
+Useful extras:
+
+- **Tall pages**: `POST $B/window/rect` with `{"width":1300,"height":2600}` — the screenshot is
+  viewport-sized, so a taller window captures more without stitching.
+- **Jump to a section**: `POST $B/execute/sync` with
+  `document.querySelector('.library-form-section').scrollIntoView({block:'start'})`.
+- **Promises**: use `/execute/async` (the script gets a callback as its last argument);
+  `/execute/sync` does not await, and top-level `await` there returns HTTP 500.
+- **Check computed styles** rather than eyeballing: `getComputedStyle(el).width`, or read
+  `el.attributes` to confirm a `data-v-*` scope id is present — that is how the scoped-CSS bug above
+  was diagnosed.
+
+### 4. Close
+
+```bash
+curl -s -X DELETE $B
+```
+
 ## Docker Development
 
 ```bash

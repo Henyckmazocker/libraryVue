@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Logging - Mi Biblioteca Personal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/vendor/fontawesome/css/fontawesome.min.css" rel="stylesheet">
+    <link href="/vendor/fontawesome/css/solid.min.css" rel="stylesheet">
+    <link href="/vendor/fontawesome/css/brands.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css" rel="stylesheet">
     <style>
         .help-header {
@@ -131,14 +133,24 @@
 
 Este proyecto implementa un sistema de logging estructurado usando <strong>Monolog</strong> que proporciona logging profesional con contexto JSON, rotación automática de archivos y configuración flexible para diferentes entornos.
 
-<h3>Características</h3><ul><li>✅ <strong>Logging estructurado</strong> con contexto JSON</li><li>✅ <strong>Rotación automática</strong> de archivos de log</li><li>✅ <strong>Múltiples canales</strong> (API, Database, Auth, Security, Application)</li><li>✅ <strong>Configuración por entorno</strong> (development, testing, staging, production)</li><li>✅ <strong>Handlers múltiples</strong> (archivo, consola, navegador)</li><li>✅ <strong>Helpers de conveniencia</strong> para diferentes tipos de eventos</li><li>✅ <strong>Integración con manejo de errores</strong> de PHP</li><li>✅ <strong>Logging de performance</strong> y métricas</li>
+<h3>Características</h3>
+<ul><li>✅ <strong>Logging estructurado</strong> con contexto JSON</li>
+<li>✅ <strong>Rotación automática</strong> de archivos de log</li>
+<li>✅ <strong>Múltiples canales</strong> (API, Database, Auth, Security, Application)</li>
+<li>✅ <strong>Configuración por entorno</strong> (development, testing, staging, production)</li>
+<li>✅ <strong>Handlers múltiples</strong> (archivo, consola, navegador)</li>
+<li>✅ <strong>Helpers de conveniencia</strong> para diferentes tipos de eventos</li>
+<li>✅ <strong>Integración con manejo de errores</strong> de PHP</li>
+<li>✅ <strong>Logging de performance</strong> y métricas</li>
 
 <h3>Instalación</h3>
 
-El sistema ya está instalado y configurado. Solo necesitas:<li>Copiar el archivo de configuración de entorno:</li>
+El sistema ya está instalado y configurado. Solo necesitas:
+<li>Copiar el archivo de configuración de entorno:</li>
 ``<code>bash
 cp .env.example .env.development
-</code>`<code><li>Ajustar las variables de entorno según tu necesidad:</li>
+</code>`<code>
+<li>Ajustar las variables de entorno según tu necesidad:</li>
 </code>`<code>bash
 LOG_LEVEL=debug
 LOG_CONSOLE=true
@@ -184,7 +196,15 @@ LOG_LEVEL_SECURITY=warning
 LOG_LEVEL_APPLICATION=debug
 </code>`<code>
 
-<h4>Niveles de Log</h4><li></code>debug<code> - Información detallada para debugging</li><li></code>info<code> - Información general de funcionamiento</li><li></code>notice<code> - Eventos normales pero significativos</li><li></code>warning<code> - Advertencias que no son errores</li><li></code>error<code> - Errores que no detienen la aplicación</li><li></code>critical<code> - Errores críticos</li><li></code>alert<code> - Acción inmediata requerida</li><li></code>emergency<code> - Sistema inutilizable</li>
+<h4>Niveles de Log</h4>
+<li></code>debug<code> - Información detallada para debugging</li>
+<li></code>info<code> - Información general de funcionamiento</li>
+<li></code>notice<code> - Eventos normales pero significativos</li>
+<li></code>warning<code> - Advertencias que no son errores</li>
+<li></code>error<code> - Errores que no detienen la aplicación</li>
+<li></code>critical<code> - Errores críticos</li>
+<li></code>alert<code> - Acción inmediata requerida</li>
+<li></code>emergency<code> - Sistema inutilizable</li>
 
 <h3>Uso Básico</h3>
 
@@ -294,15 +314,35 @@ $logger->performance('book_search', $duration, [
 
 <h3>Canales de Logging</h3>
 
-<h4>Canal API (</code>api.log<code>)</h4><li>Requests HTTP</li><li>Responses HTTP</li><li>Errores de API</li><li>Validaciones de entrada</li>
+<h4>Canal API (</code>api.log<code>)</h4>
+<li>Requests HTTP</li>
+<li>Responses HTTP</li>
+<li>Errores de API</li>
+<li>Validaciones de entrada</li>
 
-<h4>Canal Database (</code>database.log<code>)</h4><li>Consultas SQL</li><li>Conexiones a BD</li><li>Errores de base de datos</li><li>Performance de queries</li>
+<h4>Canal Database (</code>database.log<code>)</h4>
+<li>Consultas SQL</li>
+<li>Conexiones a BD</li>
+<li>Errores de base de datos</li>
+<li>Performance de queries</li>
 
-<h4>Canal Auth (</code>auth.log<code>)</h4><li>Autenticación de usuarios</li><li>Autorizaciones</li><li>Sesiones</li><li>Tokens JWT</li>
+<h4>Canal Auth (</code>auth.log<code>)</h4>
+<li>Autenticación de usuarios</li>
+<li>Autorizaciones</li>
+<li>Sesiones</li>
+<li>Tokens JWT</li>
 
-<h4>Canal Security (</code>security.log<code>)</h4><li>Intentos de acceso no autorizado</li><li>Rate limiting</li><li>Ataques detectados</li><li>Eventos sospechosos</li>
+<h4>Canal Security (</code>security.log<code>)</h4>
+<li>Intentos de acceso no autorizado</li>
+<li>Rate limiting</li>
+<li>Ataques detectados</li>
+<li>Eventos sospechosos</li>
 
-<h4>Canal Application (</code>application.log<code>)</h4><li>Lógica de negocio</li><li>Use cases</li><li>Errores de aplicación</li><li>Métricas de performance</li>
+<h4>Canal Application (</code>application.log<code>)</h4>
+<li>Lógica de negocio</li>
+<li>Use cases</li>
+<li>Errores de aplicación</li>
+<li>Métricas de performance</li>
 
 <h3>Integración en Controladores</h3>
 
@@ -388,15 +428,28 @@ storage/logs/
 
 <h4>Rotación de Archivos</h4>
 
-Los archivos se rotan automáticamente:<li>Mantiene 7 días por defecto (configurable)</li><li>Archivos antiguos se comprimen automáticamente</li><li>Formato: </code>app.log<code>, </code>app-2024-08-15.log<code>, </code>app-2024-08-14.log<code>, etc.</li>
+Los archivos se rotan automáticamente:
+<li>Mantiene 7 días por defecto (configurable)</li>
+<li>Archivos antiguos se comprimen automáticamente</li>
+<li>Formato: </code>app.log<code>, </code>app-2024-08-15.log<code>, </code>app-2024-08-14.log<code>, etc.</li>
 
 <h3>Configuración por Entorno</h3>
 
-<h4>Desarrollo</h4><li>Nivel: </code>DEBUG<code></li><li>Formato: Texto legible</li><li>Salida: Archivo + Consola + Navegador</li>
+<h4>Desarrollo</h4>
+<li>Nivel: </code>DEBUG<code></li>
+<li>Formato: Texto legible</li>
+<li>Salida: Archivo + Consola + Navegador</li>
 
-<h4>Testing</h4><li>Nivel: </code>WARNING<code></li><li>Formato: JSON</li><li>Salida: Solo archivo</li>
+<h4>Testing</h4>
+<li>Nivel: </code>WARNING<code></li>
+<li>Formato: JSON</li>
+<li>Salida: Solo archivo</li>
 
-<h4>Producción</h4><li>Nivel: </code>INFO<code></li><li>Formato: JSON</li><li>Salida: Solo archivo</li><li>Rotación: 30 días</li>
+<h4>Producción</h4>
+<li>Nivel: </code>INFO<code></li>
+<li>Formato: JSON</li>
+<li>Salida: Solo archivo</li>
+<li>Rotación: 30 días</li>
 
 <h3>Ejemplos de Logs</h3>
 
@@ -426,7 +479,14 @@ Los archivos se rotan automáticamente:<li>Mantiene 7 días por defecto (config
 2024-08-16 10:30:45 [INFO] api: Book search completed {"search_term":"Harry Potter","results_count":15,"user_id":123}
 </code>`<code>
 
-<h3>Mejores Prácticas</h3><li><strong>Usa contexto estructurado</strong> siempre que sea posible</li><li><strong>No logees información sensible</strong> (passwords, tokens completos)</li><li><strong>Usa el canal apropiado</strong> para cada tipo de evento</li><li><strong>Incluye IDs únicos</strong> para trackear operaciones</li><li><strong>Logea tanto éxitos como fallos</strong> importantes</li><li><strong>Usa niveles apropiados</strong> (no todo es ERROR)</li><li><strong>Incluye timing</strong> para operaciones importantes</li></ul>
+<h3>Mejores Prácticas</h3>
+<li><strong>Usa contexto estructurado</strong> siempre que sea posible</li>
+<li><strong>No logees información sensible</strong> (passwords, tokens completos)</li>
+<li><strong>Usa el canal apropiado</strong> para cada tipo de evento</li>
+<li><strong>Incluye IDs únicos</strong> para trackear operaciones</li>
+<li><strong>Logea tanto éxitos como fallos</strong> importantes</li>
+<li><strong>Usa niveles apropiados</strong> (no todo es ERROR)</li>
+<li><strong>Incluye timing</strong> para operaciones importantes</li></ul>
 
 <h3>Monitoreo y Alertas</h3>
 

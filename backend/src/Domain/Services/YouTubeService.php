@@ -8,6 +8,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Psr\Log\LoggerInterface;
 use App\Infrastructure\Cache\CacheService;
+use App\Infrastructure\Cache\ResilientCall;
 
 /**
  * Service for interacting with YouTube Data API v3
@@ -27,6 +28,7 @@ class YouTubeService
 
     public function __construct(
         private readonly CacheService $cache,
+        private readonly ResilientCall $resilient,
         private readonly LoggerInterface $logger
     ) {
         $this->apiKey = $_ENV['YOUTUBE_API_KEY'] ?? null;
@@ -58,33 +60,34 @@ class YouTubeService
             return [];
         }
 
+        // No cache->get() here on purpose: it deletes the entry when it finds it
+        // expired, which is exactly the copy ResilientCall needs as a fallback.
         $cacheKey = 'search_' . md5($query . '_' . $maxResults);
-        $cached   = $this->cache->get($cacheKey, 'youtube');
-        if ($cached !== null) {
-            return $cached;
-        }
 
         try {
-            $response = $this->client->get(self::BASE_URL . '/search', [
-                'query' => [
-                    'key'        => $this->apiKey,
-                    'q'          => $query,
-                    'part'       => 'snippet',
-                    'type'       => 'video',
-                    'maxResults' => min(50, max(1, $maxResults)),
-                ],
-            ]);
+            return $this->resilient->around(
+                $cacheKey,
+                'youtube',
+                self::CACHE_SEARCH,
+                function () use ($query, $maxResults) {
+                    $response = $this->client->get(self::BASE_URL . '/search', [
+                        'query' => [
+                            'key'        => $this->apiKey,
+                            'q'          => $query,
+                            'part'       => 'snippet',
+                            'type'       => 'video',
+                            'maxResults' => min(50, max(1, $maxResults)),
+                        ],
+                    ]);
 
-            $data  = json_decode($response->getBody()->getContents(), true);
-            $items = $data['items'] ?? [];
+                    $data  = json_decode($response->getBody()->getContents(), true);
+                    $items = $data['items'] ?? [];
 
-            $results = array_map(fn($item) => $this->normalizeSearchItem($item), $items);
-
-            $this->cache->set($cacheKey, $results, self::CACHE_SEARCH, 'youtube');
-
-            return $results;
+                    return array_map(fn($item) => $this->normalizeSearchItem($item), $items);
+                }
+            )['data'];
         } catch (GuzzleException $e) {
-            $this->logger->error('YouTube search failed', [
+            $this->logger->error('YouTube search failed with no cache to fall back on', [
                 'query' => $query,
                 'error' => $e->getMessage(),
             ]);

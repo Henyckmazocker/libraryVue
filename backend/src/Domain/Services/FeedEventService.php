@@ -125,9 +125,10 @@ class FeedEventService
         } catch (Throwable $e) {
             // Feed events are non-critical — log and continue
             $this->logger->warning('FeedEventService: failed to record event', [
-                'event_type' => $command->eventType,
-                'user_id'    => $command->userId,
-                'error'      => $e->getMessage(),
+                'event_type'  => $command->eventType,
+                'entity_type' => $command->entityType,
+                'user_id'     => $command->userId,
+                'error'       => $e->getMessage(),
             ]);
         }
     }

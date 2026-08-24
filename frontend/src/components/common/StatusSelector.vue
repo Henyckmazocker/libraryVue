@@ -1,9 +1,17 @@
 <template>
-  <div class="status-selector-container" v-if="allowedStatuses && allowedStatuses.length > 0">
-    
+  <div
+    v-if="allowedStatuses && allowedStatuses.length > 0"
+    class="status-selector-container"
+  >
     <!-- Readonly mode - always show badges -->
-    <div v-if="readonly" class="status-badges">
-      <span v-if="currentStatuses.length === 0" class="no-status-text">
+    <div
+      v-if="readonly"
+      class="status-badges"
+    >
+      <span
+        v-if="currentStatuses.length === 0"
+        class="no-status-text"
+      >
         Sin estados asignados
       </span>
       <span 
@@ -25,16 +33,25 @@
       :display="'chip'"
       :placeholder="placeholder"
       :style="containerStyle"
-      appendTo="body"
+      append-to="body"
       @change="onStatusesChange"
     >
       <template #option="slotProps">
-        <div class="status-option" :class="{ 'status-session-trigger': isSessionTrigger(slotProps.option) }">
+        <div
+          class="status-option"
+          :class="{ 'status-session-trigger': isSessionTrigger(slotProps.option) }"
+        >
           <span class="status-label">{{ getStatusLabel(slotProps.option) }}</span>
-          <span v-if="isSessionTrigger(slotProps.option)" 
-                class="session-indicator" 
-                :title="getSessionTooltip(slotProps.option)">
-            <i :class="getSessionIcon(slotProps.option)"></i>
+          <span
+            v-if="isSessionTrigger(slotProps.option)" 
+            class="session-indicator" 
+            :title="getSessionTooltip(slotProps.option)"
+          >
+            <i
+              :class="getSessionIcon(slotProps.option)"
+              aria-hidden="true"
+            />
+            <span class="u-sr-only">{{ getSessionTooltip(slotProps.option) }}</span>
           </span>
         </div>
       </template>
@@ -47,12 +64,15 @@
       :options="allowedStatuses"
       :placeholder="placeholder"
       :style="containerStyle"
-      appendTo="body"
+      append-to="body"
       @change="onStatusChange"
     />
     
     <!-- Status badges display for non-readonly -->
-    <div v-else-if="showBadges && currentStatuses.length > 0" class="status-badges">
+    <div
+      v-else-if="showBadges && currentStatuses.length > 0"
+      class="status-badges"
+    >
       <span 
         v-for="status in currentStatuses" 
         :key="status" 
@@ -259,7 +279,7 @@ watch(() => props.allowedStatuses, (newValue) => {
 .status-selector-title {
   margin: 0 0 8px 0;
   font-weight: 500;
-  color: #e0e0e0;
+  color: var(--color-text);
 }
 
 .status-badges {
@@ -280,52 +300,52 @@ watch(() => props.allowedStatuses, (newValue) => {
 
 /* Status badge colors */
 .status-owned {
-  background: rgba(40, 167, 69, 0.2);
-  color: #28a745;
-  border: 1px solid rgba(40, 167, 69, 0.3);
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
 }
 
 .status-watchlist {
-  background: rgba(0, 123, 255, 0.2);
-  color: #007bff;
-  border: 1px solid rgba(0, 123, 255, 0.3);
+  background: var(--color-info-bg);
+  color: var(--color-info);
+  border: 1px solid var(--color-info);
 }
 
 .status-viewed,
 .status-completed {
-  background: rgba(108, 117, 125, 0.2);
-  color: #6c757d;
-  border: 1px solid rgba(108, 117, 125, 0.3);
+  background: var(--color-background-mute);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
 }
 
 .status-reading {
-  background: rgba(255, 193, 7, 0.2);
-  color: #ffc107;
-  border: 1px solid rgba(255, 193, 7, 0.3);
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
 }
 
 .status-dropped {
-  background: rgba(220, 53, 69, 0.2);
-  color: #dc3545;
-  border: 1px solid rgba(220, 53, 69, 0.3);
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
 }
 
 .status-paused {
-  background: rgba(255, 133, 27, 0.2);
-  color: #fd7e14;
-  border: 1px solid rgba(255, 133, 27, 0.3);
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
 }
 
 .status-watching {
-  background: rgba(139, 92, 246, 0.2);
-  color: #a78bfa;
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  background: var(--color-card-movie-bg-hover);
+  color: var(--color-card-movie-accent);
+  border: 1px solid var(--color-card-movie-accent);
 }
 
 .status-default {
-  background: rgba(108, 117, 125, 0.2);
-  color: #6c757d;
-  border: 1px solid rgba(108, 117, 125, 0.3);
+  background: var(--color-background-mute);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
 }
 
 /* Readonly styles */
@@ -335,9 +355,9 @@ watch(() => props.allowedStatuses, (newValue) => {
 }
 
 .readonly .status-badge {
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border-light);
   cursor: default;
-  background-color: #f8f9fa;
+  background-color: var(--color-background-soft);
 }
 
 .readonly .status-badge:hover {
@@ -346,7 +366,7 @@ watch(() => props.allowedStatuses, (newValue) => {
 }
 
 .no-status-text {
-  color: #999;
+  color: var(--color-text-muted);
   font-style: italic;
   font-size: 0.875rem;
 }
@@ -383,18 +403,18 @@ watch(() => props.allowedStatuses, (newValue) => {
 }
 
 .session-indicator .fa-play-circle {
-  color: #28a745;
+  color: var(--color-success);
 }
 
 .session-indicator .fa-check-circle {
-  color: #007bff;
+  color: var(--color-info);
 }
 
 .session-indicator .fa-pause-circle {
-  color: #ffc107;
+  color: var(--color-warning);
 }
 
 .session-indicator .fa-times-circle {
-  color: #dc3545;
+  color: var(--color-error);
 }
 </style>

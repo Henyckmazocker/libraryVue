@@ -34,6 +34,7 @@ class UserDataMapperTest extends TestCase
             'last_login' => '2024-06-15 14:30:00',
             'preferences' => json_encode(['theme' => 'dark', 'lang' => 'es']),
             'is_active' => 1,
+            'is_admin' => 0,
         ];
     }
 
@@ -56,6 +57,7 @@ class UserDataMapperTest extends TestCase
         $this->assertIsArray($user->getPreferences());
         $this->assertEquals('dark', $user->getPreferences()['theme']);
         $this->assertTrue($user->isActive());
+        $this->assertFalse($user->isAdmin());
     }
 
     #[Test]
@@ -130,6 +132,24 @@ class UserDataMapperTest extends TestCase
         $this->assertNull($user->getLastLogin());
     }
 
+    #[Test]
+    public function to_domain_is_admin_true(): void
+    {
+        $row = $this->fullDbRow();
+        $row['is_admin'] = 1;
+
+        $this->assertTrue($this->mapper->toDomain($row)->isAdmin());
+    }
+
+    #[Test]
+    public function to_domain_without_is_admin_defaults_to_false(): void
+    {
+        $row = $this->fullDbRow();
+        unset($row['is_admin']);
+
+        $this->assertFalse($this->mapper->toDomain($row)->isAdmin());
+    }
+
     // ── toPersistence ──
 
     #[Test]
@@ -147,6 +167,7 @@ class UserDataMapperTest extends TestCase
         $this->assertIsString($data['updated_at']);
         $this->assertIsString($data['last_login']);
         $this->assertSame(1, $data['is_active']);
+        $this->assertSame(0, $data['is_admin']);
     }
 
     #[Test]
@@ -234,6 +255,17 @@ class UserDataMapperTest extends TestCase
         $this->assertEmpty($users);
     }
 
+    #[Test]
+    public function to_persistence_is_admin_converts_to_int(): void
+    {
+        $row = $this->fullDbRow();
+        $row['is_admin'] = 1;
+
+        $data = $this->mapper->toPersistence($this->mapper->toDomain($row));
+
+        $this->assertSame(1, $data['is_admin']);
+    }
+
     // ── Round-trip ──
 
     #[Test]
@@ -248,5 +280,19 @@ class UserDataMapperTest extends TestCase
         $this->assertEquals($original['email'], $data['email']);
         $this->assertEquals($original['name'], $data['name']);
         $this->assertEquals($original['picture'], $data['picture']);
+    }
+
+    #[Test]
+    public function round_trip_preserves_is_admin(): void
+    {
+        $original = $this->fullDbRow();
+        $original['is_admin'] = 1;
+
+        $user = $this->mapper->toDomain($original);
+        $data = $this->mapper->toPersistence($user, true);
+
+        // MySqlUserRepository::update() reescribe todas las columnas de toPersistence(), asi que
+        // perder el flag aqui degradaria al administrador en el siguiente login.
+        $this->assertSame(1, $data['is_admin']);
     }
 }

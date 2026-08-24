@@ -1,5 +1,15 @@
 // base/_globals.scss
-// Estilos globales de body, #app y transiciones de página.
+// Estilos globales de body, #app, foco y transiciones de página.
+
+@use '../abstracts' as *;
+
+// Anillo de foco para todo lo que se puede enfocar. `focus-ring` (abstracts/_mixins.scss)
+// ya trae dentro su propio `&:focus-visible`, por eso el selector no lo repite.
+// `:where()` deja la especificidad a cero: cualquier componente puede afinar su
+// foco sin tener que pelearse con esta regla.
+:where(a, button, input, select, textarea, [tabindex]) {
+  @include focus-ring;
+}
 
 body {
   background: var(--color-background);

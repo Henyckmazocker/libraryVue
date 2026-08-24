@@ -1,7 +1,22 @@
 /**
  * Composable para configuración compartida de gráficas de dashboard
  * Elimina duplicación entre BooksDashboard y MoviesDashboard
+ *
+ * El color no vive aquí: sale de `config/chartTheme.js`, que lo lee del sistema de
+ * tokens. Por eso estas funciones son funciones y no constantes — hay que volver a
+ * llamarlas al cambiar de tema para que la gráfica repinte.
  */
+import { chartInk, chartTooltip } from '@/config/chartTheme';
+
+// Ejes, rejilla y texto, recesivos y según el tema activo.
+const scaleTheme = () => {
+  const ink = chartInk();
+  return {
+    ticks: { color: ink.muted },
+    grid: { color: ink.grid },
+    border: { color: ink.axis }
+  };
+};
 
 // Opciones base para gráficas de tipo doughnut/pie
 export const getChartOptions = () => ({
@@ -12,13 +27,14 @@ export const getChartOptions = () => ({
       position: 'bottom',
       labels: {
         padding: 15,
+        color: chartInk().text,
         font: {
           size: 12
         }
       }
     },
     tooltip: {
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      ...chartTooltip(),
       padding: 12,
       titleFont: {
         size: 14
@@ -39,17 +55,17 @@ export const getBarChartOptions = () => ({
       display: false
     },
     tooltip: {
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      ...chartTooltip(),
       padding: 12
     }
   },
   scales: {
     y: {
       beginAtZero: true,
-      ticks: {
-        stepSize: 1
-      }
-    }
+      ...scaleTheme(),
+      ticks: { ...scaleTheme().ticks, stepSize: 1 }
+    },
+    x: scaleTheme()
   }
 });
 
@@ -61,18 +77,18 @@ export const getLineChartOptions = () => ({
     legend: {
       position: 'top',
       labels: {
-        padding: 15
+        padding: 15,
+        color: chartInk().text
       }
     },
     tooltip: {
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      ...chartTooltip(),
       padding: 12
     }
   },
   scales: {
-    y: {
-      beginAtZero: true
-    }
+    y: { beginAtZero: true, ...scaleTheme() },
+    x: scaleTheme()
   }
 });
 
@@ -161,14 +177,13 @@ export const getHorizontalBarChartOptions = () => ({
       display: false
     },
     tooltip: {
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      ...chartTooltip(),
       padding: 12
     }
   },
   scales: {
-    x: {
-      beginAtZero: true
-    }
+    x: { beginAtZero: true, ...scaleTheme() },
+    y: scaleTheme()
   }
 });
 

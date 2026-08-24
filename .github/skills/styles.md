@@ -2,13 +2,14 @@
 
 ## Scope
 
-This skill covers the **frontend SCSS architecture**: tokens, themes, modular layers, family-coherence master mixins, PrimeVue overrides, and refactor workflow. Use it whenever you write or modify `<style>` blocks in Vue components or files under `frontend/src/assets/styles/`.
+This skill covers the **frontend SCSS architecture**: tokens, the two themes, modular layers, family-coherence master mixins, entity and chart colour, PrimeVue overrides, the `stylelint` barrier, and refactor workflow. Use it whenever you write or modify `<style>` blocks in Vue components or files under `frontend/src/assets/styles/`.
 
 ## Tech Stack
 
 - **Sass**: 1.99 (modern module system: only `@use` / `@forward`, **no** `@import`)
 - **Loader**: `sass-loader` 16 (Vue CLI 5)
 - **Theming**: CSS Variables in `:root` (light) and `.app-dark` (dark) — runtime switch, no recompile
+- **Linting**: `stylelint` 16 (four rules, no preset) alongside ESLint — `npm run lint:styles`
 - **PrimeVue**: 4.5 with Lara preset (`darkModeSelector: '.app-dark'`, `cssLayer: false`) — palette in JS via `definePreset(Lara, ...)` from `config/design-tokens.js`
 - **Methodology**: BEM relaxed + atomic utilities (`.u-*`) + states (`is-`/`has-`)
 - **Approach**: Mobile-first; opt-in shared mixins (no zero-cost CSS leak)
@@ -17,8 +18,10 @@ This skill covers the **frontend SCSS architecture**: tokens, themes, modular la
 
 | Principle | Implementation |
 |---|---|
-| **Single Source of Truth** | Palette in [`design-tokens.js`](../../frontend/src/config/design-tokens.js) (PrimeVue) ↔ visual tokens in [`tokens/*.scss`](../../frontend/src/assets/styles/tokens) (CSS vars) — manual sync required |
-| **Theming** | CSS Variables in `:root` (light) and `.app-dark` (dark). Runtime switch. |
+| **Single Source of Truth** | Palette in [`design-tokens.js`](../../frontend/src/config/design-tokens.js) (PrimeVue) ↔ visual tokens in [`tokens/*.scss`](../../frontend/src/assets/styles/tokens) (CSS vars) — manual sync required, with two documented divergences |
+| **Theming** | CSS Variables in `:root` (**light**, warm bone) and `.app-dark` (dark). Runtime switch. |
+| **Colour is measured, not chosen** | Every value carries its contrast ratio as a comment; entity and chart palettes are validated with the `dataviz` script, not by eye |
+| **Enforced, not remembered** | `stylelint` rejects a stray hex, a pixel inside `@media`, `prefers-color-scheme`, and `@import` |
 | **Reuse without leak** | Shared components expose **mixins** (not classes). They emit CSS only when a component does `@include`. |
 | **Mobile-first** | `responsive($key)` mixin uses `min-width`. `responsive-below($key)` for max-width exceptions. |
 | **No `@import`** | Only `@use` / `@forward`. Namespace isolation per file. |
@@ -44,12 +47,12 @@ frontend/src/assets/styles/
 │   ├── _transitions.scss    # --transition-fast/medium/slow
 │   └── _z-index.scss        # --z-modal, --z-toast, etc.
 ├── themes/
-│   ├── _light.scss          # Defaults (in :root)
-│   └── _dark.scss           # Overrides under `.app-dark`
+│   ├── _light.scss          # Emits NOTHING — light IS :root, by definition
+│   └── _dark.scss           # Overrides under `.app-dark` (incl. its own entity + chart palettes)
 ├── base/
 │   ├── _reset.scss          # Minimal reset
 │   ├── _globals.scss        # body, #app, page transitions
-│   └── _typography.scss     # Element base styles
+│   └── _typography.scss     # Element base styles (the global `a` rule → --color-link)
 ├── components/              # Shared patterns (opt-in mixins)
 │   ├── _buttons.scss        # .btn (global class)
 │   ├── _cards.scss          # @mixin card-base, card-interactive
@@ -94,6 +97,30 @@ Layer order in `index.scss`: `tokens` → `themes/light` → `themes/dark` → `
 ### Breakpoints
 `xs` (0) · `sm` (480) · `md` (768) · `lg` (1024) · `xl` (1280) · `2xl` (1536)
 
+> ⚠️ **Never write a pixel inside a `@media`.** Use `@include responsive($key)` /
+> `@include responsive-below($key)`. `stylelint` rejects the raw form. Odd thresholds map to the
+> nearest key — the ladder matters more than the exact pixel.
+>
+> From JS, the same threshold comes from
+> [`composables/useBreakpoint.js`](../../frontend/src/composables/useBreakpoint.js), which owns
+> **one** shared `resize` listener for the whole app. Do not add another `ref(window.innerWidth)`.
+> Its `isMobile` is `< 768`, **not** `<= 768`, because `responsive-below(md)` compiles to
+> `max-width: 767px`: at exactly 768 the CSS already says desktop.
+
+### Colour token families
+
+| Family | Tokens | Notes |
+|---|---|---|
+| Surfaces | `--color-background{,-soft,-mute,-card,-overlay}` | `card` is white in light, teal in dark |
+| Text | `--color-text{,-dark,-light,-secondary,-muted}` | `--color-text-light` is for use **on** dark or coloured surfaces |
+| Borders | `--color-border{,-light,-hover}` | `--color-border` outlines **controls** (inputs, buttons, search), so it must clear 3:1 — WCAG 1.4.11. The soft decorative hairline is `--color-border-light` |
+| States | `--color-{success,warning,error,info}` + `-bg` tints + `--color-on-status` | See *The two themes* |
+| Links | `--color-link`, `--color-link-hover` | Consumed by the global `a` rule |
+| Buttons | `--btn-{primary,secondary,accent}-{bg,bg-hover,text}` | |
+| Entity cards | `--color-card-{entity}-{bg,bg-hover,border,accent}` | See *Entity Color Identity* |
+| Cover overlays | `--color-overlay-strong`, `--color-on-overlay`, `--color-rating-star`, `--color-media-letterbox` | Theme-independent by design |
+| Charts | `--chart-1` … `--chart-7`, `--chart-other` | Fixed order — see *Charts* |
+
 ### Available helpers after `@use 'abstracts' as *`
 
 | Helper | Returns | Example |
@@ -115,6 +142,8 @@ All functions return `var(--*)` and `@error` on missing key.
 ## Component Boilerplate
 
 Always `<style scoped lang="scss">`. Only `@use` / `@forward`. **No** hex/px hardcoded — use tokens.
+This is not a convention you have to remember: `stylelint` fails on a stray hex, a pixel inside a
+`@media`, a `prefers-color-scheme` query, and `@import`.
 
 ```vue
 <style scoped lang="scss">
@@ -153,9 +182,11 @@ PrimeVue teleports overlays (`.p-multiselect-panel`, `.p-dropdown-panel`, `.p-di
 
 PrimeVue components keep Lara vars (`--p-primary-color`, etc.). Only your custom selectors should use project tokens.
 
-## Dark Theme
+## The two themes
 
-Activated by adding `.app-dark` to `<html>` or `<body>`. All tokens in [`themes/_dark.scss`](../../frontend/src/assets/styles/themes/_dark.scss) override light values automatically.
+`:root` in [`tokens/_colors.scss`](../../frontend/src/assets/styles/tokens/_colors.scss) is the
+**light** theme; `.app-dark` in [`themes/_dark.scss`](../../frontend/src/assets/styles/themes/_dark.scss)
+overrides it. `themes/_light.scss` deliberately emits no CSS — light *is* `:root`.
 
 ```js
 document.documentElement.classList.toggle('app-dark', isDark)
@@ -163,7 +194,29 @@ document.documentElement.classList.toggle('app-dark', isDark)
 
 PrimeVue is synced via `darkModeSelector: '.app-dark'` in [`main.js`](../../frontend/src/main.js).
 
-> ⚠️ **Do NOT** use `@media (prefers-color-scheme: dark)`. Project relies exclusively on the `.app-dark` class selector.
+> ⚠️ **Do NOT** use `@media (prefers-color-scheme: dark)`. The project relies exclusively on the
+> `.app-dark` class selector, because `store/ui.js` lets the user override the system preference —
+> a media query would silently ignore that switch. `stylelint` rejects the media feature outright.
+
+**The light theme is warm bone (`#F7F2EC`), not white**, and the brand teal `#1D4E4A` is an
+**accent** there, not a surface. In `.app-dark` the teal goes back to being a surface. Until
+2026-08-20 `:root` *was* a second dark theme (background `#1D4E4A` over text `#E2CBBF`) while
+`primevue-preset.js` already assumed a light surface — if you find documentation that says the
+switch does nothing, that is what it is describing.
+
+**Every colour value carries its measured contrast ratio as a comment**, against the harshest
+surface of its theme. Keep that up when you touch one; a value without a number is a value nobody
+can review. The state colours (`--color-success` and friends) are the *dark* variants in the light
+theme on purpose: they are used 13 times as text and only 5 as fill.
+
+### Tokens whose theme behaviour is not the obvious one
+
+| Token(s) | Behaviour | Why |
+|---|---|---|
+| `--color-overlay-strong`, `--color-on-overlay`, `--color-rating-star`, `--color-media-letterbox` | **Never** overridden in `.app-dark` | They sit on top of an arbitrary cover image, not on an app surface, so legibility cannot depend on the theme. Measured against the worst case (white artwork): 10.85 with white ink, 7.73 with the rating gold |
+| `--color-on-status` | **Does** flip (`#ffffff` → `#0f1412`) | It is the ink that goes on a semantic fill. In dark those fills are light colours, so a fixed `color: white` drops to 2.21 |
+| `--color-link`, `--color-link-hover` | Separate from `--color-primary-light` | That one gives 2.76 over `--color-background-mute` in dark. Global `a` rule lives in `base/_typography.scss` |
+| `--chart-1` … `--chart-7`, `--chart-other` | Own values per theme | Validated against the **real** chart surface, which is `--color-background-card` — white in light, teal `#1D4E4A` in dark |
 
 ## JS ↔ SCSS Sync
 
@@ -174,22 +227,102 @@ The main palette lives **twice** (intentionally):
 
 ⚠️ **When you change a value, update BOTH**. PrimeVue needs JS at compile time; Vue needs CSS vars at runtime for dynamic theming.
 
+> ⚠️ **Two documented exceptions — do not "fix" them into bugs.**
+> - `palette.secondary` (`#A3CBC1`) and `--color-secondary` (`#4A8F84`) **diverge on purpose**: the
+>   JS one is a *background* (PrimeVue's `colorScheme.light.highlight.background`, with
+>   `primary[500]` on top at 5.30), the SCSS one is a *foreground* (the spinner in `App.vue:58`) and
+>   has to be darker on a light surface.
+> - The **entity accents live only in SCSS**. `design-tokens.js` has the `primary` scale and four
+>   semantic colours, nothing else. Do not go looking for `--color-card-*` in the JS.
+
 ## Entity Color Identity
 
-Each library entity has a card color set in [`tokens/_colors.scss`](../../frontend/src/assets/styles/tokens/_colors.scss):
+Each library entity has a card color set, defined **twice** — once per theme, in
+[`tokens/_colors.scss`](../../frontend/src/assets/styles/tokens/_colors.scss) (light) and
+[`themes/_dark.scss`](../../frontend/src/assets/styles/themes/_dark.scss) (dark):
 
 ```css
---color-card-{book|movie|game|album}-{bg,bg-hover,border,accent}
+--color-card-{book|movie|game|album|video}-{bg,bg-hover,border,accent}
 ```
 
-| Entity | Accent | Notes |
-|---|---|---|
-| `book`  | `#c9943a` (oro)     | |
-| `movie` | `#8b5cf6` (violeta) | **shared with Series** |
-| `game`  | `#4ade80` (verde)   | |
-| `album` | `#f59e0b` (ámbar)   | |
+| Entity | Accent (light) | Accent (dark) | Notes |
+|---|---|---|---|
+| `book`  | `#BA6F0E` | `#C67D00` | amber |
+| `movie` | `#9871F5` | `#8F74F9` | violet — **shared with Series** |
+| `game`  | `#199975` | `#11A082` | green |
+| `album` | `#9F1B8A` | `#A2309A` | fuchsia — **deliberately not amber**, see below |
+| `video` | `#96280E` | `#C11C15` | red |
 
 Use the accent in borders, hover states, icon colors, and tag gradients to give each entity a coherent visual identity across families (`*ListItem`, `Library*Item`, `*Notes`, `*DetailView`).
+
+### These values are computed, not chosen
+
+> ⚠️ **Do not hand-pick a replacement.** If you change one accent, re-validate all five, against
+> **both** surfaces, in `--pairs all` mode:
+>
+> ```bash
+> node <dataviz-skill>/scripts/validate_palette.js \
+>   "#BA6F0E,#9871F5,#199975,#9F1B8A,#96280E" --mode light --surface "#F7F2EC" --pairs all
+> node <dataviz-skill>/scripts/validate_palette.js \
+>   "#C67D00,#8F74F9,#11A082,#A2309A,#C11C15" --mode dark  --surface "#0f1412" --pairs all
+> ```
+>
+> Current margins: CVD ΔE 11.0 / normal ΔE 17.9 (light); 11.4 / 18.4 (dark). All five checks PASS.
+
+**`--pairs all`, not the default `adjacent`.** Adjacent-pair mode only compares neighbours in the
+list. In `/library` all five media are interleaved in one grid, so *any* pair can end up side by
+side. The previous palette (`#c9943a` `#8b5cf6` `#4ade80` `#f59e0b` `#c0392b`) passed in adjacent
+mode and failed in `--pairs all`: book↔game ΔE 5.0 under protanopia, and a normal-vision floor of
+8.1 between book and album — both amber.
+
+**Album is fuchsia on purpose.** With book already amber, the pair was indistinguishable under
+deuteranopia. Changing its hue was the point, not an accident.
+
+### Where the identity actually shows
+
+At rest, the accent is **not** what you see: `_list-item.scss:51` only applies it on `:hover`. What
+carries identity in the resting state is `bg` (accent at 11 % over white) and `border` (at 45 %).
+A first attempt at 6 % / 30 % left the five media indistinguishable — if you re-derive these, check
+the result on `/library` with all five filters on, not on a single card.
+
+Text over an accent needs care: white on the movie and game accents lands at 3.49 and 3.59, below
+AA for small text. `.category-tag` and `.ownership-format-badge` therefore darken the fill with
+`color-mix(in srgb, var(--color-card-#{$entity}-accent) 80%, black)`, which clears 4.88 in both
+themes.
+
+## Charts
+
+Chart colour does **not** live in the chart components. It lives in
+[`config/chartTheme.js`](../../frontend/src/config/chartTheme.js), which reads the tokens:
+
+| Function | Returns |
+|---|---|
+| `entityColor(media)` | the accent of that medium's card — so a series and its `/library` card match. Accepts singular or plural |
+| `categoricalPalette(n)` | `--chart-1` … `--chart-7` in **fixed order**, plus `--chart-other` from the 8th |
+| `foldToOther(labels, data)` | folds the tail into an "Otros" bucket instead of inventing hues |
+| `chartInk()` | axis / grid / tick colours, recessive |
+| `chartTooltip()` | tooltip background, border and ink |
+
+**Fixed order is the point.** The old `StatsService.generateColors()` returned six demo colours and
+**repeated them** from the seventh series on, assigning by list position — so filtering a series
+recoloured the survivors. Series N now always gets slot N.
+
+> ⚠️ **Chart.js paints on `<canvas>`, where `var()` means nothing.** The colour must be resolved to
+> a concrete value at paint time. Rather than making every component subscribe, `chartTheme.js`
+> keeps an internal `ref` that all its functions touch; since the dashboards' `chartConfigs` are
+> already `computed`, they subscribe for free and repaint on theme change without a reload. If you
+> add a chart, read its colours **inside a `computed`** or it will not follow the theme.
+
+The palette is validated against the real chart surface — `--color-background-card`, i.e. white in
+light and teal `#1D4E4A` in dark. Margins: CVD ΔE 7.9 / normal 15.4 (light), 9.3 / 15.5 (dark). The
+CVD figure sits in the 6–8 floor band, which is only legal **with secondary encoding**, so
+`useDashboardCharts` keeps the legend visible on every chart — do not turn it off.
+
+> The dark palette fails the validator's **lightness band** on purpose. That band assumes a dark
+> surface, and ours is a mid-luminance teal; against it, satisfying the band and satisfying the 3:1
+> contrast requirement are mutually exclusive. Contrast wins, because contrast is what carries
+> legibility. The alternative — giving `.chart-card` its own dark surface — is a design change, not
+> a colour one.
 
 ## Family-Coherence Pattern (parametric master mixins)
 
@@ -299,6 +432,15 @@ Coupling them silently kills ALL prefixed selector styles in the inheriting enti
 | `gap: 40px`, `padding: 20px` | `spacing(xl)`, `spacing(lg)` |
 | Dead CSS classes not in template | Delete (always grep `<template>` first) |
 | `shadow(md)`, `shadow(lg)` | `shadow(medium)`, `shadow(heavy)` |
+| `@media (max-width: 768px)` | `@include responsive-below(md)` |
+| `var(--color-danger, #ff6b6b)` | `var(--color-error)` — **`--color-danger` does not exist**, so that `var()` always fell through to the hex |
+| `rgba(40, 167, 69, .2)` and friends | the matching `--color-{state}-bg` tint |
+| `color: white` on a semantic fill | `var(--color-on-status)` |
+
+> ⚠️ **Grep `*.scss` too, not just `*.vue`.** The deduplication work moved the per-medium components'
+> `<style>` into the master mixins under `assets/styles/components/`, so that is where the drift now
+> hides. A sweep that only looked at `.vue` files once left 38 live hex values behind — including the
+> `#e0e0e0` that made the detail view unreadable in the light theme.
 
 ## Adding a New Component
 
@@ -325,8 +467,52 @@ Coupling them silently kills ALL prefixed selector styles in the inheriting enti
 4. **No `prefers-color-scheme: dark`** — use `.app-dark` class selector.
 5. **Dead CSS** — common in older components. Grep template before preserving any rule.
 6. **PrimeVue Lara vars in custom selectors** — replace with project tokens.
-7. **Palette lives in two places** (JS + SCSS) — both must be updated together.
+7. **Palette lives in two places** (JS + SCSS) — both must be updated together, **except** the two
+   documented divergences in *JS ↔ SCSS Sync*.
 8. **`@import` is forbidden** — only `@use` / `@forward`.
+9. **Entity accents are computed** — re-validate all five in `--pairs all` mode if you touch one.
+10. **The accent is invisible at rest** — identity comes from `bg` and `border`; the accent only
+    appears on `:hover`.
+11. **A raw pixel in a `@media`** — use `responsive()` / `responsive-below()`; `stylelint` rejects it.
+12. **A colour that must not follow the theme** (over cover art) versus **an ink that must**
+    (on a semantic fill) — see the table in *The two themes*.
+13. **Chart colour read outside a `computed`** — it will not repaint on theme change.
+
+## The barrier: `stylelint`
+
+The rules above are enforced, not merely documented. `frontend/.stylelintrc.json` runs as
+`npm run lint:styles` and from `./dev-setup.sh`:
+
+| Rule | Catches |
+|---|---|
+| `color-no-hex` | any hand-written colour outside the two token-defining files |
+| `media-feature-name-value-allowed-list` | a raw pixel inside a `@media` |
+| `media-feature-name-disallowed-list` | `prefers-color-scheme` — theming goes through `.app-dark` |
+| `at-rule-disallowed-list: ["import"]` | `@import` |
+
+```bash
+docker compose exec frontend npm run lint:styles
+```
+
+> ⚠️ **It extends no preset, and that is deliberate.** Adopting `stylelint-config-standard-scss`
+> produced **180 errors**, of which ~175 were noise: it reads `spacing(2xs)` as an unknown unit,
+> does not know Vue's `:deep()`, and has opinions about blank lines. A barrier with 180 false
+> positives is a barrier everybody turns off on day one. If you want to add a rule, add the rule —
+> do not extend the preset.
+
+**Two exceptions, both explicit:**
+- `tokens/_colors.scss` and `themes/_dark.scss` have `color-no-hex` disabled by override. They are
+  the files that *define* the tokens.
+- Brand colours (Last.fm, Spotify, IMDb, YouTube, Google, the `SimpleLink` networks) carry
+  `/* stylelint-disable-next-line color-no-hex -- <brand>: … */` on the line above. That per-line
+  justification **is** the review you want.
+
+An inline `style="color: #…"` in a template cannot carry a stylelint comment — move it to a class in
+the `<style>` block instead. That is the drift the barrier is meant to push out.
+
+> The config file is mounted into the container (`docker-compose.yml`), like `vitest.config.js`, so
+> rules can be edited without a rebuild. The **packages** are baked into the image: adding one still
+> needs `docker compose build frontend`.
 
 ## References
 

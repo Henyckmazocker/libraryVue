@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Movies API - Mi Biblioteca Personal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/vendor/fontawesome/css/fontawesome.min.css" rel="stylesheet">
+    <link href="/vendor/fontawesome/css/solid.min.css" rel="stylesheet">
+    <link href="/vendor/fontawesome/css/brands.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css" rel="stylesheet">
     <style>
         .help-header {
@@ -398,13 +400,37 @@ Obtiene estadísticas de la colección de películas.
 
 <h3>Genre Categories</h3>
 
-Géneros principales soportados:<ul><li>Action</li><li>Adventure  </li><li>Animation</li><li>Comedy</li><li>Crime</li><li>Documentary</li><li>Drama</li><li>Fantasy</li><li>Horror</li><li>Music</li><li>Mystery</li><li>Romance</li><li>Science Fiction</li><li>Thriller</li><li>War</li><li>Western</li>
+Géneros principales soportados:
+<ul><li>Action</li>
+<li>Adventure  </li>
+<li>Animation</li>
+<li>Comedy</li>
+<li>Crime</li>
+<li>Documentary</li>
+<li>Drama</li>
+<li>Fantasy</li>
+<li>Horror</li>
+<li>Music</li>
+<li>Mystery</li>
+<li>Romance</li>
+<li>Science Fiction</li>
+<li>Thriller</li>
+<li>War</li>
+<li>Western</li>
 
 <h3>Validation Rules</h3>
 
-<h4>Required Fields</h4><li></code>title<code>: Mínimo 1 carácter, máximo 255</li><li></code>director<code>: Mínimo 1 carácter, máximo 255</li><li></code>year<code>: Entre 1888 y año actual + 5</li>
+<h4>Required Fields</h4>
+<li></code>title<code>: Mínimo 1 carácter, máximo 255</li>
+<li></code>director<code>: Mínimo 1 carácter, máximo 255</li>
+<li></code>year<code>: Entre 1888 y año actual + 5</li>
 
-<h4>Optional Fields</h4><li></code>duration<code>: Número entero positivo (minutos)</li><li></code>rating<code>: Entre 1 y 5</li><li></code>genre<code>: Uno de los géneros válidos</li><li></code>status<code>: Uno de los estados válidos</li><li></code>cast<code>: Array de strings con nombres de actores</li></ul>
+<h4>Optional Fields</h4>
+<li></code>duration<code>: Número entero positivo (minutos)</li>
+<li></code>rating<code>: Entre 1 y 5</li>
+<li></code>genre<code>: Uno de los géneros válidos</li>
+<li></code>status<code>: Uno de los estados válidos</li>
+<li></code>cast<code>: Array de strings con nombres de actores</li></ul>
 
 <h3>Error Codes</h3>
 

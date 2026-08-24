@@ -2,11 +2,11 @@
 // Estilos por defecto de enlaces y tipografía base.
 
 a {
-  color: var(--color-primary-light);
+  color: var(--color-link);
   text-decoration: none;
 
   &:hover {
     text-decoration: underline;
-    color: var(--color-highlight);
+    color: var(--color-link-hover);
   }
 }

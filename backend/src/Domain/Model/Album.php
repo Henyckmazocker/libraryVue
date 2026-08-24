@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Model;
 
+use App\Domain\Model\ValueObjects\AlbumId;
 use App\Domain\Model\ValueObjects\SpotifyId;
 use App\Domain\Model\ValueObjects\Rating;
 use App\Domain\Model\ValueObjects\Genre;
@@ -13,7 +14,29 @@ use InvalidArgumentException;
 class Album
 {
     private int $id;
-    private SpotifyId $spotifyId;
+    /**
+     * La identidad del álbum: un MBID de MusicBrainz, o un base62 de Spotify
+     * para lo guardado antes de que existiera el mirror.
+     */
+    private AlbumId $albumId;
+
+    /**
+     * El id de Spotify, cuando lo hay
+     *
+     * Ya no es la identidad —eso era atar la biblioteca a un proveedor
+     * privado—, sino el puente que permite reconocer un álbum guardado antes
+     * del mirror y no duplicarlo al volver a guardarlo por MBID.
+     */
+    private ?SpotifyId $spotifyId;
+
+    /**
+     * De qué catálogo salió la ficha
+     *
+     * Solo importa cuando vale 'spotify': esas filas caducan, porque los
+     * términos de Spotify prohíben guardar su contenido indefinidamente. Las de
+     * MusicBrainz son CC0 y no caducan nunca.
+     */
+    private string $catalogSource;
     private string $title;
     private string $artist;
     private ?string $artistId;
@@ -45,7 +68,9 @@ class Album
 
     public function __construct(
         int $id,
-        SpotifyId $spotifyId,
+        AlbumId $albumId,
+        ?SpotifyId $spotifyId,
+        string $catalogSource,
         string $title,
         string $artist,
         ?string $artistId,
@@ -85,6 +110,8 @@ class Album
         }
 
         $this->id = $id;
+        $this->albumId   = $albumId;
+        $this->catalogSource = $catalogSource;
         $this->spotifyId = $spotifyId;
         $this->title = $title;
         $this->artist = $artist;
@@ -117,8 +144,14 @@ class Album
 
     public static function fromArray(array $data): self
     {
-        if (empty($data['spotify_id']) && empty($data['spotifyId'])) {
-            throw new InvalidArgumentException('Spotify ID is required for an album.');
+        $identity = $data['mb_release_group_gid'] ?? $data['mbReleaseGroupGid']
+            ?? $data['album_id'] ?? $data['albumId']
+            ?? $data['spotify_id'] ?? $data['spotifyId'] ?? null;
+
+        if (empty($identity)) {
+            throw new InvalidArgumentException(
+                'An album needs an identity: a MusicBrainz MBID or a Spotify ID.'
+            );
         }
         if (empty($data['title'])) {
             throw new InvalidArgumentException('Title is required for an album.');
@@ -127,8 +160,16 @@ class Album
             throw new InvalidArgumentException('User statuses are required and must be an array.');
         }
 
-        $spotifyIdStr = $data['spotify_id'] ?? $data['spotifyId'];
-        $spotifyId = SpotifyId::fromString($spotifyIdStr);
+        $albumId = AlbumId::fromString((string) $identity);
+        $catalogSource = $data['catalog_source'] ?? ($albumId->isMusicBrainz() ? 'musicbrainz' : 'spotify');
+
+        // El base62 solo se conserva si de verdad lo es: cuando la identidad
+        // llega como MBID, spotify_id se queda a NULL y el UNIQUE de la columna
+        // admite tantos NULL como haga falta.
+        $spotifyIdStr = $data['spotify_id'] ?? $data['spotifyId'] ?? null;
+        $spotifyId = !empty($spotifyIdStr) && !$albumId->isMusicBrainz()
+            ? SpotifyId::fromNullableString((string) $spotifyIdStr)
+            : null;
 
         $userRating = null;
         $ratingValue = $data['user_rating'] ?? $data['userRating'] ?? null;
@@ -169,7 +210,9 @@ class Album
 
         return new self(
             id: (int)($data['id'] ?? 0),
+            albumId: $albumId,
             spotifyId: $spotifyId,
+            catalogSource: $catalogSource,
             title: $data['title'],
             artist: $data['artist'] ?? '',
             artistId: $data['artist_id'] ?? $data['artistId'] ?? null,
@@ -207,9 +250,26 @@ class Album
         return $this->id;
     }
 
-    public function getSpotifyId(): SpotifyId
+    public function getAlbumId(): AlbumId
+    {
+        return $this->albumId;
+    }
+
+    public function getSpotifyId(): ?SpotifyId
     {
         return $this->spotifyId;
+    }
+
+    /** El MBID, o null si este álbum se guardó antes del mirror */
+    /** 'musicbrainz' | 'spotify': de qué catálogo salió esta ficha */
+    public function getCatalogSource(): string
+    {
+        return $this->catalogSource;
+    }
+
+    public function getMbReleaseGroupGid(): ?string
+    {
+        return $this->albumId->isMusicBrainz() ? $this->albumId->toString() : null;
     }
 
     public function getTitle(): string
@@ -411,8 +471,14 @@ class Album
     {
         return [
             'id'                     => $this->id,
-            'spotify_id'             => $this->spotifyId->toString(),
-            'spotifyId'              => $this->spotifyId->toString(),
+            // El frontend usa spotify_id como clave e id de ruta, así que se
+            // le sigue dando ese nombre — con la identidad real dentro, sea
+            // MBID o base62. Renombrarlo es deuda anotada en el plan.
+            'spotify_id'             => $this->albumId->toString(),
+            'spotifyId'              => $this->albumId->toString(),
+            'album_id'               => $this->albumId->toString(),
+            'mb_release_group_gid'   => $this->getMbReleaseGroupGid(),
+            'catalog_source'         => $this->catalogSource,
             'title'                  => $this->title,
             'name'                   => $this->title, // alias for compatibility
             'artist'                 => $this->artist,

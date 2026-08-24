@@ -33,7 +33,7 @@ use App\Domain\DTO\Queries\GetMovieNotesQuery;
 use App\Domain\DTO\Queries\GetTrendingMoviesQuery;
 use App\Infrastructure\Middleware\AuthMiddleware;
 use App\Domain\Repository\Movie\MovieTagRepositoryInterface;
-use App\Domain\Services\OmdbService;
+use App\Domain\Repository\Catalog\MovieCatalogInterface;
 
 class MovieController extends BaseController implements Contracts\MovieControllerInterface
 {
@@ -54,7 +54,7 @@ class MovieController extends BaseController implements Contracts\MovieControlle
     private DeleteMovieNoteUseCase $deleteMovieNoteUseCase;
     private TrackSeriesSeasonUseCase $trackSeriesSeasonUseCase;
     private GetSeriesProgressUseCase $getSeriesProgressUseCase;
-    private OmdbService $omdbService;
+    private MovieCatalogInterface $movieCatalog;
 
     public function __construct(
         AddMovieUseCase $addMovieUseCase,
@@ -73,7 +73,7 @@ class MovieController extends BaseController implements Contracts\MovieControlle
         DeleteMovieNoteUseCase $deleteMovieNoteUseCase,
         TrackSeriesSeasonUseCase $trackSeriesSeasonUseCase,
         GetSeriesProgressUseCase $getSeriesProgressUseCase,
-        OmdbService $omdbService
+        MovieCatalogInterface $movieCatalog
     ) {
         $this->addMovieUseCase = $addMovieUseCase;
         $this->deleteMovieUseCase = $deleteMovieUseCase;
@@ -91,7 +91,7 @@ class MovieController extends BaseController implements Contracts\MovieControlle
         $this->deleteMovieNoteUseCase = $deleteMovieNoteUseCase;
         $this->trackSeriesSeasonUseCase = $trackSeriesSeasonUseCase;
         $this->getSeriesProgressUseCase = $getSeriesProgressUseCase;
-        $this->omdbService = $omdbService;
+        $this->movieCatalog = $movieCatalog;
     }
 
     /**
@@ -335,8 +335,12 @@ class MovieController extends BaseController implements Contracts\MovieControlle
     }
 
     // =========================================================================
-    // OMDb Proxy
+    // Catálogo de películas y series
     // =========================================================================
+    // Las acciones siguen llamándose *_omdb y respondiendo con las claves de
+    // OMDb, para no tocar los 5 ficheros del frontend que las consumen. Lo que
+    // hay detrás ya no es OMDb, sino el mirror local con TMDB de respaldo, y la
+    // decisión de cuándo salir a la red vive en FallbackMovieCatalog.
 
     public function searchMoviesOmdb(array $data): array
     {
@@ -345,11 +349,10 @@ class MovieController extends BaseController implements Contracts\MovieControlle
             return $this->errorResponse('Title is required', 400);
         }
         try {
-            $type    = $data['type'] ?? '';
-            $results = $this->omdbService->searchByTitle($title, $type);
+            $results = $this->movieCatalog->search($title, $data['type'] ?? '');
             return $this->successResponse('OMDb search results', $results);
         } catch (\Exception $e) {
-            return $this->externalServiceError('OMDb');
+            return $this->externalServiceError('movie catalog');
         }
     }
 
@@ -360,14 +363,15 @@ class MovieController extends BaseController implements Contracts\MovieControlle
             return $this->errorResponse('imdbId is required', 400);
         }
         try {
-            $plot   = $data['plot'] ?? 'full';
-            $result = $this->omdbService->getDetailsByImdbId($imdbId, $plot);
+            // El parámetro 'plot' de OMDb ('short'|'full') se ignora: el mirror
+            // guarda una única sinopsis y no hay dos versiones que elegir.
+            $result = $this->movieCatalog->findByImdbId($imdbId);
             if ($result === null) {
                 return $this->errorResponse('Movie not found in OMDb', 404);
             }
             return $this->successResponse('Movie details retrieved', $result);
         } catch (\Exception $e) {
-            return $this->externalServiceError('OMDb');
+            return $this->externalServiceError('movie catalog');
         }
     }
 
@@ -379,10 +383,10 @@ class MovieController extends BaseController implements Contracts\MovieControlle
             return $this->errorResponse('imdbId and season are required', 400);
         }
         try {
-            $episodes = $this->omdbService->getSeasonEpisodes($imdbId, $season);
+            $episodes = $this->movieCatalog->seasonEpisodes($imdbId, $season);
             return $this->successResponse('Season episodes retrieved', $episodes);
         } catch (\Exception $e) {
-            return $this->externalServiceError('OMDb');
+            return $this->externalServiceError('movie catalog');
         }
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain\Model;
 
 use App\Domain\Model\Album;
+use App\Domain\Model\ValueObjects\AlbumId;
 use App\Domain\Model\ValueObjects\SpotifyId;
 use App\Domain\Model\ValueObjects\Rating;
 use App\Domain\Model\ValueObjects\Genre;
@@ -123,6 +124,8 @@ class AlbumTest extends TestCase
         $this->expectExceptionMessage('Popularity must be between 0 and 100');
         new Album(
             id: 1,
+            albumId: AlbumId::fromString(self::SPOTIFY_ID),
+            catalogSource: 'spotify',
             spotifyId: SpotifyId::fromString(self::SPOTIFY_ID),
             title: 'Test',
             artist: 'Test Artist',
@@ -151,6 +154,8 @@ class AlbumTest extends TestCase
         $this->expectExceptionMessage('Listen count must be non-negative');
         new Album(
             id: 1,
+            albumId: AlbumId::fromString(self::SPOTIFY_ID),
+            catalogSource: 'spotify',
             spotifyId: SpotifyId::fromString(self::SPOTIFY_ID),
             title: 'Test',
             artist: 'Test Artist',

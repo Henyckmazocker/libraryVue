@@ -8,6 +8,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Psr\Log\LoggerInterface;
 use App\Infrastructure\Cache\CacheService;
+use App\Infrastructure\Cache\ResilientCall;
 
 /**
  * Service for interacting with the Last.fm REST API.
@@ -35,6 +36,7 @@ class LastFmService
 
     public function __construct(
         private readonly CacheService $cache,
+        private readonly ResilientCall $resilient,
         private readonly LoggerInterface $logger
     ) {
         $this->apiKey = $_ENV['LASTFM_API_KEY'] ?? null;
@@ -400,17 +402,15 @@ class LastFmService
 
     /**
      * Return cached result, or fetch and cache if missing.
+     *
+     * Delegates to ResilientCall so every Last.fm call in this service falls back
+     * to its last known answer when the API is down, instead of propagating the
+     * RuntimeException that request() throws. Note there is no cache->get() left
+     * here: it deletes the expired entry, which is the very copy we want to keep.
      */
     private function cachedCall(string $key, int $ttl, callable $fetch): array
     {
-        $cached = $this->cache->get($key, self::CACHE_NS);
-        if ($cached !== null) {
-            return $cached;
-        }
-
-        $data = $fetch();
-        $this->cache->set($key, $data, $ttl, self::CACHE_NS);
-        return $data;
+        return $this->resilient->around($key, self::CACHE_NS, $ttl, $fetch)['data'];
     }
 
     /**

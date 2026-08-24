@@ -13,6 +13,9 @@ class CacheService
     private string $cacheDir;
     private LoggerInterface $logger;
 
+    /** Hard cap for stale reads: 30 days, the limit the YouTube API terms impose on stored data */
+    public const STALE_MAX_AGE = 2592000;
+
     public function __construct(string $cacheDir, LoggerInterface $logger)
     {
         $this->cacheDir = rtrim($cacheDir, '/');
@@ -105,6 +108,78 @@ class CacheService
     }
 
     /**
+     * Read a cache entry even if it expired, without deleting it
+     *
+     * Unlike get(), this never unlinks the file: the whole point is to keep the
+     * stale copy around as a safety net for when the upstream API fails.
+     *
+     * @param string $key Cache key
+     * @param string $namespace Optional namespace
+     * @param int $maxAgeSeconds Hard cap measured from created_at (default 30 days)
+     * @return array{value: mixed, cached_at: int, is_stale: bool}|null Null if missing, corrupted or older than the cap
+     */
+    public function getStale(string $key, string $namespace = '', int $maxAgeSeconds = self::STALE_MAX_AGE): ?array
+    {
+        $filePath = $this->getCacheFilePath($key, $namespace);
+
+        if (!file_exists($filePath)) {
+            $this->logger->debug("Stale cache miss", ['key' => $key, 'namespace' => $namespace]);
+            return null;
+        }
+
+        $content = file_get_contents($filePath);
+        $data = json_decode($content, true);
+
+        if (!is_array($data) || !array_key_exists('value', $data) || !isset($data['expires_at'], $data['created_at'])) {
+            $this->logger->warning("Stale cache corrupted", ['key' => $key, 'namespace' => $namespace]);
+            return null;
+        }
+
+        $age = time() - (int)$data['created_at'];
+        if ($age > $maxAgeSeconds) {
+            $this->logger->debug("Stale cache too old", [
+                'key' => $key,
+                'namespace' => $namespace,
+                'age_seconds' => $age,
+                'max_age_seconds' => $maxAgeSeconds
+            ]);
+            return null;
+        }
+
+        $isStale = $data['expires_at'] < time();
+
+        $this->logger->debug("Stale cache hit", [
+            'key' => $key,
+            'namespace' => $namespace,
+            'is_stale' => $isStale,
+            'age_seconds' => $age
+        ]);
+
+        return [
+            'value' => $data['value'],
+            'cached_at' => (int)$data['created_at'],
+            'is_stale' => $isStale
+        ];
+    }
+
+    /**
+     * Store data meant to survive expiration as a fallback
+     *
+     * Identical to set(); it exists so the call site says out loud that this
+     * entry is written to be readable by getStale() after its TTL runs out.
+     *
+     * @param string $key Cache key
+     * @param mixed $value Data to cache (must be JSON serializable)
+     * @param int $ttl Time to live in seconds
+     * @param string $namespace Optional namespace
+     * @return bool Success status
+     */
+    public function setResilient(string $key, mixed $value, int $ttl, string $namespace = ''): bool
+    {
+        return $this->set($key, $value, $ttl, $namespace);
+    }
+
+    /**
      * Delete cached item
      *
      * @param string $key Cache key
@@ -151,12 +226,17 @@ class CacheService
     }
 
     /**
-     * Clean expired cache entries
+     * Clean cache entries past the stale safety net
+     *
+     * Deliberately measured against created_at and STALE_MAX_AGE, not expires_at:
+     * an entry past its TTL is still the fallback getStale() serves when the API
+     * fails, so deleting it here would quietly remove the safety net.
      *
      * @param string $namespace Optional namespace to clean
-     * @return int Number of expired files deleted
+     * @param int $maxAgeSeconds Hard cap measured from created_at (default 30 days)
+     * @return int Number of files deleted
      */
-    public function cleanExpired(string $namespace = ''): int
+    public function cleanExpired(string $namespace = '', int $maxAgeSeconds = self::STALE_MAX_AGE): int
     {
         $dir = $namespace ? $this->cacheDir . '/' . $this->sanitizeNamespace($namespace) : $this->cacheDir;
         $count = 0;
@@ -178,11 +258,11 @@ class CacheService
             $content = file_get_contents($file->getPathname());
             $data = json_decode($content, true);
 
-            if (!$data || !isset($data['expires_at'])) {
+            if (!$data || !isset($data['created_at'])) {
                 continue;
             }
 
-            if ($data['expires_at'] < time()) {
+            if ((time() - (int)$data['created_at']) > $maxAgeSeconds) {
                 if (@unlink($file->getPathname())) {
                     $count++;
                 }
@@ -190,7 +270,7 @@ class CacheService
         }
 
         if ($count > 0) {
-            $this->logger->info("Expired cache cleaned", [
+            $this->logger->info("Stale cache cleaned", [
                 'namespace' => $namespace ?: 'all',
                 'files_deleted' => $count
             ]);

@@ -1,12 +1,19 @@
 <template>
   <div class="not-found">
     <div class="not-found-content">
-      <h1 class="not-found-code">404</h1>
-      <h2 class="not-found-title">Página no encontrada</h2>
+      <h1 class="not-found-code">
+        404
+      </h1>
+      <h2 class="not-found-title">
+        Página no encontrada
+      </h2>
       <p class="not-found-message">
         La página que buscas no existe o ha sido movida.
       </p>
-      <router-link to="/" class="not-found-link">
+      <router-link
+        to="/"
+        class="not-found-link"
+      >
         Volver al inicio
       </router-link>
     </div>
@@ -34,7 +41,7 @@
 .not-found-code {
   font-size: 6rem;
   font-weight: 700;
-  color: var(--color-primary, #1D4E4A);
+  color: var(--color-primary, var(--color-primary));
   margin: 0;
   line-height: 1;
 }
@@ -42,19 +49,19 @@
 .not-found-title {
   font-size: 1.5rem;
   margin: 0.5rem 0 1rem;
-  color: var(--color-text, #333);
+  color: var(--color-text, var(--color-text-secondary));
 }
 
 .not-found-message {
-  color: var(--color-text-muted, #666);
+  color: var(--color-text-muted, var(--color-text-secondary));
   margin-bottom: 2rem;
 }
 
 .not-found-link {
   display: inline-block;
   padding: 0.75rem 1.5rem;
-  background-color: var(--color-primary, #1D4E4A);
-  color: #fff;
+  background-color: var(--color-primary, var(--color-primary));
+  color: var(--color-text-light);
   border-radius: 6px;
   text-decoration: none;
   transition: opacity 0.2s;

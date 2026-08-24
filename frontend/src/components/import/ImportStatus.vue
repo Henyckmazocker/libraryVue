@@ -6,28 +6,31 @@
     <i 
       v-if="status.loading" 
       class="fas fa-spinner fa-spin status-icon"
-    ></i>
+    />
     <i 
       v-else-if="status.type === 'success'" 
       class="fas fa-check-circle status-icon"
-    ></i>
+    />
     <i 
       v-else-if="status.type === 'error'" 
       class="fas fa-exclamation-circle status-icon"
-    ></i>
+    />
     <i 
       v-else-if="status.type === 'info'" 
       class="fas fa-info-circle status-icon"
-    ></i>
+    />
     
     <span class="status-text">{{ status.message }}</span>
     
     <!-- Progress bar for loading states -->
-    <div v-if="status.loading && progress > 0" class="progress-bar">
+    <div
+      v-if="status.loading && progress > 0"
+      class="progress-bar"
+    >
       <div 
         class="progress-fill" 
         :style="{ width: `${progress}%` }"
-      ></div>
+      />
     </div>
   </div>
 </template>
@@ -76,19 +79,19 @@ defineProps({
 
 .import-status.success {
   background: rgba(40, 167, 69, 0.15);
-  color: #28a745;
+  color: var(--color-success);
   border: 1px solid rgba(40, 167, 69, 0.3);
 }
 
 .import-status.error {
   background: rgba(220, 53, 69, 0.15);
-  color: #dc3545;
+  color: var(--color-error);
   border: 1px solid rgba(220, 53, 69, 0.3);
 }
 
 .import-status.info {
   background: rgba(0, 123, 255, 0.15);
-  color: #007bff;
+  color: var(--color-info);
   border: 1px solid rgba(0, 123, 255, 0.3);
 }
 

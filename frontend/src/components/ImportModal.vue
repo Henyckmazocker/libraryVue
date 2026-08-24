@@ -1,11 +1,25 @@
 <template>
   <!-- Import Modal -->
-  <div v-if="show" class="modal-overlay" @click="handleClose">
-    <div class="modal-content" @click.stop>
+  <!-- El overlay cierra al pulsar fuera, pero no es un control: envuelve al propio
+       diálogo. El cierre por teclado es Escape, en useFocusTrap. -->
+  <!-- eslint-disable-next-line vuejs-accessibility/click-events-have-key-events, vuejs-accessibility/no-static-element-interactions -->
+  <div
+    v-if="show"
+    class="modal-overlay"
+    @click="handleClose"
+  >
+    <div
+      ref="dialogRef"
+      class="modal-content"
+      @click.stop
+    >
       <div class="modal-header">
-        <h2><i class="fas fa-upload"></i> Importar datos</h2>
-        <button @click="handleClose" class="close-button">
-          <i class="fas fa-times"></i>
+        <h2><i class="fas fa-upload" /> Importar datos</h2>
+        <button
+          class="close-button"
+          @click="handleClose"
+        >
+          <i class="fas fa-times" />
         </button>
       </div>
       
@@ -31,16 +45,25 @@
       </div>
 
       <div class="modal-footer">
-        <button @click="handleClose" class="cancel-button">
-          <i class="fas fa-times"></i>
+        <button
+          class="cancel-button"
+          @click="handleClose"
+        >
+          <i class="fas fa-times" />
         </button>
         <button 
-          @click="handleImport" 
-          :disabled="!canImport"
+          :disabled="!canImport" 
           class="import-submit-button"
+          @click="handleImport"
         >
-          <i v-if="isImporting" class="fas fa-spinner fa-spin"></i>
-          <i v-else class="fas fa-upload"></i>
+          <i
+            v-if="isImporting"
+            class="fas fa-spinner fa-spin"
+          />
+          <i
+            v-else
+            class="fas fa-upload"
+          />
         </button>
       </div>
     </div>
@@ -53,6 +76,7 @@ import ServiceSelector from './import/ServiceSelector.vue';
 import FileUploader from './import/FileUploader.vue';
 import ImportStatus from './import/ImportStatus.vue';
 import { useFileImport } from '@/composables/useFileImport';
+import { useFocusTrap } from '@/composables/useFocusTrap';
 
 // Props
 const props = defineProps({
@@ -90,6 +114,9 @@ const handleClose = () => {
   }
   emit('close');
 };
+
+const dialogRef = ref(null);
+useFocusTrap(dialogRef, { isOpen: () => props.show, onEscape: handleClose });
 
 const handleServiceChange = (service) => {
   setService(service);
@@ -140,7 +167,7 @@ watch(() => props.show, (newValue) => {
 }
 
 .modal-content {
-  background: #2c2c2c;
+  background: var(--color-background-mute);
   border-radius: 20px;
   width: 90%;
   max-width: 500px;
@@ -154,11 +181,11 @@ watch(() => props.show, (newValue) => {
   justify-content: space-between;
   align-items: center;
   padding: 25px 30px 15px;
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid var(--color-background-mute);
 }
 
 .modal-header h2 {
-  color: #e0e0e0;
+  color: var(--color-text);
   font-size: 1.5rem;
   font-weight: 600;
   margin: 0;
@@ -167,7 +194,7 @@ watch(() => props.show, (newValue) => {
 .close-button {
   background: none;
   border: none;
-  color: #888;
+  color: var(--color-text-muted);
   font-size: 2rem;
   cursor: pointer;
   padding: 0;
@@ -181,7 +208,7 @@ watch(() => props.show, (newValue) => {
 }
 
 .close-button:hover {
-  color: #e0e0e0;
+  color: var(--color-text);
   background: rgba(255, 255, 255, 0.1);
 }
 
@@ -194,29 +221,29 @@ watch(() => props.show, (newValue) => {
   justify-content: flex-end;
   gap: 15px;
   padding: 20px 30px 25px;
-  border-top: 1px solid #444;
+  border-top: 1px solid var(--color-background-mute);
 }
 
 .cancel-button {
   padding: 10px 20px;
   font-size: 1rem;
   background: transparent;
-  color: #888;
-  border: 1px solid #555;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-background-mute);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .cancel-button:hover {
-  color: #e0e0e0;
-  border-color: #888;
+  color: var(--color-text);
+  border-color: var(--color-border);
 }
 
 .import-submit-button {
   padding: 10px 20px;
   font-size: 1rem;
-  background: linear-gradient(135deg, #007bff, #0056b3);
+  background: linear-gradient(135deg, var(--color-info), var(--color-info));
   color: white;
   border: none;
   border-radius: 8px;
@@ -226,7 +253,7 @@ watch(() => props.show, (newValue) => {
 }
 
 .import-submit-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #0056b3, #004085);
+  background: linear-gradient(135deg, var(--color-info), var(--color-info));
   transform: translateY(-1px);
 }
 

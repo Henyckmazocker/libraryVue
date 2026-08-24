@@ -8,6 +8,7 @@ use App\Domain\UseCases\Games\AddGameUseCase;
 use App\Domain\Repository\Game\GameRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Game\UserGameRepositoryInterface;
+use App\Domain\Services\CoverService;
 use App\Domain\Services\FeedEventService;
 use App\Domain\DTO\Commands\AddGameCommand;
 use App\Domain\Model\User;
@@ -26,6 +27,7 @@ class AddGameUseCaseTest extends TestCase
     private UserRepositoryInterface $userRepo;
     private UserGameRepositoryInterface $userGameRepo;
     private FeedEventService $feedEventService;
+    private CoverService $coverService;
 
     protected function setUp(): void
     {
@@ -33,12 +35,14 @@ class AddGameUseCaseTest extends TestCase
         $this->userRepo = $this->createMock(UserRepositoryInterface::class);
         $this->userGameRepo = $this->createMock(UserGameRepositoryInterface::class);
         $this->feedEventService = $this->createMock(FeedEventService::class);
+        $this->coverService = $this->createMock(CoverService::class);
 
         $this->useCase = new AddGameUseCase(
             $this->gameRepo,
             $this->userRepo,
             $this->userGameRepo,
             $this->feedEventService,
+            $this->coverService,
             new NullLogger()
         );
     }

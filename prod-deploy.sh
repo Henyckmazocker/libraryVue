@@ -126,21 +126,23 @@ ask_if_empty() {
 # ---------------------------------------------------------------------------
 setup_prod_env() {
   local google_client_id spotify_client_id spotify_client_secret
-  local lastfm_api_key youtube_api_key omdb_api_key mysql_root_password mysql_password
+  local lastfm_api_key youtube_api_key tmdb_api_key mysql_root_password mysql_password
+  local mirror_password
 
   google_client_id=$(env_get      "$ENV_FILE" GOOGLE_CLIENT_ID)
   spotify_client_id=$(env_get     "$ENV_FILE" SPOTIFY_CLIENT_ID)
   spotify_client_secret=$(env_get "$ENV_FILE" SPOTIFY_CLIENT_SECRET)
   lastfm_api_key=$(env_get        "$ENV_FILE" LASTFM_API_KEY)
   youtube_api_key=$(env_get       "$ENV_FILE" YOUTUBE_API_KEY)
-  omdb_api_key=$(env_get          "$ENV_FILE" OMDB_API_KEY)
+  tmdb_api_key=$(env_get          "$ENV_FILE" TMDB_API_KEY)
   mysql_root_password=$(env_get   "$ENV_FILE" MYSQL_ROOT_PASSWORD)
   mysql_password=$(env_get        "$ENV_FILE" MYSQL_PASSWORD)
+  mirror_password=$(env_get       "$ENV_FILE" DB_MIRROR_PASSWORD)
 
   local needs_input=false
   [[ -z "$google_client_id" || -z "$spotify_client_id" || -z "$spotify_client_secret" \
-     || -z "$lastfm_api_key" || -z "$youtube_api_key" || -z "$omdb_api_key" \
-     || -z "$mysql_root_password" || -z "$mysql_password" ]] \
+     || -z "$lastfm_api_key" || -z "$youtube_api_key" || -z "$tmdb_api_key" \
+     || -z "$mysql_root_password" || -z "$mysql_password" || -z "$mirror_password" ]] \
     && needs_input=true
 
   if [[ "$needs_input" == "true" ]]; then
@@ -152,12 +154,18 @@ setup_prod_env() {
     spotify_client_secret=$(ask_if_empty "Spotify Client Secret"   "$spotify_client_secret" "yes")
     lastfm_api_key=$(ask_if_empty        "Last.fm API Key"         "$lastfm_api_key")
     youtube_api_key=$(ask_if_empty       "YouTube Data API Key"    "$youtube_api_key")
-    omdb_api_key=$(ask_if_empty          "OMDb API Key (películas)" "$omdb_api_key")
+    tmdb_api_key=$(ask_if_empty          "TMDB API Key (películas)" "$tmdb_api_key")
 
     echo ""
     echo -e "${YELLOW}=== Contraseñas MySQL (producción — usa valores seguros) ===${NC}"
     mysql_root_password=$(ask_if_empty "MySQL Root Password" "$mysql_root_password" "yes")
     mysql_password=$(ask_if_empty      "MySQL User Password" "$mysql_password"      "yes")
+
+    echo ""
+    echo -e "${YELLOW}=== Mirror de catálogos (servidor compartido con dev) ===${NC}"
+    echo "  Tiene que ser la MISMA contraseña que en el .env de desarrollo:"
+    echo "  es un único servidor MySQL, con un único usuario library_mirror_user."
+    mirror_password=$(ask_if_empty "Mirror DB Password" "$mirror_password" "yes")
   else
     success "Todas las claves ya están en .env.prod — sin cambios."
     return
@@ -181,13 +189,16 @@ LASTFM_API_KEY=${lastfm_api_key}
 # YouTube Data API v3
 YOUTUBE_API_KEY=${youtube_api_key}
 
-# OMDb API (movie search)
-OMDB_API_KEY=${omdb_api_key}
+# TMDB (enriquecimiento de fichas de película/serie)
+TMDB_API_KEY=${tmdb_api_key}
 
 # Database
 MYSQL_ROOT_PASSWORD=${mysql_root_password}
 MYSQL_PASSWORD=${mysql_password}
 DB_PASSWORD=${mysql_password}
+
+# Mirror de catálogos — servidor compartido (docker-compose.mirror.yml)
+DB_MIRROR_PASSWORD=${mirror_password}
 EOF
 
   success ".env.prod creado/actualizado."
@@ -223,6 +234,15 @@ setup_backend_prod_env() {
   env_set "$BACKEND_ENV_FILE" SPOTIFY_CLIENT_SECRET "$(env_get "$ENV_FILE" SPOTIFY_CLIENT_SECRET)"
   env_set "$BACKEND_ENV_FILE" LASTFM_API_KEY        "$(env_get "$ENV_FILE" LASTFM_API_KEY)"
   env_set "$BACKEND_ENV_FILE" YOUTUBE_API_KEY       "$(env_get "$ENV_FILE" YOUTUBE_API_KEY)"
+  env_set "$BACKEND_ENV_FILE" TMDB_API_KEY          "$(env_get "$ENV_FILE" TMDB_API_KEY)"
+  # El mirror es un servidor aparte y compartido con dev: sin estas cuatro, el
+  # conector cae a DB_HOST/library_user (constructor de DatabaseConnector) y
+  # busca library_mirror en el MySQL de producción, donde no existe.
+  env_set "$BACKEND_ENV_FILE" DB_MIRROR_HOST        "mirror-mysql"
+  env_set "$BACKEND_ENV_FILE" DB_MIRROR_PORT        "3306"
+  env_set "$BACKEND_ENV_FILE" DB_MIRROR_DATABASE    "library_mirror"
+  env_set "$BACKEND_ENV_FILE" DB_MIRROR_USERNAME    "library_mirror_user"
+  env_set "$BACKEND_ENV_FILE" DB_MIRROR_PASSWORD    "$(env_get "$ENV_FILE" DB_MIRROR_PASSWORD)"
 
   # Generar JWT_SECRET seguro automáticamente si no está configurado
   local current_jwt
@@ -244,6 +264,93 @@ setup_backend_prod_env() {
 # ---------------------------------------------------------------------------
 # Build y despliegue
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# El mirror de catálogos tiene que estar arriba ANTES que producción
+# ---------------------------------------------------------------------------
+# No es una dependencia blanda. La búsqueda de películas no sale a la red por
+# diseño (FallbackMovieCatalog::search) y MySqlMovieCatalog no captura la
+# PDOException: sin mirror, search_movies_omdb responde 500. Es mejor negarse a
+# desplegar que publicar una app con el catálogo roto.
+#
+# Vive en su propio stack porque lo comparten dev y prod:
+#   docker compose -f docker-compose.mirror.yml up -d
+# ---------------------------------------------------------------------------
+check_mirror() {
+  info "Comprobando el mirror de catálogos..."
+
+  if ! docker network inspect library_mirror_net &>/dev/null; then
+    error "No existe la red library_mirror_net."
+    error "Arranca el mirror primero:  ./mirror-sync.sh --bootstrap"
+    exit 1
+  fi
+
+  if ! docker ps --format '{{.Names}}' | grep -qx 'libraryvue-mirror-mysql'; then
+    error "El contenedor libraryvue-mirror-mysql no está corriendo."
+    error "Arráncalo con:  docker compose -f docker-compose.mirror.yml up -d"
+    exit 1
+  fi
+
+  local mirror_pass
+  mirror_pass="$(env_get "$ENV_FILE" DB_MIRROR_PASSWORD)"
+
+  # Se comprueba con las credenciales REALES de producción, no con root: lo que
+  # importa no es que el servidor esté vivo, sino que el usuario que usará el
+  # backend pueda leer el catálogo.
+  local rows
+  rows=$(docker exec libraryvue-mirror-mysql mysql \
+           -ulibrary_mirror_user -p"$mirror_pass" library_mirror \
+           -N -B -e "SELECT COUNT(*) FROM imdb_title;" 2>/dev/null | tail -1 | tr -d '\r')
+
+  if [[ -z "$rows" ]]; then
+    error "library_mirror_user no puede leer library_mirror en el mirror."
+    error "Revisa DB_MIRROR_PASSWORD en $ENV_FILE: tiene que ser la MISMA que en dev."
+    exit 1
+  fi
+
+  if [[ "$rows" -eq 0 ]]; then
+    error "El mirror está vacío (imdb_title: 0 filas)."
+    error "Impórtalo desde el checkout de desarrollo:  ./mirror-sync.sh --imdb"
+    exit 1
+  fi
+
+  success "Mirror accesible — imdb_title: ${rows} filas."
+}
+
+# ---------------------------------------------------------------------------
+# Migraciones pendientes: avisar, no aplicar
+# ---------------------------------------------------------------------------
+# `--deploy` no las aplica (es --migrate, aparte y a mano, por diseño), y un
+# esquema desfasado no falla al arrancar: falla más tarde y en una consulta
+# concreta. Ej.: sin 20260819_090000_users_is_admin, las dos rutas de LibraryX
+# revientan al leer users.is_admin; sin las de albums, AddAlbumUseCase no puede
+# escribir catalog_source. Mejor decirlo antes que descubrirlo en un log.
+# ---------------------------------------------------------------------------
+warn_pending_migrations() {
+  local db_pass aplicadas pendientes=()
+  db_pass="$(env_get "$ENV_FILE" MYSQL_PASSWORD)"
+
+  aplicadas=$(compose_cmd exec -T mysql mysql -ulibrary_user -p"$db_pass" library_db_prod \
+      -N -B -e "SELECT filename FROM schema_migrations;" 2>/dev/null | tr -d '\r')
+
+  # Sin tabla schema_migrations (base recién creada) no hay nada que comparar:
+  # run_migrations.sh la crea él mismo en su primera pasada.
+  [[ -z "$aplicadas" ]] && return 0
+
+  local f
+  for f in "$ROOT_DIR"/docker/database/migrations/*.sql; do
+    [[ -e "$f" ]] || continue
+    grep -qxF "$(basename "$f")" <<< "$aplicadas" || pendientes+=("$(basename "$f")")
+  done
+
+  if [[ ${#pendientes[@]} -gt 0 ]]; then
+    echo ""
+    warn "Hay ${#pendientes[@]} migración(es) sin aplicar en producción:"
+    printf '         - %s\n' "${pendientes[@]}"
+    warn "Aplícalas tras el deploy con:  ./prod-deploy.sh --migrate"
+    echo ""
+  fi
+}
+
 deploy_services() {
   local no_cache="${1:-no}"
   cd "$ROOT_DIR"
@@ -483,6 +590,8 @@ cmd_deploy() {
   fi
   setup_prod_env
   setup_backend_prod_env
+  check_mirror
+  warn_pending_migrations
   deploy_services "no"
 }
 
@@ -495,6 +604,8 @@ cmd_rebuild() {
 
   setup_prod_env
   setup_backend_prod_env
+  check_mirror
+  warn_pending_migrations
   deploy_services "yes"
 }
 

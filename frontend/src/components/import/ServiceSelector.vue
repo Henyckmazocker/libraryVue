@@ -4,10 +4,12 @@
     <select 
       id="service-select" 
       v-model="selectedService" 
-      @change="handleServiceChange"
       class="service-dropdown"
+      @change="handleServiceChange"
     >
-      <option value="">-- Selecciona un servicio --</option>
+      <option value="">
+        -- Selecciona un servicio --
+      </option>
       <option 
         v-for="service in services" 
         :key="service.value" 
@@ -64,7 +66,7 @@ watch(() => props.modelValue, (newValue) => {
 
 .form-group label {
   display: block;
-  color: #e0e0e0;
+  color: var(--color-text);
   font-weight: 500;
   margin-bottom: 8px;
   font-size: 1rem;
@@ -74,17 +76,17 @@ watch(() => props.modelValue, (newValue) => {
   width: 100%;
   padding: 12px 15px;
   font-size: 1rem;
-  border: 1px solid #555;
+  border: 1px solid var(--color-background-mute);
   border-radius: 12px;
-  background-color: #3a3a3a;
-  color: #e0e0e0;
+  background-color: var(--color-background-mute);
+  color: var(--color-text);
   cursor: pointer;
   transition: border-color 0.2s ease;
 }
 
 .service-dropdown:focus {
   outline: none;
-  border-color: #007bff;
+  border-color: var(--color-info);
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
 }
 </style>

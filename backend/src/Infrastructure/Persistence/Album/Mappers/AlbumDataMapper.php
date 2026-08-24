@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\Persistence\Album\Mappers;
 
 use App\Domain\Model\Album;
+use App\Domain\Model\ValueObjects\AlbumId;
 use App\Domain\Model\ValueObjects\SpotifyId;
 use App\Domain\Model\ValueObjects\Rating;
 use App\Domain\Model\ValueObjects\Genre;
@@ -26,7 +27,13 @@ class AlbumDataMapper
      */
     public function toDomain(array $row): Album
     {
-        $spotifyId = SpotifyId::fromString($this->extractString($row, 'spotify_id'));
+        // La identidad sale del MBID, y solo si no lo hay se cae al id de
+        // Spotify — que es lo que tienen las filas guardadas antes del mirror.
+        $mbid      = $this->extractString($row, 'mb_release_group_gid', null);
+        $spotifyIdStr = $this->extractString($row, 'spotify_id', null);
+
+        $albumId = AlbumId::fromString((string) ($mbid ?? $spotifyIdStr));
+        $spotifyId = SpotifyId::fromNullableString($spotifyIdStr);
 
         $userRating = Rating::fromNullableFloat(
             $this->extractFloat($row, 'user_rating', null)
@@ -60,10 +67,14 @@ class AlbumDataMapper
 
         return new Album(
             id: $this->extractRequiredInt($row, 'id'),
+            albumId: $albumId,
             spotifyId: $spotifyId,
+            catalogSource: $this->extractString($row, 'catalog_source', null) ?? 'musicbrainz',
             title: $this->extractString($row, 'title'),
             artist: $this->extractString($row, 'artist'),
-            artistId: $this->extractString($row, 'artist_id', null),
+            // El MBID manda; artist_id es lo que quedó de antes del mirror.
+            artistId: $this->extractString($row, 'mb_artist_gid', null)
+                ?? $this->extractString($row, 'artist_id', null),
             releaseDate: $this->extractString($row, 'release_date', null),
             releaseDatePrecision: $this->extractString($row, 'release_date_precision', null),
             coverUrl: $this->extractString($row, 'cover_url', null),
@@ -89,6 +100,11 @@ class AlbumDataMapper
             completedAt: $this->extractString($row, 'completed_at', null),
             ownershipFormat: $this->buildOwnershipFormat($row)
         );
+    }
+
+    private function isMbid(?string $id): bool
+    {
+        return $id !== null && AlbumId::looksLikeMbid($id);
     }
 
     /**
@@ -120,10 +136,15 @@ class AlbumDataMapper
 
         return [
             'id'                     => $album->getId(),
-            'spotify_id'             => $album->getSpotifyId()->toString(),
+            'spotify_id'             => $album->getSpotifyId()?->toString(),
+            'mb_release_group_gid'   => $album->getMbReleaseGroupGid(),
             'title'                  => $album->getTitle(),
             'artist'                 => $album->getArtist(),
-            'artist_id'              => $album->getArtistId(),
+            // artist_id es VARCHAR(22), medido para el base62 de Spotify: un
+            // MBID de 36 caracteres ahí es un error 1406 al guardar.
+            'artist_id'              => $this->isMbid($album->getArtistId()) ? null : $album->getArtistId(),
+            'mb_artist_gid'          => $this->isMbid($album->getArtistId()) ? $album->getArtistId() : null,
+            'catalog_source'         => $album->getCatalogSource(),
             'release_date'           => $album->getReleaseDate(),
             'release_date_precision' => $album->getReleaseDatePrecision(),
             'cover_url'              => $album->getCoverUrl(),

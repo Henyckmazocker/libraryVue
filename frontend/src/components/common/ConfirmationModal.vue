@@ -1,37 +1,60 @@
 <template>
+  <!-- El overlay cierra al pulsar fuera, pero no es un control: envuelve al propio
+       diálogo. El cierre por teclado es Escape, en useFocusTrap. -->
+  <!-- eslint-disable-next-line vuejs-accessibility/click-events-have-key-events, vuejs-accessibility/no-static-element-interactions -->
   <div 
     v-if="isVisible" 
     class="confirmation-modal-overlay"
     @click="handleOverlayClick"
   >
     <div 
+      ref="dialogRef"
       class="confirmation-modal" 
-      @click.stop
+      role="dialog"
+      aria-modal="true"
       :class="modalClasses"
+      @click.stop
     >
       <!-- Header -->
       <div class="modal-header">
-        <div class="modal-icon" :class="iconClasses">
-          <i :class="iconName"></i>
+        <div
+          class="modal-icon"
+          :class="iconClasses"
+        >
+          <i :class="iconName" />
         </div>
-        <h3 class="modal-title">{{ title }}</h3>
+        <h3 class="modal-title">
+          {{ title }}
+        </h3>
       </div>
 
       <!-- Content -->
       <div class="modal-content">
-        <p class="modal-message" v-html="message"></p>
+        <p
+          class="modal-message"
+          v-html="message"
+        />
         
         <!-- Lista de detalles adicionales si se proporcionan -->
-        <div v-if="details && details.length > 0" class="modal-details">
+        <div
+          v-if="details && details.length > 0"
+          class="modal-details"
+        >
           <ul>
-            <li v-for="(detail, index) in details" :key="index">
+            <li
+              v-for="(detail, index) in details"
+              :key="index"
+            >
               {{ detail }}
             </li>
           </ul>
         </div>
 
         <!-- Campo de entrada si se requiere confirmación por texto -->
-        <div v-if="requiresTextConfirmation" class="confirmation-input">
+        <div
+          v-if="requiresTextConfirmation"
+          class="confirmation-input"
+        >
           <label :for="inputId">{{ textConfirmationLabel }}</label>
           <input 
             :id="inputId"
@@ -40,7 +63,7 @@
             :placeholder="textConfirmationPlaceholder"
             class="form-control"
             @keyup.enter="handleConfirm"
-          />
+          >
           <small class="text-muted">{{ textConfirmationHint }}</small>
         </div>
       </div>
@@ -50,18 +73,21 @@
         <button 
           type="button" 
           class="btn btn-secondary" 
-          @click="handleCancel"
           :disabled="isProcessing"
+          @click="handleCancel"
         >
           {{ cancelText }}
         </button>
         <button 
           type="button" 
           :class="confirmButtonClasses"
-          @click="handleConfirm"
           :disabled="isConfirmDisabled"
+          @click="handleConfirm"
         >
-          <i v-if="isProcessing" class="fas fa-spinner fa-spin"></i>
+          <i
+            v-if="isProcessing"
+            class="fas fa-spinner fa-spin"
+          />
           {{ isProcessing ? processingText : confirmText }}
         </button>
       </div>
@@ -71,6 +97,7 @@
 
 <script>
 import { ref, computed, nextTick, watch } from 'vue'
+import { useFocusTrap } from '@/composables/useFocusTrap'
 
 export default {
   name: 'ConfirmationModal',
@@ -214,6 +241,14 @@ export default {
       emit('cancel')
     }
     
+    // El trap se salta el foco inicial cuando el modal pide texto de confirmación:
+    // de eso ya se encarga el watcher de abajo, que enfoca ese input concreto.
+    const dialogRef = ref(null)
+    useFocusTrap(dialogRef, {
+      isOpen: () => props.isVisible,
+      onEscape: () => { if (!props.isProcessing) handleCancel() }
+    })
+
     const handleOverlayClick = () => {
       if (props.closeOnOverlay && !props.isProcessing) {
         handleCancel()
@@ -238,6 +273,7 @@ export default {
     })
     
     return {
+      dialogRef,
       confirmationText,
       inputId,
       modalClasses,
@@ -254,6 +290,8 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .confirmation-modal-overlay {
   position: fixed;
   top: 0;
@@ -289,7 +327,7 @@ export default {
   display: flex;
   align-items: center;
   padding: 24px 24px 16px;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .modal-icon {
@@ -304,30 +342,30 @@ export default {
 }
 
 .icon-warning {
-  background-color: #fff3cd;
-  color: #856404;
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
 }
 
 .icon-danger {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
 }
 
 .icon-info {
-  background-color: #d1ecf1;
-  color: #0c5460;
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
 }
 
 .icon-success {
-  background-color: #d4edda;
-  color: #155724;
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
 }
 
 .modal-title {
   margin: 0;
   font-size: 1.25rem;
   font-weight: 600;
-  color: #212529;
+  color: var(--color-text);
 }
 
 .modal-content {
@@ -336,16 +374,16 @@ export default {
 
 .modal-message {
   margin: 0 0 16px;
-  color: #495057;
+  color: var(--color-text-secondary);
   line-height: 1.5;
 }
 
 .modal-details {
   margin-top: 16px;
   padding: 12px;
-  background-color: #f8f9fa;
+  background-color: var(--color-background-soft);
   border-radius: 6px;
-  border-left: 4px solid #6c757d;
+  border-left: 4px solid var(--color-border);
 }
 
 .modal-details ul {
@@ -355,35 +393,35 @@ export default {
 
 .modal-details li {
   margin-bottom: 4px;
-  color: #495057;
+  color: var(--color-text-secondary);
 }
 
 .confirmation-input {
   margin-top: 20px;
   padding: 16px;
-  background-color: #f8f9fa;
+  background-color: var(--color-background-soft);
   border-radius: 8px;
-  border: 2px dashed #dee2e6;
+  border: 2px dashed var(--color-border);
 }
 
 .confirmation-input label {
   display: block;
   margin-bottom: 8px;
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text-secondary);
 }
 
 .confirmation-input .form-control {
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid #ced4da;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 14px;
 }
 
 .confirmation-input .form-control:focus {
   outline: none;
-  border-color: #80bdff;
+  border-color: var(--color-info);
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
@@ -391,7 +429,7 @@ export default {
   display: block;
   margin-top: 4px;
   font-size: 12px;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .modal-actions {
@@ -399,7 +437,7 @@ export default {
   justify-content: flex-end;
   gap: 12px;
   padding: 16px 24px 24px;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid var(--color-border-light);
 }
 
 .btn {
@@ -420,69 +458,69 @@ export default {
 }
 
 .btn-secondary {
-  background-color: #6c757d;
+  background-color: var(--color-border);
   color: white;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background-color: #5a6268;
+  background-color: var(--color-border);
 }
 
 .btn-warning {
-  background-color: #ffc107;
-  color: #212529;
+  background-color: var(--color-warning);
+  color: var(--color-text);
 }
 
 .btn-warning:hover:not(:disabled) {
-  background-color: #e0a800;
+  background-color: var(--color-warning);
 }
 
 .btn-danger {
-  background-color: #dc3545;
-  color: white;
+  background-color: var(--color-error);
+  color: var(--color-on-status);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background-color: #c82333;
+  background-color: var(--color-error);
 }
 
 .btn-primary {
-  background-color: #007bff;
-  color: white;
+  background-color: var(--color-info);
+  color: var(--color-on-status);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #0056b3;
+  background-color: var(--color-info);
 }
 
 .btn-success {
-  background-color: #28a745;
-  color: white;
+  background-color: var(--color-success);
+  color: var(--color-on-status);
 }
 
 .btn-success:hover:not(:disabled) {
-  background-color: #1e7e34;
+  background-color: var(--color-success);
 }
 
 /* Variantes del modal por tipo */
 .modal-warning {
-  border-top: 4px solid #ffc107;
+  border-top: 4px solid var(--color-warning);
 }
 
 .modal-danger {
-  border-top: 4px solid #dc3545;
+  border-top: 4px solid var(--color-error);
 }
 
 .modal-info {
-  border-top: 4px solid #007bff;
+  border-top: 4px solid var(--color-info);
 }
 
 .modal-success {
-  border-top: 4px solid #28a745;
+  border-top: 4px solid var(--color-success);
 }
 
 /* Responsive */
-@media (max-width: 576px) {
+@include responsive-below(sm) {
   .confirmation-modal {
     margin: 10px;
     width: calc(100vw - 20px) !important;

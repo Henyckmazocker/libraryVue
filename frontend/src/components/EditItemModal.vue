@@ -1,14 +1,25 @@
 <template>
   <Teleport to="body">
+    <!-- El overlay cierra al pulsar fuera, pero no es un control: envuelve al propio
+         diálogo. El cierre por teclado es Escape, en useFocusTrap. -->
+    <!-- eslint-disable-next-line vuejs-accessibility/click-events-have-key-events, vuejs-accessibility/no-static-element-interactions -->
     <div
       v-if="isVisible"
       class="edit-modal"
       :class="`edit-modal--${itemType}`"
       @click="onBackgroundClick"
     >
-      <div class="edit-modal__dialog" role="dialog" aria-modal="true">
+      <div
+        ref="dialogRef"
+        class="edit-modal__dialog"
+        role="dialog"
+        aria-modal="true"
+      >
         <header class="edit-modal__header">
-          <h2 class="edit-modal__title" :title="item?.title || 'Sin título'">
+          <h2
+            class="edit-modal__title"
+            :title="item?.title || 'Sin título'"
+          >
             {{ item?.title || 'Sin título' }}
           </h2>
           <button
@@ -24,7 +35,10 @@
         <div class="edit-modal__body">
           <!-- Sección: valoración y progreso -->
           <section class="edit-modal__section">
-            <RatingComponent v-model:rating="localRating" :editable="true" />
+            <RatingComponent
+              v-model:rating="localRating"
+              :editable="true"
+            />
 
             <ReadingProgressBar
               v-if="itemType === 'book'"
@@ -35,7 +49,10 @@
               theme="blue"
             />
 
-            <div v-if="itemType === 'book'" class="edit-modal__field">
+            <div
+              v-if="itemType === 'book'"
+              class="edit-modal__field"
+            >
               <label for="total-pages-input">Total de páginas</label>
               <input
                 id="total-pages-input"
@@ -44,7 +61,7 @@
                 min="1"
                 placeholder="Nº total de páginas del libro"
                 class="edit-modal__input"
-              />
+              >
             </div>
           </section>
 
@@ -65,14 +82,19 @@
               @add-tag="handleAddTag"
             />
 
-            <div v-if="ownershipFormats.length > 0" class="edit-modal__field">
+            <div
+              v-if="ownershipFormats.length > 0"
+              class="edit-modal__field"
+            >
               <label for="ownership-format">Formato de Propiedad</label>
               <select
                 id="ownership-format"
                 v-model="localOwnershipFormatId"
                 class="edit-modal__input"
               >
-                <option :value="null">— Sin especificar —</option>
+                <option :value="null">
+                  — Sin especificar —
+                </option>
                 <option
                   v-for="fmt in ownershipFormats"
                   :key="fmt.id"
@@ -85,8 +107,13 @@
           </section>
 
           <!-- Sección: detalles específicos del juego -->
-          <section v-if="itemType === 'game'" class="edit-modal__section edit-modal__section--card">
-            <h3 class="edit-modal__section-title">Detalles del juego</h3>
+          <section
+            v-if="itemType === 'game'"
+            class="edit-modal__section edit-modal__section--card"
+          >
+            <h3 class="edit-modal__section-title">
+              Detalles del juego
+            </h3>
 
             <div class="edit-modal__grid">
               <div class="edit-modal__field">
@@ -99,7 +126,7 @@
                   step="0.5"
                   placeholder="Horas jugadas"
                   class="edit-modal__input"
-                />
+                >
               </div>
 
               <div class="edit-modal__field">
@@ -110,7 +137,7 @@
                   type="text"
                   placeholder="PC, PS5, Xbox, etc."
                   class="edit-modal__input"
-                />
+                >
               </div>
 
               <div class="edit-modal__field">
@@ -120,7 +147,7 @@
                   v-model="localDateStarted"
                   type="date"
                   class="edit-modal__input"
-                />
+                >
               </div>
 
               <div class="edit-modal__field">
@@ -130,7 +157,7 @@
                   v-model="localDateFinished"
                   type="date"
                   class="edit-modal__input"
-                />
+                >
               </div>
             </div>
 
@@ -142,13 +169,18 @@
                 rows="3"
                 placeholder="Tus notas sobre este juego..."
                 class="edit-modal__textarea"
-              ></textarea>
+              />
             </div>
           </section>
 
           <!-- Sección: detalles específicos del vídeo -->
-          <section v-if="itemType === 'video'" class="edit-modal__section edit-modal__section--card">
-            <h3 class="edit-modal__section-title">Detalles del vídeo</h3>
+          <section
+            v-if="itemType === 'video'"
+            class="edit-modal__section edit-modal__section--card"
+          >
+            <h3 class="edit-modal__section-title">
+              Detalles del vídeo
+            </h3>
 
             <div class="edit-modal__field">
               <label for="video-personal-notes">Notas personales</label>
@@ -158,13 +190,18 @@
                 rows="3"
                 placeholder="Tus notas sobre este vídeo..."
                 class="edit-modal__textarea"
-              ></textarea>
+              />
             </div>
           </section>
 
           <!-- Sección: detalles específicos del álbum -->
-          <section v-if="itemType === 'album'" class="edit-modal__section edit-modal__section--card">
-            <h3 class="edit-modal__section-title">Detalles del álbum</h3>
+          <section
+            v-if="itemType === 'album'"
+            class="edit-modal__section edit-modal__section--card"
+          >
+            <h3 class="edit-modal__section-title">
+              Detalles del álbum
+            </h3>
 
             <div class="edit-modal__field">
               <label for="favorite-track">Canción favorita</label>
@@ -174,7 +211,9 @@
                 v-model="localFavoriteTrack"
                 class="edit-modal__input"
               >
-                <option value="">— Ninguna —</option>
+                <option value="">
+                  — Ninguna —
+                </option>
                 <option
                   v-for="track in albumTracks"
                   :key="track.id || track.track_number"
@@ -190,7 +229,7 @@
                 type="text"
                 placeholder="Tu canción favorita del álbum"
                 class="edit-modal__input"
-              />
+              >
             </div>
 
             <div class="edit-modal__field">
@@ -200,7 +239,7 @@
                 v-model="localDateStarted"
                 type="date"
                 class="edit-modal__input"
-              />
+              >
             </div>
 
             <div class="edit-modal__field">
@@ -211,7 +250,7 @@
                 rows="3"
                 placeholder="Tus notas sobre este álbum..."
                 class="edit-modal__textarea"
-              ></textarea>
+              />
             </div>
           </section>
 
@@ -232,7 +271,7 @@
 
             <MovieNotes
               v-if="itemType === 'movie' && item?.isbn"
-              :movie-isbn="item.isbn"
+              :imdb-id="item.isbn"
             />
 
             <GameNotes
@@ -277,6 +316,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, inject, defineProps, defineEmits } from 'vue'
+import { useFocusTrap } from '@/composables/useFocusTrap'
 import RatingComponent from '@/components/common/RatingComponent.vue'
 import ReadingProgressBar from '@/components/common/ReadingProgressBar.vue'
 import StatusSelector from '@/components/common/StatusSelector.vue'
@@ -666,6 +706,9 @@ const handleSave = async () => {
     isSaving.value = false
   }
 }
+
+const dialogRef = ref(null)
+useFocusTrap(dialogRef, { isOpen: () => props.isVisible, onEscape: () => emit('close') })
 
 // Handle background click
 const onBackgroundClick = (e) => {

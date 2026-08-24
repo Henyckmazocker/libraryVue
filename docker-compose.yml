@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   frontend:
@@ -13,6 +12,15 @@ services:
       - ./frontend/babel.config.js:/app/babel.config.js
       - ./frontend/jsconfig.json:/app/jsconfig.json
       - ./frontend/vue.config.js:/app/vue.config.js
+      # Arnés de tests (Vitest). package.json se monta para que el script "test"
+      # esté disponible sin reconstruir; las devDeps sí viven en la imagen, así
+      # que añadir una dependencia nueva sigue pidiendo `docker compose build frontend`.
+      - ./frontend/package.json:/app/package.json
+      - ./frontend/vitest.config.js:/app/vitest.config.js
+      - ./frontend/tests:/app/tests
+      # Barrera de estilos (stylelint). Se monta por lo mismo que vitest.config.js:
+      # para poder tocar las reglas sin reconstruir la imagen.
+      - ./frontend/.stylelintrc.json:/app/.stylelintrc.json
     environment:
       - NODE_ENV=development
       - VUE_APP_API_URL=http://127.0.0.1:8888/index.php
@@ -32,11 +40,31 @@ services:
       - ./backend:/var/www/html
       # Mapear específicamente vendor como volumen para performance
       - backend_vendor:/var/www/html/vendor
+      # Compartido con el MySQL del mirror: LOAD DATA INFILE lee del disco del
+      # SERVIDOR, y el importador (bin/mirror) corre aquí. Es secure_file_priv,
+      # no un capricho. Externo porque los dos extremos están en stacks distintos.
+      - mirror_files:/var/lib/mysql-files
+      # Portadas descargadas. Volumen NOMBRADO y no parte del bind mount de
+      # ./backend a propósito: son datos, no código, y dentro del árbol del
+      # repo acabarían en `git status` como pasa con storage/ratelimit/.
+      # Compartido con producción: cover_file vive en el mirror y su storage_path
+      # tiene que significar lo mismo en los dos entornos.
+      - covers_data:/var/www/html/storage/covers
     environment:
       - APP_ENV=development
       - DB_HOST=mysql
       - DB_PORT=3306
       - DB_DATABASE=library_db
+      # El mirror vive en su propio stack (docker-compose.mirror.yml), compartido
+      # con producción. Host y credenciales propios: un servidor MySQL tiene una
+      # sola contraseña por usuario, y la de library_user aquí no es la de prod.
+      - DB_MIRROR_HOST=mirror-mysql
+      - DB_MIRROR_PORT=3306
+      - DB_MIRROR_DATABASE=library_mirror
+      - DB_MIRROR_USERNAME=library_mirror_user
+      - DB_MIRROR_PASSWORD=${DB_MIRROR_PASSWORD}
+      - DB_MIRROR_IMPORT_USER=library_mirror_importer
+      - DB_MIRROR_IMPORT_PASSWORD=${DB_MIRROR_IMPORT_PASSWORD}
       - DB_USERNAME=library_user
       - DB_PASSWORD=${DB_PASSWORD}
       - LOG_PATH=/var/www/html/storage/logs
@@ -45,18 +73,21 @@ services:
       - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID}
       - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
       - LASTFM_API_KEY=${LASTFM_API_KEY}
-      - OMDB_API_KEY=${OMDB_API_KEY}
+      - TMDB_API_KEY=${TMDB_API_KEY}
     command: >
       bash -c "cd /var/www/html && 
                cp .env.docker-development .env &&
                export COMPOSER_MEMORY_LIMIT=-1 &&
                composer install --optimize-autoloader --no-interaction &&
-               mkdir -p storage/logs storage/cache storage/sessions storage/uploads &&
+               mkdir -p storage/logs storage/cache storage/sessions storage/uploads storage/covers &&
                chown -R www-data:www-data storage/ &&
                chmod -R 775 storage/ &&
                apache2-foreground"
     depends_on:
       - mysql
+    networks:
+      - default
+      - library_mirror_net
     restart: unless-stopped
 
   mysql:
@@ -76,9 +107,25 @@ services:
       - mysql_data:/var/lib/mysql
       - ./docker/database/init.sql:/docker-entrypoint-initdb.d/init.sql
 
+networks:
+  # Creada por `./mirror-sync.sh --bootstrap`, no por este stack: la comparten
+  # dev, prod y el propio mirror, y ninguno de los tres debe ser su dueño.
+  library_mirror_net:
+    external: true
+    name: library_mirror_net
+
 volumes:
   mysql_data:
   backend_vendor:
+  # Los dos externos se comparten con el stack del mirror y con producción.
+  # `external: true` es además la red de seguridad: así un `docker compose
+  # down -v` aquí no puede llevarse las portadas ni el área de importación.
+  mirror_files:
+    external: true
+    name: library_mirror_files
+  covers_data:
+    external: true
+    name: library_covers_data
 
 # Optional named volume for node_modules if you choose Option 2 above
 # volumes:

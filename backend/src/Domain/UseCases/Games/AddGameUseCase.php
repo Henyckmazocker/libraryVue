@@ -8,6 +8,7 @@ use App\Domain\Model\Game;
 use App\Domain\Repository\Game\GameRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Game\UserGameRepositoryInterface;
+use App\Domain\Services\CoverService;
 use App\Domain\Services\FeedEventService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\AddGameCommand;
@@ -21,6 +22,7 @@ class AddGameUseCase extends AbstractUseCase
         private readonly UserRepositoryInterface $userRepository,
         private readonly UserGameRepositoryInterface $userGameRepository,
         private readonly FeedEventService $feedEventService,
+        private readonly CoverService $coverService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -81,6 +83,15 @@ class AddGameUseCase extends AbstractUseCase
             'game',
             (string) $command->id->toInt(),
             $game->getTitle(),
+            $game->getCoverUrl()
+        );
+
+        // Copia local de la portada: registra la fila ahora (sin red) y deja la
+        // descarga para después de la respuesta. Un fallo aquí nunca afecta al
+        // guardado; lo pendiente lo recoge `bin/mirror covers:backfill`.
+        $this->coverService->recordCover(
+            'game',
+            (string) $command->id->toInt(),
             $game->getCoverUrl()
         );
 

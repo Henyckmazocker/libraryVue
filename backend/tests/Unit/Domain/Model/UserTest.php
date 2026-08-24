@@ -22,10 +22,12 @@ class UserTest extends TestCase
             'email' => Email::fromString('test@gmail.com'),
             'name' => 'Test User',
             'picture' => 'https://img.test/pic.jpg',
+            'isAdmin' => false,
         ];
         $d = array_merge($defaults, $overrides);
         return new User(
-            $d['id'], $d['googleId'], $d['email'], $d['name'], $d['picture']
+            $d['id'], $d['googleId'], $d['email'], $d['name'], $d['picture'],
+            null, null, null, null, true, null, null, $d['isAdmin']
         );
     }
 
@@ -40,6 +42,7 @@ class UserTest extends TestCase
         $this->assertEquals('Test User', $user->getName());
         $this->assertNotNull($user->getPicture());
         $this->assertTrue($user->isActive());
+        $this->assertFalse($user->isAdmin());
     }
 
     #[Test]
@@ -154,6 +157,12 @@ class UserTest extends TestCase
         $this->assertTrue($user->isActive());
     }
 
+    #[Test]
+    public function creates_admin_user(): void
+    {
+        $this->assertTrue($this->makeUser(['isAdmin' => true])->isAdmin());
+    }
+
     // ── toArray ──
 
     #[Test]
@@ -172,6 +181,7 @@ class UserTest extends TestCase
         $this->assertNull($arr['last_login']);
         $this->assertNull($arr['preferences']);
         $this->assertTrue($arr['is_active']);
+        $this->assertFalse($arr['is_admin']);
     }
 
     // ── fromArray ──
@@ -196,6 +206,21 @@ class UserTest extends TestCase
         $this->assertEquals('from@example.com', $user->getEmail()->toString());
         $this->assertEquals('From Array', $user->getName());
         $this->assertFalse($user->isActive());
+        $this->assertFalse($user->isAdmin());
+    }
+
+    #[Test]
+    public function from_array_reads_is_admin(): void
+    {
+        $user = User::fromArray([
+            'id' => 5,
+            'google_id' => '123456789012345678901',
+            'email' => 'admin@example.com',
+            'name' => 'Admin',
+            'is_admin' => true,
+        ]);
+
+        $this->assertTrue($user->isAdmin());
     }
 
     // ── Round-trip ──
@@ -212,5 +237,13 @@ class UserTest extends TestCase
         $this->assertEquals($original->getName(), $restored->getName());
         $this->assertEquals($original->getGoogleId()->toString(), $restored->getGoogleId()->toString());
         $this->assertTrue($restored->isActive());
+    }
+
+    #[Test]
+    public function to_array_from_array_round_trip_preserves_is_admin(): void
+    {
+        $restored = User::fromArray($this->makeUser(['isAdmin' => true])->toArray());
+
+        $this->assertTrue($restored->isAdmin());
     }
 }

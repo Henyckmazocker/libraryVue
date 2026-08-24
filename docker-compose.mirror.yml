@@ -1,0 +1,90 @@
+# ============================================================================
+# docker-compose.mirror.yml — el mirror de catálogos, como servicio compartido
+# ============================================================================
+# Ni dev ni prod son dueños del mirror: los dos lo consumen. Son 2,2 GB de
+# catálogo público (IMDb + MusicBrainz) y dos cachés con cuota ajena (TMDB,
+# MusicBrainz API); duplicarlo por entorno costaría el doble de disco y el doble
+# de cuota para servir exactamente los mismos datos.
+#
+# Vive en su propio stack, y no dentro del de desarrollo, por dos razones:
+#
+#   1. Producción no puede depender de que el entorno de desarrollo esté
+#      levantado. Con el mirror dentro del compose de dev, un `compose down` en
+#      dev deja library.dcahomelab.com sin búsqueda de películas ni de álbumes
+#      —MySqlMovieCatalog no captura, así que es un 500, no una degradación—.
+#   2. `mirror-sync.sh --musicbrainz` hace DROP/RENAME de tablas y sube el
+#      buffer pool a 4 GB. Eso no puede pasar en el mismo servidor que atiende
+#      a producción.
+#
+# Todo lo compartido va declarado `external: true`. No es un detalle: significa
+# que ningún `docker compose down -v` de dev o de prod puede llevárselo. Se crean
+# una vez con `./mirror-sync.sh --bootstrap`.
+#
+# Uso:
+#   docker compose -f docker-compose.mirror.yml up -d
+#   ./mirror-sync.sh --status
+# ============================================================================
+
+# Proyecto propio. Sin esto Compose deriva el nombre del directorio y este stack
+# comparte proyecto con el de desarrollo: `docker compose ps` mezcla los dos y
+# cualquier `down` de uno se ofrece a borrar los contenedores del otro.
+name: libraryvue-mirror
+
+services:
+  # El servicio se llama `mirror-mysql`, no `mysql`, y no es cosmético: el
+  # backend de dev está a la vez en su red y en library_mirror_net, y con
+  # DB_HOST=mysql el nombre `mysql` resolvería a dos contenedores distintos
+  # según la red. El alias tiene que ser inequívoco.
+  mirror-mysql:
+    container_name: libraryvue-mirror-mysql
+    image: mysql:8.0
+    ports:
+      # Expuesto solo para inspección desde el host (mysql -h127.0.0.1 -P3313).
+      # Dev y prod NO pasan por aquí: hablan por library_mirror_net, por DNS.
+      - "3313:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: library_mirror
+      # Usuario propio del mirror, y no library_user, porque un servidor MySQL
+      # tiene UNA contraseña por usuario: dev y prod traen cada uno la suya para
+      # library_user y no podrían coincidir aquí. De ahí DB_MIRROR_USERNAME /
+      # DB_MIRROR_PASSWORD en el conector.
+      MYSQL_USER: library_mirror_user
+      MYSQL_PASSWORD: ${DB_MIRROR_PASSWORD}
+    command:
+      # 2 GB de buffer pool: el mirror son 2,2 GB con sus FULLTEXT, y con los
+      # 128 MB por defecto cada búsqueda vuelve a leer de disco. Durante una
+      # reimportación `mirror-sync.sh` lo sube a 4 GB y luego lo restaura.
+      - --innodb-buffer-pool-size=2G
+      # Los importadores usan LOAD DATA INFILE desde /var/lib/mysql-files.
+      - --secure-file-priv=/var/lib/mysql-files
+    volumes:
+      - mirror_data:/var/lib/mysql
+      # El otro extremo lo monta el backend de dev, que es quien corre bin/mirror:
+      # LOAD DATA INFILE lee del disco del SERVIDOR, no del cliente.
+      - mirror_files:/var/lib/mysql-files
+      # Idempotente y solo en volumen virgen (docker-entrypoint-initdb.d), que es
+      # justo lo que hace falta: crea el esqueleto y deja que los importadores
+      # lo rellenen.
+      - ./docker/database/mirror_schema.sql:/docker-entrypoint-initdb.d/mirror_schema.sql
+    networks:
+      - library_mirror_net
+    restart: always
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+networks:
+  library_mirror_net:
+    external: true
+    name: library_mirror_net
+
+volumes:
+  mirror_data:
+    external: true
+    name: library_mirror_data
+  mirror_files:
+    external: true
+    name: library_mirror_files

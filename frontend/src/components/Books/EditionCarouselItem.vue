@@ -1,63 +1,105 @@
 <template>
-  <div class="edition-card" @click="handleClick">
+  <button
+    type="button"
+    class="edition-card"
+    @click="handleClick"
+  >
     <div class="edition-cover">
       <img 
         v-if="edition.cover_url" 
         :src="edition.cover_url" 
         :alt="edition.title"
-        @error="handleImageError"
         class="cover-image"
-      />
-      <div v-else class="cover-placeholder">
-        <i class="fas fa-book"></i>
+        width="248"
+        height="200"
+        loading="lazy"
+        decoding="async"
+        @error="handleImageError"
+      >
+      <div
+        v-else
+        class="cover-placeholder"
+      >
+        <i class="fas fa-book" />
       </div>
       
       <!-- Badge para indicar la edición seleccionada -->
-      <div v-if="isSelected" class="selected-badge">
-        <i class="fas fa-check-circle"></i>
+      <div
+        v-if="isSelected"
+        class="selected-badge"
+      >
+        <i class="fas fa-check-circle" />
       </div>
       
       <!-- Badge para indicar la edición guardada en biblioteca -->
-      <div v-if="isSaved && !isSelected" class="saved-badge" title="Guardada en tu biblioteca">
-        <i class="fas fa-bookmark"></i>
+      <div
+        v-if="isSaved && !isSelected"
+        class="saved-badge"
+        title="Guardada en tu biblioteca"
+      >
+        <i
+          class="fas fa-bookmark"
+          aria-hidden="true"
+        />
+        <span class="u-sr-only">Guardada en tu biblioteca</span>
       </div>
     </div>
 
     <div class="edition-info">
-      <h4 class="edition-title">{{ edition.title }}</h4>
+      <h4 class="edition-title">
+        {{ edition.title }}
+      </h4>
       
-      <div v-if="edition.publishers && edition.publishers.length > 0" class="edition-publisher">
-        <i class="fas fa-building"></i>
+      <div
+        v-if="edition.publishers && edition.publishers.length > 0"
+        class="edition-publisher"
+      >
+        <i class="fas fa-building" />
         <span>{{ edition.publishers[0] }}</span>
       </div>
       
       <div class="edition-metadata">
-        <span v-if="edition.publish_date" class="metadata-item">
-          <i class="fas fa-calendar"></i>
+        <span
+          v-if="edition.publish_date"
+          class="metadata-item"
+        >
+          <i class="fas fa-calendar" />
           {{ edition.publish_date }}
         </span>
         
-        <span v-if="edition.number_of_pages" class="metadata-item">
-          <i class="fas fa-file-alt"></i>
+        <span
+          v-if="edition.number_of_pages"
+          class="metadata-item"
+        >
+          <i class="fas fa-file-alt" />
           {{ edition.number_of_pages }} págs.
         </span>
       </div>
 
-      <div v-if="edition.languages && edition.languages.length > 0" class="edition-language">
-        <i class="fas fa-globe"></i>
+      <div
+        v-if="edition.languages && edition.languages.length > 0"
+        class="edition-language"
+      >
+        <i class="fas fa-globe" />
         <span>{{ getLanguageName(edition.languages[0], 'es') }}</span>
       </div>
 
-      <div v-if="edition.isbn_13 || edition.isbn_10" class="edition-isbn">
+      <div
+        v-if="edition.isbn_13 || edition.isbn_10"
+        class="edition-isbn"
+      >
         <strong>ISBN:</strong> {{ edition.isbn_13 || edition.isbn_10 }}
       </div>
 
-      <div v-if="edition.physical_format" class="edition-format">
-        <i class="fas fa-bookmark"></i>
+      <div
+        v-if="edition.physical_format"
+        class="edition-format"
+      >
+        <i class="fas fa-bookmark" />
         <span>{{ edition.physical_format }}</span>
       </div>
     </div>
-  </div>
+  </button>
 </template>
 
 <script setup>
@@ -107,7 +149,14 @@ const handleImageError = (event) => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .edition-card {
+  @include button-reset;
+  // El <div> llenaba el wrapper `.carousel-item` (280px) por ser block; un <button>
+  // se encoge al contenido, así que aquí el ancho se declara. `button-reset` no lo
+  // trae de serie a propósito: en los demás carruseles rompería la maqueta.
+  width: 100%;
   background: var(--color-background-card);
   border: 2px solid var(--color-border);
   border-radius: 12px;
@@ -164,7 +213,7 @@ const handleImageError = (event) => {
   top: 8px;
   right: 8px;
   background: var(--color-success);
-  color: var(--color-text-light);
+  color: var(--color-on-status);
   width: 32px;
   height: 32px;
   border-radius: 50%;

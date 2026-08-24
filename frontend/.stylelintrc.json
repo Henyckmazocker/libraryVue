@@ -1,0 +1,49 @@
+{
+  "//": "Tres reglas, no una guía de estilo. Extender stylelint-config-standard-scss daba 180 errores de los que ~175 eran ruido: lee `spacing(2xs)` como una unidad desconocida, no conoce `:deep()` de Vue y opina sobre líneas en blanco. Lo que aquí se defiende es lo que el sistema de color y de breakpoints puede perder por descuido.",
+  "overrides": [
+    {
+      "files": [
+        "**/*.scss"
+      ],
+      "customSyntax": "postcss-scss"
+    },
+    {
+      "files": [
+        "**/*.vue"
+      ],
+      "customSyntax": "postcss-html"
+    },
+    {
+      "//": "Los dos ficheros que DEFINEN los tokens son el único sitio donde un hex es correcto.",
+      "files": [
+        "src/assets/styles/tokens/_colors.scss",
+        "src/assets/styles/themes/_dark.scss"
+      ],
+      "rules": {
+        "color-no-hex": null
+      }
+    }
+  ],
+  "rules": {
+    "color-no-hex": [
+      true,
+      {
+        "message": "Usa un token (var(--color-…)) o el acento de la entidad. Si es un color de marca, desactiva la regla en esa línea y explica por qué."
+      }
+    ],
+    "at-rule-disallowed-list": [
+      "import"
+    ],
+    "media-feature-name-value-allowed-list": {
+      "min-width": [
+        "/^(?!\\d)/"
+      ],
+      "max-width": [
+        "/^(?!\\d)/"
+      ]
+    },
+    "media-feature-name-disallowed-list": [
+      "prefers-color-scheme"
+    ]
+  }
+}

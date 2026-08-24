@@ -1,32 +1,53 @@
 <template>
   <div class="friends-list">
-    <div v-if="friends.length === 0" class="friends-list__empty">
+    <div
+      v-if="friends.length === 0"
+      class="friends-list__empty"
+    >
       <i class="pi pi-users" />
       <p>Todavía no tienes amigos. ¡Busca usuarios y envía solicitudes!</p>
     </div>
 
-    <div v-else class="friends-list__items">
+    <div
+      v-else
+      class="friends-list__items"
+    >
       <div
         v-for="friend in friends"
         :key="friend.id"
         class="friends-list__item"
       >
         <div class="friends-list__avatar">
-          <img v-if="friend.avatar" :src="friend.avatar" :alt="friend.username" />
-          <i v-else class="pi pi-user" />
+          <img
+            v-if="friend.avatar"
+            :src="friend.avatar"
+            :alt="friend.username"
+            loading="lazy"
+            decoding="async"
+          >
+          <i
+            v-else
+            class="pi pi-user"
+          />
         </div>
         <div class="friends-list__info">
-          <router-link :to="`/user/${friend.username}`" class="friends-list__name">
+          <router-link
+            :to="`/user/${friend.username}`"
+            class="friends-list__name"
+          >
             {{ friend.username }}
           </router-link>
-          <span v-if="friend.display_name" class="friends-list__display">{{ friend.display_name }}</span>
+          <span
+            v-if="friend.display_name"
+            class="friends-list__display"
+          >{{ friend.display_name }}</span>
         </div>
         <Button
+          v-tooltip.top="'Eliminar amigo'"
           icon="pi pi-user-minus"
           severity="secondary"
           text
           size="small"
-          v-tooltip.top="'Eliminar amigo'"
           @click="$emit('remove', friend.id)"
         />
       </div>

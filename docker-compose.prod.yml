@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   frontend:
     container_name: libraryvue-frontend-prod
@@ -29,6 +27,9 @@ services:
     volumes:
       # Solo volúmenes persistentes, NO bind mounts de código
       - backend_storage:/var/www/html/storage
+      # Aparte de backend_storage, que ya cubre logs y sesiones: la caché de
+      # portadas puede ocupar GB y se tira entera sin tocar el resto.
+      - covers_data:/var/www/html/storage/covers
       - backend_vendor:/var/www/html/vendor
     environment:
       - APP_ENV=production
@@ -37,20 +38,33 @@ services:
       - DB_DATABASE=library_db_prod
       - DB_USERNAME=library_user
       - DB_PASSWORD=${DB_PASSWORD}
+      # Mirror de catálogos: el MISMO que usa dev (docker-compose.mirror.yml).
+      # No es opcional — sin él, search_movies_omdb y search_spotify_albums no
+      # degradan a red: MySqlMovieCatalog no captura la PDOException y responde
+      # 500. Usuario propio porque este servidor lo comparten los dos entornos.
+      - DB_MIRROR_HOST=mirror-mysql
+      - DB_MIRROR_PORT=3306
+      - DB_MIRROR_DATABASE=library_mirror
+      - DB_MIRROR_USERNAME=library_mirror_user
+      - DB_MIRROR_PASSWORD=${DB_MIRROR_PASSWORD}
       - LOG_PATH=/var/www/html/storage/logs
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_BOOKS_API_KEY=${GOOGLE_BOOKS_API_KEY}
       - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID}
       - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
       - LASTFM_API_KEY=${LASTFM_API_KEY}
-      - OMDB_API_KEY=${OMDB_API_KEY}
+      - YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
+      # TMDB sustituye a OMDb: OmdbService ya no existe. Es la capa de
+      # enriquecimiento del mirror (sinopsis en español, póster y director), y
+      # sin la clave las fichas de película salen desnudas.
+      - TMDB_API_KEY=${TMDB_API_KEY}
       - CORS_ALLOWED_ORIGINS=https://library.dcahomelab.com
     command: >
       bash -c "cd /var/www/html && 
                cp .env.docker-production .env &&
                export COMPOSER_MEMORY_LIMIT=-1 &&
                composer install --no-dev --optimize-autoloader --no-interaction &&
-               mkdir -p storage/logs storage/cache storage/sessions storage/uploads &&
+               mkdir -p storage/logs storage/cache storage/sessions storage/uploads storage/covers &&
                chown -R www-data:www-data storage/ &&
                chmod -R 775 storage/ &&
                apache2-foreground"
@@ -58,6 +72,7 @@ services:
       - mysql
     networks:
       - library_network
+      - library_mirror_net
     restart: always
 
   mysql:
@@ -83,8 +98,23 @@ services:
 networks:
   library_network:
     driver: bridge
+  # El mirror es un servicio compartido con dev, en su propio stack. Externa
+  # porque no la posee ninguno de los dos entornos.
+  library_mirror_net:
+    external: true
+    name: library_mirror_net
 
 volumes:
   mysql_data_prod:
   backend_vendor:
   backend_storage:
+  # Compartido con dev, y por eso externo. cover_file vive en el mirror, que
+  # también es compartido: su storage_path ('ab/ab3f...jpg') es relativo a ESTE
+  # volumen, así que si cada entorno tuviera el suyo, la fila que escribe dev
+  # apuntaría en prod a un fichero inexistente. Y no fallaría de forma ruidosa:
+  # CoverStore::localPath() haría is_file() -> null -> 302 al CDN, y como
+  # claimPending() filtra por storage_path IS NULL, prod no volvería a bajarla
+  # nunca. Producción servida desde el CDN ajeno en silencio.
+  covers_data:
+    external: true
+    name: library_covers_data

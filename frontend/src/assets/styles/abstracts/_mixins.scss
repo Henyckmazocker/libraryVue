@@ -44,6 +44,14 @@
 }
 
 // Reset de botón nativo.
+//
+// Las tres últimas propiedades son las que permiten que un <button> ocupe el
+// sitio de un <div>: sin ellas hereda `display: inline-block` y centra su texto.
+// Quien luego aplique un mixin de maquetación (`list-item`, `carousel-item`…)
+// sobreescribe el `display` sin problema, porque va después en el mismo bloque.
+//
+// Deliberadamente SIN `width`: las tarjetas viven en contenedores flex donde se
+// dimensionan por contenido, y un `width: 100%` las pone a una por fila.
 @mixin button-reset {
   background: none;
   border: none;
@@ -52,6 +60,9 @@
   font: inherit;
   color: inherit;
   cursor: pointer;
+  box-sizing: border-box;
+  display: block;
+  text-align: inherit;
 }
 
 // Scrollbar fino estilizado.

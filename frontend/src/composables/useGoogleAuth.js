@@ -1,7 +1,8 @@
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { Capacitor } from '@capacitor/core';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { useAuth } from './useAuth';
+import { useAuthStore } from '@/store/auth';
 import Logger from '@/utils/logger';
 
 /**
@@ -10,6 +11,7 @@ import Logger from '@/utils/logger';
  */
 export function useGoogleAuth() {
   const { login, isLoading, error } = useAuth();
+  const authStore = useAuthStore();
   
   // Estados específicos de Google OAuth
   const isGoogleSDKLoaded = ref(false);
@@ -299,14 +301,38 @@ export function useGoogleAuth() {
     googleError.value || error.value
   );
 
-  // Lifecycle hooks
-  onMounted(async () => {
+  /**
+   * El SDK solo se pide cuando va a servir para algo: si el usuario ya tiene
+   * sesión no hay botón que pintar, así que cargarlo era una petición a
+   * accounts.google.com en cada visita a cambio de nada. En nativo se inicializa
+   * de todas formas porque ahí no hay SDK web: `initializeGoogleAuth` corta en
+   * su rama de Capacitor sin tocar la red.
+   *
+   * `_authChecked` es la señal de que `check_auth` ya respondió; sin esperarla,
+   * `isAuthenticated` todavía es `false` y se cargaría el SDK a todo el mundo.
+   */
+  const shouldInitialize = () =>
+    Capacitor.isNativePlatform() ||
+    (authStore._authChecked && !authStore.isAuthenticated);
+
+  const initializeIfNeeded = async () => {
+    if (isGoogleInitialized.value || !shouldInitialize()) return;
+
     try {
       await initializeGoogleAuth();
     } catch (err) {
       Logger.error('[useGoogleAuth] Failed to initialize on mount:', err);
     }
-  });
+  };
+
+  // Lifecycle hooks
+  onMounted(initializeIfNeeded);
+
+  // La comprobación de sesión es asíncrona: cuando responda, se decide.
+  watch(
+    () => [authStore._authChecked, authStore.isAuthenticated],
+    initializeIfNeeded
+  );
 
   onUnmounted(() => {
     // Limpiar recursos si es necesario

@@ -6,14 +6,20 @@
     </div>
     
     <!-- Interactive progress bar/slider -->
-    <div class="progress-bar-container" :class="{ 'editable': editable }">
+    <div
+      class="progress-bar-container"
+      :class="{ 'editable': editable }"
+    >
       <div 
         class="progress-bar" 
         :class="progressBarClass"
         :style="{ width: progressPercentage + '%' }"
         :title="`${progressPercentage}% completado`"
       >
-        <div class="progress-bar-shine" v-if="progressPercentage > 0"></div>
+        <div
+          v-if="progressPercentage > 0"
+          class="progress-bar-shine"
+        />
       </div>
       
       <!-- Slider overlay for interaction -->
@@ -24,27 +30,37 @@
         :min="0"
         :max="totalPages || 100"
         :value="localCurrentPage"
-        @input="updateCurrentPageFromSlider"
         :disabled="saving"
+        aria-label="Página actual"
         :title="`Arrastra para cambiar la página (0-${totalPages || 100})`"
-      />
+        @input="updateCurrentPageFromSlider"
+      >
     </div>
     
-    <div class="progress-footer" v-if="editable">
+    <div
+      v-if="editable"
+      class="progress-footer"
+    >
       <div class="page-input-container">
-        <label for="current-page-input" class="page-label">Página actual:</label>
+        <label
+          for="current-page-input"
+          class="page-label"
+        >Página actual:</label>
         <input 
           id="current-page-input"
           type="number" 
           :value="localCurrentPage"
-          @input="updateCurrentPage"
-          :min="0" 
-          :max="totalPages || 999"
+          :min="0"
+          :max="totalPages || 999" 
           class="page-input"
           :disabled="saving"
-        />
-        <span v-if="saving" class="saving-indicator">
-          <i class="fas fa-spinner fa-spin"></i>
+          @input="updateCurrentPage"
+        >
+        <span
+          v-if="saving"
+          class="saving-indicator"
+        >
+          <i class="fas fa-spinner fa-spin" />
         </span>
       </div>
     </div>
@@ -160,6 +176,8 @@ defineExpose({
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .reading-progress-container {
   margin: 12px 0;
   padding: 10px;
@@ -178,11 +196,11 @@ defineExpose({
 
 .progress-label {
   font-weight: 500;
-  color: #e0e0e0;
+  color: var(--color-text);
 }
 
 .progress-text {
-  color: #bbb;
+  color: var(--color-text-muted);
   font-size: 0.8rem;
 }
 
@@ -230,22 +248,22 @@ defineExpose({
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #ffffff;
-  border: 2px solid #1976d2;
+  background: var(--color-background-card);
+  border: 2px solid var(--color-info);
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   transition: all 0.2s ease;
 }
 
 .progress-slider::-webkit-slider-thumb:hover {
-  background: #f0f0f0;
-  border-color: #1565c0;
+  background: var(--color-border-light);
+  border-color: var(--color-info);
   transform: scale(1.1);
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
 }
 
 .progress-slider::-webkit-slider-thumb:active {
-  background: #e0e0e0;
+  background: var(--color-border-light);
   transform: scale(1.05);
 }
 
@@ -254,16 +272,16 @@ defineExpose({
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #ffffff;
-  border: 2px solid #1976d2;
+  background: var(--color-background-card);
+  border: 2px solid var(--color-info);
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   transition: all 0.2s ease;
 }
 
 .progress-slider::-moz-range-thumb:hover {
-  background: #f0f0f0;
-  border-color: #1565c0;
+  background: var(--color-border-light);
+  border-color: var(--color-info);
   transform: scale(1.1);
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
 }
@@ -297,14 +315,14 @@ defineExpose({
 
 /* Disabled state */
 .progress-slider:disabled::-webkit-slider-thumb {
-  background: #888;
-  border-color: #666;
+  background: var(--color-border);
+  border-color: var(--color-background-mute);
   cursor: not-allowed;
 }
 
 .progress-slider:disabled::-moz-range-thumb {
-  background: #888;
-  border-color: #666;
+  background: var(--color-border);
+  border-color: var(--color-background-mute);
   cursor: not-allowed;
 }
 
@@ -330,44 +348,51 @@ defineExpose({
 
 /* Temas de color */
 .progress-blue {
-  background: linear-gradient(90deg, #1976d2, #42a5f5);
+  background: linear-gradient(90deg, var(--color-info), var(--color-info));
 }
 
 .progress-green {
-  background: linear-gradient(90deg, #388e3c, #66bb6a);
+  background: var(--color-success);
+  background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.18), rgba(255, 255, 255, 0.10));
 }
 
 .progress-orange {
-  background: linear-gradient(90deg, #f57c00, #ffb74d);
+  background: var(--color-warning);
+  background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.18), rgba(255, 255, 255, 0.10));
 }
 
 .progress-purple {
-  background: linear-gradient(90deg, #7b1fa2, #ba68c8);
+  background: var(--color-card-movie-accent);
+  background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.18), rgba(255, 255, 255, 0.10));
 }
 
 .progress-red {
-  background: linear-gradient(90deg, #d32f2f, #ef5350);
+  background: var(--color-error);
+  background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.18), rgba(255, 255, 255, 0.10));
 }
 
 /* Estados de progreso */
 .progress-not-started {
-  background: #424242 !important;
+  background: var(--color-background-mute) !important;
 }
 
 .progress-just-started {
-  background: linear-gradient(90deg, #ff9800, #ffb74d) !important;
+  background: var(--color-warning) !important;
+  background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.18), rgba(255, 255, 255, 0.10)) !important;
 }
 
 .progress-in-progress {
-  background: linear-gradient(90deg, #2196f3, #64b5f6) !important;
+  background: var(--color-info) !important;
+  background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.18), rgba(255, 255, 255, 0.10)) !important;
 }
 
 .progress-almost-done {
-  background: linear-gradient(90deg, #4caf50, #81c784) !important;
+  background: var(--color-success) !important;
+  background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.18), rgba(255, 255, 255, 0.10)) !important;
 }
 
 .progress-completed {
-  background: linear-gradient(90deg, #4caf50, #66bb6a) !important;
+  background: linear-gradient(90deg, var(--color-success), var(--color-success)) !important;
   box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
 }
 
@@ -383,7 +408,7 @@ defineExpose({
 }
 
 .page-label {
-  color: #bbb;
+  color: var(--color-text-muted);
   font-size: 0.8rem;
 }
 
@@ -393,14 +418,14 @@ defineExpose({
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 4px;
-  color: #e0e0e0;
+  color: var(--color-text);
   font-size: 0.8rem;
   text-align: center;
 }
 
 .page-input:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--color-info);
   background: rgba(255, 255, 255, 0.15);
 }
 
@@ -410,12 +435,12 @@ defineExpose({
 }
 
 .saving-indicator {
-  color: #1976d2;
+  color: var(--color-info);
   font-size: 0.8rem;
 }
 
 /* Responsive */
-@media (max-width: 480px) {
+@include responsive-below(sm) {
   .progress-header {
     flex-direction: column;
     align-items: flex-start;
@@ -433,13 +458,15 @@ defineExpose({
   }
 }
 
-/* Dark theme adjustments */
-@media (prefers-color-scheme: dark) {
+// El modo oscuro va por la clase `.app-dark` de `<html>`, no por la preferencia del
+// sistema: `store/ui.js` permite conmutarlo a mano, y `prefers-color-scheme` se
+// saltaba ese interruptor. Lo prohíbe `.github/skills/styles.md`.
+.app-dark {
   .reading-progress-container {
     background: rgba(255, 255, 255, 0.03);
     border-color: rgba(255, 255, 255, 0.08);
   }
-  
+
   .progress-bar-container {
     background: rgba(255, 255, 255, 0.08);
   }

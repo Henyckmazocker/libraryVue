@@ -1,10 +1,15 @@
 import Logger from '@/utils/logger';
 import { useAuthStore } from '@/store/auth.js';
+import { categoricalPalette, foldToOther, entityColor, chartInk } from '@/config/chartTheme';
 
 /**
  * Service para interactuar con la API de estadísticas
  * Utiliza authStore.authenticatedApiCall() para CSRF y JWT consistentes
  */
+// Los cinco medios que tienen acento propio en el registry. Una serie mensual de
+// 'games' se pinta con el color de la tarjeta de juegos, no con uno cualquiera.
+const MEDIA_KEYS = ['book', 'movie', 'game', 'album', 'video', 'books', 'movies', 'games', 'albums', 'videos'];
+
 class StatsService {
 
   /**
@@ -109,17 +114,18 @@ class StatsService {
       };
     }
 
-    const labels = Object.keys(genreStats.topGenres);
-    const data = Object.values(genreStats.topGenres);
-    
-    // Generar colores dinámicamente
-    const colors = this.generateColors(labels.length);
+    // La cola se agrupa en «Otros» en vez de inventar tonos: la paleta tiene un
+    // orden fijo de 7 y a partir de ahí no hay separación garantizada.
+    const { labels, data } = foldToOther(
+      Object.keys(genreStats.topGenres),
+      Object.values(genreStats.topGenres)
+    );
 
     return {
       labels,
       datasets: [{
         data,
-        backgroundColor: colors,
+        backgroundColor: categoricalPalette(labels.length),
         borderWidth: 1
       }]
     };
@@ -141,15 +147,16 @@ class StatsService {
       };
     }
 
-    const labels = Object.keys(statusStats);
-    const data = Object.values(statusStats);
-    const colors = this.generateColors(labels.length);
+    const { labels, data } = foldToOther(
+      Object.keys(statusStats),
+      Object.values(statusStats)
+    );
 
     return {
       labels,
       datasets: [{
         data,
-        backgroundColor: colors,
+        backgroundColor: categoricalPalette(labels.length),
         borderWidth: 1
       }]
     };
@@ -170,7 +177,7 @@ class StatsService {
         labels: allRatings.map(rating => `${rating} estrellas`),
         datasets: [{
           data: new Array(allRatings.length).fill(0),
-          backgroundColor: ['#ff6384', '#ff9f40', '#ffcd56', '#4bc0c0', '#36a2eb', '#9966ff', '#ff6384', '#ff9f40', '#ffcd56'],
+          backgroundColor: categoricalPalette(1)[0],
           borderWidth: 1
         }]
       };
@@ -183,13 +190,14 @@ class StatsService {
       return `${formattedRating} estrellas`;
     });
     
-    const colors = ['#ff6384', '#ff9f40', '#ffcd56', '#4bc0c0', '#36a2eb', '#9966ff', '#ff6384', '#ff9f40', '#ffcd56'];
-
+    // Una sola serie ordinal (1 → 5 estrellas): un color, no nueve. Nueve tonos
+    // codificarían una diferencia de categoría que aquí no existe — la magnitud ya
+    // la lleva el alto de la barra.
     return {
       labels,
       datasets: [{
         data,
-        backgroundColor: colors,
+        backgroundColor: categoricalPalette(1)[0],
         borderWidth: 1
       }]
     };
@@ -207,8 +215,8 @@ class StatsService {
         labels: [],
         datasets: [{
           data: [],
-          borderColor: '#36a2eb',
-          backgroundColor: 'rgba(54, 162, 235, 0.1)'
+          borderColor: chartInk().muted,
+          backgroundColor: 'transparent'
         }]
       };
     }
@@ -223,8 +231,10 @@ class StatsService {
 
     const isPages = type === 'pages';
     const label = isPages ? 'Páginas leídas' : 'Agregados por mes';
-    const color = isPages ? '#4CAF50' : '#36a2eb';
-    const backgroundColor = isPages ? 'rgba(76, 175, 80, 0.1)' : 'rgba(54, 162, 235, 0.1)';
+    // Las series por medio llevan el color de su tarjeta en /library; el resto,
+    // la primera ranura de la paleta categórica.
+    const color = MEDIA_KEYS.includes(type) ? entityColor(type) : categoricalPalette(1)[0];
+    const backgroundColor = 'transparent';
 
     return {
       labels,
@@ -239,30 +249,6 @@ class StatsService {
     };
   }
 
-  /**
-   * Generar colores para gráficos
-   * @param {number} count - Número de colores necesarios
-   * @returns {Array} Array de colores en formato hex
-   */
-  generateColors(count) {
-    const baseColors = [
-      '#ff6384', '#36a2eb', '#ffcd56', '#4bc0c0', '#ff9f40',
-      '#c9cbcf', '#ff6384', '#36a2eb', '#ffcd56', '#4bc0c0'
-    ];
-    
-    if (count <= baseColors.length) {
-      return baseColors.slice(0, count);
-    }
-    
-    // Generar colores adicionales si se necesitan más
-    const colors = [...baseColors];
-    for (let i = baseColors.length; i < count; i++) {
-      const hue = (i * 137.508) % 360; // Golden angle approximation
-      colors.push(`hsl(${hue}, 70%, 60%)`);
-    }
-    
-    return colors;
-  }
 }
 
 export default new StatsService();

@@ -26,6 +26,10 @@
 /storage/uploads/*
 !/storage/uploads/.gitkeep
 
+# Portadas descargadas (volumen covers_data)
+/storage/covers/*
+!/storage/covers/.gitkeep
+
 # IDE files
 .vscode/
 .idea/

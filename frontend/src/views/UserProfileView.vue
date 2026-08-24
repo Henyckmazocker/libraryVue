@@ -1,87 +1,115 @@
 <template>
-    <div class="profile-container">
-      <h1 class="profile-title">
-        <i class="fas fa-user-cog"></i>
-        Mi Perfil
-      </h1>
+  <div class="profile-container">
+    <h1 class="profile-title">
+      <i class="fas fa-user-cog" />
+      Mi Perfil
+    </h1>
 
-      <!-- User info card -->
-      <div class="profile-card">
-        <div class="profile-avatar">
-          <img
-            v-if="userPicture"
-            :src="userPicture"
-            :alt="userName"
-            class="avatar-image"
-          />
-          <div v-else class="avatar-placeholder">
-            <i class="fas fa-user"></i>
-          </div>
-        </div>
-
-        <div class="profile-info">
-          <h2 class="profile-name">{{ userName }}</h2>
-          <p class="profile-email">
-            <i class="fas fa-envelope"></i>
-            {{ userEmail }}
-          </p>
-          <p class="profile-auth-note">
-            <i class="fab fa-google"></i>
-            Cuenta vinculada con Google
-          </p>
+    <!-- User info card -->
+    <div class="profile-card">
+      <div class="profile-avatar">
+        <img
+          v-if="userPicture"
+          :src="userPicture"
+          :alt="userName"
+          class="avatar-image"
+          loading="lazy"
+          decoding="async"
+        >
+        <div
+          v-else
+          class="avatar-placeholder"
+        >
+          <i class="fas fa-user" />
         </div>
       </div>
 
-      <!-- Settings sections -->
-      <div class="settings-section">
-        <h3 class="section-title">
-          <i class="fas fa-lastfm" style="color: #d51007;"></i>
-          Last.fm
-        </h3>
-        <p class="section-description">
-          Vincula tu cuenta de Last.fm para ver estadísticas de escucha: tus álbumes, artistas y canciones más escuchados.
+      <div class="profile-info">
+        <h2 class="profile-name">
+          {{ userName }}
+        </h2>
+        <p class="profile-email">
+          <i class="fas fa-envelope" />
+          {{ userEmail }}
         </p>
-
-        <div class="form-group">
-          <label class="form-label" for="lastfm-input">Nombre de usuario en Last.fm</label>
-          <div class="input-row">
-            <input
-              id="lastfm-input"
-              v-model="lastfmUsername"
-              type="text"
-              class="form-input"
-              placeholder="Tu usuario de Last.fm"
-              :disabled="isSaving"
-              @keyup.enter="saveLastFmUsername"
-            />
-            <button
-              class="btn-save"
-              :disabled="isSaving || !lastfmUsernameChanged"
-              @click="saveLastFmUsername"
-            >
-              <i v-if="isSaving" class="fas fa-spinner fa-spin"></i>
-              <i v-else class="fas fa-save"></i>
-              {{ isSaving ? 'Guardando...' : 'Guardar' }}
-            </button>
-          </div>
-
-          <p v-if="saveSuccess" class="feedback-success">
-            <i class="fas fa-check-circle"></i>
-            Nombre de usuario guardado correctamente.
-          </p>
-          <p v-if="saveError" class="feedback-error">
-            <i class="fas fa-exclamation-circle"></i>
-            {{ saveError }}
-          </p>
-
-          <p class="form-hint">
-            Puedes encontrar tu nombre de usuario en
-            <a href="https://www.last.fm" target="_blank" rel="noopener noreferrer">last.fm</a>.
-            Déjalo en blanco para desvincular.
-          </p>
-        </div>
+        <p class="profile-auth-note">
+          <i class="fab fa-google" />
+          Cuenta vinculada con Google
+        </p>
       </div>
     </div>
+
+    <!-- Settings sections -->
+    <div class="settings-section">
+      <h3 class="section-title">
+        <i
+          class="fas fa-lastfm u-brand-lastfm"
+        />
+        Last.fm
+      </h3>
+      <p class="section-description">
+        Vincula tu cuenta de Last.fm para ver estadísticas de escucha: tus álbumes, artistas y canciones más escuchados.
+      </p>
+
+      <div class="form-group">
+        <label
+          class="form-label"
+          for="lastfm-input"
+        >Nombre de usuario en Last.fm</label>
+        <div class="input-row">
+          <input
+            id="lastfm-input"
+            v-model="lastfmUsername"
+            type="text"
+            class="form-input"
+            placeholder="Tu usuario de Last.fm"
+            :disabled="isSaving"
+            @keyup.enter="saveLastFmUsername"
+          >
+          <button
+            class="btn-save"
+            :disabled="isSaving || !lastfmUsernameChanged"
+            @click="saveLastFmUsername"
+          >
+            <i
+              v-if="isSaving"
+              class="fas fa-spinner fa-spin"
+            />
+            <i
+              v-else
+              class="fas fa-save"
+            />
+            {{ isSaving ? 'Guardando...' : 'Guardar' }}
+          </button>
+        </div>
+
+        <p
+          v-if="saveSuccess"
+          class="feedback-success"
+        >
+          <i class="fas fa-check-circle" />
+          Nombre de usuario guardado correctamente.
+        </p>
+        <p
+          v-if="saveError"
+          class="feedback-error"
+        >
+          <i class="fas fa-exclamation-circle" />
+          {{ saveError }}
+        </p>
+
+        <p class="form-hint">
+          Puedes encontrar tu nombre de usuario en
+          <a
+            href="https://www.last.fm"
+            target="_blank"
+            rel="noopener noreferrer"
+          >last.fm</a>.
+          Déjalo en blanco para desvincular.
+        </p>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -149,6 +177,8 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 
 .profile-container {
   max-width: 700px;
@@ -158,7 +188,7 @@ export default {
 .profile-title {
   font-size: 1.75rem;
   font-weight: 700;
-  color: var(--text-color, #e0e0e0);
+  color: var(--text-color, var(--color-text));
   margin-bottom: 1.5rem;
   display: flex;
   align-items: center;
@@ -167,7 +197,7 @@ export default {
 
 /* ─── Profile card ─── */
 .profile-card {
-  background: var(--surface-card, #2a2d36);
+  background: var(--surface-card, var(--color-background-mute));
   border-radius: 12px;
   padding: 1.75rem;
   display: flex;
@@ -186,18 +216,18 @@ export default {
   height: 80px;
   border-radius: 50%;
   object-fit: cover;
-  border: 3px solid var(--primary-color, #1D4E4A);
+  border: 3px solid var(--primary-color, var(--color-primary));
 }
 
 .avatar-placeholder {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: var(--primary-color, #1D4E4A);
+  background: var(--primary-color, var(--color-primary));
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--color-text-light);
   font-size: 2rem;
 }
 
@@ -209,13 +239,13 @@ export default {
   font-size: 1.25rem;
   font-weight: 600;
   margin: 0 0 0.4rem;
-  color: var(--text-color, #e0e0e0);
+  color: var(--text-color, var(--color-text));
 }
 
 .profile-email,
 .profile-auth-note {
   font-size: 0.9rem;
-  color: var(--text-color-secondary, #9ca3af);
+  color: var(--color-text-muted);
   margin: 0.25rem 0;
   display: flex;
   align-items: center;
@@ -224,7 +254,7 @@ export default {
 
 /* ─── Settings sections ─── */
 .settings-section {
-  background: var(--surface-card, #2a2d36);
+  background: var(--surface-card, var(--color-background-mute));
   border-radius: 12px;
   padding: 1.75rem;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
@@ -238,12 +268,12 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: var(--text-color, #e0e0e0);
+  color: var(--text-color, var(--color-text));
 }
 
 .section-description {
   font-size: 0.9rem;
-  color: var(--text-color-secondary, #9ca3af);
+  color: var(--color-text-muted);
   margin-bottom: 1.25rem;
   line-height: 1.5;
 }
@@ -258,7 +288,7 @@ export default {
 .form-label {
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--text-color, #e0e0e0);
+  color: var(--text-color, var(--color-text));
 }
 
 .input-row {
@@ -269,34 +299,34 @@ export default {
 .form-input {
   flex: 1;
   padding: 0.6rem 0.85rem;
-  background: var(--surface-ground, #1e2127);
+  background: var(--surface-ground, var(--color-background-soft));
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   font-size: 0.95rem;
-  color: var(--text-color, #e0e0e0);
+  color: var(--text-color, var(--color-text));
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .form-input::placeholder {
-  color: var(--text-color-secondary, #9ca3af);
+  color: var(--color-text-muted);
 }
 
 .form-input:focus {
-  border-color: var(--primary-color, #1D4E4A);
+  border-color: var(--primary-color, var(--color-primary));
   box-shadow: 0 0 0 3px rgba(29, 78, 74, 0.25);
 }
 
 .form-input:disabled {
   background: rgba(255, 255, 255, 0.04);
-  color: var(--text-color-secondary, #9ca3af);
+  color: var(--color-text-muted);
   cursor: not-allowed;
 }
 
 .btn-save {
   padding: 0.6rem 1.2rem;
-  background: var(--primary-color, #1D4E4A);
-  color: #fff;
+  background: var(--primary-color, var(--color-primary));
+  color: var(--color-text-light);
   border: none;
   border-radius: 8px;
   font-size: 0.9rem;
@@ -320,21 +350,17 @@ export default {
 
 .form-hint {
   font-size: 0.82rem;
-  color: var(--text-color-secondary, #9ca3af);
+  color: var(--color-text-muted);
   margin-top: 0.25rem;
 }
 
-.form-hint a {
-  color: var(--primary-color, #1D4E4A);
-  text-decoration: none;
-}
 
 .form-hint a:hover {
   text-decoration: underline;
 }
 
 .feedback-success {
-  color: #4ade80;
+  color: var(--color-card-game-accent);
   font-size: 0.88rem;
   display: flex;
   align-items: center;
@@ -342,14 +368,14 @@ export default {
 }
 
 .feedback-error {
-  color: #f87171;
+  color: var(--color-error);
   font-size: 0.88rem;
   display: flex;
   align-items: center;
   gap: 0.4rem;
 }
 
-@media (max-width: 600px) {
+@include responsive-below(sm) {
 
   .profile-card {
     flex-direction: column;
@@ -369,4 +395,7 @@ export default {
     justify-content: center;
   }
 }
+
+/* stylelint-disable-next-line color-no-hex -- rojo de Last.fm: color de marca, drift intencional (styles.md) */
+.u-brand-lastfm { color: #d51007; }
 </style>

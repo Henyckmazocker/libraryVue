@@ -119,6 +119,36 @@ class GetFeedUseCaseTest extends TestCase
     }
 
     #[Test]
+    public function returns_video_events_alongside_the_other_entities(): void
+    {
+        $friendship = new Friendship(10, 1, 2, Friendship::STATUS_ACCEPTED);
+        $this->friendshipRepo->method('findAcceptedByUser')->willReturn([$friendship]);
+        $this->privacyRepo->method('findByUserId')->willReturn(new PrivacySettings(userId: 2));
+
+        $mixedFeed = [
+            ['id' => 1, 'event_type' => 'item_added', 'entity_type' => 'book',  'entity_id' => '9780141036144'],
+            ['id' => 2, 'event_type' => 'item_added', 'entity_type' => 'movie', 'entity_id' => 'tt0133093'],
+            ['id' => 3, 'event_type' => 'item_added', 'entity_type' => 'game',  'entity_id' => '1020'],
+            ['id' => 4, 'event_type' => 'item_added', 'entity_type' => 'album', 'entity_id' => '4aawyAB9vmqN3uQ7FjRGTy'],
+            ['id' => 5, 'event_type' => 'item_added', 'entity_type' => 'video', 'entity_id' => 'dQw4w9WgXcQ'],
+        ];
+        $this->feedEventRepo->method('countFeedEvents')->willReturn(5);
+        $this->feedEventRepo->method('findFeedEvents')->willReturn($mixedFeed);
+
+        $result = $this->useCase->execute(new GetFeedQuery(userId: 1, limit: 20, offset: 0));
+
+        $this->assertCount(5, $result['events']);
+
+        $entityTypes = array_column($result['events'], 'entity_type');
+        $this->assertContains('video', $entityTypes);
+        $this->assertSame(['book', 'movie', 'game', 'album', 'video'], $entityTypes);
+
+        // El entity_id de un vídeo es su youtube_id, no el autoincremental
+        $videoEvent = end($result['events']);
+        $this->assertSame('dQw4w9WgXcQ', $videoEvent['entity_id']);
+    }
+
+    #[Test]
     public function query_fromArray_uses_defaults(): void
     {
         $query = GetFeedQuery::fromArray([], 7);

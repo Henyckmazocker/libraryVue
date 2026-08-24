@@ -19,6 +19,7 @@ class FeedEvent
     public const ENTITY_MOVIE = 'movie';
     public const ENTITY_GAME  = 'game';
     public const ENTITY_ALBUM = 'album';
+    public const ENTITY_VIDEO = 'video';
 
     private const VALID_TYPES = [
         self::TYPE_ITEM_ADDED,
@@ -34,6 +35,7 @@ class FeedEvent
         self::ENTITY_MOVIE,
         self::ENTITY_GAME,
         self::ENTITY_ALBUM,
+        self::ENTITY_VIDEO,
     ];
 
     public function __construct(

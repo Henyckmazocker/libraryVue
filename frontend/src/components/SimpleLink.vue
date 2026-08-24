@@ -1,9 +1,14 @@
 <template>
   <div class="simple-link">
-    <a :href="url" target="_blank" rel="noopener noreferrer" class="link-item">
-      <i :class="getTypeIcon()"></i>
+    <a
+      :href="url"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="link-item"
+    >
+      <i :class="getTypeIcon()" />
       <span class="link-text">{{ title || url }}</span>
-      <i class="fas fa-external-link-alt link-external"></i>
+      <i class="fas fa-external-link-alt link-external" />
     </a>
   </div>
 </template>
@@ -97,38 +102,44 @@ export default {
 
 /* Iconos específicos de plataformas */
 .fa-youtube {
+  /* stylelint-disable-next-line color-no-hex -- YouTube: color de marca, drift intencional (styles.md) */
   color: #ff0000;
 }
 
 .fa-vimeo {
+  /* stylelint-disable-next-line color-no-hex -- Vimeo: color de marca, drift intencional (styles.md) */
   color: #1ab7ea;
 }
 
 .fa-reddit {
+  /* stylelint-disable-next-line color-no-hex -- Reddit: color de marca, drift intencional (styles.md) */
   color: #ff4500;
 }
 
 .fa-twitter {
+  /* stylelint-disable-next-line color-no-hex -- Twitter: color de marca, drift intencional (styles.md) */
   color: #1da1f2;
 }
 
 .fa-instagram {
+  /* stylelint-disable-next-line color-no-hex -- Instagram: color de marca, drift intencional (styles.md) */
   color: #e4405f;
 }
 
 .fa-image {
-  color: #28a745;
+  color: var(--color-success);
 }
 
 .fa-video {
+  /* stylelint-disable-next-line color-no-hex -- vídeo genérico: color de marca, drift intencional (styles.md) */
   color: #6f42c1;
 }
 
 .fa-music {
-  color: #fd7e14;
+  color: var(--color-warning);
 }
 
 .fa-file-pdf {
-  color: #dc3545;
+  color: var(--color-error);
 }
 </style>

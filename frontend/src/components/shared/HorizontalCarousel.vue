@@ -2,11 +2,11 @@
   <div class="horizontal-carousel">
     <button 
       v-if="showNavigation && canScrollLeft" 
-      @click="scrollLeft" 
-      class="carousel-nav carousel-nav-left"
+      class="carousel-nav carousel-nav-left" 
       aria-label="Scroll left"
+      @click="scrollLeft"
     >
-      <i class="fas fa-chevron-left"></i>
+      <i class="fas fa-chevron-left" />
     </button>
     
     <div 
@@ -15,17 +15,17 @@
       @scroll="updateScrollButtons"
     >
       <div class="carousel-track">
-        <slot></slot>
+        <slot />
       </div>
     </div>
     
     <button 
       v-if="showNavigation && canScrollRight" 
-      @click="scrollRight" 
-      class="carousel-nav carousel-nav-right"
+      class="carousel-nav carousel-nav-right" 
       aria-label="Scroll right"
+      @click="scrollRight"
     >
-      <i class="fas fa-chevron-right"></i>
+      <i class="fas fa-chevron-right" />
     </button>
   </div>
 </template>
@@ -90,6 +90,8 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .horizontal-carousel {
   position: relative;
   width: 100%;
@@ -168,7 +170,7 @@ onUnmounted(() => {
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@include responsive-below(md) {
   .horizontal-carousel {
     padding: 0 10px;
   }
@@ -185,7 +187,7 @@ onUnmounted(() => {
   }
 }
 
-@media (max-width: 480px) {
+@include responsive-below(sm) {
   .carousel-nav {
     display: none;
   }

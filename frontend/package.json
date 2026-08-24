@@ -10,11 +10,15 @@
     "cap:sync": "npx cap sync",
     "cap:sync:prod": "CAP_ENV=production npx cap sync android",
     "cap:android": "npx cap open android",
-    "lint": "vue-cli-service lint"
+    "lint": "vue-cli-service lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint:styles": "stylelint \"src/**/*.{vue,scss}\""
   },
   "dependencies": {
     "@capacitor/core": "^8.3.1",
     "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
+    "@fortawesome/fontawesome-free": "^7.3.1",
     "@primevue/core": "^4.5.4",
     "@primevue/icons": "^4.5.4",
     "@primevue/themes": "^4.5.4",
@@ -33,15 +37,22 @@
     "@babel/eslint-parser": "^7.28.6",
     "@capacitor/android": "^8.3.1",
     "@capacitor/cli": "^8.3.1",
+    "@vitejs/plugin-vue": "^5.2.4",
     "@vue/cli-plugin-babel": "^5.0.9",
     "@vue/cli-plugin-eslint": "^5.0.9",
     "@vue/cli-plugin-router": "~5.0.9",
     "@vue/cli-service": "~5.0.9",
+    "@vue/test-utils": "^2.4.6",
     "eslint": "^8.57.0",
     "eslint-plugin-vue": "^9.30.0",
+    "eslint-plugin-vuejs-accessibility": "^2.6.0",
+    "jsdom": "^25.0.1",
+    "postcss-html": "^1.7.0",
     "sass": "^1.99.0",
     "sass-loader": "^16.0.7",
-    "typescript": "^6.0.3"
+    "stylelint": "^16.10.0",
+    "stylelint-config-standard-scss": "^13.1.0",
+    "vitest": "^3.2.4"
   },
   "eslintConfig": {
     "root": true,
@@ -49,13 +60,67 @@
       "node": true
     },
     "extends": [
-      "plugin:vue/vue3-essential",
-      "eslint:recommended"
+      "plugin:vue/vue3-recommended",
+      "eslint:recommended",
+      "plugin:vuejs-accessibility/recommended"
     ],
     "parserOptions": {
       "parser": "@babel/eslint-parser"
     },
-    "rules": {}
+    "rules": {
+      "no-restricted-imports": [
+        "error",
+        {
+          "paths": [
+            {
+              "name": "axios",
+              "message": "Toda llamada al backend propio va por auth.apiCall (store/auth.js), que centraliza CSRF, JWT, timeout y el manejo del 429. Excepciones: el propio store/auth.js y las llamadas a APIs externas."
+            }
+          ]
+        }
+      ],
+      "vuejs-accessibility/alt-text": "error",
+      "vuejs-accessibility/anchor-has-content": "error",
+      "vuejs-accessibility/aria-props": "error",
+      "vuejs-accessibility/aria-role": "error",
+      "vuejs-accessibility/aria-unsupported-elements": "error",
+      "vuejs-accessibility/click-events-have-key-events": "error",
+      "vuejs-accessibility/form-control-has-label": "error",
+      "vuejs-accessibility/heading-has-content": "error",
+      "vuejs-accessibility/iframe-has-title": "error",
+      "vuejs-accessibility/interactive-supports-focus": "error",
+      "vuejs-accessibility/label-has-for": [
+        "error",
+        {
+          "required": {
+            "some": [
+              "nesting",
+              "id"
+            ]
+          }
+        }
+      ],
+      "vuejs-accessibility/media-has-caption": "error",
+      "vuejs-accessibility/mouse-events-have-key-events": "error",
+      "vuejs-accessibility/no-access-key": "error",
+      "vuejs-accessibility/no-autofocus": "error",
+      "vuejs-accessibility/no-distracting-elements": "error",
+      "vuejs-accessibility/no-redundant-roles": "error",
+      "vuejs-accessibility/no-static-element-interactions": "error",
+      "vuejs-accessibility/role-has-required-aria-props": "error",
+      "vuejs-accessibility/tabindex-no-positive": "error"
+    },
+    "overrides": [
+      {
+        "files": [
+          "src/store/auth.js",
+          "src/composables/useWorkSearch.js"
+        ],
+        "rules": {
+          "no-restricted-imports": "off"
+        }
+      }
+    ]
   },
   "browserslist": [
     "> 1%",

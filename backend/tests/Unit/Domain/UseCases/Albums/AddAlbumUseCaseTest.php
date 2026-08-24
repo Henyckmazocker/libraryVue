@@ -8,6 +8,8 @@ use App\Domain\UseCases\Albums\AddAlbumUseCase;
 use App\Domain\Repository\Album\AlbumRepositoryInterface;
 use App\Domain\Repository\Album\UserAlbumRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
+use App\Domain\Repository\Catalog\AlbumCatalogInterface;
+use App\Domain\Services\CoverService;
 use App\Domain\Services\FeedEventService;
 use App\Domain\DTO\Commands\AddAlbumCommand;
 use App\Domain\Model\Album;
@@ -27,6 +29,8 @@ class AddAlbumUseCaseTest extends TestCase
     private UserAlbumRepositoryInterface $userAlbumRepo;
     private UserRepositoryInterface $userRepo;
     private FeedEventService $feedEventService;
+    private CoverService $coverService;
+    private AlbumCatalogInterface $albumCatalog;
 
     private const SPOTIFY_ID = '4aawyAB9vmqN3uQ7FjRGTy';
 
@@ -36,12 +40,18 @@ class AddAlbumUseCaseTest extends TestCase
         $this->userAlbumRepo = $this->createMock(UserAlbumRepositoryInterface::class);
         $this->userRepo      = $this->createMock(UserRepositoryInterface::class);
         $this->feedEventService = $this->createMock(FeedEventService::class);
+        $this->coverService = $this->createMock(CoverService::class);
+        // Por defecto no resuelve nada por código de barras: los tests de
+        // este fichero son sobre el alta, no sobre la reconciliación.
+        $this->albumCatalog = $this->createMock(AlbumCatalogInterface::class);
 
         $this->useCase = new AddAlbumUseCase(
             $this->albumRepo,
             $this->userAlbumRepo,
             $this->userRepo,
             $this->feedEventService,
+            $this->coverService,
+            $this->albumCatalog,
             new NullLogger()
         );
     }

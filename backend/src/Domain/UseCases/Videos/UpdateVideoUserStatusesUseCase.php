@@ -55,7 +55,7 @@ class UpdateVideoUserStatusesUseCase extends AbstractUseCase
             $this->feedEventService->recordStatusChanged(
                 $command->userId,
                 'video',
-                (string) $video->getId(),
+                $video->getYouTubeId()->toString(),
                 $video->getTitle(),
                 $video->getCoverUrl(),
                 '',

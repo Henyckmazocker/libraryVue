@@ -22,7 +22,9 @@ Examples:
 ## Rules
 
 1. **Never modify a migration that has already been applied** (committed and deployed). Add a new migration instead.
-2. **Always use `IF NOT EXISTS` / `IF EXISTS`** for safety.
+2. **Use `IF NOT EXISTS` / `IF EXISTS` where MySQL 8.0 supports it.** It works on `CREATE TABLE`,
+   `DROP TABLE` and `DROP INDEX`, but **not** on `ALTER TABLE ... ADD COLUMN` or `ADD INDEX` — those
+   are MariaDB extensions and fail with a syntax error. See the template below.
 3. **Each file must be idempotent** where possible (safe to re-check manually).
 4. **No rollback files** — design migrations carefully. Use `ALTER TABLE ... MODIFY` conservatively.
 5. The baseline is `init.sql` (dev) / `init.prod.sql` (prod). Migrations are additive changes from that point.
@@ -48,14 +50,27 @@ Examples:
 -- Author: <name>
 -- Description: <what this migration does>
 
--- Example: add a column
-ALTER TABLE user_games
-  ADD COLUMN IF NOT EXISTS new_field VARCHAR(100) NULL
-  COMMENT 'Description of the field';
+-- Example: add a column idempotently (MySQL 8.0 has no ADD COLUMN IF NOT EXISTS)
+SET @col_exists = (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_games' AND COLUMN_NAME = 'new_field'
+);
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE user_games ADD COLUMN new_field VARCHAR(100) NULL COMMENT ''Description of the field''',
+  'SELECT ''new_field column already exists'''
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- Example: add an index
-ALTER TABLE user_games
-  ADD INDEX IF NOT EXISTS idx_new_field (new_field);
+-- Example: add an index idempotently (same reason)
+SET @idx_exists = (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_games' AND INDEX_NAME = 'idx_new_field'
+);
+SET @sql = IF(@idx_exists = 0,
+  'ALTER TABLE user_games ADD INDEX idx_new_field (new_field)',
+  'SELECT ''idx_new_field already exists'''
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- Example: create a new table
 CREATE TABLE IF NOT EXISTS new_table (

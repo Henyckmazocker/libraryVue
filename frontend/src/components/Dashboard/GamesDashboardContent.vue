@@ -1,21 +1,33 @@
 <template>
   <div class="dashboard-content">
     <div class="content-header">
-      <router-link to="/library?filter=games" class="btn btn--primary">
-        <i class="fas fa-library"></i>
+      <router-link
+        to="/library?filter=games"
+        class="btn btn--primary"
+      >
+        <i class="fas fa-library" />
         Ver Mi Biblioteca de Videojuegos
       </router-link>
     </div>
 
-    <div v-if="loading" class="loading-container">
-      <i class="fas fa-spinner fa-spin"></i>
+    <div
+      v-if="loading"
+      class="loading-container"
+    >
+      <i class="fas fa-spinner fa-spin" />
       <p>Cargando estadísticas de videojuegos...</p>
     </div>
 
-    <div v-else-if="error" class="error-container">
-      <i class="fas fa-exclamation-triangle"></i>
+    <div
+      v-else-if="error"
+      class="error-container"
+    >
+      <i class="fas fa-exclamation-triangle" />
       <p>{{ error }}</p>
-      <button @click="loadGameStats" class="btn btn--primary">
+      <button
+        class="btn btn--primary"
+        @click="loadGameStats"
+      >
         Reintentar
       </button>
     </div>
@@ -44,6 +56,7 @@ import {
 import DashboardStatsGrid from './DashboardStatsGrid.vue';
 import DashboardChartsGrid from './DashboardChartsGrid.vue';
 import StatsService from '@/services/StatsService';
+import { categoricalPalette } from '@/config/chartTheme';
 import Logger from '@/utils/logger';
 import { 
   createStatsCards,
@@ -94,7 +107,7 @@ const completionData = computed(() => {
     datasets: [{
       label: 'Estado de Completitud',
       data: values,
-      backgroundColor: StatsService.generateColors(labels.length)
+      backgroundColor: categoricalPalette(labels.length)
     }]
   };
 });

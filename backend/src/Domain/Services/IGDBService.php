@@ -8,6 +8,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Psr\Log\LoggerInterface;
 use App\Infrastructure\Cache\CacheService;
+use App\Infrastructure\Cache\ResilientCall;
 
 /**
  * Service for interacting with IGDB (Internet Game Database) API
@@ -18,6 +19,7 @@ class IGDBService
     private Client $client;
     private LoggerInterface $logger;
     private CacheService $cache;
+    private ResilientCall $resilient;
     private ?string $clientId;
     private ?string $clientSecret;
     private ?string $accessToken = null;
@@ -27,8 +29,9 @@ class IGDBService
     private const AUTH_URL = 'https://id.twitch.tv/oauth2/token';
     private const CACHE_TTL_TOKEN = 5184000; // 60 days
     private const CACHE_KEY_TOKEN = 'igdb_access_token';
+    private const CACHE_TTL_SEARCH = 21600; // 6 hours
 
-    public function __construct(CacheService $cache, LoggerInterface $logger)
+    public function __construct(CacheService $cache, ResilientCall $resilient, LoggerInterface $logger)
     {
         // Get credentials from environment
         $this->clientId = $_ENV['IGDB_CLIENT_ID'] ?? null;
@@ -43,6 +46,7 @@ class IGDBService
             ]
         ]);
         $this->cache = $cache;
+        $this->resilient = $resilient;
         $this->logger = $logger;
         
         if (empty($this->clientId) || empty($this->clientSecret)) {
@@ -176,6 +180,34 @@ class IGDBService
      * @return array Array of games
      */
     public function searchGames(string $query, int $limit = 20): array
+    {
+        return $this->searchGamesResilient($query, $limit)['data'];
+    }
+
+    /**
+     * Search games, falling back to the last known results when IGDB fails
+     *
+     * Still throws when there is nothing cached to serve: that is the historic
+     * contract, and GameController turns it into a 503 (:357).
+     *
+     * @return array{data: array, stale: bool, cached_at: int|null}
+     */
+    public function searchGamesResilient(string $query, int $limit = 20): array
+    {
+        $cacheKey = 'search_' . md5($query . '_' . $limit);
+
+        return $this->resilient->around(
+            $cacheKey,
+            'igdb',
+            self::CACHE_TTL_SEARCH,
+            fn() => $this->runGameSearch($query, $limit)
+        );
+    }
+
+    /**
+     * @throws \RuntimeException When IGDB cannot be reached
+     */
+    private function runGameSearch(string $query, int $limit): array
     {
         try {
             $token = $this->getAccessToken();

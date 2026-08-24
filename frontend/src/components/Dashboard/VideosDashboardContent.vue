@@ -1,21 +1,33 @@
 <template>
   <div class="dashboard-content">
     <div class="content-header">
-      <router-link to="/library?filter=videos" class="btn btn--primary">
-        <i class="fab fa-youtube"></i>
+      <router-link
+        to="/library?filter=videos"
+        class="btn btn--primary"
+      >
+        <i class="fab fa-youtube" />
         Ver Mi Biblioteca de Vídeos
       </router-link>
     </div>
 
-    <div v-if="loading" class="loading-container">
-      <i class="fas fa-spinner fa-spin"></i>
+    <div
+      v-if="loading"
+      class="loading-container"
+    >
+      <i class="fas fa-spinner fa-spin" />
       <p>Cargando estadísticas de vídeos...</p>
     </div>
 
-    <div v-else-if="error" class="error-container">
-      <i class="fas fa-exclamation-triangle"></i>
+    <div
+      v-else-if="error"
+      class="error-container"
+    >
+      <i class="fas fa-exclamation-triangle" />
       <p>{{ error }}</p>
-      <button @click="loadVideoStats" class="btn btn--primary">
+      <button
+        class="btn btn--primary"
+        @click="loadVideoStats"
+      >
         Reintentar
       </button>
     </div>

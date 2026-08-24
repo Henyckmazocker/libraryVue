@@ -1,21 +1,33 @@
 <template>
   <div class="dashboard-content">
     <div class="content-header">
-      <router-link to="/library?filter=albums" class="btn btn--primary">
-        <i class="fas fa-music"></i>
+      <router-link
+        to="/library?filter=albums"
+        class="btn btn--primary"
+      >
+        <i class="fas fa-music" />
         Ver Mi Biblioteca de Música
       </router-link>
     </div>
 
-    <div v-if="loading" class="loading-container">
-      <i class="fas fa-spinner fa-spin"></i>
+    <div
+      v-if="loading"
+      class="loading-container"
+    >
+      <i class="fas fa-spinner fa-spin" />
       <p>Cargando estadísticas de álbumes...</p>
     </div>
 
-    <div v-else-if="error" class="error-container">
-      <i class="fas fa-exclamation-triangle"></i>
+    <div
+      v-else-if="error"
+      class="error-container"
+    >
+      <i class="fas fa-exclamation-triangle" />
       <p>{{ error }}</p>
-      <button @click="loadAlbumStats" class="btn btn--primary">
+      <button
+        class="btn btn--primary"
+        @click="loadAlbumStats"
+      >
         Reintentar
       </button>
     </div>
@@ -27,7 +39,9 @@
       <!-- Last.fm Listening Stats -->
       <div class="lastfm-stats-section">
         <h3 class="lastfm-section-title">
-          <i class="fas fa-headphones" style="color: #d51007;"></i>
+          <i
+            class="fas fa-headphones u-brand-lastfm"
+          />
           Estadísticas de Escucha (Last.fm)
         </h3>
         <ListeningStats />
@@ -160,4 +174,7 @@ onMounted(async () => {
   padding-bottom: spacing(sm);
   border-bottom: 1px solid var(--color-border);
 }
+
+/* stylelint-disable-next-line color-no-hex -- rojo de Last.fm: color de marca, drift intencional (styles.md) */
+.u-brand-lastfm { color: #d51007; }
 </style>

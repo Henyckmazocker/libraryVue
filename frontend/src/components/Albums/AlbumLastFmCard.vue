@@ -1,25 +1,37 @@
 <template>
   <div class="album-lastfm-card">
     <!-- Loading -->
-    <div v-if="isLoading" class="lastfm-state">
-      <i class="fas fa-spinner fa-spin"></i>
+    <div
+      v-if="isLoading"
+      class="lastfm-state"
+    >
+      <i class="fas fa-spinner fa-spin" />
       <span>Buscando en Last.fm…</span>
     </div>
 
     <!-- Not found on Last.fm -->
-    <div v-else-if="!isLoading && !info && !error" class="lastfm-state lastfm-state--muted">
-      <i class="fas fa-search"></i>
+    <div
+      v-else-if="!isLoading && !info && !error"
+      class="lastfm-state lastfm-state--muted"
+    >
+      <i class="fas fa-search" />
       <span>Este álbum no se encontró en Last.fm</span>
     </div>
 
     <!-- Error -->
-    <div v-else-if="error" class="lastfm-state lastfm-state--error">
-      <i class="fas fa-exclamation-triangle"></i>
+    <div
+      v-else-if="error"
+      class="lastfm-state lastfm-state--error"
+    >
+      <i class="fas fa-exclamation-triangle" />
       <span>{{ error }}</span>
     </div>
 
     <!-- Data -->
-    <div v-else-if="info" class="lastfm-data">
+    <div
+      v-else-if="info"
+      class="lastfm-data"
+    >
       <!-- Stats row -->
       <div class="lastfm-stats-row">
         <div class="lastfm-stat">
@@ -30,14 +42,20 @@
           <span class="lastfm-stat__value">{{ formatNumber(info.playcount) }}</span>
           <span class="lastfm-stat__label">Reproducciones globales</span>
         </div>
-        <div v-if="info.userplaycount !== null && info.userplaycount !== undefined" class="lastfm-stat lastfm-stat--personal">
+        <div
+          v-if="info.userplaycount !== null && info.userplaycount !== undefined"
+          class="lastfm-stat lastfm-stat--personal"
+        >
           <span class="lastfm-stat__value">{{ formatNumber(info.userplaycount) }}</span>
           <span class="lastfm-stat__label">Tus plays</span>
         </div>
       </div>
 
       <!-- Tags -->
-      <div v-if="info.tags && info.tags.length > 0" class="lastfm-tags">
+      <div
+        v-if="info.tags && info.tags.length > 0"
+        class="lastfm-tags"
+      >
         <a
           v-for="tag in info.tags"
           :key="tag.name"
@@ -49,17 +67,33 @@
       </div>
 
       <!-- Configure Last.fm note (no personal playcount) -->
-      <p v-if="!hasLastFmUsername" class="lastfm-configure-note">
-        <router-link to="/profile">Configura tu usuario de Last.fm</router-link>
+      <p
+        v-if="!hasLastFmUsername"
+        class="lastfm-configure-note"
+      >
+        <router-link to="/profile">
+          Configura tu usuario de Last.fm
+        </router-link>
         para ver cuántas veces has escuchado este álbum.
       </p>
 
       <!-- Wiki summary -->
-      <p v-if="info.wiki_summary" class="lastfm-wiki">{{ info.wiki_summary }}</p>
+      <p
+        v-if="info.wiki_summary"
+        class="lastfm-wiki"
+      >
+        {{ info.wiki_summary }}
+      </p>
 
       <!-- External link -->
-      <a v-if="info.url" :href="info.url" target="_blank" rel="noopener noreferrer" class="lastfm-external-link">
-        <i class="fas fa-external-link-alt"></i>
+      <a
+        v-if="info.url"
+        :href="info.url"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="lastfm-external-link"
+      >
+        <i class="fas fa-external-link-alt" />
         Ver en Last.fm
       </a>
     </div>
@@ -115,7 +149,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  color: var(--text-color-secondary, #9ca3af);
+  color: var(--text-color-secondary, var(--color-text-muted));
   font-size: 0.88rem;
   padding: 0.25rem 0;
 }
@@ -125,7 +159,7 @@ export default {
 }
 
 .lastfm-state--error {
-  color: var(--color-error, #ef5350);
+  color: var(--color-error, var(--color-error));
 }
 
 /* ─── Data layout ─── */
@@ -151,10 +185,11 @@ export default {
 .lastfm-stat__value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--text-color, #e0e0e0);
+  color: var(--text-color, var(--color-text));
 }
 
 .lastfm-stat--personal .lastfm-stat__value {
+  /* stylelint-disable-next-line color-no-hex -- Last.fm: color de marca, drift intencional (styles.md) */
   color: #d51007;
 }
 
@@ -162,7 +197,7 @@ export default {
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--text-color-secondary, #9ca3af);
+  color: var(--text-color-secondary, var(--color-text-muted));
 }
 
 /* ─── Tags ─── */
@@ -176,26 +211,28 @@ export default {
   font-size: 0.76rem;
   padding: 3px 10px;
   border-radius: 12px;
-  background: var(--surface-section, #2a2d36);
-  color: var(--text-color-secondary, #9ca3af);
-  border: 1px solid var(--surface-border, #2d3141);
+  background: var(--surface-section, var(--color-background-mute));
+  color: var(--text-color-secondary, var(--color-text-muted));
+  border: 1px solid var(--surface-border, var(--color-border));
   text-decoration: none;
   transition: border-color 0.15s, color 0.15s;
 }
 
 .lastfm-tag:hover {
+  /* stylelint-disable-next-line color-no-hex -- Last.fm: color de marca, drift intencional (styles.md) */
   border-color: #d51007;
-  color: var(--text-color, #e0e0e0);
+  color: var(--text-color, var(--color-text));
 }
 
 /* ─── Notes ─── */
 .lastfm-configure-note {
   font-size: 0.82rem;
-  color: var(--text-color-secondary, #9ca3af);
+  color: var(--text-color-secondary, var(--color-text-muted));
   margin: 0;
 }
 
 .lastfm-configure-note a {
+  /* stylelint-disable-next-line color-no-hex -- Last.fm: color de marca, drift intencional (styles.md) */
   color: #d51007;
   text-decoration: none;
 }
@@ -206,7 +243,7 @@ export default {
 
 .lastfm-wiki {
   font-size: 0.84rem;
-  color: var(--text-color-secondary, #9ca3af);
+  color: var(--text-color-secondary, var(--color-text-muted));
   line-height: 1.5;
   margin: 0;
   max-height: 4.5em;
@@ -222,9 +259,14 @@ export default {
   align-items: center;
   gap: 6px;
   font-size: 0.82rem;
-  color: #d51007;
+  // El rojo de marca se queda en el icono, que es un gráfico y le basta 3:1; la
+  // etiqueta va con token de texto, porque #d51007 sobre la card se queda en 4.42.
+  color: var(--color-text);
   text-decoration: none;
   align-self: flex-start;
+
+  /* stylelint-disable-next-line color-no-hex -- Last.fm: color de marca, drift intencional (styles.md) */
+  i { color: #d51007; }
 }
 
 .lastfm-external-link:hover {

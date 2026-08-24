@@ -25,6 +25,10 @@ export const palette = {
     950: '#051211',
   },
   // Escalas neutras / semánticas
+  // OJO: `secondary` es aquí un color de FONDO — primevue-preset.js lo usa como
+  // `colorScheme.light.highlight.background`, con primary[500] encima (5.30). No es el
+  // mismo rol que `--color-secondary` de tokens/_colors.scss, que es un color de primer
+  // plano (el spinner de App.vue:58) y por eso va más oscuro en claro. Divergen a propósito.
   secondary: '#A3CBC1',
   tertiary:  '#6F5D4F',
   accent:    '#E2CBBF',

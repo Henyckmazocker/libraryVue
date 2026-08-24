@@ -239,7 +239,7 @@ class ActionRouter
             // AUTH - No DTOs needed (simple operations)
             'login' => $controller->login($data),
             'logout' => $controller->logout(),
-            'check_auth' => $controller->checkAuth(),
+            'check_auth' => $controller->checkAuth($userId, $request['auth_method'] ?? null),
             'update_user_profile' => $controller->updateProfile($data),
             'log_frontend' => $controller->logFrontend($data['log_data'] ?? []),
             'log_frontend_batch' => $controller->logFrontendBatch($data['logs'] ?? []),

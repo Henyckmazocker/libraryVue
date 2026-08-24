@@ -8,6 +8,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Psr\Log\LoggerInterface;
 use App\Infrastructure\Cache\CacheService;
+use App\Infrastructure\Cache\ResilientCall;
 
 /**
  * Service for interacting with Google Books API
@@ -18,11 +19,13 @@ class GoogleBooksService
     private Client $client;
     private LoggerInterface $logger;
     private CacheService $cache;
+    private ResilientCall $resilient;
     private ?string $apiKey;
     private const BASE_URL = 'https://www.googleapis.com/books/v1';
     private const CACHE_TTL_ISBN = 604800; // 7 days
+    private const CACHE_TTL_SEARCH = 21600; // 6 hours
 
-    public function __construct(CacheService $cache, LoggerInterface $logger)
+    public function __construct(CacheService $cache, ResilientCall $resilient, LoggerInterface $logger)
     {
         // Get API key from environment
         $this->apiKey = $_ENV['GOOGLE_BOOKS_API_KEY'] ?? null;
@@ -36,6 +39,7 @@ class GoogleBooksService
             ]
         ]);
         $this->cache = $cache;
+        $this->resilient = $resilient;
         $this->logger = $logger;
         
         if (empty($this->apiKey)) {
@@ -50,6 +54,10 @@ class GoogleBooksService
     /**
      * Search books by title
      *
+     * Keeps the historic contract: an empty array when the search cannot be
+     * answered at all. Callers that need to know whether the answer came from a
+     * degraded cache should use searchBooksResilient() instead.
+     *
      * @param string $query Search query
      * @param int $maxResults Maximum number of results (max 40)
      * @param array $filters Additional filters (langRestrict, printType, orderBy, raw)
@@ -57,113 +65,141 @@ class GoogleBooksService
      */
     public function searchBooks(string $query, int $maxResults = 10, array $filters = []): array
     {
+        return $this->searchBooksResilient($query, $maxResults, $filters)['data'];
+    }
+
+    /**
+     * Search books, falling back to the last known results when the API fails
+     *
+     * The whole strategy (exact match plus broad search) is cached as one entry:
+     * either of the two requests failing degrades the search as a whole, which is
+     * what the caller cares about.
+     *
+     * @param string $query Search query
+     * @param int $maxResults Maximum number of results (max 40)
+     * @param array $filters Additional filters (langRestrict, printType, orderBy, raw)
+     * @return array{data: array, stale: bool, cached_at: int|null}
+     */
+    public function searchBooksResilient(string $query, int $maxResults = 10, array $filters = []): array
+    {
+        $cacheKey = 'search_' . md5(json_encode([$query, $maxResults, $filters]));
+
         try {
-            $this->logger->info("GoogleBooks: Searching books", [
-                'query' => $query,
-                'maxResults' => $maxResults
-            ]);
-
-            // Strategy: Try exact title match first, fallback to broad search
-            $exactResults = $this->performSearch("intitle:\"{$query}\"", $maxResults, $filters);
-            
-            // If exact search found enough results, use only them
-            if (count($exactResults) >= $maxResults) {
-                $this->logger->info("GoogleBooks: Using exact match results", ['count' => count($exactResults)]);
-                return $exactResults;
-            }
-            
-            // Otherwise, keep exact results and complement with broad search
-            $this->logger->info("GoogleBooks: Complementing exact results with broad search", [
-                'exact_count' => count($exactResults)
-            ]);
-            
-            $remaining = $maxResults - count($exactResults);
-            $broadResults = $this->performSearch("intitle:{$query}", $remaining, $filters);
-            
-            // Merge results, exact matches first
-            $merged = $exactResults;
-            $seenIds = [];
-            foreach ($exactResults as $result) {
-                $id = is_array($result) ? ($result['id'] ?? uniqid()) : uniqid();
-                $seenIds[$id] = true;
-            }
-            
-            foreach ($broadResults as $result) {
-                $id = is_array($result) ? ($result['id'] ?? uniqid()) : uniqid();
-                if (!isset($seenIds[$id])) {
-                    $merged[] = $result;
-                    $seenIds[$id] = true;
-                }
-            }
-            
-            $this->logger->info("GoogleBooks: Returning merged results", [
-                'exact' => count($exactResults),
-                'broad' => count($broadResults),
-                'merged' => count($merged)
-            ]);
-            
-            return $merged;
-
+            return $this->resilient->around(
+                $cacheKey,
+                'googlebooks',
+                self::CACHE_TTL_SEARCH,
+                fn() => $this->runSearchStrategy($query, $maxResults, $filters)
+            );
         } catch (GuzzleException $e) {
-            $this->logger->error("GoogleBooks search failed", [
+            $this->logger->error("GoogleBooks search failed with no cache to fall back on", [
                 'query' => $query,
                 'error' => $e->getMessage()
             ]);
-            return [];
+            return ['data' => [], 'stale' => false, 'cached_at' => null];
         }
+    }
+
+    /**
+     * Exact title match first, complemented with a broad search when it falls short
+     *
+     * @throws GuzzleException Propagated on purpose: ResilientCall decides what to do with a failure
+     */
+    private function runSearchStrategy(string $query, int $maxResults, array $filters): array
+    {
+        $this->logger->info("GoogleBooks: Searching books", [
+            'query' => $query,
+            'maxResults' => $maxResults
+        ]);
+
+        // Strategy: Try exact title match first, fallback to broad search
+        $exactResults = $this->performSearch("intitle:\"{$query}\"", $maxResults, $filters);
+        
+        // If exact search found enough results, use only them
+        if (count($exactResults) >= $maxResults) {
+            $this->logger->info("GoogleBooks: Using exact match results", ['count' => count($exactResults)]);
+            return $exactResults;
+        }
+        
+        // Otherwise, keep exact results and complement with broad search
+        $this->logger->info("GoogleBooks: Complementing exact results with broad search", [
+            'exact_count' => count($exactResults)
+        ]);
+        
+        $remaining = $maxResults - count($exactResults);
+        $broadResults = $this->performSearch("intitle:{$query}", $remaining, $filters);
+        
+        // Merge results, exact matches first
+        $merged = $exactResults;
+        $seenIds = [];
+        foreach ($exactResults as $result) {
+            $id = is_array($result) ? ($result['id'] ?? uniqid()) : uniqid();
+            $seenIds[$id] = true;
+        }
+        
+        foreach ($broadResults as $result) {
+            $id = is_array($result) ? ($result['id'] ?? uniqid()) : uniqid();
+            if (!isset($seenIds[$id])) {
+                $merged[] = $result;
+                $seenIds[$id] = true;
+            }
+        }
+        
+        $this->logger->info("GoogleBooks: Returning merged results", [
+            'exact' => count($exactResults),
+            'broad' => count($broadResults),
+            'merged' => count($merged)
+        ]);
+        
+        return $merged;
     }
     
     /**
      * Perform actual search against Google Books API
+     *
+     * @throws GuzzleException Deliberately not swallowed: returning [] here would
+     *         hide the failure from ResilientCall, which would then cache the
+     *         empty list as if it were a good answer.
      */
     private function performSearch(string $queryString, int $maxResults, array $filters): array
     {
-        try {
-            $queryParams = [
-                'q' => $queryString,
-                'maxResults' => min($maxResults, 40), // Google Books max is 40
-                'printType' => $filters['printType'] ?? 'books',
-                'orderBy' => $filters['orderBy'] ?? 'relevance',
-            ];
+        $queryParams = [
+            'q' => $queryString,
+            'maxResults' => min($maxResults, 40), // Google Books max is 40
+            'printType' => $filters['printType'] ?? 'books',
+            'orderBy' => $filters['orderBy'] ?? 'relevance',
+        ];
 
-            // Add optional filters
-            if (!empty($filters['langRestrict'])) {
-                $queryParams['langRestrict'] = $filters['langRestrict'];
-            }
-
-            // Add API key if configured
-            $queryParams = $this->addApiKey($queryParams);
-
-            $response = $this->client->get(self::BASE_URL . '/volumes', [
-                'query' => $queryParams
-            ]);
-
-            $data = json_decode($response->getBody()->getContents(), true);
-            $items = $data['items'] ?? [];
-
-            // Return raw items if requested
-            if (!empty($filters['raw'])) {
-                return $items;
-            }
-
-            // Transform books for legacy compatibility
-            $books = [];
-            foreach ($items as $item) {
-                $book = $this->transformBook($item);
-                if ($book) {
-                    $books[] = $book;
-                }
-            }
-
-            return $books;
-
-        } catch (GuzzleException $e) {
-            $this->logger->error("GoogleBooks performSearch failed", [
-                'query' => $queryString,
-                'error' => $e->getMessage()
-            ]);
-            return [];
+        // Add optional filters
+        if (!empty($filters['langRestrict'])) {
+            $queryParams['langRestrict'] = $filters['langRestrict'];
         }
+
+        // Add API key if configured
+        $queryParams = $this->addApiKey($queryParams);
+
+        $response = $this->client->get(self::BASE_URL . '/volumes', [
+            'query' => $queryParams
+        ]);
+
+        $data = json_decode($response->getBody()->getContents(), true);
+        $items = $data['items'] ?? [];
+
+        // Return raw items if requested
+        if (!empty($filters['raw'])) {
+            return $items;
+        }
+
+        // Transform books for legacy compatibility
+        $books = [];
+        foreach ($items as $item) {
+            $book = $this->transformBook($item);
+            if ($book) {
+                $books[] = $book;
+            }
+        }
+
+        return $books;
     }
 
     /**

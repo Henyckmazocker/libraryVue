@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { useAuthStore } from '@/store/auth';
 import Logger from '@/utils/logger';
 
 /**
@@ -53,8 +53,7 @@ export class FileProcessorService {
               
               try {
                 // Obtener datos completos de OMDb via backend proxy
-                const apiUrl = process.env.VUE_APP_API_URL || '/index.php';
-                const omdbResponse = await axios.post(apiUrl, { action: 'get_movie_details_omdb', imdbId: imdbID, plot: 'short' });
+                const omdbResponse = await useAuthStore().apiCall('get_movie_details_omdb', { imdbId: imdbID, plot: 'short' });
                 
                 if (omdbResponse.data?.status === 'success' && omdbResponse.data?.data) {
                   const omdbData = omdbResponse.data.data;

@@ -68,8 +68,27 @@ class AuthController extends BaseController implements Contracts\AuthControllerI
         return $this->successResponse('Logout successful.');
     }
 
-    public function checkAuth(): array
+    public function checkAuth(?int $userId = null, ?string $authMethod = null): array
     {
+        // Los clientes que se autentican por JWT (la app móvil de Capacitor) no
+        // tienen sesión PHP: AuthenticationMiddleware ya validó el Bearer y dejó
+        // `user_id` en la petición. Sin esto, checkAuth devolvía 401 y el
+        // frontend borraba el token que acababa de leer (store/auth.js:53-57).
+        if ($authMethod === 'jwt' && $userId !== null) {
+            $authResult = $this->authMiddleware->authenticateById($userId);
+
+            if ($authResult['status'] === 'error') {
+                return $authResult;
+            }
+
+            return $this->successResponse('User is authenticated.', [
+                'user' => $authResult['user'],
+                // Con JWT no se exige CSRF (CSRFMiddleware.php:23), pero el
+                // frontend espera la clave.
+                'csrf_token' => null
+            ]);
+        }
+
         $authResult = $this->authMiddleware->requireAuth();
         if ($authResult['status'] === 'error') {
             return $authResult;

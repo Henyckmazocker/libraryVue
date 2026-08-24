@@ -7,7 +7,6 @@ use App\Infrastructure\Middleware\AuthMiddleware;
 
 class LibraryXController extends BaseController implements LibraryXControllerInterface
 {
-    private const AUTHORIZED_EMAIL = 'david.carvajal.abellan@gmail.com';
     private const URLS_FILE_PATH = __DIR__ . '/../../storage/libraryx-urls.json';
     
     private AuthMiddleware $authMiddleware;
@@ -23,21 +22,7 @@ class LibraryXController extends BaseController implements LibraryXControllerInt
     public function getUrls(array $user): array
     {
         try {
-            // Verificar email autorizado
-            if ($user['email'] !== self::AUTHORIZED_EMAIL) {
-                if (function_exists('logger')) {
-                    logger('api')->warning('LibraryX access denied', [
-                        'user_email' => $user['email'],
-                        'authorized_email' => self::AUTHORIZED_EMAIL
-                    ]);
-                }
-                
-                return [
-                    'status' => 'error',
-                    'message' => 'Access denied',
-                    'http_code' => 403
-                ];
-            }
+            // La autorizacion la resuelve AdminMiddleware en el pipeline (config/routes.php).
 
             // Verificar que existe el archivo
             if (!file_exists(self::URLS_FILE_PATH)) {
@@ -119,14 +104,7 @@ class LibraryXController extends BaseController implements LibraryXControllerInt
     public function updateUrls(array $inputData, array $user): array
     {
         try {
-            // Verificar email autorizado
-            if ($user['email'] !== self::AUTHORIZED_EMAIL) {
-                return [
-                    'status' => 'error',
-                    'message' => 'Access denied',
-                    'http_code' => 403
-                ];
-            }
+            // La autorizacion la resuelve AdminMiddleware en el pipeline (config/routes.php).
 
             $newUrlsData = $inputData['urls_data'] ?? [];
 

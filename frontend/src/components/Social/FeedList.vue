@@ -1,21 +1,37 @@
 <template>
   <div class="feed-list">
-    <div v-if="feed.length === 0 && !feedLoading" class="feed-list__empty">
+    <div
+      v-if="feed.length === 0 && !feedLoading"
+      class="feed-list__empty"
+    >
       <i class="pi pi-users" />
       <p>Añade amigos para ver su actividad aquí</p>
     </div>
 
     <div class="feed-list__items">
-      <FeedEventCard v-for="event in feed" :key="event.id" :event="event" />
+      <FeedEventCard
+        v-for="event in feed"
+        :key="event.id"
+        :event="event"
+      />
     </div>
 
-    <div ref="sentinel" class="feed-list__sentinel" />
+    <div
+      ref="sentinel"
+      class="feed-list__sentinel"
+    />
 
-    <div v-if="feedLoading" class="feed-list__loading">
+    <div
+      v-if="feedLoading"
+      class="feed-list__loading"
+    >
       <i class="pi pi-spin pi-spinner" />
     </div>
 
-    <p v-if="!feedHasMore && feed.length > 0" class="feed-list__end">
+    <p
+      v-if="!feedHasMore && feed.length > 0"
+      class="feed-list__end"
+    >
       No hay más eventos
     </p>
   </div>

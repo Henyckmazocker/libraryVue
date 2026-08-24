@@ -165,8 +165,8 @@
   .ownership-format-badge {
     display: inline-block;
     padding: 2px spacing(xs);
-    background: var(--color-card-#{$variant}-accent);
-    color: var(--color-text-light);
+    background: color-mix(in srgb, var(--color-card-#{$variant}-accent) 80%, black);
+    color: var(--color-on-overlay);
     border-radius: radius(sm);
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);
@@ -195,7 +195,7 @@
     gap: spacing(xs);
     padding: spacing(xs) spacing(sm);
     font-size: var(--font-size-sm);
-    color: var(--color-text-light);
+    color: var(--color-on-status);
     border: none;
     border-radius: radius(md);
     cursor: pointer;
@@ -216,48 +216,51 @@
   }
 
   // ─── Variantes de botón ───────────────────────────────────────────
+  // Cada variante era un degradado de dos hex a mano, con la parada oscura y la
+  // clara escritas aparte y sin relación con ningún token. Ahora el color lo pone
+  // un token y el relieve lo pone un brillo neutro encima, que funciona igual en
+  // los dos temas y deja una sola fuente de verdad por variante.
   .save-button {
-    background: linear-gradient(135deg, #28a745, #20c997);
+    background: var(--color-success);
+    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.18));
 
-    &:hover:not(:disabled) {
-      background: linear-gradient(135deg, #20c997, #17a2b8);
-    }
+    &:hover:not(:disabled) { filter: brightness(1.12); }
   }
 
   .edit-button {
-    background: linear-gradient(135deg, #007bff, #0056b3);
+    background: var(--color-info);
+    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.18));
 
-    &:hover:not(:disabled) {
-      background: linear-gradient(135deg, #0056b3, #004085);
-    }
+    &:hover:not(:disabled) { filter: brightness(1.12); }
   }
 
   .history-button {
-    background: linear-gradient(135deg, #6c757d, #5a6268);
+    background: var(--btn-secondary-bg);
+    color: var(--btn-secondary-text);
+    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.18));
 
-    &:hover:not(:disabled) {
-      background: linear-gradient(135deg, #5a6268, #495057);
-    }
+    &:hover:not(:disabled) { filter: brightness(1.12); }
   }
 
   .delete-button {
-    background: linear-gradient(135deg, #dc3545, #c82333);
+    background: var(--color-error);
+    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.18));
 
-    &:hover:not(:disabled) {
-      background: linear-gradient(135deg, #c82333, #bd2130);
-    }
+    &:hover:not(:disabled) { filter: brightness(1.12); }
   }
 
   // Estados de feedback (success / error) — sirven para save y edit
   .save-button--success,
   .edit-button--success {
-    background: linear-gradient(135deg, #28a745, #32cd32) !important;
+    background: var(--color-success) !important;
+    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.18)) !important;
     animation: pulse-success 0.5s ease;
   }
 
   .save-button--error,
   .edit-button--error {
-    background: linear-gradient(135deg, #dc3545, #ff6b6b) !important;
+    background: var(--color-error) !important;
+    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.18)) !important;
     animation: shake 0.5s ease;
   }
 }
@@ -298,11 +301,11 @@
 }
 
 @mixin library-item-button-success {
-  background: linear-gradient(135deg, #28a745, #32cd32) !important;
+  background: var(--color-success) !important;
   animation: pulse-success 0.5s ease;
 }
 
 @mixin library-item-button-error {
-  background: linear-gradient(135deg, #dc3545, #ff6b6b) !important;
+  background: var(--color-error) !important;
   animation: shake 0.5s ease;
 }

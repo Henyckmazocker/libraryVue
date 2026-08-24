@@ -6,18 +6,36 @@
       </h2>
     </div>
 
+    <!-- Carga: el carril de siluetas evita que la sección aparezca vacía y luego
+         salte de golpe al llegar los datos. -->
+    <MediaSkeleton
+      v-if="isLoading"
+      variant="carousel"
+      :count="6"
+      :label="`Cargando ${title}…`"
+    />
+
     <!-- Empty State -->
-    <div v-if="items.length === 0" class="trending-empty">
+    <div
+      v-else-if="items.length === 0"
+      class="trending-empty"
+    >
       <span>No hay contenido trending disponible</span>
     </div>
 
     <!-- Carousel -->
-    <div v-else class="trending-carousel">
-      <HorizontalCarousel :show-navigation="true" :scroll-amount="300">
+    <div
+      v-else
+      class="trending-carousel"
+    >
+      <HorizontalCarousel
+        :show-navigation="true"
+        :scroll-amount="300"
+      >
         <component
+          :is="itemComponent"
           v-for="item in items"
           :key="getItemKey(item)"
-          :is="itemComponent"
           :book="type === 'books' ? item : undefined"
           :movie="type === 'movies' ? item : undefined"
           :game="type === 'games' ? item : undefined"
@@ -33,6 +51,7 @@
 <script setup>
 import { defineProps, defineEmits } from 'vue';
 import HorizontalCarousel from '@/components/shared/HorizontalCarousel.vue';
+import MediaSkeleton from '@/components/shared/MediaSkeleton.vue';
 
 const props = defineProps({
   // Datos
@@ -110,6 +129,8 @@ const handleItemClick = (item) => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .trending-section {
   width: 100%;
   margin: 30px 0;
@@ -158,7 +179,7 @@ const handleItemClick = (item) => {
   position: relative;
 }
 
-@media (max-width: 768px) {
+@include responsive-below(md) {
   .trending-title {
     font-size: 1.5rem;
   }
@@ -173,7 +194,7 @@ const handleItemClick = (item) => {
   }
 }
 
-@media (max-width: 480px) {
+@include responsive-below(sm) {
   .trending-title {
     font-size: 1.3rem;
   }

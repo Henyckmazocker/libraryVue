@@ -1,36 +1,48 @@
 <template>
   <div class="reading-status-widget">
     <!-- Badge de sesión activa -->
-    <div v-if="hasActiveSession" class="active-session-badge">
+    <div
+      v-if="hasActiveSession"
+      class="active-session-badge"
+    >
       <div class="session-info">
-        <i class="fas fa-book-reader"></i>
+        <i class="fas fa-book-reader" />
         <span class="session-text">
           Sesión activa #{{ book.current_session_number || 1 }}
         </span>
       </div>
       <div class="session-details">
-        <span v-if="book.session_started_at" class="session-date">
+        <span
+          v-if="book.session_started_at"
+          class="session-date"
+        >
           Iniciada: {{ formatDate(book.session_started_at) }}
         </span>
-        <span v-if="book.current_page && book.pages" class="session-progress">
+        <span
+          v-if="book.current_page && book.pages"
+          class="session-progress"
+        >
           {{ progressPercentage }}% completado
         </span>
       </div>
     </div>
 
     <!-- Información para libros sin sesión -->
-    <div v-else-if="book.total_sessions_completed > 0" class="completed-info">
-      <i class="fas fa-check-circle"></i>
+    <div
+      v-else-if="book.total_sessions_completed > 0"
+      class="completed-info"
+    >
+      <i class="fas fa-check-circle" />
       <span>Completado {{ book.total_sessions_completed }} vez{{ book.total_sessions_completed !== 1 ? 'es' : '' }}</span>
     </div>
 
     <!-- Enlace al historial de sesiones -->
     <button 
       v-if="book.total_sessions_completed > 0 || hasActiveSession"
-      @click="showHistoryModal = true"
       class="history-link"
+      @click="showHistoryModal = true"
     >
-      <i class="fas fa-history"></i>
+      <i class="fas fa-history" />
       Ver historial de sesiones
     </button>
 
@@ -107,6 +119,8 @@ const formatDate = (dateString) => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .reading-status-widget {
   display: flex;
   flex-direction: column;
@@ -114,7 +128,7 @@ const formatDate = (dateString) => {
   padding: 14px;
   background: linear-gradient(135deg, rgba(29, 78, 74, 0.3) 0%, rgba(29, 78, 74, 0.15) 100%);
   border-radius: 8px;
-  border-left: 3px solid #1D4E4A;
+  border-left: 3px solid var(--color-primary);
   margin: 12px 0;
 }
 
@@ -130,16 +144,16 @@ const formatDate = (dateString) => {
   gap: 10px;
   font-size: 14px;
   font-weight: 600;
-  color: #1D4E4A;
+  color: var(--color-primary);
 }
 
 .session-info i {
   font-size: 18px;
-  color: #1D4E4A;
+  color: var(--color-primary);
 }
 
 .session-text {
-  color: #2d3748;
+  color: var(--color-text);
 }
 
 .session-details {
@@ -148,7 +162,7 @@ const formatDate = (dateString) => {
   gap: 4px;
   padding-left: 28px;
   font-size: 12px;
-  color: #718096;
+  color: var(--color-text-muted);
 }
 
 .session-date,
@@ -162,7 +176,7 @@ const formatDate = (dateString) => {
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #28a745;
+  color: var(--color-success);
   font-weight: 500;
 }
 
@@ -177,9 +191,9 @@ const formatDate = (dateString) => {
   gap: 6px;
   padding: 8px 12px;
   background: transparent;
-  border: 1px solid #cbd5e0;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  color: #4a5568;
+  color: var(--color-text-secondary);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -188,8 +202,8 @@ const formatDate = (dateString) => {
 
 .history-link:hover {
   background: rgba(29, 78, 74, 0.1);
-  border-color: #1D4E4A;
-  color: #1D4E4A;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .history-link i {
@@ -197,7 +211,7 @@ const formatDate = (dateString) => {
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@include responsive-below(md) {
   .reading-status-widget {
     padding: 12px;
   }

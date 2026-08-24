@@ -20,6 +20,13 @@
 
 @use '../abstracts' as *;
 
+// Alto real de una fila de `/library`, medido en navegador el 2026-08-19 sobre la
+// colección de dev: 158px en el caso común (179px cuando el ítem trae bloques
+// extra). Vive aquí y no suelto en cada sitio porque lo consumen dos cosas que
+// tienen que ir sincronizadas con el mixin: la silueta de `MediaSkeleton` y el
+// `itemSize` que necesitará la virtualización de `/library`.
+$list-item-height: 158px;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Mixin principal: aplica el patrón completo a la raíz `.list-item`.
 //
@@ -194,16 +201,22 @@
   flex-shrink: 0;
   letter-spacing: 0.02em;
 
+  // Los dos badges llevan el color de PELÍCULA (series y películas son la misma
+  // entidad en el registry) y se distinguen por relleno, no por tono: antes eran
+  // dos hex a mano —los acentos viejos de película y de juego, con el verde de juego
+  // etiquetando películas— y sobre superficie clara daban 2.55 y 1.63.
+  // El texto va con token de texto y el acento se queda en el borde: como color de
+  // texto, el acento sobre su propio tinte se queda en 2.90.
   &.is-series {
-    background: rgba(139, 92, 246, 0.2);
-    color: #a78bfa;
-    border: 1px solid rgba(139, 92, 246, 0.4);
+    background: transparent;
+    color: var(--color-text);
+    border: 1px solid var(--color-card-movie-accent);
   }
 
   &.is-movie {
-    background: rgba(74, 222, 128, 0.15);
-    color: #4ade80;
-    border: 1px solid rgba(74, 222, 128, 0.3);
+    background: var(--color-card-movie-bg-hover);
+    color: var(--color-text);
+    border: 1px solid var(--color-card-movie-accent);
   }
 }
 

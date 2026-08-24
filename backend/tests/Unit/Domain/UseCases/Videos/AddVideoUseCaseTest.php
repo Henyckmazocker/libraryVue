@@ -8,6 +8,7 @@ use App\Domain\UseCases\Videos\AddVideoUseCase;
 use App\Domain\Repository\Video\VideoRepositoryInterface;
 use App\Domain\Repository\Video\UserVideoRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
+use App\Domain\Services\CoverService;
 use App\Domain\Services\FeedEventService;
 use App\Domain\DTO\Commands\AddVideoCommand;
 use App\Domain\Model\Video;
@@ -27,6 +28,7 @@ class AddVideoUseCaseTest extends TestCase
     private UserVideoRepositoryInterface $userVideoRepo;
     private UserRepositoryInterface $userRepo;
     private FeedEventService $feedEventService;
+    private CoverService $coverService;
 
     private const YOUTUBE_ID = 'dQw4w9WgXcQ';
 
@@ -36,12 +38,14 @@ class AddVideoUseCaseTest extends TestCase
         $this->userVideoRepo = $this->createMock(UserVideoRepositoryInterface::class);
         $this->userRepo      = $this->createMock(UserRepositoryInterface::class);
         $this->feedEventService = $this->createMock(FeedEventService::class);
+        $this->coverService = $this->createMock(CoverService::class);
 
         $this->useCase = new AddVideoUseCase(
             $this->videoRepo,
             $this->userVideoRepo,
             $this->userRepo,
             $this->feedEventService,
+            $this->coverService,
             new NullLogger()
         );
     }
@@ -126,5 +130,19 @@ class AddVideoUseCaseTest extends TestCase
 
         $result = $this->useCase->execute($this->makeCommand());
         $this->assertInstanceOf(Video::class, $result);
+    }
+
+    #[Test]
+    public function records_the_feed_event_with_the_youtube_id_not_the_numeric_id(): void
+    {
+        $this->userRepo->method('findById')->willReturn($this->makeUser());
+        $this->videoRepo->method('findByYouTubeId')->willReturn($this->makeVideo(42));
+        $this->userVideoRepo->method('hasVideo')->willReturn(false);
+
+        $this->feedEventService->expects($this->once())
+            ->method('recordItemAdded')
+            ->with(1, 'video', self::YOUTUBE_ID, 'Never Gonna Give You Up', null);
+
+        $this->useCase->execute($this->makeCommand());
     }
 }

@@ -8,6 +8,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Psr\Log\LoggerInterface;
 use App\Infrastructure\Cache\CacheService;
+use App\Infrastructure\Cache\ResilientCall;
 
 /**
  * Service for interacting with OpenLibrary API
@@ -18,11 +19,13 @@ class OpenLibraryService
     private Client $client;
     private LoggerInterface $logger;
     private CacheService $cache;
+    private ResilientCall $resilient;
     private const BASE_URL = 'https://openlibrary.org';
     private const COVERS_URL = 'https://covers.openlibrary.org/b';
     private const CACHE_TTL_EDITIONS = 86400; // 24 hours
+    private const CACHE_TTL_SEARCH = 21600; // 6 hours
 
-    public function __construct(CacheService $cache, LoggerInterface $logger)
+    public function __construct(CacheService $cache, ResilientCall $resilient, LoggerInterface $logger)
     {
         $this->client = new Client([
             'base_uri' => self::BASE_URL,
@@ -34,6 +37,7 @@ class OpenLibraryService
             ]
         ]);
         $this->cache = $cache;
+        $this->resilient = $resilient;
         $this->logger = $logger;
     }
 
@@ -47,41 +51,67 @@ class OpenLibraryService
      */
     public function searchWorks(string $query, int $limit = 20): array
     {
+        return $this->searchWorksResilient($query, $limit)['data'];
+    }
+
+    /**
+     * Search works, falling back to the last known results when the API fails
+     *
+     * @param string $query Search query
+     * @param int $limit Maximum number of results
+     * @return array{data: array, stale: bool, cached_at: int|null}
+     */
+    public function searchWorksResilient(string $query, int $limit = 20): array
+    {
+        $cacheKey = 'search_' . md5(json_encode([$query, $limit]));
+
         try {
-            $this->logger->info("OpenLibrary: Searching works", ['query' => $query, 'limit' => $limit]);
-
-            // Fetch more results than needed to filter and sort properly
-            $fetchLimit = min($limit * 3, 100);
-
-            $response = $this->client->get('/search.json', [
-                'query' => [
-                    'q' => $query, // Use general search 'q' instead of 'title' for better results
-                    'limit' => $fetchLimit,
-                    'fields' => 'key,title,author_name,first_publish_year,edition_count,cover_i,subject,language,isbn,has_fulltext,ratings_average'
-                ]
-            ]);
-
-            $data = json_decode($response->getBody()->getContents(), true);
-            $docs = $data['docs'] ?? [];
-
-            $works = [];
-            foreach ($docs as $doc) {
-                $work = $this->transformWorkFromSearch($doc);
-                if ($work) {
-                    $works[] = $work;
-                }
-            }
-
-            $this->logger->info("OpenLibrary: Found works", ['count' => count($works)]);
-            return $works;
-
+            return $this->resilient->around(
+                $cacheKey,
+                'openlibrary',
+                self::CACHE_TTL_SEARCH,
+                fn() => $this->runWorkSearch($query, $limit)
+            );
         } catch (GuzzleException $e) {
-            $this->logger->error("OpenLibrary search failed", [
+            $this->logger->error("OpenLibrary search failed with no cache to fall back on", [
                 'query' => $query,
                 'error' => $e->getMessage()
             ]);
-            return [];
+            return ['data' => [], 'stale' => false, 'cached_at' => null];
         }
+    }
+
+    /**
+     * @throws GuzzleException Propagated on purpose: ResilientCall decides what to do with a failure
+     */
+    private function runWorkSearch(string $query, int $limit): array
+    {
+        $this->logger->info("OpenLibrary: Searching works", ['query' => $query, 'limit' => $limit]);
+
+        // Fetch more results than needed to filter and sort properly
+        $fetchLimit = min($limit * 3, 100);
+
+        $response = $this->client->get('/search.json', [
+            'query' => [
+                'q' => $query, // Use general search 'q' instead of 'title' for better results
+                'limit' => $fetchLimit,
+                'fields' => 'key,title,author_name,first_publish_year,edition_count,cover_i,subject,language,isbn,has_fulltext,ratings_average'
+            ]
+        ]);
+
+        $data = json_decode($response->getBody()->getContents(), true);
+        $docs = $data['docs'] ?? [];
+
+        $works = [];
+        foreach ($docs as $doc) {
+            $work = $this->transformWorkFromSearch($doc);
+            if ($work) {
+                $works[] = $work;
+            }
+        }
+
+        $this->logger->info("OpenLibrary: Found works", ['count' => count($works)]);
+        return $works;
     }
 
     /**
@@ -195,10 +225,19 @@ class OpenLibraryService
         try {
             $this->logger->info("OpenLibrary: Getting edition by ISBN", ['isbn' => $isbn]);
 
-            $response = $this->client->get("/isbn/{$isbn}.json");
-            $data = json_decode($response->getBody()->getContents(), true);
+            // A 404 here means "no such ISBN", not "Open Library is down", so
+            // ResilientCall rethrows it and the catch below turns it into null.
+            return $this->resilient->around(
+                "isbn_{$isbn}",
+                'openlibrary',
+                self::CACHE_TTL_EDITIONS,
+                function () use ($isbn) {
+                    $response = $this->client->get("/isbn/{$isbn}.json");
+                    $data = json_decode($response->getBody()->getContents(), true);
 
-            return $this->transformEdition($data);
+                    return $this->transformEdition($data);
+                }
+            )['data'];
 
         } catch (GuzzleException $e) {
             $this->logger->warning("OpenLibrary get edition by ISBN failed", [

@@ -19,7 +19,10 @@
       <!-- Amigos -->
       <TabPanel :header="`Amigos (${friends.length})`">
         <div class="friends-view__tab-content">
-          <FriendsList :friends="friends" @remove="handleRemoveFriend" />
+          <FriendsList
+            :friends="friends"
+            @remove="handleRemoveFriend"
+          />
         </div>
       </TabPanel>
 
@@ -38,10 +41,16 @@
       <TabPanel header="Buscar usuarios">
         <div class="friends-view__tab-content friends-view__search">
           <UserSearchInput />
-          <div v-if="isSearching" class="friends-view__searching">
+          <div
+            v-if="isSearching"
+            class="friends-view__searching"
+          >
             <i class="pi pi-spin pi-spinner" />
           </div>
-          <div v-else-if="searchResults.length > 0" class="friends-view__results">
+          <div
+            v-else-if="searchResults.length > 0"
+            class="friends-view__results"
+          >
             <UserSearchResult
               v-for="user in searchResults"
               :key="user.id"
@@ -49,7 +58,10 @@
               @send-request="handleSendRequest"
             />
           </div>
-          <p v-else-if="query && !isSearching && searchResults.length === 0" class="friends-view__no-results">
+          <p
+            v-else-if="query && !isSearching && searchResults.length === 0"
+            class="friends-view__no-results"
+          >
             No se encontraron usuarios
           </p>
         </div>

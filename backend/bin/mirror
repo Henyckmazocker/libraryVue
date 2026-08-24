@@ -1,0 +1,263 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/**
+ * mirror — CLI del mirror local de catálogos (library_mirror)
+ *
+ * Uso (dentro del contenedor de backend):
+ *   php bin/mirror import:imdb
+ *
+ * Arranca el mismo contenedor de PHP-DI que public/index.php, pero NO pasa por
+ * bootstrap.php: Application arranca sesión, emite cabeceras y registra una
+ * petición HTTP, tres cosas que no significan nada en un CLI. Lo que sí se
+ * comparte es config/container.php, para que el importador reciba 'pdo.mirror'
+ * de la misma definición que el resto de la app.
+ */
+
+if (PHP_SAPI !== 'cli') {
+    exit(1);
+}
+
+$root = dirname(__DIR__);
+
+require_once $root . '/vendor/autoload.php';
+
+// Mismo formato de .env que bootstrap.php. Se duplica el bucle a propósito:
+// tocar el arranque HTTP para ahorrarse diez líneas en un CLI sale caro.
+$envFile = $root . '/.env';
+if (file_exists($envFile)) {
+    foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+        if (strpos(trim($line), '#') === 0 || !str_contains($line, '=')) {
+            continue;
+        }
+        [$key, $value] = explode('=', $line, 2);
+        $key   = trim($key);
+        $value = trim($value, " \t\n\r\0\x0B\"'");
+        if (!array_key_exists($key, $_ENV) || $_ENV[$key] === '') {
+            $_ENV[$key] = $value;
+        }
+    }
+}
+
+$_ENV['APP_ENV'] = $_ENV['APP_ENV'] ?? 'development';
+
+if (file_exists($root . '/config/helpers.php')) {
+    require_once $root . '/config/helpers.php';
+}
+if (file_exists($root . '/src/Infrastructure/Logging/functions.php')) {
+    require_once $root . '/src/Infrastructure/Logging/functions.php';
+}
+
+// Hay que tocar el logging ANTES de construir el contenedor. container.php:42-44
+// llama a LoggerFactory::createDatabaseLogger() en directo, y quien rellena la
+// $config de LoggerFactory es LoggingService::getInstance(). Bajo Apache eso pasa
+// de rebote, porque Application::bootstrap() escribe una línea de log antes de
+// initializeContainer(); en un CLI no hay nada que lo dispare, y sin esto el
+// contenedor revienta al resolver LoggerInterface (maxFiles null).
+\App\Infrastructure\Logging\LoggingService::getInstance();
+
+// El set de tconst ingestados son ~1,28 M de claves enteras vivas mientras se
+// filtran los 58,9 M de filas de title.akas.
+ini_set('memory_limit', '512M');
+set_time_limit(0);
+
+$command = $argv[1] ?? '';
+
+$containerFactory = require $root . '/config/container.php';
+$container        = $containerFactory();
+
+$logger = $container->get(\Psr\Log\LoggerInterface::class);
+
+switch ($command) {
+    case 'import:imdb':
+        $importer = new \App\Infrastructure\Import\ImdbImporter(
+            $container->get('pdo.mirror.import'),
+            $logger
+        );
+
+        $started = microtime(true);
+        fwrite(STDOUT, "Importando los dumps de IMDb. Son ~760 MB: esto tarda.\n");
+
+        $counts = $importer->import();
+
+        fwrite(STDOUT, sprintf(
+            "\nimdb_title      %9s filas\nimdb_title_es   %9s filas\nimdb_episode    %9s filas\n"
+            . "ratings         %9s filas aplicadas\n\nHecho en %d s.\n",
+            number_format($counts['titles']),
+            number_format($counts['akas']),
+            number_format($counts['episodes']),
+            number_format($counts['ratings']),
+            (int) (microtime(true) - $started)
+        ));
+        exit(0);
+
+    case 'import:musicbrainz':
+        $importer = new \App\Infrastructure\Import\MusicBrainzImporter(
+            $container->get('pdo.mirror.import'),
+            $logger
+        );
+
+        // Sin --force no se reimporta un dump que ya está dentro: bajar 7,6 GB
+        // para reconstruir lo mismo son 36 minutos tirados.
+        $force    = in_array('--force', $argv, true);
+        $latest   = $importer->latestVersion();
+        $imported = $importer->importedVersion();
+
+        if (!$force && $imported === $latest) {
+            fwrite(STDOUT, "El mirror ya está en el dump {$latest}. Nada que hacer.\n");
+            exit(0);
+        }
+
+        fwrite(STDOUT, sprintf(
+            "Importando MusicBrainz %s%s. Son 7,6 GB y el pase completo ronda los 36 min.\n",
+            $latest,
+            $imported !== null ? " (tienes el {$imported})" : ''
+        ));
+
+        // Con innodb_buffer_pool_size en su valor por defecto esto tarda 3,7 h
+        // en vez de 36 min. mirror-sync.sh lo sube antes de llamar aquí; quien
+        // ejecute el CLI a pelo tiene que saberlo.
+        $pool = (int) $container->get('pdo.mirror')
+            ->query('SELECT @@innodb_buffer_pool_size')->fetchColumn();
+        if ($pool < 1073741824) {
+            fwrite(STDOUT, sprintf(
+                "\n  AVISO: innodb_buffer_pool_size está en %d MB. Medido: con 4 GB el pase\n"
+                . "  tarda 36 min y con 128 MB, 3,7 h. Usa ./mirror-sync.sh --musicbrainz,\n"
+                . "  que lo sube y lo baja solo.\n\n",
+                intdiv($pool, 1048576)
+            ));
+        }
+
+        $counts = $importer->import();
+
+        fwrite(STDOUT, sprintf(
+            "\nmb_release_group %9s álbumes\nrelease groups   %9s leídos\nreleases         %9s leídas\n"
+            . "\nHecho en %d s.\n",
+            number_format($counts['albums']),
+            number_format($counts['groups']),
+            number_format($counts['releases']),
+            $counts['seconds']
+        ));
+        exit(0);
+
+    case 'tracks:backfill':
+        // La red de seguridad de las pistas: recoge los álbumes de la
+        // biblioteca cuyo fetch diferido no llegó a correr, y los que ya
+        // estaban guardados antes de que existiera mb_track.
+        $svc = $container->get(\App\Domain\Services\AlbumTrackService::class);
+
+        // Se leen de library_db (la biblioteca), no del mirror: no tiene
+        // sentido traer las pistas de 2,88 M de álbumes, solo de los que el
+        // usuario tiene.
+        $pending = $container->get(PDO::class)->query(
+            "SELECT mb_release_group_gid, title FROM albums
+              WHERE mb_release_group_gid IS NOT NULL
+              ORDER BY id"
+        )->fetchAll(PDO::FETCH_ASSOC);
+
+        $done = 0;
+        $skipped = 0;
+
+        foreach ($pending as $album) {
+            $gid = $album['mb_release_group_gid'];
+
+            if ($svc->isSettled($gid)) {
+                $skipped++;
+                continue;
+            }
+
+            $n = $svc->fetchFor($gid);
+            $done++;
+            fwrite(STDOUT, sprintf("  %-40s %s\n", mb_substr($album['title'], 0, 40),
+                $n > 0 ? "{$n} pistas" : 'sin pistas'));
+
+            // MusicBrainz limita a 1 petición por segundo y bajo carga responde
+            // con un error en el cuerpo, no con un 429. Dos segundos de margen
+            // salen más baratos que un reintento de 45 s.
+            sleep(2);
+        }
+
+        fwrite(STDOUT, sprintf(
+            "\n%d álbum(es) resueltos, %d ya lo estaban. %d en la biblioteca.\n",
+            $done,
+            $skipped,
+            count($pending)
+        ));
+        exit(0);
+
+    case 'covers:seed':
+        // Solo registra; no baja nada. Útil para ver qué se registraría antes
+        // de lanzar una descarga larga.
+        $seeded = $container->get(\App\Infrastructure\Covers\CoverSeeder::class)->seed();
+        foreach ($seeded as $mediaType => $n) {
+            fwrite(STDOUT, sprintf("  %-6s %5d portadas registradas\n", $mediaType, $n));
+        }
+        fwrite(STDOUT, sprintf(
+            "\n%d pendientes de bajar. Lánzalo con covers:backfill.\n",
+            $container->get(\App\Infrastructure\Covers\CoverStore::class)->countPending()
+        ));
+        exit(0);
+
+    case 'covers:backfill':
+        // Baja las portadas que quedaron pendientes: las que registró un
+        // guardado cuyo trabajo post-respuesta no llegó a completarse, y las de
+        // los ítems que ya estaban en la biblioteca antes de este mirror.
+        $store = $container->get(\App\Infrastructure\Covers\CoverStore::class);
+
+        $batch   = max(1, (int) ($argv[2] ?? 50));
+        $started = microtime(true);
+
+        // Sembrar ANTES de bajar. Sin esto el backfill solo trabajaría sobre lo
+        // añadido desde que existe CoverStore: lo que ya estaba en la
+        // biblioteca no tiene fila, y sin fila el endpoint devuelve 404.
+        $seeded = $container->get(\App\Infrastructure\Covers\CoverSeeder::class)->seed();
+        fwrite(STDOUT, sprintf(
+            "Sembradas: %s.\n",
+            implode(', ', array_map(
+                static fn ($m, $n) => "$m $n",
+                array_keys($seeded),
+                array_values($seeded)
+            ))
+        ));
+
+        $pending = $store->countPending();
+
+        if ($pending === 0) {
+            fwrite(STDOUT, "Nada pendiente.\n");
+            exit(0);
+        }
+
+        fwrite(STDOUT, sprintf("%s pendientes. Lote de %d.\n", number_format($pending), $batch));
+
+        // En lotes y no de una: fetchPending() sale a la red por cada fila, y un
+        // LIMIT enorme sería una sola transacción de horas. El número de pasadas
+        // se fija por adelantado para que cada fila reciba UN intento por
+        // ejecución: las que fallan se van al final de la cola (attempts ASC),
+        // no se reintentan tres veces seguidas dentro del mismo backfill.
+        $passes = (int) ceil($pending / $batch);
+        $total  = 0;
+
+        for ($i = 0; $i < $passes; $i++) {
+            $total += $store->fetchPending($batch);
+            if ($store->countPending() === 0) {
+                break;
+            }
+        }
+
+        $left = $store->countPending();
+        fwrite(STDOUT, sprintf(
+            "%s bajadas, %s siguen pendientes (%s descartadas por superar %d intentos). Hecho en %d s.\n",
+            number_format($total),
+            number_format($left),
+            number_format(max(0, $pending - $total - $left)),
+            \App\Infrastructure\Covers\CoverStore::MAX_ATTEMPTS,
+            (int) (microtime(true) - $started)
+        ));
+        exit(0);
+
+    default:
+        fwrite(STDERR, "Uso: php bin/mirror <comando>\n\n  import:imdb                   Reimporta los dumps de IMDb\n  import:musicbrainz [--force]  Reimporta el dump de MusicBrainz (álbumes)\n  tracks:backfill               Baja de MusicBrainz las pistas que falten\n  covers:seed                   Registra las portadas de lo que ya está en la biblioteca\n  covers:backfill [lote]        Siembra y baja las portadas pendientes (lote por defecto: 50)\n");
+        exit(1);
+}

@@ -1,18 +1,35 @@
 <template>
   <!-- Modal Overlay -->
-  <div v-if="dialogVisible" class="modal-overlay" @click="handleClose">
-    <div class="modal-content" @click.stop>
+  <!-- El overlay cierra al pulsar fuera, pero no es un control: envuelve al propio
+       diálogo. El cierre por teclado es Escape, en useFocusTrap. -->
+  <!-- eslint-disable-next-line vuejs-accessibility/click-events-have-key-events, vuejs-accessibility/no-static-element-interactions -->
+  <div
+    v-if="dialogVisible"
+    class="modal-overlay"
+    @click="handleClose"
+  >
+    <div
+      ref="dialogRef"
+      class="modal-content"
+      @click.stop
+    >
       <!-- Header -->
       <div class="modal-header">
-        <h2><i class="fas fa-history"></i> Historial de lectura - {{ book.title }}</h2>
-        <button @click="handleClose" class="close-button">
-          <i class="fas fa-times"></i>
+        <h2><i class="fas fa-history" /> Historial de lectura - {{ book.title }}</h2>
+        <button
+          class="close-button"
+          @click="handleClose"
+        >
+          <i class="fas fa-times" />
         </button>
       </div>
 
       <div class="modal-body">
         <!-- Estadísticas generales -->
-        <div v-if="statistics" class="statistics-section">
+        <div
+          v-if="statistics"
+          class="statistics-section"
+        >
           <div class="stat-item">
             <span class="stat-label">Sesiones completadas:</span>
             <span class="stat-value">{{ statistics.totalCompleted }}</span>
@@ -28,7 +45,10 @@
         </div>
 
         <!-- Acordeón de sesiones -->
-        <div v-if="sessions && sessions.length > 0" class="sessions-container">
+        <div
+          v-if="sessions && sessions.length > 0"
+          class="sessions-container"
+        >
           <Accordion :multiple="false">
             <AccordionTab
               v-for="item in timelineEvents"
@@ -37,10 +57,17 @@
               <template #header>
                 <div class="session-accordion-header">
                   <div class="session-title-group">
-                    <i :class="getMarkerIcon(item.status)" class="session-icon" :style="{ color: getStatusColor(item.status) }"></i>
+                    <i
+                      :class="getMarkerIcon(item.status)"
+                      class="session-icon"
+                      :style="{ color: getStatusColor(item.status) }"
+                    />
                     <span class="session-number">Sesión #{{ item.sessionNumber }}</span>
                   </div>
-                  <span class="session-badge" :class="getBadgeClass(item.status)">
+                  <span
+                    class="session-badge"
+                    :class="getBadgeClass(item.status)"
+                  >
                     {{ getStatusLabel(item.status) }}
                   </span>
                 </div>
@@ -50,53 +77,73 @@
               <div class="session-content">
                 <!-- Información principal en líneas -->
                 <div class="info-line">
-                  <i class="fas fa-calendar-alt info-icon"></i>
+                  <i class="fas fa-calendar-alt info-icon" />
                   <span class="info-label">Inicio:</span>
                   <span class="info-value">{{ formatDate(item.startedAt) }}</span>
                 </div>
 
-                <div v-if="item.completedAt" class="info-line">
-                  <i class="fas fa-calendar-check info-icon"></i>
+                <div
+                  v-if="item.completedAt"
+                  class="info-line"
+                >
+                  <i class="fas fa-calendar-check info-icon" />
                   <span class="info-label">Fin:</span>
                   <span class="info-value">{{ formatDate(item.completedAt) }}</span>
                 </div>
 
-                <div v-if="item.duration" class="info-line">
-                  <i class="fas fa-clock info-icon"></i>
+                <div
+                  v-if="item.duration"
+                  class="info-line"
+                >
+                  <i class="fas fa-clock info-icon" />
                   <span class="info-label">Duración:</span>
                   <span class="info-value">{{ item.duration }}</span>
                 </div>
 
-                <div v-if="item.finalPage" class="info-line">
-                  <i class="fas fa-bookmark info-icon"></i>
+                <div
+                  v-if="item.finalPage"
+                  class="info-line"
+                >
+                  <i class="fas fa-bookmark info-icon" />
                   <span class="info-label">Progreso:</span>
                   <span class="info-value">{{ item.finalPage }} / {{ book.total_pages }} páginas ({{ item.progressPercentage }}%)</span>
                 </div>
 
                 <!-- Barra de progreso -->
-                <div v-if="item.progressPercentage" class="progress-bar-wrapper">
+                <div
+                  v-if="item.progressPercentage"
+                  class="progress-bar-wrapper"
+                >
                   <div class="progress-bar-bg">
                     <div
                       class="progress-bar-fill"
                       :class="getProgressBarClass(item.status)"
                       :style="{ width: item.progressPercentage + '%' }"
-                    ></div>
+                    />
                   </div>
                 </div>
 
                 <!-- Notas de sesión -->
-                <div v-if="item.sessionNotes" class="session-notes-section">
+                <div
+                  v-if="item.sessionNotes"
+                  class="session-notes-section"
+                >
                   <div class="notes-header">
-                    <i class="fas fa-comment-alt"></i>
+                    <i class="fas fa-comment-alt" />
                     <span>Notas</span>
                   </div>
-                  <p class="notes-content">{{ item.sessionNotes }}</p>
+                  <p class="notes-content">
+                    {{ item.sessionNotes }}
+                  </p>
                 </div>
 
                 <!-- Actualizaciones de progreso -->
-                <div v-if="item.progressUpdates && item.progressUpdates.length > 0" class="progress-updates-section">
+                <div
+                  v-if="item.progressUpdates && item.progressUpdates.length > 0"
+                  class="progress-updates-section"
+                >
                   <div class="updates-header">
-                    <i class="fas fa-list-ul"></i>
+                    <i class="fas fa-list-ul" />
                     <span>Actualizaciones de progreso ({{ item.progressUpdates.length }})</span>
                   </div>
                   <div class="updates-list">
@@ -106,9 +153,12 @@
                       class="update-item"
                     >
                       <div class="update-line">
-                        <i class="fas fa-clock update-icon"></i>
+                        <i class="fas fa-clock update-icon" />
                         <span class="update-date">{{ formatDate(update.logged_at) }}</span>
-                        <span class="update-badge" :class="getProgressTypeBadgeClass(update.progress_type)">
+                        <span
+                          class="update-badge"
+                          :class="getProgressTypeBadgeClass(update.progress_type)"
+                        >
                           {{ getProgressTypeLabel(update.progress_type) }}
                         </span>
                       </div>
@@ -117,15 +167,21 @@
                           <span class="page-label">Pág. anterior:</span>
                           <span class="page-number">{{ update.previous_page }}</span>
                         </span>
-                        <i class="fas fa-arrow-right arrow-icon"></i>
+                        <i class="fas fa-arrow-right arrow-icon" />
                         <span class="page-info">
                           <span class="page-label">Pág. actual:</span>
                           <span class="page-number highlight">{{ update.current_page }}</span>
                         </span>
-                        <span v-if="update.progress_type === 'advance'" class="pages-diff advance">
+                        <span
+                          v-if="update.progress_type === 'advance'"
+                          class="pages-diff advance"
+                        >
                           +{{ update.current_page - update.previous_page }}
                         </span>
-                        <span v-else class="pages-diff other">
+                        <span
+                          v-else
+                          class="pages-diff other"
+                        >
                           {{ update.current_page - update.previous_page }}
                         </span>
                       </div>
@@ -138,16 +194,24 @@
         </div>
 
         <!-- Estado vacío -->
-        <div v-else class="empty-state">
-          <i class="fas fa-book empty-icon"></i>
-          <p class="empty-message">No hay sesiones de lectura registradas para este libro</p>
+        <div
+          v-else
+          class="empty-state"
+        >
+          <i class="fas fa-book empty-icon" />
+          <p class="empty-message">
+            No hay sesiones de lectura registradas para este libro
+          </p>
         </div>
       </div>
 
       <!-- Footer -->
       <div class="modal-footer">
-        <button @click="handleClose" class="cancel-button">
-          <i class="fas fa-times"></i> Cerrar
+        <button
+          class="cancel-button"
+          @click="handleClose"
+        >
+          <i class="fas fa-times" /> Cerrar
         </button>
       </div>
     </div>
@@ -157,6 +221,7 @@
 <script setup>
 import { ref, computed, watch, defineProps, defineEmits, onMounted } from 'vue'
 import { useReadingSessions } from '@/composables/useReadingSessions'
+import { useFocusTrap } from '@/composables/useFocusTrap'
 import Logger from '@/utils/logger'
 import Accordion from 'primevue/accordion'
 import AccordionTab from 'primevue/accordiontab'
@@ -399,12 +464,12 @@ const getMarkerIcon = (status) => {
 
 const getStatusColor = (status) => {
   const colors = {
-    'completed': '#28a745',
-    'active': '#007bff',
-    'paused': '#ffc107',
-    'abandoned': '#dc3545'
+    'completed': 'var(--color-success)',
+    'active': 'var(--color-info)',
+    'paused': 'var(--color-warning)',
+    'abandoned': 'var(--color-error)'
   }
-  return colors[status] || '#6c757d'
+  return colors[status] || 'var(--color-text-muted)'
 }
 
 const getBadgeClass = (status) => {
@@ -460,6 +525,9 @@ const handleClose = () => {
   emit('close')
 }
 
+const dialogRef = ref(null)
+useFocusTrap(dialogRef, { isOpen: dialogVisible, onEscape: handleClose })
+
 onMounted(() => {
   if (props.visible) {
     loadSessionHistory()
@@ -468,6 +536,8 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 /* Modal Overlay */
 .modal-overlay {
   position: fixed;
@@ -484,7 +554,7 @@ onMounted(() => {
 }
 
 .modal-content {
-  background: #2c2c2c;
+  background: var(--color-background-mute);
   border-radius: 20px;
   width: 90%;
   max-width: 900px;
@@ -501,12 +571,12 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 25px 30px;
-  border-bottom: 1px solid #444;
-  background: #333;
+  border-bottom: 1px solid var(--color-background-mute);
+  background: var(--color-background-mute);
 }
 
 .modal-header h2 {
-  color: #e0e0e0;
+  color: var(--color-text);
   font-size: 1.5rem;
   font-weight: 600;
   margin: 0;
@@ -518,7 +588,7 @@ onMounted(() => {
 .close-button {
   background: none;
   border: none;
-  color: #888;
+  color: var(--color-text-muted);
   font-size: 1.5rem;
   cursor: pointer;
   padding: 5px;
@@ -532,7 +602,7 @@ onMounted(() => {
 }
 
 .close-button:hover {
-  color: #e0e0e0;
+  color: var(--color-text);
   background: rgba(255, 255, 255, 0.1);
 }
 
@@ -545,11 +615,11 @@ onMounted(() => {
 
 /* Estadísticas Section */
 .statistics-section {
-  background: #1a1a1a;
+  background: var(--color-background-soft);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 25px;
-  border: 1px solid #444;
+  border: 1px solid var(--color-background-mute);
 }
 
 .stat-item {
@@ -557,7 +627,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 10px 0;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--color-background-mute);
 }
 
 .stat-item:last-child {
@@ -565,13 +635,13 @@ onMounted(() => {
 }
 
 .stat-label {
-  color: #aaa;
+  color: var(--color-text-muted);
   font-size: 0.95rem;
   font-weight: 500;
 }
 
 .stat-value {
-  color: #e0e0e0;
+  color: var(--color-text);
   font-size: 1.1rem;
   font-weight: 700;
 }
@@ -604,7 +674,7 @@ onMounted(() => {
 .session-number {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #e0e0e0;
+  color: var(--color-text);
 }
 
 /* Badges */
@@ -618,34 +688,34 @@ onMounted(() => {
 }
 
 .badge-success {
-  background: #28a745;
-  color: white;
+  background: var(--color-success);
+  color: var(--color-on-status);
 }
 
 .badge-info {
-  background: #007bff;
-  color: white;
+  background: var(--color-info);
+  color: var(--color-on-status);
 }
 
 .badge-warning {
-  background: #ffc107;
-  color: #212529;
+  background: var(--color-warning);
+  color: var(--color-text);
 }
 
 .badge-danger {
-  background: #dc3545;
-  color: white;
+  background: var(--color-error);
+  color: var(--color-on-status);
 }
 
 .badge-default {
-  background: #6c757d;
+  background: var(--color-border);
   color: white;
 }
 
 /* Session Content */
 .session-content {
   padding: 20px;
-  background: #1a1a1a;
+  background: var(--color-background-soft);
   border-radius: 8px;
 }
 
@@ -655,7 +725,7 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   padding: 10px 0;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--color-background-mute);
 }
 
 .info-line:last-of-type {
@@ -663,20 +733,20 @@ onMounted(() => {
 }
 
 .info-icon {
-  color: #007bff;
+  color: var(--color-info);
   font-size: 1rem;
   min-width: 20px;
 }
 
 .info-label {
-  color: #aaa;
+  color: var(--color-text-muted);
   font-size: 0.9rem;
   font-weight: 600;
   min-width: 80px;
 }
 
 .info-value {
-  color: #e0e0e0;
+  color: var(--color-text);
   font-size: 0.95rem;
   flex: 1;
 }
@@ -689,7 +759,7 @@ onMounted(() => {
 
 .progress-bar-bg {
   height: 10px;
-  background: #444;
+  background: var(--color-background-mute);
   border-radius: 5px;
   overflow: hidden;
   position: relative;
@@ -702,28 +772,32 @@ onMounted(() => {
 }
 
 .progress-bar-fill.progress-completed {
-  background: linear-gradient(90deg, #28a745, #20c997);
+  background: var(--color-success);
+  background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.18), rgba(255, 255, 255, 0.10));
 }
 
 .progress-bar-fill.progress-active {
-  background: linear-gradient(90deg, #007bff, #0dcaf0);
+  background: var(--color-info);
+  background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.18), rgba(255, 255, 255, 0.10));
 }
 
 .progress-bar-fill.progress-paused {
-  background: linear-gradient(90deg, #ffc107, #fd7e14);
+  background: var(--color-warning);
+  background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.18), rgba(255, 255, 255, 0.10));
 }
 
 .progress-bar-fill.progress-abandoned {
-  background: linear-gradient(90deg, #dc3545, #e35d6a);
+  background: var(--color-error);
+  background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.18), rgba(255, 255, 255, 0.10));
 }
 
 /* Session Notes */
 .session-notes-section {
   margin-top: 20px;
   padding: 15px;
-  background: #252525;
+  background: var(--color-background-mute);
   border-radius: 8px;
-  border-left: 4px solid #007bff;
+  border-left: 4px solid var(--color-info);
 }
 
 .notes-header {
@@ -731,14 +805,14 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
-  color: #007bff;
+  color: var(--color-info);
   font-weight: 600;
   font-size: 0.9rem;
 }
 
 .notes-content {
   margin: 0;
-  color: #ccc;
+  color: var(--color-text-muted);
   font-size: 0.9rem;
   line-height: 1.6;
 }
@@ -747,7 +821,7 @@ onMounted(() => {
 .progress-updates-section {
   margin-top: 20px;
   padding: 15px;
-  background: #252525;
+  background: var(--color-background-mute);
   border-radius: 8px;
 }
 
@@ -756,7 +830,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   margin-bottom: 15px;
-  color: #ffc107;
+  color: var(--color-warning);
   font-weight: 600;
   font-size: 0.95rem;
 }
@@ -769,9 +843,9 @@ onMounted(() => {
 
 .update-item {
   padding: 12px;
-  background: #1a1a1a;
+  background: var(--color-background-soft);
   border-radius: 8px;
-  border: 1px solid #333;
+  border: 1px solid var(--color-background-mute);
 }
 
 .update-line {
@@ -783,12 +857,12 @@ onMounted(() => {
 }
 
 .update-icon {
-  color: #aaa;
+  color: var(--color-text-muted);
   font-size: 0.85rem;
 }
 
 .update-date {
-  color: #999;
+  color: var(--color-text-muted);
   font-size: 0.85rem;
   flex: 1;
 }
@@ -808,24 +882,24 @@ onMounted(() => {
 }
 
 .page-label {
-  color: #888;
+  color: var(--color-text-muted);
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .page-number {
-  color: #e0e0e0;
+  color: var(--color-text);
   font-size: 1.2rem;
   font-weight: 700;
 }
 
 .page-number.highlight {
-  color: #007bff;
+  color: var(--color-info);
 }
 
 .arrow-icon {
-  color: #555;
+  color: var(--color-text-secondary);
   font-size: 1rem;
 }
 
@@ -838,12 +912,12 @@ onMounted(() => {
 }
 
 .pages-diff.advance {
-  background: #28a745;
-  color: white;
+  background: var(--color-success);
+  color: var(--color-on-status);
 }
 
 .pages-diff.other {
-  background: #6c757d;
+  background: var(--color-border);
   color: white;
 }
 
@@ -853,16 +927,16 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 15px;
   padding: 20px 30px;
-  border-top: 1px solid #444;
-  background: #333;
+  border-top: 1px solid var(--color-background-mute);
+  background: var(--color-background-mute);
 }
 
 .cancel-button {
   padding: 10px 20px;
   font-size: 1rem;
   background: transparent;
-  color: #888;
-  border: 1px solid #555;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-background-mute);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -872,8 +946,8 @@ onMounted(() => {
 }
 
 .cancel-button:hover {
-  color: #e0e0e0;
-  border-color: #888;
+  color: var(--color-text);
+  border-color: var(--color-border);
   background: rgba(255, 255, 255, 0.05);
 }
 
@@ -889,18 +963,18 @@ onMounted(() => {
 
 .empty-icon {
   font-size: 4rem;
-  color: #555;
+  color: var(--color-text-secondary);
   margin-bottom: 20px;
 }
 
 .empty-message {
   font-size: 1.1rem;
-  color: #888;
+  color: var(--color-text-muted);
   margin: 0;
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@include responsive-below(md) {
   .modal-content {
     width: 95%;
     max-width: none;

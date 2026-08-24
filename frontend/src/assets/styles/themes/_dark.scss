@@ -28,18 +28,26 @@
   --color-text-dark:      #a3cbc1;
   --color-text-light:     #ffffff;
   --color-text-secondary: #c4ddd8;
-  --color-text-muted:     rgba(245, 232, 224, 0.6);
+  // 0.6 daba 3.91 sobre --color-background-card (#1D4E4A), que es donde se leen los
+  // ISBN de las ediciones: 38 nodos por debajo del 4.5 de AA. A 0.72 son 4.87 sobre
+  // la card y 8.2 sobre el fondo.
+  --color-text-muted:     rgba(245, 232, 224, 0.72);
 
   // ─── Bordes ─────────────────────────────────────────────────────────
   --color-border:        #3a4a45;
   --color-border-light:  #5a6a65;
   --color-border-hover:  #e8b3c1;
 
+  --color-link:       #a3cbc1;   // 7.19 sobre --color-background-mute
+  --color-link-hover: #e8b3c1;
+
   // ─── Estados ────────────────────────────────────────────────────────
   --color-success: #66BB6A;
   --color-warning: #FFB74D;
   --color-error:   #EF5350;
   --color-info:    #64B5F6;
+
+  --color-on-status: #0f1412;
 
   --color-success-bg: rgba(102, 187, 106, 0.15);
   --color-warning-bg: rgba(255, 183, 77, 0.15);
@@ -66,8 +74,58 @@
   --shadow-heavy:  0 8px 16px rgba(0, 0, 0, 0.5);
   --shadow-xl:     0 16px 32px rgba(0, 0, 0, 0.6);
 
-  // ─── Cards de entidad (mismas en oscuro: ya son colores oscuros) ────
-  // En modo claro estos valores también funcionan porque las cards
-  // mantienen identidad visual oscura sobre cualquier fondo.
-  // Si en el futuro se quiere un set claro distinto, override aquí.
+  // ─── Paleta categórica de las gráficas ──────────────────────────────
+  // Mismos siete tonos que en :root, re-escalonados para la superficie real de las
+  // gráficas en oscuro, que NO es el fondo de la app sino --color-background-card
+  // (#1D4E4A, verificado en el DOM: .chart-card => rgb(29,78,74)).
+  //
+  // Validado en --pairs all contra #1D4E4A: CVD ΔE 9.3 · normal ΔE 15.5 ·
+  // contraste ≥3:1 los siete. **La banda de luminosidad sale FAIL a propósito**: el
+  // validador la fija en L 0.48-0.67 asumiendo una superficie oscura, y la nuestra
+  // es un teal de luminosidad media. Contra él, cumplir la banda y cumplir el 3:1
+  // de contraste son incompatibles; se elige el contraste, que es lo que sostiene
+  // la legibilidad. La alternativa sería dar a .chart-card una superficie oscura
+  // propia en este tema, que es un cambio de diseño y no de color.
+  --chart-1: #6593FE;
+  --chart-2: #FE6041;
+  --chart-3: #35A76D;
+  --chart-4: #D370B7;
+  --chart-5: #FBAB13;
+  --chart-6: #47CCF4;
+  --chart-7: #96D086;
+  --chart-other: #A7B0AD;   // 4.22 sobre #1D4E4A
+
+  // ─── Cards de entidad ───────────────────────────────────────────────
+  // Hasta 2026-08-20 este bloque no existía: las cards vivían solo en :root con
+  // valores oscuros, y el comentario que había aquí decía que «también funcionan en
+  // modo claro». Era cierto mientras el modo claro era oscuro; dejó de serlo.
+  //
+  // Mismos tonos que :root, re-escalonados en L y C para el fondo #0f1412. Validado
+  // en --pairs all: CVD ΔE 11.4 · normal ΔE 18.4 · contraste ≥3:1, cinco PASS.
+  // bg = acento al 14% sobre la superficie · bg-hover al 20% · border al 45%.
+
+  --color-card-book-bg:           #29230F;
+  --color-card-book-bg-hover:     #34290E;
+  --color-card-book-border:       #61430A;
+  --color-card-book-accent:       #C67D00;
+
+  --color-card-movie-bg:          #212132;
+  --color-card-movie-bg-hover:    #292740;
+  --color-card-movie-border:      #493F7A;
+  --color-card-movie-accent:      #8F74F9;
+
+  --color-card-game-bg:           #0F2822;
+  --color-card-game-bg-hover:     #0F3028;
+  --color-card-game-border:       #105344;
+  --color-card-game-accent:       #11A082;
+
+  --color-card-album-bg:          #241825;
+  --color-card-album-bg-hover:    #2C1A2D;
+  --color-card-album-border:      #51214F;
+  --color-card-album-accent:      #A2309A;
+
+  --color-card-video-bg:          #281512;
+  --color-card-video-bg-hover:    #331613;
+  --color-card-video-border:      #5F1813;
+  --color-card-video-accent:      #C11C15;
 }

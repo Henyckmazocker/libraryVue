@@ -16,6 +16,17 @@ ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ENV_FILE="$ROOT_DIR/.env"
 BACKEND_ENV_FILE="$ROOT_DIR/backend/.env.docker-development"
 
+# Usuario que importa los dumps al mirror. Va aparte de library_user porque
+# LOAD DATA INFILE exige el privilegio FILE, que solo existe global (ON *.*):
+# dárselo al usuario de la app web ampliaría lo que podría hacer una inyección
+# SQL en cualquier endpoint.
+MIRROR_IMPORT_USER="library_mirror_importer"
+MIRROR_IMPORT_DEFAULT_PASSWORD="mirror_import_dev"
+# Usuario con el que los backends (dev Y prod) consultan el catálogo. Uno propio
+# porque un servidor MySQL tiene una sola contraseña por usuario y la de
+# library_user difiere entre los dos entornos.
+MIRROR_DEFAULT_PASSWORD="mirror_dev"
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -128,7 +139,8 @@ ask_if_empty() {
 setup_root_env() {
   # Leer valores actuales si el archivo ya existe
   local google_client_id google_books_api_key spotify_client_id spotify_client_secret
-  local lastfm_api_key youtube_api_key mysql_root_password mysql_password
+  local lastfm_api_key youtube_api_key mysql_root_password mysql_password mirror_import_password
+  local mirror_password tmdb_api_key
 
   google_client_id=$(env_get "$ENV_FILE"      GOOGLE_CLIENT_ID)
   google_books_api_key=$(env_get "$ENV_FILE"  GOOGLE_BOOKS_API_KEY)
@@ -136,14 +148,28 @@ setup_root_env() {
   spotify_client_secret=$(env_get "$ENV_FILE" SPOTIFY_CLIENT_SECRET)
   lastfm_api_key=$(env_get "$ENV_FILE"        LASTFM_API_KEY)
   youtube_api_key=$(env_get "$ENV_FILE"       YOUTUBE_API_KEY)
+  tmdb_api_key=$(env_get "$ENV_FILE"          TMDB_API_KEY)
   mysql_root_password=$(env_get "$ENV_FILE"   MYSQL_ROOT_PASSWORD)
   mysql_password=$(env_get "$ENV_FILE"        MYSQL_PASSWORD)
+  # No se pregunta: es una credencial interna del importador del mirror, que no
+  # sale de este docker-compose. Ver bootstrap_mirror_db().
+  mirror_import_password=$(env_get "$ENV_FILE" DB_MIRROR_IMPORT_PASSWORD)
+  mirror_import_password="${mirror_import_password:-$MIRROR_IMPORT_DEFAULT_PASSWORD}"
+  # Tampoco se pregunta, por lo mismo. Pero OJO: esta sí la comparte producción
+  # —es un único servidor MySQL con un único library_mirror_user—, así que si la
+  # cambias aquí hay que cambiarla en el .env.prod de libraryVue_prod.
+  mirror_password=$(env_get "$ENV_FILE" DB_MIRROR_PASSWORD)
+  mirror_password="${mirror_password:-$MIRROR_DEFAULT_PASSWORD}"
 
   # Detectar si falta alguna clave antes de mostrar el bloque interactivo
   local needs_input=false
+  # DB_MIRROR_* entra en la condición aunque nunca se pregunte: si el .env es de
+  # antes del mirror compartido, sin esto el `return` de abajo lo dejaría sin las
+  # claves nuevas y el backend buscaría library_mirror en el MySQL de la app.
   [[ -z "$google_client_id" || -z "$google_books_api_key" || -z "$spotify_client_id" \
      || -z "$spotify_client_secret" || -z "$lastfm_api_key" || -z "$youtube_api_key" \
-     || -z "$mysql_root_password" || -z "$mysql_password" ]] && needs_input=true
+     || -z "$tmdb_api_key" || -z "$mysql_root_password" || -z "$mysql_password" \
+     || -z "$(env_get "$ENV_FILE" DB_MIRROR_PASSWORD)" ]] && needs_input=true
 
   if [[ "$needs_input" == "true" ]]; then
     info "Faltan claves en .env — solo se pedirán las vacías."
@@ -155,6 +181,7 @@ setup_root_env() {
     spotify_client_secret=$(ask_if_empty "Spotify Client Secret" "$spotify_client_secret" "yes")
     lastfm_api_key=$(ask_if_empty      "Last.fm API Key"        "$lastfm_api_key")
     youtube_api_key=$(ask_if_empty     "YouTube Data API Key"   "$youtube_api_key")
+    tmdb_api_key=$(ask_if_empty        "TMDB API Key"           "$tmdb_api_key")
 
     echo ""
     echo -e "${YELLOW}=== Contraseñas MySQL ===${NC}"
@@ -189,7 +216,9 @@ YOUTUBE_API_KEY=${youtube_api_key}
 MYSQL_ROOT_PASSWORD=${mysql_root_password}
 MYSQL_PASSWORD=${mysql_password}
 DB_PASSWORD=${mysql_password}
-OMDB_API_KEY=
+DB_MIRROR_IMPORT_PASSWORD=${mirror_import_password}
+DB_MIRROR_PASSWORD=${mirror_password}
+TMDB_API_KEY=${tmdb_api_key}
 EOF
 
   success ".env raíz creado/actualizado."
@@ -227,6 +256,15 @@ setup_backend_env() {
   env_set "$BACKEND_ENV_FILE" SPOTIFY_CLIENT_SECRET "$(env_get "$ENV_FILE" SPOTIFY_CLIENT_SECRET)"
   env_set "$BACKEND_ENV_FILE" LASTFM_API_KEY        "$(env_get "$ENV_FILE" LASTFM_API_KEY)"
   env_set "$BACKEND_ENV_FILE" YOUTUBE_API_KEY       "$(env_get "$ENV_FILE" YOUTUBE_API_KEY)"
+  env_set "$BACKEND_ENV_FILE" TMDB_API_KEY          "$(env_get "$ENV_FILE" TMDB_API_KEY)"
+  # El mirror es un servidor aparte. Bajo Apache manda el entorno del compose
+  # (variables_order=EGPCS, y bootstrap.php solo rellena huecos), así que estas
+  # son redundantes ahí — pero no para quien lea el fichero para entender la
+  # configuración, ni si algún día se ejecuta el backend fuera de este compose.
+  env_set "$BACKEND_ENV_FILE" DB_MIRROR_HOST        "mirror-mysql"
+  env_set "$BACKEND_ENV_FILE" DB_MIRROR_PORT        "3306"
+  env_set "$BACKEND_ENV_FILE" DB_MIRROR_USERNAME    "library_mirror_user"
+  env_set "$BACKEND_ENV_FILE" DB_MIRROR_PASSWORD    "$(env_get "$ENV_FILE" DB_MIRROR_PASSWORD)"
 
   success "backend/.env.docker-development sincronizado."
 }
@@ -283,6 +321,28 @@ start_services() {
     fi
     sleep 2
   done
+
+  # Lint del frontend: las reglas de accesibilidad están en `error`, así que un
+  # `<div @click>` nuevo se cae aquí en vez de llegar a producción. No tumba el
+  # arranque —los contenedores ya están arriba y sirven— pero lo dice claro.
+  info "Pasando el lint del frontend..."
+  if compose_cmd exec -T frontend npm run lint -- --no-fix > /dev/null 2>&1; then
+    success "Lint del frontend limpio."
+  else
+    error "El lint del frontend encuentra errores. Los servicios siguen arriba."
+    error "Míralos con: docker compose exec frontend npm run lint -- --no-fix"
+  fi
+
+  # Lint de estilos: tres reglas que defienden el sistema de color y de breakpoints
+  # —ni un hex suelto, ni un px dentro de @media, ni un @import—. Un color a mano
+  # nuevo se cae aquí, que es lo que impide que el barrido se deshaga solo.
+  info "Pasando el lint de estilos..."
+  if compose_cmd exec -T frontend npm run lint:styles > /dev/null 2>&1; then
+    success "Lint de estilos limpio."
+  else
+    error "El lint de estilos encuentra errores. Los servicios siguen arriba."
+    error "Míralos con: docker compose exec frontend npm run lint:styles"
+  fi
 
   echo ""
   success "=============================================="
@@ -485,8 +545,37 @@ cmd_reset() {
   start_services "yes"
 }
 
+# ---------------------------------------------------------------------------
+# Bootstrap del mirror de catálogos (library_mirror)
+# ---------------------------------------------------------------------------
+# Se aplica con root, y NO como una migración más. run_migrations.sh conecta
+# como library_user, que solo tiene GRANT ALL ON library_db.*: no puede crear
+# una base nueva. Y como prod-deploy.sh comparte ese runner, un fichero en
+# migrations/ rompería producción al promoverse a master.
+# Idempotente: mirror_schema.sql usa IF NOT EXISTS en todo.
+# ---------------------------------------------------------------------------
+bootstrap_mirror_db() {
+  # El mirror ya NO vive dentro de este docker-compose: tiene su propio stack
+  # (docker-compose.mirror.yml) porque lo comparte con producción. Duplicarlo
+  # serían 2,2 GB por entorno y dos cuotas de TMDB y MusicBrainz para servir el
+  # mismo catálogo público, y meterlo aquí ataría la búsqueda de películas de
+  # library.dcahomelab.com a que el entorno de desarrollo esté levantado.
+  #
+  # Toda la creación (red, volúmenes, esquema y usuarios) vive en un solo sitio,
+  # `mirror-sync.sh --bootstrap`, para que dev y prod arranquen lo mismo.
+  info "Preparando el mirror de catálogos (stack compartido)..."
+  if "$ROOT_DIR/mirror-sync.sh" --bootstrap; then
+    success "Mirror de catálogos listo."
+  else
+    error "Falló el arranque del mirror de catálogos."
+    error "Reintenta a mano con: ./mirror-sync.sh --bootstrap"
+    exit 1
+  fi
+}
+
 cmd_migrate() {
   check_deps
+  bootstrap_mirror_db
   info "Aplicando migraciones de base de datos pendientes..."
   "$ROOT_DIR/docker/database/run_migrations.sh"
 }

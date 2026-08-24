@@ -66,10 +66,21 @@ class WorkSearchService
      *
      * @param string $query Search query
      * @param int $limit Maximum number of results
-     * @param bool $enrichWithGoogle Whether to include full Google Books data (always true now)
      * @return array Array of works with aggregated data
      */
-    public function searchWorks(string $query, int $limit = 20, bool $enrichWithGoogle = true): array
+    public function searchWorks(string $query, int $limit = 20): array
+    {
+        return $this->searchWorksResilient($query, $limit)['works'];
+    }
+
+    /**
+     * Same search, telling the caller whether the answer came from a degraded cache
+     *
+     * @param string $query Search query
+     * @param int $limit Maximum number of results
+     * @return array{works: array, stale: bool, cached_at: int|null}
+     */
+    public function searchWorksResilient(string $query, int $limit = 20): array
     {
         $startTime = microtime(true);
         
@@ -80,13 +91,15 @@ class WorkSearchService
 
         // Search Google Books with intitle: for focused title search
         // maxResults=40 is the API limit, orderBy=relevance for best results
-        $googleResults = $this->googleBooksService->searchBooks($query, 40, [
+        $search = $this->googleBooksService->searchBooksResilient($query, 40, [
             'orderBy' => 'relevance',
             'raw' => true  // Get raw API response for grouping
         ]);
+        $googleResults = $search['data'];
         
         $this->logger->info("WorkSearchService: Google Books search completed", [
-            'found' => count($googleResults)
+            'found' => count($googleResults),
+            'stale' => $search['stale']
         ]);
 
         // Group volumes by work (title + author combination)
@@ -114,10 +127,15 @@ class WorkSearchService
         $this->logger->info("WorkSearchService: Returning works", [
             'count' => count($enrichedWorks),
             'execution_time_ms' => $executionTime,
-            'source' => 'google_books'
+            'source' => 'google_books',
+            'stale' => $search['stale']
         ]);
 
-        return $enrichedWorks;
+        return [
+            'works' => $enrichedWorks,
+            'stale' => $search['stale'],
+            'cached_at' => $search['cached_at']
+        ];
     }
 
     /**

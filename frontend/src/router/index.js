@@ -1,12 +1,8 @@
 import { createRouter, createWebHistory, createWebHashHistory } from 'vue-router';
 
-// Importar eagerly las vistas de detalle para transiciones instantáneas
-import BookDetailView from '../views/BookDetailView.vue';
-import MovieDetailView from '../views/MovieDetailView.vue';
-import SeriesDetailView from '../views/SeriesDetailView.vue';
-import GameDetailView from '../views/GameDetailView.vue';
-import AlbumDetailView from '../views/AlbumDetailView.vue';
-import UserProfileView from '../views/UserProfileView.vue';
+// Las vistas de detalle van en diferido con `webpackPrefetch`: el navegador se baja su chunk en
+// tiempo ocioso, después del arranque, así que la transición sigue siendo instantánea sin cobrar
+// ~1,6 MB en el bundle inicial de la home. Ver `VideoDetailView` más abajo, que ya iba así.
 
 const routes = [
   {
@@ -69,41 +65,47 @@ const routes = [
   {
     path: '/profile',
     name: 'UserProfile',
-    component: UserProfileView,
+    component: () => import(/* webpackPrefetch: true, webpackChunkName: "detail-profile" */
+      '../views/UserProfileView.vue'),
     meta: { requiresAuth: true }
   },
   {
     path: '/books/:isbn',
     name: 'BookDetail',
-    component: BookDetailView,
+    component: () => import(/* webpackPrefetch: true, webpackChunkName: "detail-book" */
+      '../views/BookDetailView.vue'),
     props: true,
     meta: { requiresAuth: true }
   },
   {
     path: '/movies/:imdbId',
     name: 'MovieDetail',
-    component: MovieDetailView,
+    component: () => import(/* webpackPrefetch: true, webpackChunkName: "detail-movie" */
+      '../views/MovieDetailView.vue'),
     props: true,
     meta: { requiresAuth: true }
   },
   {
     path: '/series/:imdbId',
     name: 'SeriesDetail',
-    component: SeriesDetailView,
+    component: () => import(/* webpackPrefetch: true, webpackChunkName: "detail-series" */
+      '../views/SeriesDetailView.vue'),
     props: true,
     meta: { requiresAuth: true }
   },
   {
     path: '/games/:gameId',
     name: 'GameDetail',
-    component: GameDetailView,
+    component: () => import(/* webpackPrefetch: true, webpackChunkName: "detail-game" */
+      '../views/GameDetailView.vue'),
     props: true,
     meta: { requiresAuth: true }
   },
   {
     path: '/albums/:albumId',
     name: 'AlbumDetail',
-    component: AlbumDetailView,
+    component: () => import(/* webpackPrefetch: true, webpackChunkName: "detail-album" */
+      '../views/AlbumDetailView.vue'),
     props: true,
     meta: { requiresAuth: true }
   },

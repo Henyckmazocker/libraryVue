@@ -40,7 +40,7 @@
     gap: spacing(2xs);
     padding: spacing(2xs) spacing(sm);
     background: var(--color-primary);
-    color: #fff;
+    color: var(--color-text-light);
     border: none;
     border-radius: radius(md);
     cursor: pointer;
@@ -52,7 +52,7 @@
     }
 
     &:disabled {
-      background: var(--color-text-muted, #666);
+      background: var(--color-text-muted, var(--color-background-mute));
       cursor: not-allowed;
       opacity: 0.6;
     }
@@ -63,13 +63,13 @@
   .empty-state {
     padding: spacing(xl);
     text-align: center;
-    color: var(--color-text-secondary, #999);
+    color: var(--color-text-secondary, var(--color-text-muted));
   }
 
   .empty-state {
     i {
       font-size: 3rem;
-      color: var(--color-text-muted, #555);
+      color: var(--color-text-muted, var(--color-text-secondary));
       margin-bottom: spacing(md);
     }
 
@@ -80,7 +80,7 @@
 
   .empty-hint {
     font-size: 0.9rem;
-    color: var(--color-text-muted, #777);
+    color: var(--color-text-muted);
   }
 
   // ─── Lista de notas ───────────────────────────────────────────────────────
@@ -125,7 +125,7 @@
 
   .note-type {
     font-weight: 500;
-    color: var(--color-text-secondary, #bbb);
+    color: var(--color-text-secondary, var(--color-text-muted));
   }
 
   .note-page {
@@ -133,14 +133,14 @@
     padding: 0.2rem spacing(2xs);
     border-radius: radius(sm);
     font-size: 0.8rem;
-    color: var(--color-text-secondary, #ccc);
+    color: var(--color-text-secondary);
   }
 
   .note-public {
     display: flex;
     align-items: center;
     gap: spacing(3xs);
-    color: var(--color-success, #4caf50);
+    color: var(--color-success, var(--color-success));
     font-size: 0.8rem;
   }
 
@@ -166,8 +166,8 @@
 
     &.delete:hover {
       background: rgba(244, 67, 54, 0.2);
-      border-color: var(--color-danger, #f44336);
-      color: var(--color-danger, #f44336);
+      border-color: var(--color-error);
+      color: var(--color-error);
     }
   }
 
@@ -183,7 +183,7 @@
     justify-content: space-between;
     align-items: center;
     font-size: 0.8rem;
-    color: var(--color-text-muted, #888);
+    color: var(--color-text-muted, var(--color-text-muted));
   }
 
   .note-updated {

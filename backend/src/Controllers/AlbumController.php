@@ -20,6 +20,11 @@ use App\Domain\DTO\Commands\EditUserAlbumCommand;
 use App\Domain\DTO\Queries\GetTrendingAlbumsQuery;
 use App\Domain\Repository\Album\AlbumTagRepositoryInterface;
 use App\Domain\Repository\Album\AlbumNoteRepositoryInterface;
+use App\Domain\Model\ValueObjects\AlbumId;
+use App\Domain\Repository\Catalog\AlbumCatalogInterface;
+use App\Domain\Services\AlbumTrackService;
+use App\Infrastructure\Http\PostResponse;
+use App\Infrastructure\Persistence\Catalog\MySqlAlbumCatalog;
 use App\Domain\Services\SpotifyService;
 use App\Domain\Services\LastFmService;
 use App\Domain\DTO\Queries\GetLastFmStatsQuery;
@@ -39,6 +44,11 @@ class AlbumController extends BaseController implements Contracts\AlbumControlle
         private readonly AlbumTagRepositoryInterface $albumTagRepository,
         private readonly AlbumNoteRepositoryInterface $albumNoteRepository,
         private readonly SpotifyService $spotifyService,
+        private readonly AlbumCatalogInterface $albumCatalog,
+        // Los dos concretos, y no la interfaz, porque las pistas no forman
+        // parte del contrato del catálogo: solo las tiene el mirror.
+        private readonly MySqlAlbumCatalog $mirrorCatalog,
+        private readonly AlbumTrackService $albumTrackService,
         private readonly LastFmService $lastFmService,
         private readonly GetListeningStatsUseCase $getListeningStatsUseCase
     ) {}
@@ -238,8 +248,17 @@ class AlbumController extends BaseController implements Contracts\AlbumControlle
     }
 
     // =========================================================================
-    // Spotify proxy endpoints
+    // Catálogo de álbumes
     // =========================================================================
+    // Las acciones siguen llamándose search_spotify_albums y get_spotify_album,
+    // pero por dentro consultan el mirror de MusicBrainz y solo caen a Spotify
+    // si el mirror no tiene nada. Renombrarlas obligaría a tocar store/albums.js
+    // y las vistas, que no es de este plan; la deuda de nomenclatura queda
+    // anotada en el plan «Mirror de Música».
+    //
+    // getSpotifyArtist, getSpotifyAlbumTracks y getSpotifyNewReleases siguen
+    // yendo a Spotify de verdad: están fuera de alcance, así que la ficha de
+    // álbum NO queda 100 % local al terminar este plan.
 
     public function searchSpotifyAlbums(array $data): array
     {
@@ -251,7 +270,7 @@ class AlbumController extends BaseController implements Contracts\AlbumControlle
                 return $this->errorResponse('Query parameter is required', 400);
             }
 
-            $albums = $this->spotifyService->searchAlbums($query, $limit);
+            $albums = $this->albumCatalog->search($query, $limit);
             return $this->successResponse('Albums found', [
                 'albums' => $albums,
                 'count'  => count($albums),
@@ -264,13 +283,15 @@ class AlbumController extends BaseController implements Contracts\AlbumControlle
     public function getSpotifyAlbum(array $data): array
     {
         try {
-            $spotifyId = $data['spotifyId'] ?? $data['spotify_id'] ?? '';
+            // El parámetro se sigue llamando spotifyId por compatibilidad con
+            // el frontend, pero hoy lo normal es que traiga un MBID.
+            $albumId = $data['spotifyId'] ?? $data['spotify_id'] ?? $data['albumId'] ?? '';
 
-            if (empty($spotifyId)) {
+            if (empty($albumId)) {
                 return $this->errorResponse('spotifyId parameter is required', 400);
             }
 
-            $album = $this->spotifyService->getAlbum($spotifyId);
+            $album = $this->albumCatalog->findById($albumId);
 
             if ($album === null) {
                 return $this->errorResponse('Album not found', 404);
@@ -303,16 +324,28 @@ class AlbumController extends BaseController implements Contracts\AlbumControlle
         }
     }
 
+    /**
+     * La lista de pistas de un álbum
+     *
+     * Enruta por la FORMA del id, igual que `FallbackAlbumCatalog::findById()`:
+     * un MBID se sirve del mirror y un base62 de Spotify. Preguntarle a Spotify
+     * por un MBID es lo que dejó sin pistas a todos los álbumes guardados desde
+     * el mirror — devolvía `success` con la lista vacía, sin error visible.
+     */
     public function getSpotifyAlbumTracks(array $data): array
     {
         try {
-            $spotifyId = $data['spotifyId'] ?? $data['spotify_id'] ?? '';
+            $albumId = $data['spotifyId'] ?? $data['spotify_id'] ?? $data['albumId'] ?? '';
 
-            if (empty($spotifyId)) {
+            if (empty($albumId)) {
                 return $this->errorResponse('spotifyId parameter is required', 400);
             }
 
-            $tracks = $this->spotifyService->getAlbumTracks($spotifyId);
+            if (AlbumId::looksLikeMbid((string) $albumId)) {
+                return $this->mirrorAlbumTracks((string) $albumId);
+            }
+
+            $tracks = $this->spotifyService->getAlbumTracks($albumId);
             return $this->successResponse('Tracks found', [
                 'tracks' => $tracks,
                 'count'  => count($tracks),
@@ -320,6 +353,37 @@ class AlbumController extends BaseController implements Contracts\AlbumControlle
         } catch (\Exception $e) {
             return $this->externalServiceError('Spotify');
         }
+    }
+
+    /**
+     * Pistas de un álbum del mirror, encolando el fetch si aún no están
+     *
+     * **No espera a MusicBrainz.** Su API tarda entre 4 y 45 segundos (medido),
+     * así que la primera visita a una ficha devuelve la lista vacía y encola el
+     * trabajo con `PostResponse::defer()`, que corre con la conexión ya cerrada
+     * — el mismo mecanismo con el que `CoverService` baja las portadas. A la
+     * siguiente visita las pistas están.
+     *
+     * Es una decisión consciente, no una carencia: hacerlo síncrono serían esos
+     * 4-45 s de espera en blanco. Si algún día molesta, la salida es mover el
+     * disparo al guardado del álbum, no bloquear aquí.
+     *
+     * @return array<string,mixed>
+     */
+    private function mirrorAlbumTracks(string $releaseGroupGid): array
+    {
+        $tracks = $this->mirrorCatalog->tracksFor($releaseGroupGid);
+
+        if ($tracks === [] && !$this->albumTrackService->isSettled($releaseGroupGid)) {
+            PostResponse::defer(function () use ($releaseGroupGid): void {
+                $this->albumTrackService->fetchFor($releaseGroupGid);
+            });
+        }
+
+        return $this->successResponse('Tracks found', [
+            'tracks' => $tracks,
+            'count'  => count($tracks),
+        ]);
     }
 
     public function getSpotifyNewReleases(array $data): array

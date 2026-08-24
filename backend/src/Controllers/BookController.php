@@ -483,8 +483,6 @@ class BookController extends BaseController implements Contracts\BookControllerI
         try {
             $query = $data['q'] ?? '';
             $limit = isset($data['limit']) ? (int)$data['limit'] : 20;
-            $enrichWithGoogle = isset($data['enrich']) ? 
-                filter_var($data['enrich'], FILTER_VALIDATE_BOOLEAN) : false;
 
             if (empty($query)) {
                 return $this->errorResponse('Search query is required', 400);
@@ -494,17 +492,17 @@ class BookController extends BaseController implements Contracts\BookControllerI
 
             $this->logger->info("BookController: Searching works", [
                 'query' => $query,
-                'limit' => $limit,
-                'enrich' => $enrichWithGoogle
+                'limit' => $limit
             ]);
 
-            $works = $this->workSearchService->searchWorks($query, $limit, $enrichWithGoogle);
+            $result = $this->workSearchService->searchWorksResilient($query, $limit);
 
             return $this->successResponse('Works search completed', [
-                'works' => $works,
-                'total' => count($works),
+                'works' => $result['works'],
+                'total' => count($result['works']),
                 'query' => $query,
-                'enriched' => $enrichWithGoogle
+                'stale' => $result['stale'],
+                'cached_at' => $result['cached_at'] ? date('c', $result['cached_at']) : null
             ]);
 
         } catch (\Exception $e) {

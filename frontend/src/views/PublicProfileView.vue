@@ -1,10 +1,16 @@
 <template>
   <div class="public-profile-view">
-    <div v-if="loading" class="public-profile-view__loading">
+    <div
+      v-if="loading"
+      class="public-profile-view__loading"
+    >
       <i class="pi pi-spin pi-spinner" />
     </div>
 
-    <div v-else-if="error" class="public-profile-view__error">
+    <div
+      v-else-if="error"
+      class="public-profile-view__error"
+    >
       <i class="pi pi-exclamation-triangle" />
       <p>{{ error }}</p>
     </div>
@@ -12,13 +18,34 @@
     <template v-else-if="profile">
       <div class="public-profile-view__header">
         <div class="public-profile-view__avatar">
-          <img v-if="profile.avatar" :src="profile.avatar" :alt="profile.username" />
-          <i v-else class="pi pi-user" />
+          <img
+            v-if="profile.avatar"
+            :src="profile.avatar"
+            :alt="profile.username"
+            loading="lazy"
+            decoding="async"
+          >
+          <i
+            v-else
+            class="pi pi-user"
+          />
         </div>
         <div class="public-profile-view__info">
-          <h1 class="public-profile-view__username">{{ profile.username }}</h1>
-          <p v-if="profile.display_name" class="public-profile-view__display">{{ profile.display_name }}</p>
-          <p v-if="profile.bio" class="public-profile-view__bio">{{ profile.bio }}</p>
+          <h1 class="public-profile-view__username">
+            {{ profile.username }}
+          </h1>
+          <p
+            v-if="profile.display_name"
+            class="public-profile-view__display"
+          >
+            {{ profile.display_name }}
+          </p>
+          <p
+            v-if="profile.bio"
+            class="public-profile-view__bio"
+          >
+            {{ profile.bio }}
+          </p>
         </div>
 
         <div class="public-profile-view__actions">
@@ -26,16 +53,27 @@
             v-if="!profile.is_friend && !profile.request_sent && !isCurrentUser"
             label="Agregar amigo"
             icon="pi pi-user-plus"
-            @click="handleSendRequest"
             :loading="requestSending"
+            @click="handleSendRequest"
           />
-          <Tag v-else-if="profile.request_sent" value="Solicitud enviada" severity="secondary" />
-          <Tag v-else-if="profile.is_friend" value="Amigo/a" severity="success" />
+          <Tag
+            v-else-if="profile.request_sent"
+            value="Solicitud enviada"
+            severity="secondary"
+          />
+          <Tag
+            v-else-if="profile.is_friend"
+            value="Amigo/a"
+            severity="success"
+          />
         </div>
       </div>
 
       <!-- Stats -->
-      <div v-if="profile.stats" class="public-profile-view__stats">
+      <div
+        v-if="profile.stats"
+        class="public-profile-view__stats"
+      >
         <div class="public-profile-view__stat">
           <span class="public-profile-view__stat-value">{{ profile.stats.books ?? 0 }}</span>
           <span class="public-profile-view__stat-label">Libros</span>

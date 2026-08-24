@@ -1,92 +1,152 @@
 // tokens/_colors.scss
-// Definición base (tema claro) y override en tema oscuro.
+// Definición base (tema CLARO) y override en tema oscuro.
 // Las CSS vars son la fuente runtime; design-tokens.js es la fuente JS espejo.
+//
+// El teal de marca (#1D4E4A) es aquí ACENTO, no fondo: la superficie es hueso cálido.
+// En .app-dark (themes/_dark.scss) vuelve a ser superficie. Los valores de abajo están
+// medidos contra las tres superficies reales del tema —#FFFFFF, #F7F2EC y #EFE8DE—; el
+// ratio anotado es el del caso peor de las tres.
 
 :root {
   // ─── Paleta principal (teal) ────────────────────────────────────────
-  --color-primary:        #1D4E4A;
+  --color-primary:        #1D4E4A;   // 8.42 sobre el fondo
   --color-primary-dark:   #0f2a27;
-  --color-primary-hover:  #2a5e5a;
-  --color-primary-light:  #3a6e6a;
+  --color-primary-hover:  #163B38;
+  --color-primary-light:  #3a6e6a;   // 5.21 — borde de foco de input (_forms.scss:29)
 
-  --color-secondary:       #A3CBC1;
-  --color-secondary-light: #c4ddd8;
-  --color-secondary-dark:  #7ab3a8;
+  --color-secondary:       #4A8F84;  // 3.40 — el spinner de App.vue:58 es un gráfico: 3:1
+  --color-secondary-light: #7ab3a8;
+  --color-secondary-dark:  #2f6b62;
 
   --color-tertiary:  #6F5D4F;
-  --color-accent:    #E2CBBF;
-  --color-highlight: #DCA1B0;
+  --color-accent:    #E2CBBF;        // crema de marca; se usa como texto SOBRE teal
+  --color-highlight: #A94E64;        // 4.76 — es el color de a:hover (_typography.scss:10)
 
   // ─── Fondos ─────────────────────────────────────────────────────────
-  --color-background:         #1D4E4A;
-  --color-background-soft:    #2a5e5a;
-  --color-background-mute:    #6F5D4F;
-  --color-background-card:    #A3CBC1;
-  --color-background-overlay: rgba(29, 78, 74, 0.9);
+  --color-background:         #F7F2EC;
+  --color-background-soft:    #FFFCF7;
+  --color-background-mute:    #EFE8DE;
+  --color-background-card:    #FFFFFF;
+  --color-background-overlay: rgba(29, 78, 74, 0.85);
 
   // ─── Textos ─────────────────────────────────────────────────────────
-  --color-text:           #E2CBBF;
-  --color-text-dark:      #6F5D4F;
-  --color-text-light:     #ffffff;
-  --color-text-secondary: #A3CBC1;
-  --color-text-muted:     rgba(226, 203, 191, 0.7);
+  --color-text:           #22201C;   // 13.37
+  --color-text-dark:      #6F5D4F;   //  6.26
+  --color-text-light:     #ffffff;   // solo sobre superficies oscuras o de color
+  --color-text-secondary: #55504A;   //  7.17
+  --color-text-muted:     #6E675E;   //  4.59
 
   // ─── Bordes ─────────────────────────────────────────────────────────
-  --color-border:        #6F5D4F;
-  --color-border-light:  #A3CBC1;
-  --color-border-hover:  #DCA1B0;
+  // --color-border bordea inputs (_forms.scss:20), botones (_buttons.scss:30) y el
+  // buscador (_search.scss:24): son controles, así que necesita 3:1 (WCAG 1.4.11).
+  // El hairline suave de las tarjetas decorativas es --color-border-light.
+  --color-border:        #8A8377;    // 3.09
+  --color-border-light:  #DDD5C9;
+  --color-border-hover:  #1D4E4A;
+
+  // Color de enlace. Vive aparte de --color-primary-light porque ese, en oscuro,
+  // da 2.76 sobre --color-background-mute: el enlace de `UserProfileView.vue:103`
+  // era ilegible y lo era por la regla global de `base/_typography.scss:5`, no por
+  // la vista. Aquí 7.71 sobre la superficie más exigente de cada tema.
+  --color-link:       #1D4E4A;
+  --color-link-hover: #A94E64;
 
   // ─── Estados ────────────────────────────────────────────────────────
-  --color-success: #4CAF50;
-  --color-warning: #FFA726;
-  --color-error:   #EF5350;
-  --color-info:    #42A5F5;
+  // Se usan sobre todo como color de TEXTO (13 usos frente a 5 de fondo), así que
+  // sobre superficie clara van en su versión oscura; los tintes -bg son el relleno.
+  --color-success: #2A7230;          // 4.87 contra la superficie clara más oscura
+  --color-warning: #985A00;          // 4.55 idem — los badges se leen sobre el tinte de card
+  --color-error:   #C62828;          // 4.62 idem
+  --color-info:    #1565C0;          // 4.73 idem
 
-  --color-success-bg: rgba(76, 175, 80, 0.1);
-  --color-warning-bg: rgba(255, 167, 38, 0.1);
-  --color-error-bg:   rgba(239, 83, 80, 0.1);
-  --color-info-bg:    rgba(66, 165, 245, 0.1);
+  // Tinta que va ENCIMA de un relleno de estado. En claro los estados son oscuros y
+  // pide blanco; en oscuro son claros (#66BB6A, #FFB74D…) y el blanco se cae a 2.21,
+  // así que allí pide la superficie. Sin esto, cualquier botón relleno con un color
+  // semántico es ilegible en uno de los dos temas.
+  --color-on-status: #ffffff;
+
+  --color-success-bg: rgba(42, 114, 48, 0.12);
+  --color-warning-bg: rgba(152, 90, 0, 0.12);
+  --color-error-bg:   rgba(198, 40, 40, 0.12);
+  --color-info-bg:    rgba(21, 101, 192, 0.12);
 
   // ─── Botones ────────────────────────────────────────────────────────
   --btn-primary-bg:        #1D4E4A;
-  --btn-primary-bg-hover:  #0f2a27;
-  --btn-primary-text:      #E2CBBF;
+  --btn-primary-bg-hover:  #163B38;
+  --btn-primary-text:      #E2CBBF;  // 6.04 — la crema de marca sobre el teal
 
   --btn-secondary-bg:        #6F5D4F;
   --btn-secondary-bg-hover:  #5a4d3f;
-  --btn-secondary-text:      #E2CBBF;
+  --btn-secondary-text:      #ffffff; // 6.26 (la crema daba 4.03 sobre este marrón)
 
   --btn-accent-bg:        #DCA1B0;
   --btn-accent-bg-hover:  #c9889a;
-  --btn-accent-text:      #1D4E4A;
+  --btn-accent-text:      #0f2a27;   // 5.41 (el teal 500 daba 4.36 sobre este rosa)
 
-  // ─── Cards de entidad (Books / Movies / Games / Albums) ─────────────
-  // Cada entidad tiene un color de fondo y un color de acento (border hover)
-  // que dan identidad visual a sus cards/list items en vistas mixtas.
-  // Películas y Series comparten el mismo color (intencional).
+  // ─── Paleta categórica de las gráficas ──────────────────────────────
+  // Siete ranuras de orden FIJO: la serie N recibe siempre --chart-N, así que
+  // filtrar no recolorea a las supervivientes (que es lo que hacía la lista por
+  // posición de `StatsService.generateColors`). A partir de la octava categoría se
+  // agrupa en «Otros» en vez de generar tonos: ver `config/chartTheme.js`.
+  //
+  // Validada con el script de la skill `dataviz` en modo --pairs all contra la
+  // superficie real de las gráficas, que es --color-background-card (#FFFFFF aquí,
+  // #1D4E4A en oscuro): CVD ΔE 7.9 · normal ΔE 15.4 · contraste ≥3:1.
+  // El 7.9 cae en la banda 6-8, que solo es válida con codificación secundaria:
+  // por eso `useDashboardCharts` deja la leyenda visible en toda gráfica.
+  --chart-1: #5264B8;
+  --chart-2: #9A1E2E;
+  --chart-3: #0C7F5A;
+  --chart-4: #AE2B92;
+  --chart-5: #906104;
+  --chart-6: #1E9FBB;
+  --chart-7: #6CA21A;
+  --chart-other: #767676;   // 4.54 sobre blanco; en oscuro necesita su propio valor
 
-  --color-card-book-bg:           #1f1b14;
-  --color-card-book-bg-hover:     #26200f;
-  --color-card-book-border:       #2e2516;
-  --color-card-book-accent:       #c9943a;
+  // ─── Superposiciones sobre carátula ─────────────────────────────────
+  // Estos NO se sobrescriben en .app-dark, y es deliberado: van encima de una
+  // portada arbitraria, no de la superficie de la app, así que su legibilidad no
+  // puede depender del tema. Medido contra el peor caso (carátula blanca debajo):
+  // el scrim resuelve a #3A3E3D y da 10.85 con blanco y 7.73 con el oro.
+  --color-overlay-strong:  rgba(15, 20, 18, 0.82);
+  --color-on-overlay:      #ffffff;
+  --color-rating-star:     #FFD700;
+  --color-media-letterbox: #111213;  // bandas del thumbnail 16:9 de vídeo
 
-  --color-card-movie-bg:          #1a1625;
-  --color-card-movie-bg-hover:    #211a30;
-  --color-card-movie-border:      #2a1f3d;
-  --color-card-movie-accent:      #8b5cf6;
+  // ─── Cards de entidad (Books / Movies / Games / Albums / Videos) ────
+  // Un color por medio, validado con el script de la skill `dataviz` contra las dos
+  // superficies reales y en modo --pairs all (no adjacent): en /library los cinco
+  // medios conviven mezclados en la misma rejilla, así que cualquier par puede ser
+  // vecino. Claro sobre #F7F2EC → CVD ΔE 11.0 · normal ΔE 17.9 · contraste ≥3:1, las
+  // cinco comprobaciones en PASS. Los tonos se comparten con .app-dark; allí solo
+  // cambian L y C. Películas y Series comparten color (intencional).
+  //
+  // bg = acento al 11% sobre blanco · bg-hover al 17% · border al 45%. Al 6/11/30
+  // que se probó primero, los cinco medios no se distinguían en reposo: el acento solo
+  // entra en el hover (`_list-item.scss:51`), así que la identidad la cargan bg y border.
 
-  --color-card-game-bg:           #131d17;
-  --color-card-game-bg-hover:     #172415;
-  --color-card-game-border:       #1a2d20;
-  --color-card-game-accent:       #4ade80;
+  --color-card-book-bg:           #F7EFE4;
+  --color-card-book-bg-hover:     #F3E7D6;
+  --color-card-book-border:       #E0BE93;
+  --color-card-book-accent:       #BA6F0E;
 
-  --color-card-album-bg:          #1e2028;
-  --color-card-album-bg-hover:    #252836;
-  --color-card-album-border:      #2d3141;
-  --color-card-album-accent:      #f59e0b;
+  --color-card-movie-bg:          #F4EFFE;
+  --color-card-movie-bg-hover:    #EDE7FD;
+  --color-card-movie-border:      #D1BFFA;
+  --color-card-movie-accent:      #9871F5;
 
-  --color-card-video-bg:          #1f1414;
-  --color-card-video-bg-hover:    #2a1a1a;
-  --color-card-video-border:      #3d1f1f;
-  --color-card-video-accent:      #c0392b;
+  --color-card-game-bg:           #E6F4F0;
+  --color-card-game-bg-hover:     #D8EEE8;
+  --color-card-game-border:       #98D1C1;
+  --color-card-game-accent:       #199975;
+
+  --color-card-album-bg:          #F4E6F2;
+  --color-card-album-bg-hover:    #EFD8EB;
+  --color-card-album-border:      #D498CA;
+  --color-card-album-accent:      #9F1B8A;
+
+  --color-card-video-bg:          #F3E7E4;
+  --color-card-video-bg-hover:    #EDDAD6;
+  --color-card-video-border:      #D09E93;
+  --color-card-video-accent:      #96280E;
 }

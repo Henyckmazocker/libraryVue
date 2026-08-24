@@ -1,13 +1,21 @@
 <template>
   <div class="home-container">
     <!-- Icono de ayuda flotante -->
-    <div class="help-icon" @click="openHelpPage" title="Ayuda y documentación">
-      <i class="fas fa-question-circle"></i>
-    </div>
+    <button
+      type="button"
+      class="help-icon"
+      title="Ayuda y documentación"
+      aria-label="Abrir la ayuda y documentación"
+      @click="openHelpPage"
+    >
+      <i class="fas fa-question-circle" />
+    </button>
     
     <!-- Hero Section -->
     <div class="hero-section">
-      <h1 class="home-title">Bienvenido a tu Biblioteca Personal</h1>
+      <h1 class="home-title">
+        Bienvenido a tu Biblioteca Personal
+      </h1>
       <p class="home-description">
         Organiza y gestiona tu colección de libros, películas y más desde un solo lugar.
         Utiliza el menú lateral para navegar entre las diferentes secciones.
@@ -16,34 +24,48 @@
 
     <!-- Quick Actions -->
     <div class="quick-actions">
-      <h2 class="section-title">Accesos Rápidos</h2>
+      <h2 class="section-title">
+        Accesos Rápidos
+      </h2>
       <div class="action-grid">
-        <router-link class="action-card" to="/library">
-          <i class="fas fa-bookmark"></i>
+        <router-link
+          class="action-card"
+          to="/library"
+        >
+          <i class="fas fa-bookmark" />
           <h3>Mi Biblioteca</h3>
           <p>Ver toda tu colección</p>
         </router-link>
         
-        <router-link class="action-card" to="/books">
-          <i class="fas fa-search"></i>
+        <router-link
+          class="action-card"
+          to="/books"
+        >
+          <i class="fas fa-search" />
           <h3>Buscar Libros</h3>
           <p>Encuentra nuevos libros</p>
         </router-link>
         
-        <router-link class="action-card" to="/movies">
-          <i class="fas fa-film"></i>
+        <router-link
+          class="action-card"
+          to="/movies"
+        >
+          <i class="fas fa-film" />
           <h3>Buscar Películas</h3>
           <p>Descubre nuevas películas</p>
         </router-link>
         
-        <router-link class="action-card" to="/games">
-          <i class="fas fa-gamepad"></i>
+        <router-link
+          class="action-card"
+          to="/games"
+        >
+          <i class="fas fa-gamepad" />
           <h3>Buscar Videojuegos</h3>
           <p>Explora nuevos juegos</p>
         </router-link>
         
         <div class="action-card action-card--disabled">
-          <i class="fas fa-music"></i>
+          <i class="fas fa-music" />
           <h3>Música</h3>
           <p>Próximamente</p>
         </div>
@@ -52,8 +74,11 @@
 
     <!-- Sync Button -->
     <div class="sync-section">
-      <button @click="saveBooksToBackend" class="sync-button">
-        <i class="fas fa-sync-alt"></i>
+      <button
+        class="sync-button"
+        @click="saveBooksToBackend"
+      >
+        <i class="fas fa-sync-alt" />
         <span>Sincronizar con servidor</span>
       </button>
     </div>
@@ -96,6 +121,8 @@ const openHelpPage = () => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .home-container {
   max-width: 1000px;
   margin: 0 auto;
@@ -105,13 +132,14 @@ const openHelpPage = () => {
 
 /* Icono de ayuda flotante */
 .help-icon {
+  @include button-reset;
   position: fixed;
   bottom: 20px;
   right: 20px;
   width: 50px;
   height: 50px;
-  background: #0079d3;
-  color: white;
+  background: var(--color-info);
+  color: var(--color-on-status);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -124,7 +152,7 @@ const openHelpPage = () => {
 }
 
 .help-icon:hover {
-  background: #0060a8;
+  background: var(--color-info);
   transform: scale(1.1);
   box-shadow: 0 6px 16px rgba(0, 121, 211, 0.4);
 }
@@ -138,13 +166,13 @@ const openHelpPage = () => {
 .home-title {
   font-size: 3rem;
   font-weight: 700;
-  color: #d7dadc;
+  color: var(--color-text);
   margin-bottom: 20px;
   line-height: 1.2;
 }
 
 .home-description {
-  color: #818384;
+  color: var(--color-text-muted);
   font-size: 1.2rem;
   line-height: 1.6;
   max-width: 600px;
@@ -159,7 +187,7 @@ const openHelpPage = () => {
 .section-title {
   font-size: 1.8rem;
   font-weight: 600;
-  color: #d7dadc;
+  color: var(--color-text);
   margin-bottom: 30px;
   text-align: center;
 }
@@ -173,27 +201,27 @@ const openHelpPage = () => {
 }
 
 .action-card {
-  background: #1a1a1b;
-  border: 1px solid #343536;
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 30px 24px;
   text-align: center;
   text-decoration: none;
-  color: #d7dadc;
+  color: var(--color-text);
   transition: all 0.3s ease;
   cursor: pointer;
 }
 
 .action-card:hover:not(.action-card--disabled) {
-  background: #272729;
-  border-color: #0079d3;
+  background: var(--color-background-mute);
+  border-color: var(--color-info);
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 121, 211, 0.15);
 }
 
 .action-card i {
   font-size: 2.5rem;
-  color: #0079d3;
+  color: var(--color-info);
   margin-bottom: 16px;
   display: block;
 }
@@ -202,12 +230,12 @@ const openHelpPage = () => {
   font-size: 1.3rem;
   font-weight: 600;
   margin: 0 0 8px 0;
-  color: #d7dadc;
+  color: var(--color-text);
 }
 
 .action-card p {
   font-size: 0.95rem;
-  color: #818384;
+  color: var(--color-text-muted);
   margin: 0;
   line-height: 1.4;
 }
@@ -219,13 +247,13 @@ const openHelpPage = () => {
 
 .action-card--disabled:hover {
   transform: none;
-  background: #1a1a1b;
-  border-color: #343536;
+  background: var(--color-background-soft);
+  border-color: var(--color-border);
   box-shadow: none;
 }
 
 .action-card--disabled i {
-  color: #818384;
+  color: var(--color-text-muted);
 }
 
 /* Sync Section */
@@ -239,8 +267,8 @@ const openHelpPage = () => {
   justify-content: center;
   gap: 12px;
   padding: 16px 32px;
-  background: #0079d3;
-  color: white;
+  background: var(--color-info);
+  color: var(--color-on-status);
   border: none;
   border-radius: 8px;
   font-size: 1.1rem;
@@ -251,7 +279,7 @@ const openHelpPage = () => {
 }
 
 .sync-button:hover {
-  background: #0060a8;
+  background: var(--color-info);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 121, 211, 0.3);
 }
@@ -261,7 +289,7 @@ const openHelpPage = () => {
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@include responsive-below(md) {
   .home-container {
     padding: 20px 15px;
   }
@@ -288,7 +316,7 @@ const openHelpPage = () => {
   }
 }
 
-@media (max-width: 480px) {
+@include responsive-below(sm) {
   .home-title {
     font-size: 1.8rem;
   }

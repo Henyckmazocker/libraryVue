@@ -1,6 +1,6 @@
 <template>
   <div class="book-search-container">
-      <!-- Search Section -->
+    <!-- Search Section -->
     <GenericSearch :config="searchConfig" />
     <!-- Trending Books Section -->
     <TrendingCarousel

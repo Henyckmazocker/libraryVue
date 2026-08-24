@@ -1,54 +1,97 @@
 <template>
-  <div class="game-carousel-item" @click="handleClick">
+  <button
+    type="button"
+    class="game-carousel-item"
+    @click="handleClick"
+  >
     <div class="game-cover-wrapper">
       <img 
         v-if="game.coverUrl || game.background_image" 
         :src="game.coverUrl || game.background_image" 
         :alt="game.title || game.name"
-        class="game-cover" 
+        class="game-cover"
+        width="160"
+        height="208"
         loading="lazy"
-      />
-      <div v-else class="game-cover-placeholder">
-        <i class="fas fa-gamepad"></i>
+        decoding="async"
+      >
+      <div
+        v-else
+        class="game-cover-placeholder"
+      >
+        <i class="fas fa-gamepad" />
       </div>
       
       <!-- Badge de año -->
-      <div v-if="releaseYear" class="year-badge">
+      <div
+        v-if="releaseYear"
+        class="year-badge"
+      >
         {{ releaseYear }}
       </div>
       
       <!-- Badge de rating si existe -->
-      <div v-if="game.user_rating && game.user_rating > 0" class="rating-badge">
-        <i class="fas fa-star"></i>
+      <div
+        v-if="game.user_rating && game.user_rating > 0"
+        class="rating-badge"
+      >
+        <i class="fas fa-star" />
         <span>{{ game.user_rating }}</span>
       </div>
       
       <!-- Badge de "En tu biblioteca" -->
-      <div v-if="isInLibrary" class="library-badge" title="En tu biblioteca">
-        <i class="fas fa-bookmark"></i>
+      <div
+        v-if="isInLibrary"
+        class="library-badge"
+        title="En tu biblioteca"
+      >
+        <i
+          class="fas fa-bookmark"
+          aria-hidden="true"
+        />
+        <span class="u-sr-only">En tu biblioteca</span>
       </div>
       
       <!-- Badge de status si existe -->
-      <div v-if="game.userStatuses && game.userStatuses.length > 0 && !isInLibrary" class="status-badge">
-        <i class="fas fa-check-circle"></i>
+      <div
+        v-if="game.userStatuses && game.userStatuses.length > 0 && !isInLibrary"
+        class="status-badge"
+      >
+        <i class="fas fa-check-circle" />
       </div>
       
       <!-- Badge de plataforma principal -->
-      <div v-if="mainPlatform" class="platform-badge" :title="platformsText">
-        <i :class="platformIcon"></i>
+      <div
+        v-if="mainPlatform"
+        class="platform-badge"
+        :title="platformsText"
+      >
+        <i
+          :class="platformIcon"
+          aria-hidden="true"
+        />
+        <span class="u-sr-only">Plataforma: {{ mainPlatform }}</span>
       </div>
     </div>
     
     <div class="game-info">
-      <h3 class="game-title">{{ truncateText(game.title || game.name, 40) }}</h3>
-      <div v-if="game.rating" class="igdb-score">
+      <h3 class="game-title">
+        {{ truncateText(game.title || game.name, 40) }}
+      </h3>
+      <div
+        v-if="game.rating"
+        class="igdb-score"
+      >
         <span class="score-label">Rating:</span>
-        <span class="score-value" :class="getRatingClass(game.rating)">
+        <span
+          class="score-value"
+          :class="getRatingClass(game.rating)"
+        >
           {{ game.rating }} / 5
         </span>
       </div>
     </div>
-  </div>
+  </button>
 </template>
 
 <script setup>
@@ -140,13 +183,16 @@ const getRatingClass = (rating) => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .game-carousel-item {
+  @include button-reset;
   flex-shrink: 0;
   width: 160px;
   cursor: pointer;
   border-radius: 10px;
   overflow: hidden;
-  background: var(--surface-card, #2a2d36);
+  background: var(--color-background-card);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
@@ -162,7 +208,7 @@ const getRatingClass = (rating) => {
   width: 160px;
   height: 208px;
   overflow: hidden;
-  background: var(--surface-ground, #1e2127);
+  background: var(--color-background-mute);
 }
 
 .game-cover {
@@ -182,7 +228,7 @@ const getRatingClass = (rating) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1D4E4A, #2a5c58);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
   color: rgba(255, 255, 255, 0.4);
   font-size: 3rem;
 }
@@ -191,7 +237,7 @@ const getRatingClass = (rating) => {
   position: absolute;
   bottom: 6px;
   left: 6px;
-  background: rgba(0, 0, 0, 0.72);
+  background: var(--color-overlay-strong);
   color: white;
   padding: 4px 8px;
   border-radius: 4px;
@@ -203,8 +249,8 @@ const getRatingClass = (rating) => {
   position: absolute;
   top: 8px;
   right: 8px;
-  background: rgba(255, 193, 7, 0.95);
-  color: #000;
+  background: var(--color-overlay-strong);
+  color: var(--color-rating-star);
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 0.75rem;
@@ -215,15 +261,15 @@ const getRatingClass = (rating) => {
 }
 
 .rating-badge i {
-  color: #000;
+  color: var(--color-rating-star);
 }
 
 .library-badge {
   position: absolute;
   top: 6px;
   left: 6px;
-  background: rgba(29, 78, 74, 0.9);
-  color: #4ade80;
+  background: var(--color-overlay-strong);
+  color: var(--color-on-overlay);
   padding: 3px 6px;
   border-radius: 4px;
   font-size: 0.75rem;
@@ -261,7 +307,7 @@ const getRatingClass = (rating) => {
 .game-title {
   font-size: 0.82rem;
   font-weight: 600;
-  color: var(--text-color, #e0e0e0);
+  color: var(--color-text);
   margin: 0;
   line-height: 1.3;
   min-height: 2.6em;
@@ -280,7 +326,7 @@ const getRatingClass = (rating) => {
 }
 
 .score-label {
-  color: var(--text-color-secondary, #9ca3af);
+  color: var(--color-text-secondary);
 }
 
 .score-value {
@@ -290,28 +336,18 @@ const getRatingClass = (rating) => {
 }
 
 .score-high {
-  background: #6c3;
-  color: white;
+  background: var(--color-success);
+  color: var(--color-background);
 }
 
 .score-medium {
-  background: #fc3;
-  color: #333;
+  background: var(--color-warning);
+  color: var(--color-background);
 }
 
 .score-low {
-  background: #f00;
-  color: white;
+  background: var(--color-error);
+  color: var(--color-background);
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .game-title {
-    color: var(--text-color, #e0e0e0);
-  }
-  
-  .score-label {
-    color: var(--text-color-secondary, #9ca3af);
-  }
-}
 </style>

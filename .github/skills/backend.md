@@ -32,7 +32,7 @@ backend/
 │   │   ├── VideoController.php    # 12 use cases + YouTubeService + tag/note repos
 │   │   ├── AuthController.php     # Login/logout/session
 │   │   ├── LibraryController.php  # Cross-entity library operations
-│   │   ├── LibraryXController.php # URL management
+│   │   ├── LibraryXController.php # Admin URL panel (requires users.is_admin)
 │   │   ├── StatsController.php    # Statistics: books, movies, games, albums, videos
 │   │   ├── SocialController.php   # Friends: send/accept/reject request, remove, search users, public profile
 │   │   └── FeedController.php     # Activity feed: get feed, privacy settings
@@ -65,7 +65,7 @@ backend/
 │   │   ├── Cache/CacheService.php # File-based caching with TTL
 │   │   │                          # set(key, value, ttl_seconds, namespace) — TTL is 3rd param, namespace 4th
 │   │   ├── Database/              # DatabaseConnector (PDO factory)
-│   │   ├── Middleware/            # Auth, CSRF, Validation, Logging, Pipeline
+│   │   ├── Middleware/            # Auth, Admin, CSRF, Validation, Logging, Pipeline
 │   │   ├── Auth/                  # GoogleOAuthVerifier
 │   │   ├── Session/SessionManager.php
 │   │   └── Logging/              # LoggingService (singleton), LoggerFactory
@@ -327,6 +327,37 @@ class GameDataMapper
 | `CSRFMiddleware` | Validates CSRF token | `MiddlewareInterface` |
 | `ValidationMiddleware` | Checks required fields (configured via route `validation` key) | `MiddlewareInterface` |
 | `LoggingMiddleware` | Logs request/response | `MiddlewareInterface` |
+| `AdminMiddleware` | Loads the `User` by `user_id` and rejects with 403 unless `users.is_admin`. Also fills `$request['user']` | `MiddlewareInterface` |
+| `RateLimitMiddleware` | Per-action, per-IP limit. **Injected automatically** into every route that does not declare its own (`ActionRouter.php:149-150`) | `MiddlewareInterface` |
+
+**Critical**: a middleware that aborts must return **`http_code`**, not `code`. `Application.php:124`
+reads `$result['http_code']` and nothing else, falling back to `400`. `CSRFMiddleware.php:46` and
+`AuthenticationMiddleware.php:70` return `'code' => 403` / `'code' => 401`, so their status never
+reaches the client: an auth failure arrives as `HTTP 400` with `{"code": 401}` in the body. Verified
+with `curl` on 2026-08-19. `AdminMiddleware` uses `http_code` and is the only one whose status
+survives.
+
+### Admin Authorization
+
+Administrator permission is data, not code: the `users.is_admin` column (migration
+`20260819_090000_users_is_admin.sql`). Only the two LibraryX routes require it, and the check lives
+in the pipeline — controllers contain no permission logic:
+
+```php
+'libraryx_get_urls' => [
+    'controller' => ['LibraryXController', 'getUrls'],
+    'middleware' => [
+        LoggingMiddleware::class,
+        AuthenticationMiddleware::class,  // sets user_id — AdminMiddleware needs it
+        AdminMiddleware::class,
+    ],
+    'validation' => []
+],
+```
+
+Granting or revoking the role is an `UPDATE`, no redeploy. `AdminMiddleware` also writes
+`$request['user']`, the key `ActionRouter.php:503-504` passes to `LibraryXController`: **no other
+middleware writes it**, so before this existed both routes returned 403 to everyone.
 
 ### Pipeline Execution
 
@@ -414,24 +445,53 @@ public function __construct(
     LoggerInterface $logger
 ) { ... }
 
-// After a successful library operation:
-$this->feedEventService->recordItemAdded($userId, 'game', (string)$game->getId(), $game->getTitle(), $game->getCoverUrl());
+// After a successful library operation.
+// NOTE the 3rd argument: it is the EXTERNAL id (the one the frontend detail route uses),
+// never the numeric autoincrement — see "Supported Entity Types" below.
+$this->feedEventService->recordItemAdded($userId, 'game', (string)$command->id->toInt(), $game->getTitle(), $game->getCoverUrl());
 $this->feedEventService->recordItemRated($userId, 'book', $isbn, $title, $coverUrl, $rating);
 $this->feedEventService->recordStatusChanged($userId, 'movie', $id, $title, $cover, $oldStatus, $newStatus);
 $this->feedEventService->recordNotesUpdated($userId, 'album', $id, $title, $cover);
 $this->feedEventService->recordReadingSession($userId, $isbn, $title, $cover, $sessionData);
 ```
 
-All errors are caught internally — feed failures never break the main operation.
+All errors are caught internally — feed failures never break the main operation. Since 2026-08-18
+they are no longer invisible either: `dispatch()` (`src/Domain/Services/FeedEventService.php:121-134`)
+logs a `warning` to `storage/logs/` carrying the rejected `entity_type`. If an event never reaches
+the feed, look there first.
+
+**`recordNotesUpdated()` has no callers.** None of the five entities emits `notes_updated`, even
+though the event type is in the ENUM and `user_privacy_settings.show_notes` already accounts for it.
+Wiring it up for a single entity would make that entity the odd one out — it is a decision for all
+five at once, and it drags a privacy question along (notes default to `isPrivate = true`).
 
 ### Supported Entity Types (Feed)
 
-Feed events support: `book`, `movie`, `game`, `album` (constants in `FeedEvent::ENTITY_*`).  
-**`video` is NOT yet a valid `entity_type`** in `feed_events` DB column or `FeedEvent::VALID_ENTITY_TYPES`. VideoUse cases call `FeedEventService` but pass `'video'` as entity type — this silently fails validation. Needs a migration to extend the ENUM when ready.
+Feed events support all five library entities: `book`, `movie`, `game`, `album` and `video`
+(constants in `FeedEvent::ENTITY_*`). `video` was added on 2026-08-18 by migration
+`20260818_163500_feed_events_video.sql` — **applied in dev only**, production still needs
+`./prod-deploy.sh --migrate`.
+
+**Two lists must agree, and nothing enforces it:** the `feed_events.entity_type` ENUM in SQL and
+`FeedEvent::VALID_ENTITY_TYPES` (`src/Domain/Model/FeedEvent.php:32-38`). They drifted apart once —
+videos landed after the May migration, so the three video use cases emitted events that were rejected
+in validation and swallowed by the service, with no visible error at all.
+
+**The `entityId` argument is the external identifier, not the numeric PK.** Each entity uses its own:
+ISBN, IMDb id, IGDB id, Spotify id, and `youtube_id` for videos (`$video->getYouTubeId()->toString()`,
+not `$video->getId()`). The column is `VARCHAR(50)` for exactly this reason, and the frontend detail
+routes — `/videos/:youtubeId` and friends — consume it directly. Passing the autoincrement produces a
+feed entry whose link resolves to nothing, and nothing fails until someone clicks it.
+
+Reading the feed, on the other hand, is entity-agnostic: `MySqlFeedEventRepository.php:142` builds its
+`WHERE` from `user_id` and `event_type` only. A new entity never requires touching the feed query.
 
 ### Adding a New Use Case That Emits Feed Events
 
-Add `FeedEventService` as constructor dependency and register it in `config/container.php`. The DI container autowires it automatically if registered.
+Add `FeedEventService` as a constructor dependency. **No change to `config/container.php` is
+needed** if the use case is already declared there with `DI\autowire()` (as all of them are): PHP-DI
+resolves the new constructor argument on its own. Then make sure the `entityType` you pass is present
+in **both** lists above, and that the `entityId` is the external identifier.
 
 ---
 

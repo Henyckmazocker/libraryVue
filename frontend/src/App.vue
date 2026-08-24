@@ -1,11 +1,23 @@
 <template>
   <AppLayout>
-    <div v-if="showLoading" class="app-loading">
-      <i class="pi pi-spin pi-spinner app-loading__spinner"></i>
+    <div
+      v-if="showLoading"
+      class="app-loading"
+    >
+      <i class="pi pi-spin pi-spinner app-loading__spinner" />
     </div>
-    <router-view v-else v-slot="{ Component }">
-      <Transition name="page-fade" mode="out-in">
-        <component :is="Component" :key="$route.path" />
+    <router-view
+      v-else
+      v-slot="{ Component }"
+    >
+      <Transition
+        name="page-fade"
+        mode="out-in"
+      >
+        <component
+          :is="Component"
+          :key="$route.path"
+        />
       </Transition>
     </router-view>
   </AppLayout>

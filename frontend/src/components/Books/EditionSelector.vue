@@ -2,7 +2,7 @@
   <div class="edition-selector">
     <div class="section-header">
       <h2 class="section-title">
-        <i class="fas fa-layer-group"></i>
+        <i class="fas fa-layer-group" />
         Ediciones Disponibles
       </h2>
     </div>
@@ -10,26 +10,45 @@
     <!-- Filtros -->
     <div class="filters-section">
       <button 
-        @click="toggleFilters" 
-        class="filters-toggle-btn"
+        class="filters-toggle-btn" 
         :class="{ active: showFilters }"
+        @click="toggleFilters"
       >
-        <i class="fas fa-filter"></i>
+        <i class="fas fa-filter" />
         <span>{{ showFilters ? 'Ocultar' : 'Mostrar' }} Filtros</span>
-        <i class="fas" :class="showFilters ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+        <i
+          class="fas"
+          :class="showFilters ? 'fa-chevron-up' : 'fa-chevron-down'"
+        />
       </button>
 
       <transition name="slide-fade">
-        <div v-if="showFilters" class="filters-container">
+        <div
+          v-if="showFilters"
+          class="filters-container"
+        >
           <!-- Idioma -->
           <div class="filter-group">
-            <label class="filter-label">
-              <i class="fas fa-globe"></i>
+            <label
+              class="filter-label"
+              for="edition-filter-language"
+            >
+              <i class="fas fa-globe" />
               Idioma
             </label>
-            <select v-model="filters.language" class="filter-select">
-              <option value="">Todos los idiomas</option>
-              <option v-for="lang in availableLanguages" :key="lang.code" :value="lang.code">
+            <select
+              id="edition-filter-language"
+              v-model="filters.language"
+              class="filter-select"
+            >
+              <option value="">
+                Todos los idiomas
+              </option>
+              <option
+                v-for="lang in availableLanguages"
+                :key="lang.code"
+                :value="lang.code"
+              >
                 {{ lang.name }} ({{ lang.count }})
               </option>
             </select>
@@ -37,40 +56,60 @@
 
           <!-- Año de publicación -->
           <div class="filter-group">
-            <label class="filter-label">
-              <i class="fas fa-calendar"></i>
+            <!-- Dos inputs bajo una etiqueta: el <label> no puede apuntar a los dos,
+                 así que cada uno lleva su propio nombre accesible. -->
+            <span
+              id="edition-filter-year"
+              class="filter-label"
+            >
+              <i class="fas fa-calendar" />
               Año de publicación
-            </label>
+            </span>
             <div class="year-range-inputs">
               <input 
                 v-model.number="filters.yearFrom" 
                 type="number" 
+                aria-label="Año de publicación desde"
                 placeholder="Desde"
                 min="1000"
                 :max="currentYear"
                 class="filter-input"
-              />
+              >
               <span class="range-separator">-</span>
               <input 
                 v-model.number="filters.yearTo" 
                 type="number" 
+                aria-label="Año de publicación hasta"
                 placeholder="Hasta"
                 min="1000"
                 :max="currentYear"
                 class="filter-input"
-              />
+              >
             </div>
           </div>
 
           <!-- Editorial -->
           <div class="filter-group">
-            <label class="filter-label">
-              <i class="fas fa-building"></i>
+            <label
+              class="filter-label"
+              for="edition-filter-publisher"
+            >
+              <i class="fas fa-building" />
               Editorial
             </label>
-            <select v-model="filters.publisher" class="filter-select">
-              <option value="">Todas las editoriales</option>
-              <option v-for="pub in availablePublishers" :key="pub.name" :value="pub.name">
+            <select
+              id="edition-filter-publisher"
+              v-model="filters.publisher"
+              class="filter-select"
+            >
+              <option value="">
+                Todas las editoriales
+              </option>
+              <option
+                v-for="pub in availablePublishers"
+                :key="pub.name"
+                :value="pub.name"
+              >
                 {{ pub.name }} ({{ pub.count }})
               </option>
             </select>
@@ -78,13 +117,26 @@
 
           <!-- Formato físico -->
           <div class="filter-group">
-            <label class="filter-label">
-              <i class="fas fa-bookmark"></i>
+            <label
+              class="filter-label"
+              for="edition-filter-format"
+            >
+              <i class="fas fa-bookmark" />
               Formato
             </label>
-            <select v-model="filters.format" class="filter-select">
-              <option value="">Todos los formatos</option>
-              <option v-for="fmt in availableFormats" :key="fmt.name" :value="fmt.name">
+            <select
+              id="edition-filter-format"
+              v-model="filters.format"
+              class="filter-select"
+            >
+              <option value="">
+                Todos los formatos
+              </option>
+              <option
+                v-for="fmt in availableFormats"
+                :key="fmt.name"
+                :value="fmt.name"
+              >
                 {{ fmt.name }} ({{ fmt.count }})
               </option>
             </select>
@@ -92,8 +144,11 @@
 
           <!-- Botón limpiar filtros -->
           <div class="filter-actions">
-            <button @click="clearFilters" class="clear-filters-btn">
-              <i class="fas fa-times-circle"></i>
+            <button
+              class="clear-filters-btn"
+              @click="clearFilters"
+            >
+              <i class="fas fa-times-circle" />
               Limpiar filtros
             </button>
           </div>
@@ -102,43 +157,66 @@
     </div>
 
     <!-- Estado de carga -->
-    <div v-if="isLoading" class="loading-state">
-      <i class="fas fa-spinner fa-spin"></i>
+    <div
+      v-if="isLoading"
+      class="loading-state"
+    >
+      <i class="fas fa-spinner fa-spin" />
       <p>Cargando ediciones...</p>
     </div>
 
     <!-- Error -->
-    <div v-else-if="error" class="error-state">
-      <i class="fas fa-exclamation-circle"></i>
+    <div
+      v-else-if="error"
+      class="error-state"
+    >
+      <i class="fas fa-exclamation-circle" />
       <p>{{ error }}</p>
-      <button @click="loadEditions" class="retry-btn">
-        <i class="fas fa-redo"></i>
+      <button
+        class="retry-btn"
+        @click="loadEditions"
+      >
+        <i class="fas fa-redo" />
         Reintentar
       </button>
     </div>
 
     <!-- Sin resultados -->
-    <div v-else-if="filteredEditions.length === 0" class="empty-state">
-      <i class="fas fa-inbox"></i>
+    <div
+      v-else-if="filteredEditions.length === 0"
+      class="empty-state"
+    >
+      <i class="fas fa-inbox" />
       <p>No se encontraron ediciones con los filtros seleccionados</p>
-      <button v-if="hasActiveFilters" @click="clearFilters" class="clear-filters-btn">
+      <button
+        v-if="hasActiveFilters"
+        class="clear-filters-btn"
+        @click="clearFilters"
+      >
         Limpiar filtros
       </button>
     </div>
 
     <!-- Carrusel de ediciones -->
-    <div v-else class="editions-carousel">
+    <div
+      v-else
+      class="editions-carousel"
+    >
       <div class="carousel-container">
         <button 
           v-if="canScrollLeft" 
-          @click="scrollLeft" 
-          class="carousel-nav-btn left"
+          class="carousel-nav-btn left" 
           aria-label="Scroll left"
+          @click="scrollLeft"
         >
-          <i class="fas fa-chevron-left"></i>
+          <i class="fas fa-chevron-left" />
         </button>
 
-        <div ref="carouselTrack" class="carousel-track" @scroll="updateScrollButtons">
+        <div
+          ref="carouselTrack"
+          class="carousel-track"
+          @scroll="updateScrollButtons"
+        >
           <div 
             v-for="edition in filteredEditions" 
             :key="edition.key" 
@@ -155,11 +233,11 @@
 
         <button 
           v-if="canScrollRight" 
-          @click="scrollRight" 
-          class="carousel-nav-btn right"
+          class="carousel-nav-btn right" 
           aria-label="Scroll right"
+          @click="scrollRight"
         >
-          <i class="fas fa-chevron-right"></i>
+          <i class="fas fa-chevron-right" />
         </button>
       </div>
     </div>
@@ -439,6 +517,8 @@ watch(() => props.workKey, () => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .edition-selector {
   margin: 32px 0;
   padding: 24px;
@@ -592,7 +672,7 @@ watch(() => props.workKey, () => {
 
 .clear-filters-btn:hover {
   background: var(--color-warning);
-  color: var(--color-text-light);
+  color: var(--color-on-status);
 }
 
 /* Estados */
@@ -730,7 +810,7 @@ watch(() => props.workKey, () => {
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@include responsive-below(md) {
   .filters-container {
     grid-template-columns: 1fr;
   }

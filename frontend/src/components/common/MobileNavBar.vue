@@ -1,5 +1,8 @@
 <template>
-  <nav class="mobile-nav-bar" v-if="isVisible">
+  <nav
+    v-if="isVisible"
+    class="mobile-nav-bar"
+  >
     <RouterLink
       v-for="tab in tabs"
       :key="tab.path"
@@ -8,28 +11,21 @@
       :class="{ 'mobile-nav-bar__tab--active': isActive(tab.path) }"
       :aria-label="tab.label"
     >
-      <i :class="tab.icon"></i>
+      <i :class="tab.icon" />
       <span>{{ tab.label }}</span>
     </RouterLink>
   </nav>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { Capacitor } from '@capacitor/core';
+import { useBreakpoint } from '@/composables/useBreakpoint';
 
 const route = useRoute();
 
-// Reactivo a resize: visible en plataforma nativa O en pantallas pequeñas
-const windowWidth = ref(window.innerWidth);
-const onResize = () => { windowWidth.value = window.innerWidth; };
-onMounted(() => window.addEventListener('resize', onResize));
-onUnmounted(() => window.removeEventListener('resize', onResize));
-
-const isVisible = computed(() =>
-  Capacitor.isNativePlatform() || windowWidth.value <= 768
-);
+// Visible en plataforma nativa O en pantallas pequeñas. Mismo umbral y mismo
+// listener que `Layout.vue`: ambos salen de `useBreakpoint`.
+const { isNativeOrMobile: isVisible } = useBreakpoint();
 
 const tabs = [
   { path: '/library',   icon: 'fas fa-bookmark',   label: 'Biblioteca' },

@@ -65,9 +65,14 @@ class AuthenticationMiddleware implements MiddlewareInterface
         ]);
 
         return [
-            'status'  => 'error',
-            'message' => 'Authentication required. Please log in.',
-            'code'    => 401,
+            // `http_code` es la clave que lee Application.php:124. Con `code`,
+            // que es lo que había, el fallo de autenticación llegaba al
+            // navegador como **HTTP 400** y `store/auth.js:260` no lo
+            // reconocía como sesión caducada. AdminMiddleware ya lo hacía bien.
+            'status'    => 'error',
+            'message'   => 'Authentication required. Please log in.',
+            'code'      => 'AUTH_REQUIRED',
+            'http_code' => 401,
         ];
     }
 }

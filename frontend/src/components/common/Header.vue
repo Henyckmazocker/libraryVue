@@ -2,8 +2,11 @@
   <header class="app-header">
     <!-- Logo/Título de la aplicación a la izquierda -->
     <div class="app-header__left">
-      <router-link to="/" class="app-header__logo">
-        <i class="fas fa-book-open"></i>
+      <router-link
+        to="/"
+        class="app-header__logo"
+      >
+        <i class="fas fa-book-open" />
         <span class="app-header__title">Biblioteca Personal</span>
       </router-link>
     </div>
@@ -11,38 +14,71 @@
     <!-- Sección derecha con autenticación -->
     <div class="app-header__right">
       <!-- Botón de cambio de tema -->
-      <button @click="toggleTheme" class="app-header__theme-toggle" :title="isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'">
-        <i class="fas" :class="isDark ? 'fa-sun' : 'fa-moon'"></i>
+      <button
+        class="app-header__theme-toggle"
+        :title="isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
+        :aria-label="isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
+        @click="toggleTheme"
+      >
+        <i
+          class="fas"
+          :class="isDark ? 'fa-sun' : 'fa-moon'"
+          aria-hidden="true"
+        />
       </button>
       
       <template v-if="!isLoggedIn && !isLoading">
         <!-- Botón nativo Capacitor -->
-        <button v-if="isNative" @click="nativeSignIn" class="app-header__native-signin">
-          <i class="fab fa-google"></i>
+        <button
+          v-if="isNative"
+          class="app-header__native-signin"
+          @click="nativeSignIn"
+        >
+          <i class="fab fa-google" />
           Iniciar sesión con Google
         </button>
         <!-- Botón SDK web -->
-        <div v-else id="g_id_signin"></div>
+        <div
+          v-else
+          id="g_id_signin"
+        />
       </template>
       
       <template v-if="isLoading">
         <div class="app-header__loading">
-          <i class="fas fa-spinner fa-spin"></i>
+          <i class="fas fa-spinner fa-spin" />
         </div>
       </template>
       
       <template v-if="isLoggedIn">
         <div class="app-header__user-menu">
-          <img :src="user?.picture" alt="Usuario" class="app-header__user-avatar" />
+          <img
+            :src="user?.picture"
+            alt="Usuario"
+            class="app-header__user-avatar"
+            loading="lazy"
+            decoding="async"
+          >
           <span class="app-header__user-name">{{ user?.name }}</span>
-          <button @click="handleLogout" class="app-header__logout-btn" title="Cerrar sesión">
-            <i class="fas fa-sign-out-alt"></i>
+          <button
+            class="app-header__logout-btn"
+            title="Cerrar sesión"
+            aria-label="Cerrar sesión"
+            @click="handleLogout"
+          >
+            <i
+              class="fas fa-sign-out-alt"
+              aria-hidden="true"
+            />
           </button>
         </div>
       </template>
       
       <!-- Mostrar errores si los hay -->
-      <div v-if="error || googleError" class="app-header__error">
+      <div
+        v-if="error || googleError"
+        class="app-header__error"
+      >
         {{ error || googleError }}
       </div>
     </div>
@@ -163,6 +199,8 @@ const handleLogout = async () => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .app-header {
   display: flex;
   justify-content: space-between;
@@ -314,7 +352,7 @@ const handleLogout = async () => {
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@include responsive-below(md) {
   .app-header {
     padding: 0 15px;
   }
@@ -346,6 +384,7 @@ const handleLogout = async () => {
   }
 
   i {
+    /* stylelint-disable-next-line color-no-hex -- Google: color de marca, drift intencional (styles.md) */
     color: #4285F4;
   }
 }

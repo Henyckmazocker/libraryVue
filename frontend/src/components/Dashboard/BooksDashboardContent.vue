@@ -1,21 +1,33 @@
 <template>
   <div class="dashboard-content">
     <div class="content-header">
-      <router-link to="/library?filter=books" class="btn btn--primary">
-        <i class="fas fa-library"></i>
+      <router-link
+        to="/library?filter=books"
+        class="btn btn--primary"
+      >
+        <i class="fas fa-library" />
         Ver Mi Biblioteca de Libros
       </router-link>
     </div>
 
-    <div v-if="loading" class="loading-container">
-      <i class="fas fa-spinner fa-spin"></i>
+    <div
+      v-if="loading"
+      class="loading-container"
+    >
+      <i class="fas fa-spinner fa-spin" />
       <p>Cargando estadísticas de libros...</p>
     </div>
 
-    <div v-else-if="error" class="error-container">
-      <i class="fas fa-exclamation-triangle"></i>
+    <div
+      v-else-if="error"
+      class="error-container"
+    >
+      <i class="fas fa-exclamation-triangle" />
       <p>{{ error }}</p>
-      <button @click="loadBookStats" class="btn btn--primary">
+      <button
+        class="btn btn--primary"
+        @click="loadBookStats"
+      >
         Reintentar
       </button>
     </div>

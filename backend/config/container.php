@@ -30,6 +30,22 @@ return function (): ContainerInterface {
         
         // Alias 'db' to PDO for repositories that use $db parameter name
         'db' => DI\get(PDO::class),
+
+        // Catalog mirror (library_mirror). NAMED entry on purpose: a second
+        // PDO::class would hijack the ~30 existing PDO injections below.
+        // Only the catalog layer asks for it, explicitly.
+        'pdo.mirror' => function () {
+            $connector = new DatabaseConnector();
+            return $connector->getMirrorConnection();
+        },
+
+        // Solo para el CLI bin/mirror. Usuario aparte porque LOAD DATA INFILE
+        // exige el privilegio FILE, que es global y no se puede acotar a un
+        // esquema: no lo quiere el usuario con el que corre la app web.
+        'pdo.mirror.import' => function () {
+            $connector = new DatabaseConnector();
+            return $connector->getMirrorImportConnection();
+        },
         
         LoggerInterface::class => function () {
             return LoggerFactory::createDatabaseLogger();
@@ -141,6 +157,13 @@ return function (): ContainerInterface {
             return new \App\Infrastructure\Cache\CacheService($cacheDir, $c->get(LoggerInterface::class));
         },
 
+        \App\Infrastructure\Cache\ResilientCall::class => function(ContainerInterface $c) {
+            return new \App\Infrastructure\Cache\ResilientCall(
+                $c->get(\App\Infrastructure\Cache\CacheService::class),
+                $c->get(LoggerInterface::class)
+            );
+        },
+
         \App\Infrastructure\RateLimit\FileRateLimitStore::class => function(ContainerInterface $c) {
             $dir = __DIR__ . '/../storage/ratelimit';
             return new \App\Infrastructure\RateLimit\FileRateLimitStore($dir, $c->get(LoggerInterface::class));
@@ -151,19 +174,85 @@ return function (): ContainerInterface {
         
         \App\Domain\Services\OpenLibraryService::class => DI\autowire()
             ->constructorParameter('cache', DI\get(\App\Infrastructure\Cache\CacheService::class))
+            ->constructorParameter('resilient', DI\get(\App\Infrastructure\Cache\ResilientCall::class))
             ->constructorParameter('logger', DI\get(LoggerInterface::class)),
             
         \App\Domain\Services\GoogleBooksService::class => DI\autowire()
             ->constructorParameter('cache', DI\get(\App\Infrastructure\Cache\CacheService::class))
+            ->constructorParameter('resilient', DI\get(\App\Infrastructure\Cache\ResilientCall::class))
             ->constructorParameter('logger', DI\get(LoggerInterface::class)),
             
         \App\Domain\Services\IGDBService::class => DI\autowire()
             ->constructorParameter('cache', DI\get(\App\Infrastructure\Cache\CacheService::class))
+            ->constructorParameter('resilient', DI\get(\App\Infrastructure\Cache\ResilientCall::class))
             ->constructorParameter('logger', DI\get(LoggerInterface::class)),
 
-        \App\Domain\Services\OmdbService::class => DI\autowire()
+        \App\Domain\Services\TmdbService::class => DI\autowire()
             ->constructorParameter('cache', DI\get(\App\Infrastructure\Cache\CacheService::class))
             ->constructorParameter('logger', DI\get(LoggerInterface::class)),
+
+        // ===========================
+        // CATÁLOGO DE PELÍCULAS
+        // ===========================
+        // La costura del mirror: local primero, red solo cuando falta algo. La
+        // decisión vive entera en FallbackMovieCatalog, no repartida por los
+        // controllers.
+
+        \App\Infrastructure\Persistence\Catalog\MySqlMovieCatalog::class => DI\autowire()
+            ->constructorParameter('mirror', DI\get('pdo.mirror')),
+
+        // 'mirror' explícito: sin él, PHP-DI autowirea el PDO de library_db y
+        // tmdb_title se busca en la base equivocada.
+        \App\Infrastructure\Catalog\TmdbMovieCatalog::class => DI\autowire()
+            ->constructorParameter('mirror', DI\get('pdo.mirror')),
+
+        \App\Infrastructure\Catalog\FallbackMovieCatalog::class => DI\autowire()
+            ->constructorParameter('local', DI\get(\App\Infrastructure\Persistence\Catalog\MySqlMovieCatalog::class))
+            ->constructorParameter('remote', DI\get(\App\Infrastructure\Catalog\TmdbMovieCatalog::class)),
+
+        \App\Domain\Repository\Catalog\MovieCatalogInterface::class =>
+            DI\get(\App\Infrastructure\Catalog\FallbackMovieCatalog::class),
+
+        // ===========================
+        // CATÁLOGO DE ÁLBUMES
+        // ===========================
+        // La misma costura que en películas, por un motivo distinto: aquí no se
+        // trata de ahorrar latencia sino de dejar de guardar catálogo de
+        // Spotify, que sus condiciones prohíben expresamente.
+
+        // 'mirror' explícito: sin él PHP-DI autowirea el PDO de library_db y
+        // mb_release_group se busca en la base equivocada.
+        \App\Infrastructure\Persistence\Catalog\MySqlAlbumCatalog::class => DI\autowire()
+            ->constructorParameter('mirror', DI\get('pdo.mirror')),
+
+        \App\Infrastructure\Catalog\SpotifyAlbumCatalog::class => DI\autowire(),
+
+        \App\Infrastructure\Catalog\FallbackAlbumCatalog::class => DI\autowire()
+            ->constructorParameter('local', DI\get(\App\Infrastructure\Persistence\Catalog\MySqlAlbumCatalog::class))
+            ->constructorParameter('remote', DI\get(\App\Infrastructure\Catalog\SpotifyAlbumCatalog::class)),
+
+        \App\Domain\Repository\Catalog\AlbumCatalogInterface::class =>
+            DI\get(\App\Infrastructure\Catalog\FallbackAlbumCatalog::class),
+
+        // Las pistas no vienen en los dumps: se piden a la API de MusicBrainz.
+        // 'mirror' explícito por lo mismo que el resto de la capa: mb_track vive
+        // en library_mirror y sin esto PHP-DI autowirea el PDO de library_db.
+        \App\Domain\Services\AlbumTrackService::class => DI\autowire()
+            ->constructorParameter('mirror', DI\get('pdo.mirror')),
+
+        // ===========================
+        // PORTADAS LOCALES
+        // ===========================
+        // 'mirror' explícito por lo mismo que el catálogo: cover_file vive en
+        // library_mirror, y sin esto PHP-DI autowirea el PDO de library_db.
+
+        \App\Infrastructure\Covers\CoverStore::class => DI\autowire()
+            ->constructorParameter('mirror', DI\get('pdo.mirror')),
+
+        // 'library' es el PDO normal: la siembra LEE la biblioteca del usuario
+        // y ESCRIBE en el mirror a través de CoverStore.
+        \App\Infrastructure\Covers\CoverSeeder::class => DI\autowire()
+            ->constructorParameter('library', DI\get(PDO::class)),
 
         \App\Domain\Services\SpotifyService::class => DI\autowire()
             ->constructorParameter('cache', DI\get(\App\Infrastructure\Cache\CacheService::class))
@@ -171,10 +260,12 @@ return function (): ContainerInterface {
 
         \App\Domain\Services\LastFmService::class => DI\autowire()
             ->constructorParameter('cache', DI\get(\App\Infrastructure\Cache\CacheService::class))
+            ->constructorParameter('resilient', DI\get(\App\Infrastructure\Cache\ResilientCall::class))
             ->constructorParameter('logger', DI\get(LoggerInterface::class)),
 
         \App\Domain\Services\YouTubeService::class => DI\autowire()
             ->constructorParameter('cache', DI\get(\App\Infrastructure\Cache\CacheService::class))
+            ->constructorParameter('resilient', DI\get(\App\Infrastructure\Cache\ResilientCall::class))
             ->constructorParameter('logger', DI\get(LoggerInterface::class)),
             
         \App\Domain\Services\WorkSearchService::class => DI\autowire()
@@ -293,6 +384,7 @@ return function (): ContainerInterface {
         \App\Infrastructure\Middleware\AuthMiddleware::class => DI\autowire(),
         \App\Infrastructure\Middleware\LoggingMiddleware::class => DI\autowire(),
         \App\Infrastructure\Middleware\CSRFMiddleware::class => DI\autowire(),
+        \App\Infrastructure\Middleware\AdminMiddleware::class => DI\autowire(),
         \App\Infrastructure\RateLimit\RateLimitMiddleware::class => DI\autowire(),
         
         // ===========================

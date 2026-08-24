@@ -1,49 +1,81 @@
 <template>
-  <div class="movie-carousel-item" @click="handleClick">
+  <button
+    type="button"
+    class="movie-carousel-item"
+    @click="handleClick"
+  >
     <div class="movie-poster-wrapper">
       <img 
         v-if="movie.coverUrl" 
         :src="movie.coverUrl" 
         :alt="movie.title"
-        class="movie-poster" 
+        class="movie-poster"
+        width="150"
+        height="225"
         loading="lazy"
-      />
-      <div v-else class="movie-poster-placeholder">
-        <i :class="isSeries ? 'fas fa-tv' : 'fas fa-film'"></i>
+        decoding="async"
+      >
+      <div
+        v-else
+        class="movie-poster-placeholder"
+      >
+        <i :class="isSeries ? 'fas fa-tv' : 'fas fa-film'" />
       </div>
       
       <!-- Badge de año -->
-      <div v-if="movie.year || movie.Year" class="year-badge">
+      <div
+        v-if="movie.year || movie.Year"
+        class="year-badge"
+      >
         {{ movie.year || movie.Year }}
       </div>
       
       <!-- Badge de rating si existe -->
-      <div v-if="movie.user_rating && movie.user_rating > 0" class="rating-badge">
-        <i class="fas fa-star"></i>
+      <div
+        v-if="movie.user_rating && movie.user_rating > 0"
+        class="rating-badge"
+      >
+        <i class="fas fa-star" />
         <span>{{ movie.user_rating }}</span>
       </div>
       
       <!-- Badge de tipo: Serie o Película -->
-      <div class="media-type-badge" :class="isSeries ? 'is-series' : 'is-movie'">
-        <i :class="isSeries ? 'fas fa-tv' : 'fas fa-film'"></i>
+      <div
+        class="media-type-badge"
+        :class="isSeries ? 'is-series' : 'is-movie'"
+      >
+        <i :class="isSeries ? 'fas fa-tv' : 'fas fa-film'" />
         {{ isSeries ? 'Serie' : 'Película' }}
       </div>
 
       <!-- Badge de "En tu biblioteca" -->
-      <div v-if="isInLibrary" class="library-badge" title="En tu biblioteca">
-        <i class="fas fa-bookmark"></i>
+      <div
+        v-if="isInLibrary"
+        class="library-badge"
+        title="En tu biblioteca"
+      >
+        <i
+          class="fas fa-bookmark"
+          aria-hidden="true"
+        />
+        <span class="u-sr-only">En tu biblioteca</span>
       </div>
       
       <!-- Badge de status si existe (para compatibilidad) -->
-      <div v-if="movie.userStatuses && movie.userStatuses.length > 0 && !isInLibrary" class="status-badge">
-        <i class="fas fa-check-circle"></i>
+      <div
+        v-if="movie.userStatuses && movie.userStatuses.length > 0 && !isInLibrary"
+        class="status-badge"
+      >
+        <i class="fas fa-check-circle" />
       </div>
     </div>
     
     <div class="movie-info">
-      <h3 class="movie-title">{{ truncateText(movie.title || movie.Title, 40) }}</h3>
+      <h3 class="movie-title">
+        {{ truncateText(movie.title || movie.Title, 40) }}
+      </h3>
     </div>
-  </div>
+  </button>
 </template>
 
 <script setup>
@@ -90,13 +122,16 @@ const truncateText = (text, maxLength) => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .movie-carousel-item {
+  @include button-reset;
   flex-shrink: 0;
   width: 150px;
   cursor: pointer;
   border-radius: 10px;
   overflow: hidden;
-  background: var(--surface-card, #2a2d36);
+  background: var(--color-background-card);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
@@ -112,7 +147,7 @@ const truncateText = (text, maxLength) => {
   width: 150px;
   height: 225px;
   overflow: hidden;
-  background: var(--surface-ground, #1e2127);
+  background: var(--color-background-mute);
 }
 
 .movie-poster {
@@ -133,7 +168,7 @@ const truncateText = (text, maxLength) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1D4E4A, #2a5c58);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
 }
 
 .movie-poster-placeholder i {
@@ -158,8 +193,8 @@ const truncateText = (text, maxLength) => {
   position: absolute;
   top: 8px;
   right: 8px;
-  background: rgba(255, 193, 7, 0.95);
-  color: #000;
+  background: var(--color-overlay-strong);
+  color: var(--color-rating-star);
   padding: 4px 8px;
   border-radius: 12px;
   font-size: 0.75rem;
@@ -193,8 +228,8 @@ const truncateText = (text, maxLength) => {
   position: absolute;
   top: 6px;
   left: 6px;
-  background: rgba(29, 78, 74, 0.9);
-  color: #4ade80;
+  background: var(--color-overlay-strong);
+  color: var(--color-on-overlay);
   font-size: 0.75rem;
   padding: 3px 6px;
   border-radius: 4px;
@@ -214,14 +249,18 @@ const truncateText = (text, maxLength) => {
   letter-spacing: 0.02em;
 }
 
-.media-type-badge.is-series {
-  background: rgba(139, 92, 246, 0.9);
-  color: #fff;
+// Ambos van sobre la carátula, así que comparten scrim y tinta. La distinción
+// serie/película la llevan el icono y la palabra; el borde de acento la refuerza
+// sin depender del color solo. Antes eran `rgba(139,92,246,.9)` —el acento viejo de
+// película— y un teal con su propio gris azulado.
+.media-type-badge.is-series,
+.media-type-badge.is-movie {
+  background: var(--color-overlay-strong);
+  color: var(--color-on-overlay);
 }
 
-.media-type-badge.is-movie {
-  background: rgba(29, 78, 74, 0.85);
-  color: #e0f7f5;
+.media-type-badge.is-series {
+  border: 1px solid var(--color-card-movie-accent);
 }
 
 .movie-info {
@@ -233,7 +272,7 @@ const truncateText = (text, maxLength) => {
 .movie-title {
   font-size: 0.82rem;
   font-weight: 600;
-  color: var(--text-color, #e0e0e0);
+  color: var(--color-text);
   line-height: 1.3;
   margin: 0;
   min-height: 2.6em;
@@ -245,7 +284,7 @@ const truncateText = (text, maxLength) => {
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@include responsive-below(md) {
   .movie-carousel-item {
     width: 130px;
   }
@@ -255,7 +294,7 @@ const truncateText = (text, maxLength) => {
   }
 }
 
-@media (max-width: 480px) {
+@include responsive-below(sm) {
   .movie-carousel-item {
     width: 110px;
   }

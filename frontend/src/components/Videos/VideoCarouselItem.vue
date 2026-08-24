@@ -1,46 +1,75 @@
 <template>
-  <div class="video-carousel-item" @click="handleClick">
+  <button
+    type="button"
+    class="video-carousel-item"
+    @click="handleClick"
+  >
     <div class="video-cover-wrapper">
       <img
         v-if="video.cover_url || video.coverUrl || video.thumbnail"
         :src="video.cover_url || video.coverUrl || video.thumbnail"
         :alt="video.title"
         class="video-cover"
+        width="200"
+        height="112"
         loading="lazy"
-      />
-      <div v-else class="video-cover-placeholder">
-        <i class="fab fa-youtube"></i>
+        decoding="async"
+      >
+      <div
+        v-else
+        class="video-cover-placeholder"
+      >
+        <i class="fab fa-youtube" />
       </div>
 
       <!-- Duration badge -->
-      <div v-if="video.duration" class="duration-badge">
+      <div
+        v-if="video.duration"
+        class="duration-badge"
+      >
         {{ video.duration }}
       </div>
 
       <!-- User rating badge -->
-      <div v-if="video.user_rating && video.user_rating > 0" class="rating-badge">
-        <i class="fas fa-star"></i>
+      <div
+        v-if="video.user_rating && video.user_rating > 0"
+        class="rating-badge"
+      >
+        <i class="fas fa-star" />
         <span>{{ video.user_rating }}</span>
       </div>
 
       <!-- In library badge -->
-      <div v-if="isInLibrary" class="library-badge" title="En tu biblioteca">
-        <i class="fas fa-bookmark"></i>
+      <div
+        v-if="isInLibrary"
+        class="library-badge"
+        title="En tu biblioteca"
+      >
+        <i
+          class="fas fa-bookmark"
+          aria-hidden="true"
+        />
+        <span class="u-sr-only">En tu biblioteca</span>
       </div>
 
       <!-- Play icon overlay -->
       <div class="play-overlay">
-        <i class="fab fa-youtube"></i>
+        <i class="fab fa-youtube" />
       </div>
     </div>
 
     <div class="video-info">
-      <h3 class="video-title">{{ truncateText(video.title, 50) }}</h3>
-      <p v-if="video.channel_name || video.channelName" class="video-channel">
+      <h3 class="video-title">
+        {{ truncateText(video.title, 50) }}
+      </h3>
+      <p
+        v-if="video.channel_name || video.channelName"
+        class="video-channel"
+      >
         {{ video.channel_name || video.channelName }}
       </p>
     </div>
-  </div>
+  </button>
 </template>
 
 <script setup>
@@ -77,20 +106,23 @@ function handleClick() {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .video-carousel-item {
+  @include button-reset;
   cursor: pointer;
   width: 200px;
   flex-shrink: 0;
   border-radius: 10px;
   overflow: hidden;
-  background: var(--color-card-video-bg, #1f1414);
-  border: 1px solid var(--color-card-video-border, #3d1f1f);
+  background: var(--color-card-video-bg);
+  border: 1px solid var(--color-card-video-border);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 
   &:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-    background: var(--color-card-video-bg-hover, #2a1a1a);
+    background: var(--color-card-video-bg-hover);
 
     .play-overlay {
       opacity: 1;
@@ -103,7 +135,7 @@ function handleClick() {
   width: 200px;
   height: 112px; // 16:9
   overflow: hidden;
-  background: #111;
+  background: var(--color-media-letterbox);
 }
 
 .video-cover {
@@ -119,8 +151,8 @@ function handleClick() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #2a1414, #3d1f1f);
-  color: var(--color-card-video-accent, #c0392b);
+  background: linear-gradient(135deg, var(--color-card-video-bg), var(--color-card-video-border));
+  color: var(--color-card-video-accent);
   font-size: 2.5rem;
   opacity: 0.6;
 }
@@ -131,8 +163,8 @@ function handleClick() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(192, 57, 43, 0.35);
-  color: #fff;
+  background: var(--color-overlay-strong);
+  color: var(--color-on-overlay);
   font-size: 2rem;
   opacity: 0;
   transition: opacity 0.2s ease;
@@ -143,7 +175,7 @@ function handleClick() {
   bottom: 5px;
   right: 6px;
   background: rgba(0, 0, 0, 0.8);
-  color: #fff;
+  color: var(--color-on-overlay);
   font-size: 0.68rem;
   padding: 2px 6px;
   border-radius: 4px;
@@ -154,8 +186,8 @@ function handleClick() {
   position: absolute;
   top: 6px;
   right: 6px;
-  background: rgba(192, 57, 43, 0.9);
-  color: #ffd700;
+  background: var(--color-overlay-strong);
+  color: var(--color-rating-star);
   font-size: 0.7rem;
   padding: 2px 6px;
   border-radius: 4px;
@@ -168,8 +200,8 @@ function handleClick() {
   position: absolute;
   top: 6px;
   left: 6px;
-  background: rgba(192, 57, 43, 0.9);
-  color: #fff;
+  background: var(--color-overlay-strong);
+  color: var(--color-on-overlay);
   font-size: 0.75rem;
   padding: 3px 6px;
   border-radius: 4px;
@@ -182,7 +214,7 @@ function handleClick() {
 .video-title {
   font-size: 0.8rem;
   font-weight: 600;
-  color: var(--color-text, #e0e0e0);
+  color: var(--color-text);
   margin: 0 0 3px;
   line-height: 1.3;
   display: -webkit-box;
@@ -193,7 +225,7 @@ function handleClick() {
 
 .video-channel {
   font-size: 0.73rem;
-  color: var(--color-text-secondary, #9ca3af);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 </style>

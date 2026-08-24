@@ -30,7 +30,6 @@
 
 <script setup>
 import { computed, onMounted, watch } from 'vue';
-import axios from 'axios';
 import { useRouter } from 'vue-router';
 import GenericSearch from '@/components/shared/GenericSearch.vue';
 import TrendingCarousel from '@/components/TrendingCarousel.vue';
@@ -112,8 +111,7 @@ const searchMovies = async (query, searchType) => {
   if (searchType === 'title') {
     try {
       Logger.debug('[MovieSearch] Searching movies:', query);
-      const apiUrl = process.env.VUE_APP_API_URL || '/index.php';
-      const response = await axios.post(apiUrl, { action: 'search_movies_omdb', title: query });
+      const response = await authStore.apiCall('search_movies_omdb', { title: query });
       
       const results = response.data?.data ?? [];
       if (response.data?.status === 'success' && Array.isArray(results) && results.length > 0) {

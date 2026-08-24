@@ -19,12 +19,15 @@ COPY frontend/vue.config.js .
 
 # Set the API URL for the production build
 # This will be overridden at build time from docker-compose.prod.yml
+# Las dos que necesita este build. El frontend solo lee tres VUE_APP_* (grep
+# process.env.VUE_APP_ en src/) y la tercera, VUE_APP_MODE, es del build de
+# Capacitor, que no pasa por aquí. La de OMDb se retiró
+# con OmdbService: las películas las sirve el mirror y a TMDB llama el backend,
+# así que ninguna clave de catálogo viaja ya al bundle.
 ARG VUE_APP_API_URL
 ARG VUE_APP_GOOGLE_CLIENT_ID
-ARG VUE_APP_OMDB_API_KEY
 ENV VUE_APP_API_URL=${VUE_APP_API_URL}
 ENV VUE_APP_GOOGLE_CLIENT_ID=${VUE_APP_GOOGLE_CLIENT_ID}
-ENV VUE_APP_OMDB_API_KEY=${VUE_APP_OMDB_API_KEY}
 
 # Build the application (outputs to /app/dist by default in vue.config.js)
 RUN npm run build

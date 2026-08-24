@@ -269,11 +269,9 @@ export function useAlbums() {
     getAlbumTags,                         // Specific method
     updateAlbumTags,                      // Direct from store
 
-    // ===== NOTES (direct from store) =====
-    fetchAlbumNotes: albumsStore.fetchAlbumNotes.bind(albumsStore),
-    addAlbumNote: albumsStore.addAlbumNote.bind(albumsStore),
-    updateAlbumNote: albumsStore.updateAlbumNote.bind(albumsStore),
-    deleteAlbumNote: albumsStore.deleteAlbumNote.bind(albumsStore),
+    // ===== NOTES =====
+    // Las notas salieron del store: viven en useMediaNotes('album'). Este
+    // bloque reexportaba las cuatro acciones y no lo consumía nadie.
 
     // ===== UTILITIES =====
     findAlbumById,                        // Pure helper

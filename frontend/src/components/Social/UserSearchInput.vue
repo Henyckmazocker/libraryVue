@@ -9,7 +9,11 @@
         :loading="isSearching"
         @keydown.esc="clear"
       />
-      <InputIcon v-if="query" class="pi pi-times user-search-input__clear" @click="clear" />
+      <InputIcon
+        v-if="query"
+        class="pi pi-times user-search-input__clear"
+        @click="clear"
+      />
     </IconField>
   </div>
 </template>

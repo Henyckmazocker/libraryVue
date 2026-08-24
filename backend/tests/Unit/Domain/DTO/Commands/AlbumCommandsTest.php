@@ -9,6 +9,7 @@ use App\Domain\DTO\Commands\DeleteAlbumCommand;
 use App\Domain\DTO\Commands\EditUserAlbumCommand;
 use App\Domain\DTO\Commands\UpdateAlbumRatingCommand;
 use App\Domain\DTO\Commands\UpdateAlbumStatusesCommand;
+use App\Domain\Model\ValueObjects\AlbumId;
 use App\Domain\Model\ValueObjects\SpotifyId;
 use App\Domain\Model\ValueObjects\Rating;
 use App\Domain\Model\ValueObjects\Genre;
@@ -33,6 +34,7 @@ class AlbumCommandsTest extends TestCase
 
         $cmd = new AddAlbumCommand(
             id: 0,
+            albumId: AlbumId::fromString(self::SPOTIFY_ID),
             spotifyId: $spotifyId,
             title: 'OK Computer',
             artist: 'Radiohead',
@@ -129,10 +131,10 @@ class AlbumCommandsTest extends TestCase
     }
 
     #[Test]
-    public function add_album_from_array_throws_without_spotify_id(): void
+    public function add_album_from_array_throws_without_any_identity(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Spotify ID is required');
+        $this->expectExceptionMessage('An album needs an identity');
         AddAlbumCommand::fromArray(['title' => 'Test'], 1);
     }
 

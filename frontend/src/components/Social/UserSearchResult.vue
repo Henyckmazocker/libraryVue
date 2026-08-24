@@ -1,26 +1,49 @@
 <template>
   <div class="user-search-result">
     <div class="user-search-result__avatar">
-      <img v-if="user.avatar" :src="user.avatar" :alt="user.username" />
-      <i v-else class="pi pi-user" />
+      <img
+        v-if="user.avatar"
+        :src="user.avatar"
+        :alt="user.username"
+        loading="lazy"
+        decoding="async"
+      >
+      <i
+        v-else
+        class="pi pi-user"
+      />
     </div>
     <div class="user-search-result__info">
-      <router-link :to="`/user/${user.username}`" class="user-search-result__name">
+      <router-link
+        :to="`/user/${user.username}`"
+        class="user-search-result__name"
+      >
         {{ user.username }}
       </router-link>
-      <span v-if="user.display_name" class="user-search-result__display">{{ user.display_name }}</span>
+      <span
+        v-if="user.display_name"
+        class="user-search-result__display"
+      >{{ user.display_name }}</span>
     </div>
     <Button
       v-if="!user.is_friend && !user.request_sent"
+      v-tooltip.top="'Enviar solicitud'"
       icon="pi pi-user-plus"
       severity="primary"
       text
       size="small"
-      v-tooltip.top="'Enviar solicitud'"
       @click="$emit('send-request', user.id)"
     />
-    <Tag v-else-if="user.request_sent" value="Solicitud enviada" severity="secondary" />
-    <Tag v-else-if="user.is_friend" value="Amigo/a" severity="success" />
+    <Tag
+      v-else-if="user.request_sent"
+      value="Solicitud enviada"
+      severity="secondary"
+    />
+    <Tag
+      v-else-if="user.is_friend"
+      value="Amigo/a"
+      severity="success"
+    />
   </div>
 </template>
 

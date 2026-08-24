@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\DTO\Commands;
 
+use App\Domain\Model\ValueObjects\AlbumId;
 use App\Domain\Model\ValueObjects\SpotifyId;
 use App\Domain\Model\ValueObjects\Rating;
 use App\Domain\Model\ValueObjects\Genre;
@@ -15,7 +16,8 @@ final readonly class AddAlbumCommand
 {
     /**
      * @param int $id Internal DB ID (0 when the album does not exist yet)
-     * @param SpotifyId $spotifyId Spotify identifier
+     * @param AlbumId $albumId Identidad del álbum: MBID de MusicBrainz o base62 de Spotify
+     * @param SpotifyId|null $spotifyId Id de Spotify cuando lo hay; puente de reconciliación
      * @param string $title Album title
      * @param string $artist Artist name
      * @param int $userId User ID adding the album
@@ -39,7 +41,8 @@ final readonly class AddAlbumCommand
      */
     public function __construct(
         public int $id,
-        public SpotifyId $spotifyId,
+        public AlbumId $albumId,
+        public ?SpotifyId $spotifyId,
         public string $title,
         public string $artist,
         public int $userId,
@@ -65,16 +68,29 @@ final readonly class AddAlbumCommand
 
     public static function fromArray(array $data, int $userId): self
     {
-        $spotifyIdStr = $data['spotify_id'] ?? $data['spotifyId'] ?? null;
-        if (empty($spotifyIdStr)) {
-            throw new \InvalidArgumentException('Spotify ID is required.');
+        // El frontend manda la identidad en spotify_id sea cual sea su forma
+        // (la clave no se ha renombrado, ver el plan «Mirror de Música»), así
+        // que se acepta cualquiera de los cuatro nombres y decide AlbumId.
+        $identity = $data['mb_release_group_gid'] ?? $data['mbReleaseGroupGid']
+            ?? $data['album_id'] ?? $data['albumId']
+            ?? $data['spotify_id'] ?? $data['spotifyId'] ?? null;
+
+        if (empty($identity)) {
+            throw new \InvalidArgumentException(
+                'An album needs an identity: a MusicBrainz MBID or a Spotify ID.'
+            );
         }
 
         if (empty($data['title'])) {
             throw new \InvalidArgumentException('Album title is required.');
         }
 
-        $spotifyId = SpotifyId::fromString($spotifyIdStr);
+        $albumId = AlbumId::fromString((string) $identity);
+
+        $spotifyIdStr = $data['spotify_id'] ?? $data['spotifyId'] ?? null;
+        $spotifyId = !empty($spotifyIdStr) && !$albumId->isMusicBrainz()
+            ? SpotifyId::fromNullableString((string) $spotifyIdStr)
+            : null;
 
         $userRating = null;
         $ratingValue = $data['userRating'] ?? $data['user_rating'] ?? null;
@@ -106,6 +122,7 @@ final readonly class AddAlbumCommand
 
         return new self(
             id: (int)($data['id'] ?? 0),
+            albumId: $albumId,
             spotifyId: $spotifyId,
             title: $data['title'],
             artist: $data['artist'] ?? '',
@@ -139,7 +156,8 @@ final readonly class AddAlbumCommand
     {
         return [
             'id'                     => $this->id,
-            'spotify_id'             => $this->spotifyId->toString(),
+            'spotify_id'             => $this->spotifyId?->toString(),
+            'mb_release_group_gid'   => $this->albumId->isMusicBrainz() ? $this->albumId->toString() : null,
             'title'                  => $this->title,
             'artist'                 => $this->artist,
             'artist_id'              => $this->artistId,

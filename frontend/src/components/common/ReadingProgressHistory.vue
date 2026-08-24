@@ -2,7 +2,7 @@
   <div class="reading-progress-history">
     <div class="history-header">
       <h3>
-        <i class="fas fa-chart-line"></i>
+        <i class="fas fa-chart-line" />
         Historial de Progreso
       </h3>
       <p class="subtitle">
@@ -11,7 +11,10 @@
     </div>
 
     <!-- Estadísticas resumidas -->
-    <div v-if="stats && progressHistory.length > 0" class="stats-summary">
+    <div
+      v-if="stats && progressHistory.length > 0"
+      class="stats-summary"
+    >
       <div class="stat-item">
         <span class="stat-number">{{ stats.totalSessions }}</span>
         <span class="stat-label">Sesiones</span>
@@ -31,26 +34,35 @@
     </div>
 
     <!-- Estado de carga -->
-    <div v-if="isLoading" class="loading-state">
-      <i class="fas fa-spinner fa-spin"></i>
+    <div
+      v-if="isLoading"
+      class="loading-state"
+    >
+      <i class="fas fa-spinner fa-spin" />
       <span>Cargando historial...</span>
     </div>
 
     <!-- Error -->
-    <div v-else-if="error" class="error-state">
-      <i class="fas fa-exclamation-triangle"></i>
+    <div
+      v-else-if="error"
+      class="error-state"
+    >
+      <i class="fas fa-exclamation-triangle" />
       <span>{{ error }}</span>
     </div>
 
     <!-- Lista del historial -->
-    <div v-else-if="progressHistory.length > 0" class="history-list">
+    <div
+      v-else-if="progressHistory.length > 0"
+      class="history-list"
+    >
       <div 
         v-for="entry in progressHistory" 
         :key="entry.id"
         class="history-entry"
       >
         <div class="entry-icon">
-          <i class="fas fa-book-open"></i>
+          <i class="fas fa-book-open" />
         </div>
         <div class="entry-content">
           <div class="entry-main">
@@ -70,8 +82,11 @@
     </div>
 
     <!-- Estado vacío -->
-    <div v-else class="empty-state">
-      <i class="fas fa-book"></i>
+    <div
+      v-else
+      class="empty-state"
+    >
+      <i class="fas fa-book" />
       <p>No hay historial de progreso aún</p>
       <p class="empty-subtitle">
         El historial se creará automáticamente cuando actualices tu progreso de lectura
@@ -134,11 +149,13 @@ defineExpose({
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .reading-progress-history {
-  background: var(--card-background, #272729);
+  background: var(--card-background, var(--color-background-mute));
   border-radius: 12px;
   padding: 20px;
-  border: 1px solid var(--border-color, #343536);
+  border: 1px solid var(--border-color, var(--color-border));
 }
 
 .history-header {
@@ -147,7 +164,7 @@ defineExpose({
 }
 
 .history-header h3 {
-  color: var(--text-primary, #d7dadc);
+  color: var(--text-primary, var(--color-text));
   margin: 0 0 8px 0;
   font-size: 1.2rem;
   display: flex;
@@ -157,11 +174,11 @@ defineExpose({
 }
 
 .history-header h3 i {
-  color: #4CAF50;
+  color: var(--color-success);
 }
 
 .subtitle {
-  color: var(--text-secondary, #b3b3b3);
+  color: var(--text-secondary, var(--color-text-muted));
   margin: 0;
   font-size: 0.9rem;
 }
@@ -172,7 +189,7 @@ defineExpose({
   gap: 15px;
   margin-bottom: 25px;
   padding: 15px;
-  background: var(--background-secondary, #23252a);
+  background: var(--background-secondary, var(--color-background-mute));
   border-radius: 8px;
 }
 
@@ -184,14 +201,14 @@ defineExpose({
   display: block;
   font-size: 1.5rem;
   font-weight: bold;
-  color: #4CAF50;
+  color: var(--color-success);
   margin-bottom: 4px;
 }
 
 .stat-label {
   display: block;
   font-size: 0.8rem;
-  color: var(--text-secondary, #b3b3b3);
+  color: var(--text-secondary, var(--color-text-muted));
 }
 
 .loading-state,
@@ -199,7 +216,7 @@ defineExpose({
 .empty-state {
   text-align: center;
   padding: 30px 20px;
-  color: var(--text-secondary, #b3b3b3);
+  color: var(--text-secondary, var(--color-text-muted));
 }
 
 .loading-state i,
@@ -211,15 +228,15 @@ defineExpose({
 }
 
 .loading-state i {
-  color: #4CAF50;
+  color: var(--color-success);
 }
 
 .error-state i {
-  color: #f44336;
+  color: var(--color-error);
 }
 
 .empty-state i {
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary, var(--color-text-secondary));
 }
 
 .empty-state p {
@@ -241,7 +258,7 @@ defineExpose({
   align-items: center;
   gap: 15px;
   padding: 15px;
-  border-bottom: 1px solid var(--border-color, #343536);
+  border-bottom: 1px solid var(--border-color, var(--color-border));
   transition: background-color 0.2s ease;
 }
 
@@ -256,7 +273,7 @@ defineExpose({
 .entry-icon {
   width: 40px;
   height: 40px;
-  background: #4CAF50;
+  background: var(--color-success);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -280,12 +297,12 @@ defineExpose({
 }
 
 .pages-info {
-  color: var(--text-primary, #d7dadc);
+  color: var(--text-primary, var(--color-text));
   font-weight: 500;
 }
 
 .pages-advanced {
-  color: #4CAF50;
+  color: var(--color-success);
   font-weight: bold;
   font-size: 0.9rem;
 }
@@ -294,7 +311,7 @@ defineExpose({
   display: flex;
   gap: 15px;
   font-size: 0.8rem;
-  color: var(--text-secondary, #b3b3b3);
+  color: var(--text-secondary, var(--color-text-muted));
 }
 
 /* Scrollbar personalizado */
@@ -303,21 +320,21 @@ defineExpose({
 }
 
 .history-list::-webkit-scrollbar-track {
-  background: var(--background-secondary, #23252a);
+  background: var(--background-secondary, var(--color-background-mute));
   border-radius: 3px;
 }
 
 .history-list::-webkit-scrollbar-thumb {
-  background: var(--border-color, #343536);
+  background: var(--border-color, var(--color-border));
   border-radius: 3px;
 }
 
 .history-list::-webkit-scrollbar-thumb:hover {
-  background: #4CAF50;
+  background: var(--color-success);
 }
 
 /* Responsive */
-@media (max-width: 480px) {
+@include responsive-below(sm) {
   .stats-summary {
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;

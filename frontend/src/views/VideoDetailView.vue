@@ -1,207 +1,154 @@
 <template>
-  <div class="video-detail-view">
-    <!-- Back Button -->
-    <button @click="goBack" class="back-button">
-      <i class="fas fa-arrow-left"></i>
-      <span>Volver</span>
-    </button>
+  <MediaDetailView
+    media="video"
+    :store="videosStore"
+  >
+    <!-- Botón de reproducción superpuesto a la miniatura. -->
+    <template #cover-overlay="{ item }">
+      <a
+        v-if="youtubeIdOf(item)"
+        :href="`https://www.youtube.com/watch?v=${youtubeIdOf(item)}`"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="youtube-play-btn"
+        title="Ver en YouTube"
+        aria-label="Ver este vídeo en YouTube"
+      >
+        <i
+          class="fab fa-youtube"
+          aria-hidden="true"
+        />
+      </a>
+    </template>
 
-    <!-- Loading State -->
-    <div v-if="isLoading" class="loading-container">
-      <i class="fas fa-spinner fa-spin"></i>
-      <p>Cargando información del vídeo...</p>
-    </div>
+    <template #meta="{ item }">
+      <div
+        v-if="item.channel_name || item.channelName"
+        class="video-channel-large"
+      >
+        <i class="fas fa-tv" />
+        <span>{{ item.channel_name || item.channelName }}</span>
+      </div>
 
-    <!-- Error State -->
-    <div v-else-if="error" class="error-container">
-      <i class="fas fa-exclamation-triangle"></i>
-      <p>{{ error }}</p>
-      <button @click="goBack" class="retry-button">Volver al buscador</button>
-    </div>
+      <div class="video-metadata">
+        <span
+          v-if="item.duration"
+          class="metadata-item"
+        >
+          <i class="fas fa-clock" />
+          {{ item.duration }}
+        </span>
+        <span
+          v-if="publishedYear(item)"
+          class="metadata-item"
+        >
+          <i class="fas fa-calendar" />
+          {{ publishedYear(item) }}
+        </span>
+        <span
+          v-if="item.view_count || item.viewCount"
+          class="metadata-item"
+        >
+          <i class="fas fa-eye" />
+          {{ formatCount(item.view_count || item.viewCount) }} vistas
+        </span>
+        <span
+          v-if="item.like_count || item.likeCount"
+          class="metadata-item"
+        >
+          <i class="fas fa-thumbs-up" />
+          {{ formatCount(item.like_count || item.likeCount) }}
+        </span>
+      </div>
 
-    <!-- Video Details -->
-    <div v-else-if="video" class="video-detail-content">
-      <!-- Cabecera principal -->
-      <div class="video-header">
-        <div class="video-cover-large">
-          <img
-            v-if="video.cover_url || video.coverUrl"
-            :src="video.cover_url || video.coverUrl"
-            :alt="video.title"
-            class="cover-image-large"
-          />
-          <div v-else class="cover-placeholder">
-            <i class="fab fa-youtube"></i>
-          </div>
-          <a
-            v-if="youtubeId"
-            :href="`https://www.youtube.com/watch?v=${youtubeId}`"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="youtube-play-btn"
-            title="Ver en YouTube"
+      <div
+        v-if="categoriesArray(item).length > 0"
+        class="video-categories"
+      >
+        <i class="fas fa-tags" />
+        <div class="category-tags">
+          <span
+            v-for="cat in categoriesArray(item)"
+            :key="cat"
+            class="category-tag"
           >
-            <i class="fab fa-youtube"></i>
-          </a>
-        </div>
-
-        <div class="video-main-info">
-          <h1 class="video-title-large">{{ video.title }}</h1>
-
-          <div v-if="video.channel_name || video.channelName" class="video-channel-large">
-            <i class="fas fa-tv"></i>
-            <span>{{ video.channel_name || video.channelName }}</span>
-          </div>
-
-          <div class="video-metadata">
-            <span v-if="video.duration" class="metadata-item">
-              <i class="fas fa-clock"></i>
-              {{ video.duration }}
-            </span>
-            <span v-if="publishedYear" class="metadata-item">
-              <i class="fas fa-calendar"></i>
-              {{ publishedYear }}
-            </span>
-            <span v-if="video.view_count || video.viewCount" class="metadata-item">
-              <i class="fas fa-eye"></i>
-              {{ formatCount(video.view_count || video.viewCount) }} vistas
-            </span>
-            <span v-if="video.like_count || video.likeCount" class="metadata-item">
-              <i class="fas fa-thumbs-up"></i>
-              {{ formatCount(video.like_count || video.likeCount) }}
-            </span>
-          </div>
-
-          <!-- Categorías -->
-          <div v-if="categoriesArray.length > 0" class="video-categories">
-            <i class="fas fa-tags"></i>
-            <div class="category-tags">
-              <span v-for="cat in categoriesArray" :key="cat" class="category-tag">
-                {{ cat }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Enlace YouTube -->
-          <div v-if="youtubeId" class="video-links">
-            <a
-              :href="`https://www.youtube.com/watch?v=${youtubeId}`"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="youtube-link"
-            >
-              <i class="fab fa-youtube"></i>
-              Ver en YouTube
-            </a>
-          </div>
+            {{ cat }}
+          </span>
         </div>
       </div>
 
-      <!-- Descripción -->
-      <div v-if="video.description" class="video-description-section">
+      <div
+        v-if="youtubeIdOf(item)"
+        class="video-links"
+      >
+        <a
+          :href="`https://www.youtube.com/watch?v=${youtubeIdOf(item)}`"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="youtube-link"
+        >
+          <i class="fab fa-youtube" />
+          Ver en YouTube
+        </a>
+      </div>
+    </template>
+
+    <template #extra="{ item }">
+      <div
+        v-if="item.description"
+        class="video-description-section"
+      >
         <h2 class="section-title">
-          <i class="fas fa-align-left"></i>
+          <i class="fas fa-align-left" />
           Descripción
         </h2>
-        <p class="video-description">{{ truncateDescription(video.description, showFullDesc ? 9999 : 300) }}</p>
-        <button v-if="video.description.length > 300" @click="showFullDesc = !showFullDesc" class="toggle-desc-btn">
+        <p class="video-description">
+          {{ truncateDescription(item.description, showFullDesc ? 9999 : 300) }}
+        </p>
+        <button
+          v-if="item.description.length > 300"
+          class="toggle-desc-btn"
+          @click="showFullDesc = !showFullDesc"
+        >
           {{ showFullDesc ? 'Mostrar menos' : 'Mostrar más' }}
         </button>
       </div>
-
-      <!-- Library Item Form -->
-      <div class="library-section">
-        <h2>{{ existingVideo ? 'Detalles en tu Biblioteca' : 'Añadir a tu Biblioteca' }}</h2>
-        <LibraryVideoItem
-          :video="videoForLibrary"
-          :allowed-statuses="allowedStatuses"
-          :is-new-video="!existingVideo"
-          :can-delete="!!existingVideo"
-          @save="handleSaveVideo"
-          @edit="handleEditItem"
-          @delete="handleDeleteVideo"
-        />
-      </div>
-
-      <!-- Notes section -->
-      <div v-if="existingVideo" class="notes-section">
-        <VideoNotes :youtube-id="youtubeId" />
-      </div>
-    </div>
-
-    <!-- Empty State -->
-    <div v-else class="empty-state">
-      <i class="fab fa-youtube"></i>
-      <p>No se encontró información del vídeo</p>
-      <button @click="goBack" class="retry-button">Volver al buscador</button>
-    </div>
-
-    <!-- Edit Item Modal -->
-    <EditItemModal
-      v-if="editModal.isVisible"
-      :item="editModal.item"
-      :item-type="'video'"
-      :allowed-statuses="allowedStatuses"
-      :is-visible="editModal.isVisible"
-      @close="closeEditModal"
-      @saved="handleModalSaved"
-    />
-  </div>
+    </template>
+  </MediaDetailView>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import LibraryVideoItem from '@/components/Videos/LibraryVideoItem.vue';
-import VideoNotes from '@/components/Videos/VideoNotes.vue';
-import EditItemModal from '@/components/EditItemModal.vue';
+import { ref } from 'vue';
+import MediaDetailView from '@/views/shared/MediaDetailView.vue';
 import { useVideosStore } from '@/store/videos';
-import { useAuthStore } from '@/store/auth';
-import Logger from '@/utils/logger';
 
-const route = useRoute();
-const router = useRouter();
+/**
+ * Ficha de vídeo. El esqueleto —estados, cabecera, formulario de biblioteca,
+ * modal y notas— vive en MediaDetailView, configurado desde mediaRegistry;
+ * aquí queda solo lo que es de los vídeos: la columna de datos, la descripción
+ * plegable y el botón de reproducción sobre la miniatura.
+ */
 const videosStore = useVideosStore();
-const authStore = useAuthStore();
-
-// State
-const video = ref((history.state && history.state.video) ? history.state.video : null);
-const isLoading = ref(!video.value);
-const error = ref(null);
-const allowedStatuses = ref([]);
 const showFullDesc = ref(false);
-const editModal = ref({ isVisible: false, item: null });
 
-// Computed
-const youtubeId = computed(() => route.params.youtubeId || video.value?.youtube_id || video.value?.youtubeId);
-const isAuthenticated = computed(() => authStore.isAuthenticated);
+const youtubeIdOf = (video) => video?.youtube_id || video?.youtubeId;
 
-const existingVideo = computed(() => {
-  if (!youtubeId.value) return null;
-  return videosStore.getVideoByYouTubeId(youtubeId.value);
-});
-
-const videoForLibrary = computed(() => {
-  return existingVideo.value || video.value || {};
-});
-
-const publishedYear = computed(() => {
-  const dateStr = video.value?.published_at || video.value?.publishedAt;
+const publishedYear = (video) => {
+  const dateStr = video?.published_at || video?.publishedAt;
   if (!dateStr) return null;
   return new Date(dateStr).getFullYear();
-});
+};
 
-const categoriesArray = computed(() => {
-  const cats = video.value?.categories;
+const categoriesArray = (video) => {
+  const cats = video?.categories;
   if (!cats) return [];
   if (Array.isArray(cats)) return cats;
   if (typeof cats === 'string') {
     try { return JSON.parse(cats); } catch { return []; }
   }
   return [];
-});
+};
 
-// Methods
 function formatCount(num) {
   if (!num) return '0';
   if (num >= 1_000_000) return (num / 1_000_000).toFixed(1) + 'M';
@@ -214,78 +161,6 @@ function truncateDescription(text, maxLen) {
   if (text.length <= maxLen) return text;
   return text.slice(0, maxLen) + '...';
 }
-
-function goBack() {
-  router.back();
-}
-
-async function loadData() {
-  if (!isAuthenticated.value) return;
-
-  // Load allowed statuses
-  if (videosStore.allowedStatuses.length === 0) {
-    await videosStore.fetchAllowedStatuses();
-  }
-  allowedStatuses.value = videosStore.allowedStatuses.map(s => (typeof s === 'object' && s !== null) ? s.name : s);
-
-  // Load user library
-  if (videosStore.videos.length === 0) {
-    await videosStore.fetchVideos();
-  }
-
-  // If no video from history state, try to find in store or fail
-  if (!video.value && youtubeId.value) {
-    const found = videosStore.getVideoByYouTubeId(youtubeId.value);
-    if (found) {
-      video.value = found;
-    } else {
-      error.value = 'No se encontró el vídeo. Vuelve al buscador y selecciónalo de nuevo.';
-    }
-    isLoading.value = false;
-  }
-}
-
-async function handleSaveVideo(videoData) {
-  Logger.debug('[VideoDetailView] Saving video:', videoData);
-  const statuses = videoData.userStatuses || [];
-  const result = await videosStore.addVideo(videoData, statuses);
-  if (result.success) {
-    Logger.debug('[VideoDetailView] Video saved successfully');
-  } else {
-    Logger.error('[VideoDetailView] Error saving video:', result.message);
-  }
-}
-
-function handleEditItem(videoItem) {
-  editModal.value = { isVisible: true, item: videoItem };
-}
-
-async function handleDeleteVideo(youtubeIdToDelete) {
-  if (!confirm('¿Seguro que quieres eliminar este vídeo de tu biblioteca?')) return;
-  const result = await videosStore.deleteVideo(youtubeIdToDelete);
-  if (result.success) {
-    Logger.debug('[VideoDetailView] Video deleted');
-  }
-}
-
-async function handleModalSaved() {
-  closeEditModal();
-  await videosStore.fetchVideos();
-}
-
-function closeEditModal() {
-  editModal.value = { isVisible: false, item: null };
-}
-
-onMounted(async () => {
-  isLoading.value = true;
-  await loadData();
-  isLoading.value = false;
-});
-
-watch(isAuthenticated, async (newValue) => {
-  if (newValue) await loadData();
-});
 </script>
 
 <style scoped lang="scss">
@@ -316,7 +191,7 @@ watch(isAuthenticated, async (newValue) => {
 
   .cover-placeholder {
     aspect-ratio: 16 / 9;
-    background: linear-gradient(135deg, var(--color-card-video-bg) 0%, #3d1f1f 100%);
+    background: linear-gradient(135deg, var(--color-card-video-bg) 0%, var(--color-card-video-border) 100%);
     border: none;
 
     i {

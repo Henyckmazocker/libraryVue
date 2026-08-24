@@ -1,5 +1,10 @@
 import '@/assets/styles/index.scss';
 import 'primeicons/primeicons.css';
+// FontAwesome local (antes venía de cdnjs): sin red, en la app Capacitor, el CDN dejaba la
+// interfaz sin iconos. Solo se importan las familias en uso — no hay ni un `far` en el proyecto.
+import '@fortawesome/fontawesome-free/css/fontawesome.min.css';
+import '@fortawesome/fontawesome-free/css/solid.min.css';
+import '@fortawesome/fontawesome-free/css/brands.min.css';
 import { createApp } from 'vue';
 import App from './App.vue';
 import { createPinia } from 'pinia';

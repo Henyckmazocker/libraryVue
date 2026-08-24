@@ -1,13 +1,36 @@
 <template>
-  <div class="feed-event-card" :class="`feed-event-card--${event.entity_type}`">
+  <div
+    class="feed-event-card"
+    :class="`feed-event-card--${event.entity_type}`"
+  >
     <div class="feed-event-card__avatar">
-      <img v-if="event.user?.picture" :src="event.user.picture" :alt="event.user?.username" />
-      <i v-else class="pi pi-user" />
+      <img
+        v-if="event.user?.picture"
+        :src="event.user.picture"
+        :alt="event.user?.username"
+        loading="lazy"
+        decoding="async"
+      >
+      <i
+        v-else
+        class="pi pi-user"
+      />
     </div>
 
     <div class="feed-event-card__cover">
-      <img v-if="event.entity_cover" :src="event.entity_cover" :alt="event.entity_title" />
-      <div v-else class="feed-event-card__cover-placeholder">
+      <img
+        v-if="event.entity_cover"
+        :src="event.entity_cover"
+        :alt="event.entity_title"
+        width="48"
+        height="64"
+        loading="lazy"
+        decoding="async"
+      >
+      <div
+        v-else
+        class="feed-event-card__cover-placeholder"
+      >
         <i :class="entityIcon" />
       </div>
     </div>
@@ -84,6 +107,7 @@ const relativeTime = computed(() => {
   &--movie { border-left-color: var(--color-card-movie-accent); }
   &--game { border-left-color: var(--color-card-game-accent); }
   &--album { border-left-color: var(--color-card-album-accent); }
+  &--video { border-left-color: var(--color-card-video-accent); }
 
   &__avatar {
     flex-shrink: 0;

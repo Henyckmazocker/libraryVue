@@ -52,12 +52,53 @@ final class MySqlAlbumRepository implements AlbumRepositoryInterface
         }
     }
 
+    /**
+     * El id de una fila que ya sea este mismo álbum, si la hay
+     *
+     * Dos puentes, los dos exactos, en orden de fiabilidad:
+     *
+     *   1. **El MBID.** Es la identidad; si coincide, es el mismo álbum.
+     *   2. **El id de Spotify**, para lo que llegó por el fallback.
+     *
+     * Lo que NO cubre: un álbum guardado antes del mirror, con spotify_id y sin
+     * MBID, que se vuelve a guardar desde el mirror. El payload que llega del
+     * mirror no trae spotify_id, así que no hay nada exacto con lo que
+     * emparejarlo y se creará una fila nueva. El UPC sería el tercer puente
+     * —medido sobre las dos filas de dev, acierta en una y falla en la otra
+     * porque el barcode del mirror es el de otra edición—, y emparejar por
+     * título y artista es adivinar. Deuda anotada en el plan «Mirror de Música».
+     *
+     * @param array<string,mixed> $p Fila ya mapeada a persistencia
+     */
+    private function findExistingId(array $p): ?int
+    {
+        $stmt = $this->db->prepare(
+            'SELECT id FROM albums
+              WHERE (:mbid IS NOT NULL AND mb_release_group_gid = :mbid2)
+                 OR (:spotify_id IS NOT NULL AND spotify_id = :spotify_id2)
+              LIMIT 1'
+        );
+        $stmt->execute([
+            ':mbid'        => $p['mb_release_group_gid'],
+            ':mbid2'       => $p['mb_release_group_gid'],
+            ':spotify_id'  => $p['spotify_id'],
+            ':spotify_id2' => $p['spotify_id'],
+        ]);
+
+        $id = $stmt->fetchColumn();
+
+        return $id === false || $id === null ? null : (int) $id;
+    }
+
     public function findBySpotifyId(string $spotifyId): ?Album
     {
         try {
-            $sql = "SELECT * FROM albums WHERE spotify_id = :spotifyId";
+            // Acepta MBID o base62: el frontend sigue mandando la identidad
+            // en un parámetro llamado spotifyId, sea cual sea su forma.
+            $sql = "SELECT * FROM albums
+                     WHERE spotify_id = :spotifyId OR mb_release_group_gid = :spotifyId2";
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([':spotifyId' => $spotifyId]);
+            $stmt->execute([':spotifyId' => $spotifyId, ':spotifyId2' => $spotifyId]);
 
             $data = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$data) {
@@ -117,15 +158,26 @@ final class MySqlAlbumRepository implements AlbumRepositoryInterface
         try {
             $p = $this->mapper->toPersistence($album);
 
-            $sql = "INSERT INTO albums 
-                        (spotify_id, title, artist, artist_id, release_date, release_date_precision,
+            // Reconciliación: un álbum guardado ANTES del mirror tiene
+            // spotify_id y no tiene MBID, así que ninguno de los dos UNIQUE
+            // salta y ON DUPLICATE KEY no lo ve. Sin esto, volver a guardarlo
+            // desde el mirror crearía una segunda fila del mismo disco.
+            $existingId = $this->findExistingId($p);
+
+            $sql = "INSERT INTO albums
+                        (id, mb_release_group_gid, mb_artist_gid, spotify_id, title, artist, artist_id,
+                         release_date, release_date_precision,
                          cover_url, genres, label, total_tracks, album_type, duration_ms, popularity,
-                         external_url, upc, addedTimestamp)
+                         external_url, upc, catalog_source, catalog_cached_at, addedTimestamp)
                     VALUES
-                        (:spotify_id, :title, :artist, :artist_id, :release_date, :release_date_precision,
+                        (:id, :mb_release_group_gid, :mb_artist_gid, :spotify_id, :title, :artist, :artist_id,
+                         :release_date, :release_date_precision,
                          :cover_url, :genres, :label, :total_tracks, :album_type, :duration_ms, :popularity,
-                         :external_url, :upc, UNIX_TIMESTAMP())
+                         :external_url, :upc, :catalog_source, NOW(), UNIX_TIMESTAMP())
                     ON DUPLICATE KEY UPDATE
+                        mb_release_group_gid   = COALESCE(VALUES(mb_release_group_gid), mb_release_group_gid),
+                        mb_artist_gid          = COALESCE(VALUES(mb_artist_gid), mb_artist_gid),
+                        spotify_id             = COALESCE(VALUES(spotify_id), spotify_id),
                         title                  = VALUES(title),
                         artist                 = VALUES(artist),
                         artist_id              = VALUES(artist_id),
@@ -139,10 +191,15 @@ final class MySqlAlbumRepository implements AlbumRepositoryInterface
                         duration_ms            = VALUES(duration_ms),
                         popularity             = VALUES(popularity),
                         external_url           = VALUES(external_url),
-                        upc                    = VALUES(upc)";
+                        upc                    = VALUES(upc),
+                        catalog_source         = VALUES(catalog_source),
+                        catalog_cached_at      = NOW()";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
+                ':id'                     => $existingId,
+                ':mb_release_group_gid'   => $p['mb_release_group_gid'],
+                ':mb_artist_gid'          => $p['mb_artist_gid'] ?? null,
                 ':spotify_id'             => $p['spotify_id'],
                 ':title'                  => $p['title'],
                 ':artist'                 => $p['artist'],
@@ -158,12 +215,20 @@ final class MySqlAlbumRepository implements AlbumRepositoryInterface
                 ':popularity'             => $p['popularity'],
                 ':external_url'           => $p['external_url'],
                 ':upc'                    => $p['upc'],
+                ':catalog_source'         => $p['catalog_source'] ?? 'musicbrainz',
             ]);
 
-            $insertedId = (int)$this->db->lastInsertId();
+            // lastInsertId() devuelve 0 cuando ON DUPLICATE actualizó en vez
+            // de insertar, así que la fila reconciliada manda sobre él.
+            $insertedId = $existingId ?? (int)$this->db->lastInsertId();
             $this->db->commit();
 
-            $this->logInfo('Album saved', ['spotify_id' => $p['spotify_id'], 'db_id' => $insertedId]);
+            $this->logInfo('Album saved', [
+                'mbid'       => $p['mb_release_group_gid'],
+                'spotify_id' => $p['spotify_id'],
+                'db_id'      => $insertedId,
+                'reconciled' => $existingId !== null,
+            ]);
 
             // Return the album with its assigned DB ID
             return $this->findById($insertedId) ?? $album;
@@ -216,6 +281,7 @@ final class MySqlAlbumRepository implements AlbumRepositoryInterface
                 ':popularity'             => $p['popularity'],
                 ':external_url'           => $p['external_url'],
                 ':upc'                    => $p['upc'],
+                ':catalog_source'         => $p['catalog_source'] ?? 'musicbrainz',
             ]);
         } catch (PDOException $e) {
             $this->logError('DB update Error', $e, ['id' => $album->getId()]);
@@ -273,8 +339,11 @@ final class MySqlAlbumRepository implements AlbumRepositoryInterface
     public function existsBySpotifyId(string $spotifyId): bool
     {
         try {
-            $stmt = $this->db->prepare("SELECT COUNT(*) FROM albums WHERE spotify_id = :spotifyId");
-            $stmt->execute([':spotifyId' => $spotifyId]);
+            $stmt = $this->db->prepare(
+                "SELECT COUNT(*) FROM albums
+                  WHERE spotify_id = :spotifyId OR mb_release_group_gid = :spotifyId2"
+            );
+            $stmt->execute([':spotifyId' => $spotifyId, ':spotifyId2' => $spotifyId]);
             return (int)$stmt->fetchColumn() > 0;
         } catch (PDOException $e) {
             $this->logError('DB existsBySpotifyId Error', $e, ['spotify_id' => $spotifyId]);

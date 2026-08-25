@@ -77,6 +77,7 @@ docker compose exec frontend npm test            # 222 tests
 docker compose exec frontend npm run test:watch
 docker compose exec frontend npx vue-cli-service lint --no-fix   # lo corre también ./dev-setup.sh
 docker compose exec frontend npm run lint:styles                 # stylelint; también en ./dev-setup.sh
+docker compose exec frontend npm run build   # OBLIGATORIO si tocas SCSS: es lo ÚNICO que lo compila
 
 # Frontend / móvil (Capacitor)
 cd frontend && npm run cap:sync && npm run build:mobile
@@ -404,10 +405,22 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
    integración; estos necesitan `docker compose --profile test up -d mysql-test`).
 4. `docker compose exec frontend npm test` → verde (222 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
-5. Si el cambio se ve en pantalla, **haz capturas**: jsdom no evalúa CSS. Procedimiento con Firefox y
-   geckodriver en `.github/skills/frontend.md` → *Visual Verification (headless screenshots)*.
+5. **`docker compose exec frontend npm run build` → `Build complete`.** No es redundante con el paso
+   anterior: **ninguno de los tres comandos de arriba compila SCSS**. Los helpers de
+   `assets/styles/abstracts` validan sus argumentos y **abortan la compilación** —`spacing(xxs)`
+   revienta con *«Spacing `xxs` no existe»*, porque la escala es `3xs, 2xs, xs, sm, md, lg, xl, 2xl,
+   3xl`—, pero eso solo ocurre al construir: stylelint no resuelve funciones de Sass, ESLint no mira
+   los `<style>` y Vitest corre en jsdom, que no evalúa CSS. Pasó el 2026-08-25: plan cerrado con las
+   tres verdes y el build roto.
+6. **Si el cambio se ve en pantalla, ábrelo en el navegador**, y no solo por las capturas: hay una
+   clase entera de fallos que **solo aparece en la consola**. `v-tooltip` estuvo sin registrar en
+   `main.js` desde el 2026-05-13 y nadie lo vio en tres meses, porque un
+   `Failed to resolve directive` no rompe nada — Vue avisa y sigue. Procedimiento con Firefox y
+   geckodriver en `.github/skills/frontend.md` → *Visual Verification (headless screenshots)*; para
+   los warnings, engancha `console.warn` antes de navegar y navega **dentro** de la SPA, o el hook se
+   pierde con la recarga.
 
-> ℹ️ **Desde el 2026-08-25 hay dos suites de verdad.** `composer test` corre las dos (1195);
+> ℹ️ **Desde el 2026-08-25 hay dos suites de verdad.** `composer test` corre las dos (1204);
 > `composer test:unit` es la rápida y **no necesita** `mysql-test`. La suite `Integration` estuvo
 > declarada sobre un directorio inexistente hasta el 2026-08-24, haciendo abortar a PHPUnit con
 > `error code 2`; se retiró entonces y se repuso ahora sobre un directorio con contenido.

@@ -33,16 +33,3 @@ export function handleStoreError(err, defaultMessage = 'Operation failed') {
 
   return defaultMessage
 }
-
-/**
- * Checks whether a game object matches a given ID.
- * Games may carry the IGDB id under different property names depending on the
- * source (backend response, IGDB search result, legacy RAWG data).
- *
- * @param {object} game - Game object from the store
- * @param {number|string} targetId - The ID to compare against
- * @returns {boolean}
- */
-export function matchesGameId(game, targetId) {
-  return game.id === targetId || game.rawgId === targetId || game.gameId === targetId
-}

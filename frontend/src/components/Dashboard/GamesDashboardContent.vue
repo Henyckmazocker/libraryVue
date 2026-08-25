@@ -5,7 +5,7 @@
         to="/library?filter=games"
         class="btn btn--primary"
       >
-        <i class="fas fa-library" />
+        <i class="fas fa-gamepad" />
         Ver Mi Biblioteca de Videojuegos
       </router-link>
     </div>

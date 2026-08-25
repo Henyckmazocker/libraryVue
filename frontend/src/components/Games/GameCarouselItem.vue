@@ -127,13 +127,25 @@ const releaseYear = computed(() => {
 
 // Get platforms text
 const platformsText = computed(() => {
-  if (typeof props.game.platforms === 'string') {
-    return props.game.platforms;
-  }
-  if (Array.isArray(props.game.platforms)) {
-    return props.game.platforms
+  const raw = props.game.platforms;
+  if (Array.isArray(raw)) {
+    return raw
       .map(p => typeof p === 'string' ? p : p.platform?.name || p.name)
       .join(', ');
+  }
+  // The API sends a string with a serialized array inside; without this the
+  // badge tooltip shows the raw JSON. Falling back to the string on a parse
+  // failure keeps the worst case identical to the previous behaviour.
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('[')) {
+      try {
+        return JSON.parse(trimmed).join(', ');
+      } catch {
+        return trimmed;
+      }
+    }
+    return trimmed;
   }
   return '';
 });

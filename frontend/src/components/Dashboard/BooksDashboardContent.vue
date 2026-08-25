@@ -5,7 +5,7 @@
         to="/library?filter=books"
         class="btn btn--primary"
       >
-        <i class="fas fa-library" />
+        <i class="fas fa-book-open" />
         Ver Mi Biblioteca de Libros
       </router-link>
     </div>

@@ -5,7 +5,7 @@
         to="/library?filter=movies"
         class="btn btn--primary"
       >
-        <i class="fas fa-library" />
+        <i class="fas fa-film" />
         Ver Mi Biblioteca de Películas
       </router-link>
     </div>

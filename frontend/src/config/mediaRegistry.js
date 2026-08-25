@@ -37,7 +37,7 @@ const NOTE_TYPE_ICONS_DEFAULT = {
 
 const NOTE_TYPE_ICONS_EDITION = {
   note: 'pi-pencil',
-  quote: 'pi-quote-right',
+  quote: 'pi-comment',
   thought: 'pi-lightbulb',
   question: 'pi-question-circle',
   summary: 'pi-list',
@@ -883,7 +883,8 @@ export const mediaRegistry = {
       One: 'Game',
       Many: 'Games',
       idPayloadKey: 'gameId',
-      // matchesGameId (utils/storeHelpers.js:46-48), tal cual.
+      // El id de IGDB llega con tres nombres distintos según la fuente
+      // (respuesta del backend, búsqueda de IGDB, datos heredados de RAWG).
       matches: (item, id) => item.id === id || item.rawgId === id || item.gameId === id,
       ratingField: 'user_rating',
       tagsIdKey: 'gameId',
@@ -971,9 +972,7 @@ export const mediaRegistry = {
     },
     notes: {
       title: 'Notas del Juego',
-      // ⚠ `pi-gamepad` NO existe en PrimeIcons 7: hoy no pinta nada
-      // (GameNotes.vue:67). Bug preexistente, se reproduce a propósito.
-      emptyIcon: 'pi pi-gamepad',
+      emptyIcon: 'pi pi-desktop',
       emptyHint: 'Agrega notas para recordar tus experiencias con este juego',
       types: NOTE_TYPES_DEFAULT,
       typeIcons: NOTE_TYPE_ICONS_DEFAULT,
@@ -1222,9 +1221,7 @@ export const mediaRegistry = {
     },
     notes: {
       title: 'Notas del Álbum',
-      // ⚠ `pi-music` NO existe en PrimeIcons 7: hoy no pinta nada
-      // (AlbumNotes.vue:62). Bug preexistente, se reproduce a propósito.
-      emptyIcon: 'pi pi-music',
+      emptyIcon: 'pi pi-headphones',
       emptyHint: 'Agrega notas para recordar tus opiniones sobre este álbum',
       types: NOTE_TYPES_DEFAULT,
       typeIcons: NOTE_TYPE_ICONS_DEFAULT,

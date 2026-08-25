@@ -63,7 +63,7 @@ const entityIcon = computed(() => {
     book: 'pi pi-book',
     movie: 'pi pi-video',
     game: 'pi pi-desktop',
-    album: 'pi pi-music',
+    album: 'pi pi-headphones',
     video: 'pi pi-youtube'
   }
   return icons[props.event.entity_type] ?? 'pi pi-star'

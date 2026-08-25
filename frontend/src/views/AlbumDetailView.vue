@@ -15,7 +15,7 @@
 
     <template #meta="{ item }">
       <div class="album-artist-large">
-        <i class="fas fa-user-music" />
+        <i class="fas fa-user" />
         <span>{{ artistName(item) }}</span>
       </div>
 
@@ -31,7 +31,7 @@
           v-if="item.total_tracks || item.totalTracks"
           class="metadata-item"
         >
-          <i class="fas fa-list-music" />
+          <i class="fas fa-music" />
           {{ item.total_tracks || item.totalTracks }} pistas
         </span>
         <span

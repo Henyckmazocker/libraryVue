@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controllers\Contracts;
 
+use App\Domain\DTO\Commands\AddAlbumNoteCommand;
+
 use App\Domain\DTO\Commands\AddAlbumCommand;
 use App\Domain\DTO\Commands\DeleteAlbumCommand;
 use App\Domain\DTO\Commands\UpdateAlbumRatingCommand;
@@ -45,7 +47,12 @@ interface AlbumControllerInterface
 
     public function getAlbumNotes(int $userId, int $albumId): array;
 
-    public function addAlbumNote(int $userId, int $albumId, string $noteText, string $noteType): array;
+    /**
+     * Desde el 2026-08-25 recibe un comando, como los otros tres medios.
+     * Antes esta firma **se dejaba fuera `$isPrivate`**, que sí viajaba en
+     * la llamada real: el contrato ya mentía.
+     */
+    public function addAlbumNote(AddAlbumNoteCommand $command): array;
 
     public function updateAlbumNote(int $noteId, int $userId, string $noteText, string $noteType): array;
 

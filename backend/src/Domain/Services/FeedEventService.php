@@ -83,12 +83,32 @@ class FeedEventService
         ));
     }
 
+    /**
+     * Una nota nueva sobre algo de la biblioteca.
+     *
+     * **El texto va entero, sin truncar**, y es una decisión, no un descuido: la
+     * tarjeta del feed lo recorta visualmente con un «ver más» y CSS. Truncarlo
+     * aquí obligaría a una petición extra para desplegarlo.
+     *
+     * **Este método NO comprueba si la nota es privada.** La guarda vive en cada
+     * `Add*NoteUseCase`, y también es deliberado: esta clase se traga sus
+     * propios errores por diseño —un fallo del feed no puede tumbar el guardado
+     * de una nota—, así que esconder aquí una regla de privacidad convertiría un
+     * fallo silencioso en un **escape de privacidad silencioso**.
+     *
+     * @param string      $noteText el texto entero de la nota
+     * @param string|null $noteType 'quote', 'idea'… tal y como lo mande cada
+     *                              entidad; no se normaliza (en libros es un
+     *                              ENUM y en las otras cuatro un VARCHAR)
+     */
     public function recordNotesUpdated(
         int     $userId,
         string  $entityType,
         string  $entityId,
         string  $title,
-        ?string $cover
+        ?string $cover,
+        string  $noteText,
+        ?string $noteType = null
     ): void {
         $this->dispatch(new CreateFeedEventCommand(
             userId:      $userId,
@@ -96,7 +116,11 @@ class FeedEventService
             entityType:  $entityType,
             entityId:    $entityId,
             entityTitle: $title,
-            entityCover: $cover
+            entityCover: $cover,
+            metadata:    [
+                'note_text' => $noteText,
+                'note_type' => $noteType,
+            ]
         ));
     }
 

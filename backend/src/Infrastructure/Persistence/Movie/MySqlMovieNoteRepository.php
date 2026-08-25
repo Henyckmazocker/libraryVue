@@ -48,7 +48,18 @@ final class MySqlMovieNoteRepository implements MovieNoteRepositoryInterface
         }
     }
 
-    public function add(int $userId, string $movieId, string $noteText, string $noteType = 'note', bool $isPrivate = true): int
+    /**
+     * El parámetro se llama `$movieIsbn` y NO es cosmético: PHP liga los
+     * argumentos nombrados a los de la **clase concreta**, no a los de la
+     * interfaz. Con `$movieId` aquí y `$movieIsbn` en
+     * `MovieNoteRepositoryInterface:34`, la llamada de
+     * `AddMovieNoteUseCase:51-57` moría con
+     * `Error: Unknown named parameter $movieIsbn` — es decir, **añadir una nota
+     * a una película estaba roto en producción**. Los tests unitarios no lo
+     * veían porque mockean la interfaz, y los mocks usan sus nombres. Lo
+     * destapó la suite de integración el 2026-08-25.
+     */
+    public function add(int $userId, string $movieIsbn, string $noteText, string $noteType = 'note', bool $isPrivate = true): int
     {
         try {
             $sql = 'INSERT INTO user_movie_notes (user_id, movie_isbn, note_text, note_type, is_private) 
@@ -57,7 +68,7 @@ final class MySqlMovieNoteRepository implements MovieNoteRepositoryInterface
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':userId' => $userId,
-                ':movieId' => $movieId,
+                ':movieId' => $movieIsbn,
                 ':noteText' => $noteText,
                 ':noteType' => $noteType,
                 ':isPrivate' => $isPrivate ? 1 : 0
@@ -67,7 +78,7 @@ final class MySqlMovieNoteRepository implements MovieNoteRepositoryInterface
             
             $this->logInfo('Movie note added successfully', [
                 'user_id' => $userId,
-                'movie_id' => $movieId,
+                'movie_id' => $movieIsbn,
                 'note_id' => $noteId,
                 'note_type' => $noteType
             ]);
@@ -76,7 +87,7 @@ final class MySqlMovieNoteRepository implements MovieNoteRepositoryInterface
         } catch (PDOException $e) {
             $this->logError('DB Error adding movie note', $e, [
                 'userId' => $userId,
-                'movieId' => $movieId
+                'movieId' => $movieIsbn
             ]);
             throw new RuntimeException('Could not add movie note. DB Error: ' . $e->getMessage(), 0, $e);
         }

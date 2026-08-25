@@ -44,12 +44,34 @@
         <strong>{{ event.entity_title }}</strong>
         {{ eventDescription }}
       </p>
+
+      <!-- El texto de la nota va SIEMPRE entero en el DOM y se recorta con CSS
+           (`-webkit-line-clamp`), no con JavaScript: así un lector de pantalla
+           lo lee completo aunque visualmente esté cortado. Y con `{{ }}`, nunca
+           `v-html`: esto lo escribe una persona y es un feed social. -->
+      <template v-if="noteText">
+        <p
+          class="feed-event-card__note"
+          :class="{ 'feed-event-card__note--open': noteOpen }"
+        >
+          {{ noteText }}
+        </p>
+        <button
+          v-if="noteIsLong"
+          type="button"
+          class="feed-event-card__note-more"
+          :aria-expanded="noteOpen"
+          @click="noteOpen = !noteOpen"
+        >
+          {{ noteOpen ? 'Ver menos' : 'Ver más' }}
+        </button>
+      </template>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 const props = defineProps({
   event: {
@@ -69,16 +91,39 @@ const entityIcon = computed(() => {
   return icons[props.event.entity_type] ?? 'pi pi-star'
 })
 
+/**
+ * Lo que la tarjeta sabe del evento vive en `metadata`, no en columnas sueltas.
+ *
+ * Hasta el 2026-08-25 esto leía `props.event.new_value`, **campo que no existe
+ * en `feed_events`**: los datos van en `metadata` (`status_changed` lo usa desde
+ * la migración de mayo, e `item_rated` igual). El resultado era que un evento de
+ * valoración decía literalmente «recibió una valoración de **undefined**» y uno
+ * de cambio de estado, «cambió de estado a "undefined"». Es un fallo
+ * preexistente, no de este plan, pero estaba en el mismo `computed` que había
+ * que tocar.
+ */
+const metadata = computed(() => props.event.metadata ?? {})
+
 const eventDescription = computed(() => {
   switch (props.event.event_type) {
     case 'item_added': return 'se añadió a la biblioteca'
-    case 'item_rated': return `recibió una valoración de ${props.event.new_value}`
-    case 'status_changed': return `cambió de estado a "${props.event.new_value}"`
-    case 'notes_updated': return 'tiene notas actualizadas'
+    case 'item_rated': return `recibió una valoración de ${metadata.value.rating ?? '—'}`
+    case 'status_changed': return `cambió de estado a "${metadata.value.new_status ?? '—'}"`
+    case 'notes_updated': return 'tiene una nota nueva'
     case 'reading_session': return 'tiene una sesión de lectura registrada'
     default: return ''
   }
 })
+
+/** El texto de la nota, cuando el evento es de nota. */
+const noteText = computed(() =>
+  props.event.event_type === 'notes_updated' ? (metadata.value.note_text ?? '') : ''
+)
+
+// El umbral es de caracteres y no de líneas a propósito: contar líneas exige
+// medir el DOM, y aquí basta con saber si merece la pena ofrecer el botón.
+const noteIsLong = computed(() => noteText.value.length > 180)
+const noteOpen = ref(false)
 
 const relativeTime = computed(() => {
   const diff = Date.now() - new Date(props.event.created_at).getTime()
@@ -181,6 +226,37 @@ const relativeTime = computed(() => {
     font-size: 0.875rem;
     color: var(--color-text);
     margin: 0;
+  }
+
+  // El recorte es CSS y no JavaScript a propósito: el texto completo está
+  // siempre en el DOM, así que un lector de pantalla lo lee entero aunque
+  // visualmente se vean tres líneas.
+  &__note {
+    margin: spacing(xs) 0 0;
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    white-space: pre-line;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+
+    &--open {
+      -webkit-line-clamp: unset;
+      overflow: visible;
+    }
+  }
+
+  // `button-reset` va sin `width` a propósito (ver la nota del mixin), así que
+  // este se ajusta a su texto y no ocupa la fila entera.
+  &__note-more {
+    @include button-reset;
+
+    margin-top: spacing(xxs);
+    font-size: 0.8125rem;
+    color: var(--color-accent);
+    text-decoration: underline;
+    cursor: pointer;
   }
 }
 </style>

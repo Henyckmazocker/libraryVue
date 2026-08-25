@@ -194,15 +194,19 @@ class VideoController extends BaseController implements Contracts\VideoControlle
         }
     }
 
-    public function addVideoNote(int $userId, string $youtubeId, string $noteText, string $noteType): array
+    /**
+     * Añadir una nota a un vídeo.
+     *
+     * Recibe el comando entero desde el 2026-08-25. Antes le llegaban cuatro
+     * argumentos sueltos y **`isPrivate` no era uno de ellos**, así que toda
+     * nota de vídeo nacía privada —el default del comando— y **no había forma
+     * de crear una pública desde la API**. Se descubrió al verificar que las
+     * cinco entidades emiten evento de feed: vídeos guardaba la nota y no
+     * emitía nunca.
+     */
+    public function addVideoNote(AddVideoNoteCommand $command): array
     {
         try {
-            $command = new AddVideoNoteCommand(
-                userId:    $userId,
-                youtubeId: $youtubeId,
-                noteText:  $noteText,
-                noteType:  $noteType
-            );
             $noteId = $this->addVideoNoteUseCase->execute($command);
             return $this->successResponse('Note added successfully', ['noteId' => $noteId]);
         } catch (\Exception $e) {

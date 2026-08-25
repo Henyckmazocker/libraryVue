@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controllers\Contracts;
 
+use App\Domain\DTO\Commands\AddVideoNoteCommand;
+
 use App\Domain\DTO\Commands\AddVideoCommand;
 use App\Domain\DTO\Commands\DeleteVideoCommand;
 use App\Domain\DTO\Commands\UpdateVideoRatingCommand;
@@ -44,7 +46,7 @@ interface VideoControllerInterface
 
     public function getVideoNotes(int $userId, string $youtubeId): array;
 
-    public function addVideoNote(int $userId, string $youtubeId, string $noteText, string $noteType): array;
+    public function addVideoNote(AddVideoNoteCommand $command): array;
 
     public function updateVideoNote(int $noteId, int $userId, string $noteText, string $noteType): array;
 

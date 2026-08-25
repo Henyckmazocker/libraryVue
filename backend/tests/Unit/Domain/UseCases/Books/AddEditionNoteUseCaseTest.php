@@ -6,7 +6,9 @@ namespace Tests\Unit\Domain\UseCases\Books;
 
 use App\Domain\UseCases\Books\AddEditionNoteUseCase;
 use App\Domain\Repository\Book\EditionNoteRepositoryInterface;
+use App\Domain\Repository\Book\EditionRepositoryInterface;
 use App\Domain\Repository\Book\UserBookEditionRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\DTO\Commands\AddEditionNoteCommand;
 use App\Domain\Model\EditionNote;
 use App\Domain\Model\UserBookEdition;
@@ -20,15 +22,24 @@ class AddEditionNoteUseCaseTest extends TestCase
     private AddEditionNoteUseCase $useCase;
     private EditionNoteRepositoryInterface $editionNoteRepo;
     private UserBookEditionRepositoryInterface $userBookEditionRepo;
+    private EditionRepositoryInterface $editionRepo;
+    private FeedEventService $feedEvents;
 
     protected function setUp(): void
     {
         $this->editionNoteRepo = $this->createMock(EditionNoteRepositoryInterface::class);
         $this->userBookEditionRepo = $this->createMock(UserBookEditionRepositoryInterface::class);
+        // Las dos dependencias nuevas del 2026-08-25: el evento del feed
+        // necesita título y portada, y `UserBookEdition` solo guarda el id de
+        // la edición.
+        $this->editionRepo = $this->createMock(EditionRepositoryInterface::class);
+        $this->feedEvents = $this->createMock(FeedEventService::class);
 
         $this->useCase = new AddEditionNoteUseCase(
             $this->editionNoteRepo,
             $this->userBookEditionRepo,
+            $this->editionRepo,
+            $this->feedEvents,
             new NullLogger()
         );
     }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controllers\Contracts;
 
+use App\Domain\DTO\Commands\AddGameNoteCommand;
+
 use App\Domain\DTO\Commands\AddGameCommand;
 use App\Domain\DTO\Commands\DeleteGameCommand;
 use App\Domain\DTO\Commands\UpdateGameRatingCommand;
@@ -95,7 +97,12 @@ interface GameControllerInterface
     /**
      * Add note to game
      */
-    public function addGameNote(int $userId, int $gameId, string $noteText, string $noteType): array;
+    /**
+     * Desde el 2026-08-25 recibe un comando, como los otros tres medios.
+     * Antes esta firma **se dejaba fuera `$isPrivate`**, que sí viajaba en
+     * la llamada real: el contrato ya mentía.
+     */
+    public function addGameNote(AddGameNoteCommand $command): array;
 
     /**
      * Update game note

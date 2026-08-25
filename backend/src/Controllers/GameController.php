@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Domain\DTO\Commands\AddGameNoteCommand;
+use App\Domain\UseCases\Games\AddGameNoteUseCase;
 use App\Domain\UseCases\Games\AddGameUseCase;
 use App\Domain\UseCases\Games\DeleteGameUseCase;
 use App\Domain\UseCases\Games\UpdateGameRatingUseCase;
@@ -35,6 +37,7 @@ class GameController extends BaseController implements Contracts\GameControllerI
     private EditUserGameUseCase $editUserGameUseCase;
     private GameTagRepositoryInterface $gameTagRepository;
     private GameNoteRepositoryInterface $gameNoteRepository;
+    private AddGameNoteUseCase $addGameNoteUseCase;
     private IGDBService $igdbService;
     private GetTrendingGamesUseCase $getTrendingGamesUseCase;
 
@@ -49,6 +52,7 @@ class GameController extends BaseController implements Contracts\GameControllerI
         EditUserGameUseCase $editUserGameUseCase,
         GameTagRepositoryInterface $gameTagRepository,
         GameNoteRepositoryInterface $gameNoteRepository,
+        AddGameNoteUseCase $addGameNoteUseCase,
         IGDBService $igdbService,
         GetTrendingGamesUseCase $getTrendingGamesUseCase
     ) {
@@ -62,6 +66,7 @@ class GameController extends BaseController implements Contracts\GameControllerI
         $this->authMiddleware = $authMiddleware;
         $this->gameTagRepository = $gameTagRepository;
         $this->gameNoteRepository = $gameNoteRepository;
+        $this->addGameNoteUseCase = $addGameNoteUseCase;
         $this->igdbService = $igdbService;
         $this->getTrendingGamesUseCase = $getTrendingGamesUseCase;
     }
@@ -441,26 +446,18 @@ class GameController extends BaseController implements Contracts\GameControllerI
      * @param bool $isPrivate Privacy flag
      * @return array Success response with created note ID
      */
-    public function addGameNote(
-        int $userId,
-        int $gameId,
-        string $noteText,
-        string $noteType = 'note',
-        bool $isPrivate = true
-    ) : array {
-        try {
-            $noteId = $this->gameNoteRepository->add($userId, $gameId, $noteText, $noteType, $isPrivate);
-            $note = [
-                'id' => $noteId,
-                'note_text' => $noteText,
-                'note_type' => $noteType,
-                'is_private' => $isPrivate ? 1 : 0,
-                'created_at' => date('Y-m-d H:i:s')
-            ];
-            return $this->successResponse('Game note added successfully', ['note' => $note]);
-        } catch (\Exception $e) {
-            return $this->errorResponse('Error adding game note: ' . $e->getMessage());
-        }
+    /**
+     * Añadir una nota a un game.
+     *
+     * Pasa por su use case desde el 2026-08-25. Antes hablaba directamente
+     * con el repositorio, que era la razón por la que games no tenía dónde
+     * poner la guarda de privacidad del feed.
+     */
+    public function addGameNote(AddGameNoteCommand $command): array
+    {
+        $note = $this->addGameNoteUseCase->execute($command);
+
+        return $this->successResponse('Game note added successfully', ['note' => $note]);
     }
 
     /**

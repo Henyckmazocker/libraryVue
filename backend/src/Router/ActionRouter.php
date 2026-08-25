@@ -34,6 +34,7 @@ use App\Domain\DTO\Commands\TrackSeriesSeasonCommand;
 use App\Domain\DTO\Queries\GetMovieNotesQuery;
 use App\Domain\DTO\Queries\GetSeriesProgressQuery;
 use App\Domain\DTO\Commands\AddGameCommand;
+use App\Domain\DTO\Commands\AddGameNoteCommand;
 use App\Domain\DTO\Commands\DeleteGameCommand;
 use App\Domain\DTO\Commands\UpdateGameRatingCommand;
 use App\Domain\DTO\Commands\UpdateGameStatusesCommand;
@@ -52,6 +53,7 @@ use App\Domain\DTO\Queries\GetTrendingBooksQuery;
 use App\Domain\DTO\Queries\GetTrendingMoviesQuery;
 use App\Domain\DTO\Queries\GetTrendingGamesQuery;
 use App\Domain\DTO\Commands\AddAlbumCommand;
+use App\Domain\DTO\Commands\AddAlbumNoteCommand;
 use App\Domain\DTO\Commands\DeleteAlbumCommand;
 use App\Domain\DTO\Commands\UpdateAlbumRatingCommand;
 use App\Domain\DTO\Commands\UpdateAlbumStatusesCommand;
@@ -69,6 +71,7 @@ use App\Domain\DTO\Queries\GetFriendsQuery;
 use App\Domain\DTO\Queries\GetPublicProfileQuery;
 use App\Domain\DTO\Queries\SearchUsersQuery;
 use App\Domain\DTO\Commands\AddVideoCommand;
+use App\Domain\DTO\Commands\AddVideoNoteCommand;
 use App\Domain\DTO\Commands\DeleteVideoCommand;
 use App\Domain\DTO\Commands\UpdateVideoRatingCommand;
 use App\Domain\DTO\Commands\UpdateVideoStatusesCommand;
@@ -404,11 +407,7 @@ class ActionRouter
             ),
             'get_game_notes' => $controller->getGameNotes($userId, $data['gameId'] ?? 0),
             'add_game_note' => $controller->addGameNote(
-                $userId,
-                $data['gameId'] ?? 0,
-                $data['noteText'] ?? $data['note_text'] ?? '',
-                $data['noteType'] ?? $data['note_type'] ?? 'note',
-                (bool)($data['isPrivate'] ?? $data['is_private'] ?? true)
+                AddGameNoteCommand::fromArray($data, $userId)
             ),
             'update_game_note' => $controller->updateGameNote(
                 $data['noteId'] ?? $data['note_id'] ?? 0,
@@ -466,11 +465,7 @@ class ActionRouter
             ),
             'get_album_notes' => $controller->getAlbumNotes($userId, $data['albumId'] ?? 0),
             'add_album_note' => $controller->addAlbumNote(
-                $userId,
-                $data['albumId'] ?? 0,
-                $data['noteText'] ?? $data['note_text'] ?? '',
-                $data['noteType'] ?? $data['note_type'] ?? 'note',
-                (bool)($data['isPrivate'] ?? $data['is_private'] ?? true)
+                AddAlbumNoteCommand::fromArray($data, $userId)
             ),
             'update_album_note' => $controller->updateAlbumNote(
                 $data['noteId'] ?? $data['note_id'] ?? 0,
@@ -589,7 +584,7 @@ class ActionRouter
             'get_video_tags'         => $controller->getVideoTags($userId, $data['videoId'] ?? 0),
             'update_video_tags'      => $controller->updateVideoTags($userId, $data['videoId'] ?? 0, $data['tag_ids'] ?? []),
             'get_video_notes'        => $controller->getVideoNotes($userId, $data['youtubeId'] ?? ''),
-            'add_video_note'         => $controller->addVideoNote($userId, $data['youtubeId'] ?? '', $data['noteText'] ?? '', $data['noteType'] ?? 'note'),
+            'add_video_note'         => $controller->addVideoNote(AddVideoNoteCommand::fromArray($data, $userId)),
             'update_video_note'      => $controller->updateVideoNote($data['noteId'] ?? 0, $userId, $data['noteText'] ?? '', $data['noteType'] ?? 'note'),
             'delete_video_note'      => $controller->deleteVideoNote($data['noteId'] ?? 0, $userId),
             'search_youtube_videos'  => $controller->searchVideos($data),

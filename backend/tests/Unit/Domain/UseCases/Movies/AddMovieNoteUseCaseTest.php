@@ -6,7 +6,9 @@ namespace Tests\Unit\Domain\UseCases\Movies;
 
 use App\Domain\UseCases\Movies\AddMovieNoteUseCase;
 use App\Domain\Repository\Movie\MovieNoteRepositoryInterface;
+use App\Domain\Repository\Movie\MovieRepositoryInterface;
 use App\Domain\Repository\Movie\UserMovieRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\DTO\Commands\AddMovieNoteCommand;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -18,15 +20,24 @@ class AddMovieNoteUseCaseTest extends TestCase
     private AddMovieNoteUseCase $useCase;
     private MovieNoteRepositoryInterface $movieNoteRepo;
     private UserMovieRepositoryInterface $userMovieRepo;
+    private MovieRepositoryInterface $movieRepo;
+    private FeedEventService $feedEvents;
 
     protected function setUp(): void
     {
         $this->movieNoteRepo = $this->createMock(MovieNoteRepositoryInterface::class);
         $this->userMovieRepo = $this->createMock(UserMovieRepositoryInterface::class);
+        // Las dos dependencias nuevas del 2026-08-25: el evento del feed
+        // necesita título y portada, y `UserMovieRepository` no tiene ningún
+        // «buscar una».
+        $this->movieRepo = $this->createMock(MovieRepositoryInterface::class);
+        $this->feedEvents = $this->createMock(FeedEventService::class);
 
         $this->useCase = new AddMovieNoteUseCase(
             $this->movieNoteRepo,
             $this->userMovieRepo,
+            $this->movieRepo,
+            $this->feedEvents,
             new NullLogger()
         );
     }

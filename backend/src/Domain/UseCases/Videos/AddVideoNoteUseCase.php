@@ -8,6 +8,7 @@ use App\Domain\Repository\Video\VideoRepositoryInterface;
 use App\Domain\Repository\Video\UserVideoRepositoryInterface;
 use App\Domain\Repository\Video\VideoNoteRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
+use App\Domain\Services\FeedEventService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\AddVideoNoteCommand;
 use Psr\Log\LoggerInterface;
@@ -20,6 +21,7 @@ class AddVideoNoteUseCase extends AbstractUseCase
         private readonly UserVideoRepositoryInterface $userVideoRepository,
         private readonly VideoNoteRepositoryInterface $videoNoteRepository,
         private readonly UserRepositoryInterface $userRepository,
+        private readonly FeedEventService $feedEvents,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -45,13 +47,33 @@ class AddVideoNoteUseCase extends AbstractUseCase
             throw new InvalidArgumentException("Video not found in your library");
         }
 
-        return $this->videoNoteRepository->add(
+        $noteId = $this->videoNoteRepository->add(
             $command->userId,
             $video->getId(),
             $command->noteText,
             $command->noteType,
             $command->isPrivate
         );
+
+        // Solo las notas públicas se publican. La guarda va aquí y no en
+        // `FeedEventService`, que se traga sus errores por diseño: esconder ahí
+        // una regla de privacidad convertiría un fallo silencioso en un escape
+        // de privacidad silencioso.
+        if (!$command->isPrivate) {
+            $this->feedEvents->recordNotesUpdated(
+                userId: $command->userId,
+                entityType: 'video',
+                // El id del feed es el de YouTube, como en `AddVideoUseCase`:
+                // el id interno no significa nada fuera de esta base.
+                entityId: (string) $video->getYouTubeId(),
+                title: $video->getTitle(),
+                cover: $video->getCoverUrl(),
+                noteText: $command->noteText,
+                noteType: $command->noteType
+            );
+        }
+
+        return $noteId;
     }
 
     protected function getLogContext(): string

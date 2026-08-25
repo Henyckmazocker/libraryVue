@@ -4,66 +4,30 @@
       Configuración de privacidad
     </h3>
 
+    <p class="privacy-settings-panel__intro">
+      Elige qué actividad tuya ven tus amigos en su feed. Lo que apagues aquí deja de mostrarse,
+      aunque siga registrado.
+    </p>
+
     <div
       v-if="privacySettings"
       class="privacy-settings-panel__form"
     >
-      <div class="privacy-settings-panel__row">
-        <!-- El <Select> de PrimeVue no es un control nativo al que un <label for>
-             pueda apuntar: se etiqueta por aria-labelledby. -->
-        <span
-          :id="'privacy-profile-label'"
-          class="privacy-settings-panel__row-label"
-        >Visibilidad del perfil</span>
-        <Select
-          v-model="localSettings.profileVisibility"
-          :aria-labelledby="'privacy-profile-label'"
-          :options="visibilityOptions"
-          option-label="label"
-          option-value="value"
-        />
-      </div>
-
-      <div class="privacy-settings-panel__row">
-        <!-- El <Select> de PrimeVue no es un control nativo al que un <label for>
-             pueda apuntar: se etiqueta por aria-labelledby. -->
-        <span
-          :id="'privacy-library-label'"
-          class="privacy-settings-panel__row-label"
-        >Visibilidad de la biblioteca</span>
-        <Select
-          v-model="localSettings.libraryVisibility"
-          :aria-labelledby="'privacy-library-label'"
-          :options="visibilityOptions"
-          option-label="label"
-          option-value="value"
-        />
-      </div>
-
-      <div class="privacy-settings-panel__row">
-        <!-- El <Select> de PrimeVue no es un control nativo al que un <label for>
-             pueda apuntar: se etiqueta por aria-labelledby. -->
-        <span
-          :id="'privacy-feed-label'"
-          class="privacy-settings-panel__row-label"
-        >Visibilidad del feed</span>
-        <Select
-          v-model="localSettings.feedVisibility"
-          :aria-labelledby="'privacy-feed-label'"
-          :options="visibilityOptions"
-          option-label="label"
-          option-value="value"
-        />
-      </div>
-
-      <div class="privacy-settings-panel__row privacy-settings-panel__row--toggle">
-        <span
-          id="privacy-requests-label"
-          class="privacy-settings-panel__row-label"
-        >Permitir solicitudes de amistad</span>
+      <div
+        v-for="ajuste in AJUSTES"
+        :key="ajuste.key"
+        class="privacy-settings-panel__row privacy-settings-panel__row--toggle"
+      >
+        <span class="privacy-settings-panel__row-label">
+          <span :id="`privacy-${ajuste.key}-label`">{{ ajuste.label }}</span>
+          <small
+            v-if="ajuste.hint"
+            class="privacy-settings-panel__row-hint"
+          >{{ ajuste.hint }}</small>
+        </span>
         <ToggleSwitch
-          v-model="localSettings.allowFriendRequests"
-          aria-labelledby="privacy-requests-label"
+          v-model="localSettings[ajuste.key]"
+          :aria-labelledby="`privacy-${ajuste.key}-label`"
         />
       </div>
 
@@ -86,38 +50,61 @@
 
 <script setup>
 import { ref, watch, onMounted } from 'vue'
-import Select from 'primevue/select'
 import ToggleSwitch from 'primevue/toggleswitch'
 import Button from 'primevue/button'
 import { usePrivacySettings } from '@/composables/usePrivacySettings'
 import { useToast } from 'primevue/usetoast'
 
+/**
+ * Los **seis** ajustes que existen de verdad, con el mismo nombre que tienen en
+ * `user_privacy_settings` y en `PrivacySettings::toArray()`.
+ *
+ * Hasta el 2026-08-25 este panel pintaba otra cosa: tres desplegables de
+ * visibilidad y un interruptor de solicitudes de amistad —`profile_visibility`,
+ * `library_visibility`, `feed_visibility` y `allow_friend_requests`—, **cuatro
+ * campos que no existen ni en el backend ni en la base de datos**. Y no era
+ * solo cosmético: `UpdatePrivacySettingsCommand::fromArray` (`:19-29`) lee los
+ * seis reales con un `?? true` de respaldo, así que al no llegar ninguno **cada
+ * «Guardar» los reseteaba todos a su valor por defecto**.
+ */
+const AJUSTES = [
+  { key: 'show_additions', label: 'Cuando añado algo a mi biblioteca' },
+  { key: 'show_status_changes', label: 'Cuando cambio el estado de algo' },
+  { key: 'show_ratings', label: 'Cuando valoro algo' },
+  {
+    key: 'show_notes',
+    label: 'Cuando escribo una nota',
+    // Los dos interruptores son independientes y se confunden con facilidad:
+    // este decide si el evento se VE, y el `is_private` de cada nota decide si
+    // llega a emitirse. Una nota privada no genera evento ni con esto encendido.
+    hint: 'Solo las notas que marques como públicas. Las privadas no se publican nunca.'
+  },
+  { key: 'show_reading_sessions', label: 'Cuando registro una sesión de lectura' },
+  { key: 'show_achievements', label: 'Cuando consigo un logro' }
+]
+
 const { privacySettings, fetchPrivacySettings, updatePrivacySettings } = usePrivacySettings()
 const toast = useToast()
 const saving = ref(false)
 
-const visibilityOptions = [
-  { label: 'Público', value: 'public' },
-  { label: 'Solo amigos', value: 'friends_only' },
-  { label: 'Privado', value: 'private' }
-]
-
+/** Los defaults del backend, para no pintar interruptores vacíos mientras carga. */
 const localSettings = ref({
-  profileVisibility: 'public',
-  libraryVisibility: 'public',
-  feedVisibility: 'friends_only',
-  allowFriendRequests: true
+  show_additions: true,
+  show_status_changes: true,
+  show_ratings: true,
+  show_notes: false,
+  show_reading_sessions: true,
+  show_achievements: true
 })
 
 watch(privacySettings, (val) => {
-  if (val) {
-    localSettings.value = {
-      profileVisibility: val.profile_visibility ?? 'public',
-      libraryVisibility: val.library_visibility ?? 'public',
-      feedVisibility: val.feed_visibility ?? 'friends_only',
-      allowFriendRequests: val.allow_friend_requests ?? true
-    }
-  }
+  if (!val) return
+
+  // `??` y no `||`: un `false` guardado es un valor legítimo y con `||` se
+  // perdería en cada carga.
+  localSettings.value = Object.fromEntries(
+    AJUSTES.map(({ key }) => [key, val[key] ?? localSettings.value[key]])
+  )
 }, { immediate: true })
 
 onMounted(() => {
@@ -141,43 +128,21 @@ const save = async () => {
 @use '@/assets/styles/abstracts' as *;
 
 .privacy-settings-panel {
-  &__title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin-bottom: spacing(lg);
-    color: var(--color-text);
+  &__intro {
+    margin: 0 0 var(--spacing-md);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
   }
 
-  &__form {
+  &__row-label {
     display: flex;
     flex-direction: column;
-    gap: spacing(md);
+    gap: var(--spacing-xxs);
   }
 
-  &__row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: spacing(md);
-
-    // Las etiquetas son <span> porque los controles de PrimeVue no aceptan
-    // un <label for>: se asocian por aria-labelledby.
-    label,
-    &-label {
-      font-size: 0.9rem;
-      color: var(--color-text);
-    }
-
-    &--toggle {
-      padding: spacing(sm) 0;
-      border-bottom: 1px solid var(--color-border);
-    }
-  }
-
-  &__loading {
-    text-align: center;
-    padding: spacing(2xl);
+  &__row-hint {
     color: var(--color-text-secondary);
+    font-size: var(--font-size-xs);
   }
 }
 </style>

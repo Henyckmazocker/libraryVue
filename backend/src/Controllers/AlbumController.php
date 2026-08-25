@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Domain\DTO\Commands\AddAlbumNoteCommand;
+use App\Domain\UseCases\Albums\AddAlbumNoteUseCase;
 use App\Domain\UseCases\Albums\AddAlbumUseCase;
 use App\Domain\UseCases\Albums\DeleteAlbumUseCase;
 use App\Domain\UseCases\Albums\UpdateAlbumRatingUseCase;
@@ -43,6 +45,7 @@ class AlbumController extends BaseController implements Contracts\AlbumControlle
         private readonly GetTrendingAlbumsUseCase $getTrendingAlbumsUseCase,
         private readonly AlbumTagRepositoryInterface $albumTagRepository,
         private readonly AlbumNoteRepositoryInterface $albumNoteRepository,
+        private readonly AddAlbumNoteUseCase $addAlbumNoteUseCase,
         private readonly SpotifyService $spotifyService,
         private readonly AlbumCatalogInterface $albumCatalog,
         // Los dos concretos, y no la interfaz, porque las pistas no forman
@@ -193,27 +196,18 @@ class AlbumController extends BaseController implements Contracts\AlbumControlle
         }
     }
 
-    public function addAlbumNote(
-        int $userId,
-        int $albumId,
-        string $noteText,
-        string $noteType = 'note',
-        bool $isPrivate = true
-    ): array {
-        try {
-            $noteId = $this->albumNoteRepository->add($userId, $albumId, $noteText, $noteType, $isPrivate);
-            return $this->successResponse('Album note added successfully', [
-                'note' => [
-                    'id'         => $noteId,
-                    'note_text'  => $noteText,
-                    'note_type'  => $noteType,
-                    'is_private' => $isPrivate ? 1 : 0,
-                    'created_at' => date('Y-m-d H:i:s'),
-                ],
-            ]);
-        } catch (\Exception $e) {
-            return $this->errorResponse('Error adding album note: ' . $e->getMessage());
-        }
+    /**
+     * Añadir una nota a un álbum.
+     *
+     * Pasa por su use case desde el 2026-08-25. Antes hablaba directamente con
+     * el repositorio, que era la razón por la que álbumes no tenía dónde poner
+     * la guarda de privacidad del feed.
+     */
+    public function addAlbumNote(AddAlbumNoteCommand $command): array
+    {
+        $note = $this->addAlbumNoteUseCase->execute($command);
+
+        return $this->successResponse('Album note added successfully', ['note' => $note]);
     }
 
     public function updateAlbumNote(

@@ -68,12 +68,12 @@ docker compose up --build
 
 # Tests backend (PHPUnit 11, dentro del contenedor backend)
 docker compose --profile test up -d mysql-test   # lo necesita la suite de integración
-docker compose exec backend composer test        # las DOS suites: 1195 tests
+docker compose exec backend composer test        # las DOS suites: 1204 tests
 docker compose exec backend composer test:unit   # la rápida: 1180, sin necesitar mysql-test
 docker compose exec backend composer test:integration   # 15, contra una BD desechable
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
-docker compose exec frontend npm test            # 208 tests
+docker compose exec frontend npm test            # 222 tests
 docker compose exec frontend npm run test:watch
 docker compose exec frontend npx vue-cli-service lint --no-fix   # lo corre también ./dev-setup.sh
 docker compose exec frontend npm run lint:styles                 # stylelint; también en ./dev-setup.sh
@@ -372,6 +372,15 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 - **Endpoint = tres sitios coherentes** (routes, match/getController, controller).
 - **Depende de interfaces de repositorio**; registra los nuevos en `config/container.php`.
 - **PHPUnit dentro del contenedor**; warnings hacen fallar la suite.
+- **Un `Add*NoteUseCase` emite al feed solo si la nota es pública**, y esa guarda va **en el use
+  case**, nunca en `FeedEventService`: ese servicio se traga sus propios errores por diseño, y
+  esconder ahí una regla de privacidad convertiría un fallo silencioso en un escape silencioso. Cada
+  uno necesita **dos** dependencias: `FeedEventService` y el repositorio de su entidad, porque el
+  evento exige título y portada y el repositorio de usuario no los da.
+- **Cuidado con los nombres de parámetro entre interfaz e implementación.** PHP liga los argumentos
+  **nombrados a la clase concreta**, así que un `$movieIsbn` en la interfaz y un `$movieId` en la
+  implementación rompen la llamada — y **los tests unitarios no lo ven, porque mockean la interfaz**.
+  Pasó de verdad con `add_movie_note`, y lo encontró la suite de integración.
 - **Un endpoint nuevo merece un test de INTEGRACIÓN, no solo unitarios.** Los unitarios mockean PDO y
   por diseño no ven el fallo típico de aquí: la acción declarada a medias en uno de los tres sitios, o
   un SQL que no casa con el esquema. Se entra por `ActionRouter`, no por HTTP: `tests/Integration/`.
@@ -391,9 +400,9 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 
 1. `docker compose up --build`; `POST http://localhost:8888/index.php` con `{"action":"ping"}`.
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
-3. `docker compose exec backend composer test` → verde (1195 tests: 1180 unitarios + 15 de
+3. `docker compose exec backend composer test` → verde (1204 tests: 1184 unitarios + 20 de
    integración; estos necesitan `docker compose --profile test up -d mysql-test`).
-4. `docker compose exec frontend npm test` → verde (208 tests) y
+4. `docker compose exec frontend npm test` → verde (222 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
 5. Si el cambio se ve en pantalla, **haz capturas**: jsdom no evalúa CSS. Procedimiento con Firefox y
    geckodriver en `.github/skills/frontend.md` → *Visual Verification (headless screenshots)*.

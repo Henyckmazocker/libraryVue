@@ -67,11 +67,11 @@ docker compose up --build
 ./mirror-sync.sh --covers   # siembra y baja las portadas pendientes de la biblioteca
 
 # Tests backend (PHPUnit 11, dentro del contenedor backend)
-docker compose exec backend composer test:unit   # ← el que funciona hoy
-docker compose exec backend composer test        # ⚠ FALLA: ver aviso abajo
+docker compose exec backend composer test        # los 1146 tests
+docker compose exec backend composer test:unit   # solo la suite Unit (hoy son lo mismo)
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
-docker compose exec frontend npm test            # 177 tests
+docker compose exec frontend npm test            # 194 tests
 docker compose exec frontend npm run test:watch
 docker compose exec frontend npx vue-cli-service lint --no-fix   # lo corre también ./dev-setup.sh
 docker compose exec frontend npm run lint:styles                 # stylelint; también en ./dev-setup.sh
@@ -332,13 +332,13 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 
 1. `docker compose up --build`; `POST http://localhost:8888/index.php` con `{"action":"ping"}`.
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
-3. `docker compose exec backend composer test:unit` → verde (1093 tests).
-4. `docker compose exec frontend npm test` → verde (177 tests) y
+3. `docker compose exec backend composer test` → verde (1146 tests).
+4. `docker compose exec frontend npm test` → verde (194 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
 5. Si el cambio se ve en pantalla, **haz capturas**: jsdom no evalúa CSS. Procedimiento con Firefox y
    geckodriver en `.github/skills/frontend.md` → *Visual Verification (headless screenshots)*.
 
-> ⚠️ **`composer test` está roto y no ejecuta ni un test.** `backend/phpunit.xml:13-15` declara una
-> testsuite `Integration` sobre `tests/Integration`, directorio que no existe, y PHPUnit 11.5.55
-> aborta con `error code 2` antes de arrancar. Usa **`composer test:unit`** hasta que se escriban
-> esos tests o se retire la suite (Roadmap #5). Verificado el 2026-08-19.
+> ℹ️ **`composer test` y `composer test:unit` ejecutan hoy lo mismo**, y es intencionado.
+> `phpunit.xml` declaraba una testsuite `Integration` sobre un `tests/Integration` inexistente que
+> hacía abortar a PHPUnit con `error code 2`; se retiró el 2026-08-24. El día que haya suite de
+> integración (Roadmap #5), `test` correrá las dos y `test:unit` seguirá sirviendo para la rápida.

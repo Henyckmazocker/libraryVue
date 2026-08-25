@@ -25,6 +25,7 @@
     "axios": "^1.13.5",
     "chart.js": "^4.4.0",
     "core-js": "^3.48.0",
+    "dompurify": "^3.4.14",
     "pinia": "^2.3.1",
     "primeicons": "^7.0.0",
     "primevue": "^4.5.4",
@@ -68,6 +69,7 @@
       "parser": "@babel/eslint-parser"
     },
     "rules": {
+      "vue/no-v-html": "error",
       "no-restricted-imports": [
         "error",
         {

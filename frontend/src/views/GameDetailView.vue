@@ -121,10 +121,12 @@
           <i class="fas fa-align-left" />
           Descripción
         </h2>
+        <!-- eslint-disable vue/no-v-html -- saneado con utils/sanitize.js -->
         <div
           class="game-description-content"
-          v-html="sanitizeHtml(item.description || item.description_raw)"
+          v-html="sanitizeRich(item.description || item.description_raw)"
         />
+        <!-- eslint-enable vue/no-v-html -->
       </div>
 
       <div
@@ -186,6 +188,7 @@
 <script setup>
 import MediaDetailView from '@/views/shared/MediaDetailView.vue';
 import { useGamesStore } from '@/store/games';
+import { sanitizeRich } from '@/utils/sanitize';
 
 /**
  * Ficha de juego. El esqueleto —estados, cabecera, formulario de biblioteca,
@@ -246,11 +249,6 @@ const websiteName = (category) => ({
   17: 'Tumblr', 18: 'LinkedIn'
 }[category] || 'Ver enlace');
 
-/** Quita los <script> del HTML que manda IGDB, igual que antes. */
-const sanitizeHtml = (html) => {
-  if (!html) return '';
-  return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-};
 </script>
 
 <style scoped lang="scss">

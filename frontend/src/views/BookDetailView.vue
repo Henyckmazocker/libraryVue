@@ -1,209 +1,217 @@
 <template>
-  <MediaDetailView
-    ref="detalle"
-    media="book"
-    :store="booksStore"
-    @show-history="abrirHistorial"
-  >
-    <template #meta="{ item }">
-      <div
-        v-if="item.author"
-        class="book-author-large"
-      >
-        <i class="fas fa-user" />
-        <span>por {{ item.author }}</span>
-      </div>
-
-      <div class="book-metadata">
-        <span
-          v-if="item.publisher"
-          class="metadata-item"
-        >
-          <i class="fas fa-building" />
-          {{ item.publisher }}
-        </span>
-        <span
-          v-if="item.publicationDate"
-          class="metadata-item"
-        >
-          <i class="fas fa-calendar" />
-          {{ item.publicationDate }}
-        </span>
-        <span
-          v-if="item.pages"
-          class="metadata-item"
-        >
-          <i class="fas fa-file-alt" />
-          {{ item.pages }} páginas
-        </span>
-      </div>
-
-      <div
-        v-if="item.language"
-        class="book-language"
-      >
-        <i class="fas fa-globe" />
-        <span>{{ getLanguageName(item.language) }}</span>
-      </div>
-
-      <div
-        v-if="item.isbn"
-        class="book-isbn-display"
-      >
-        <strong>ISBN:</strong> {{ item.isbn }}
-        <span
-          v-if="item.isbn10"
-          class="isbn-secondary"
-        > • ISBN-10: {{ item.isbn10 }}</span>
-      </div>
-
-      <div
-        v-if="item.genres && item.genres.length > 0"
-        class="book-categories"
-      >
-        <i class="fas fa-tags" />
-        <div class="category-tags">
-          <span
-            v-for="(genre, index) in item.genres"
-            :key="index"
-            class="category-tag"
-          >
-            {{ genre }}
-          </span>
-        </div>
-      </div>
-    </template>
-
-    <template #extra="{ item, existing }">
-      <div
-        v-if="item.description"
-        class="book-description-section"
-      >
-        <h2 class="section-title">
-          <i class="fas fa-book-open" />
-          Descripción
-        </h2>
+  <div class="book-detail-page">
+    <!-- Raíz ÚNICA, y un elemento: el <Transition mode="out-in"> de App.vue no puede animar
+         un fragment, y su transición de salida no llega a terminar nunca, así que el
+         <router-view> deja de montar nada y la app se queda en blanco. Ojo: un comentario
+         aquí arriba, fuera de este div, también cuenta como nodo raíz y reproduce el fallo. -->
+    <MediaDetailView
+      ref="detalle"
+      media="book"
+      :store="booksStore"
+      @show-history="abrirHistorial"
+    >
+      <template #meta="{ item }">
         <div
-          class="book-description-content"
-          v-html="formatDescription(item.description)"
-        />
-      </div>
-
-      <!-- Selector de ediciones: al elegir otra, cambia el ítem de la ficha. -->
-      <EditionSelector
-        v-if="item.work_key"
-        :work-key="item.work_key"
-        :initial-selected-edition="item"
-        :saved-isbn="existing ? existing.isbn : null"
-        @edition-selected="(edicion) => seleccionarEdicion(item, edicion)"
-      />
-
-      <div
-        v-if="item.subjects && item.subjects.length > 0"
-        class="book-subjects-section"
-      >
-        <h2 class="section-title">
-          <i class="fas fa-bookmark" />
-          Temas y Materias
-        </h2>
-        <div class="subject-tags">
-          <a
-            v-for="(subject, index) in item.subjects.slice(0, 15)"
-            :key="index"
-            :href="subject.url"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="subject-tag"
-          >
-            {{ subject.name }}
-          </a>
+          v-if="item.author"
+          class="book-author-large"
+        >
+          <i class="fas fa-user" />
+          <span>por {{ item.author }}</span>
         </div>
-      </div>
 
-      <div
-        v-if="item.previewLink || item.infoLink || item.openLibraryUrl"
-        class="book-links-section"
-      >
-        <h2 class="section-title">
-          <i class="fas fa-external-link-alt" />
-          Enlaces Externos
-        </h2>
-        <div class="external-links">
-          <a
-            v-if="item.previewLink"
-            :href="item.previewLink"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="external-link"
-          >
-            <i class="fab fa-google" />
-            Vista previa en Google Books
-          </a>
-          <a
-            v-if="item.infoLink"
-            :href="item.infoLink"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="external-link"
-          >
-            <i class="fab fa-google" />
-            Más información en Google Books
-          </a>
-          <a
-            v-if="item.openLibraryUrl"
-            :href="item.openLibraryUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="external-link"
-          >
-            <i class="fas fa-book" />
-            Ver en OpenLibrary
-          </a>
-        </div>
-      </div>
-
-      <div
-        v-if="item.classifications"
-        class="book-classifications-section"
-      >
-        <h2 class="section-title">
-          <i class="fas fa-list-ol" />
-          Clasificaciones
-        </h2>
-        <div class="classifications-content">
+        <div class="book-metadata">
           <span
-            v-if="item.classifications.lc"
-            class="classification-item"
+            v-if="item.publisher"
+            class="metadata-item"
           >
-            <strong>LC:</strong> {{ item.classifications.lc.join(', ') }}
+            <i class="fas fa-building" />
+            {{ item.publisher }}
+          </span>
+          <span
+            v-if="item.publicationDate"
+            class="metadata-item"
+          >
+            <i class="fas fa-calendar" />
+            {{ item.publicationDate }}
+          </span>
+          <span
+            v-if="item.pages"
+            class="metadata-item"
+          >
+            <i class="fas fa-file-alt" />
+            {{ item.pages }} páginas
           </span>
         </div>
-      </div>
-    </template>
 
-    <!-- Lo irreductible del libro dentro de la ficha de biblioteca. -->
-    <template #library-after-rating="{ item }">
-      <ReadingProgressBar
-        :current-page="item.currentPage || 0"
-        :total-pages="item.pages || 0"
-        :editable="false"
-        theme="blue"
-      />
-    </template>
+        <div
+          v-if="item.language"
+          class="book-language"
+        >
+          <i class="fas fa-globe" />
+          <span>{{ getLanguageName(item.language) }}</span>
+        </div>
 
-    <template #library-after-status="{ item }">
-      <ReadingStatusWidget
-        v-if="detalle?.existing"
-        :book="item"
-      />
-    </template>
-  </MediaDetailView>
+        <div
+          v-if="item.isbn"
+          class="book-isbn-display"
+        >
+          <strong>ISBN:</strong> {{ item.isbn }}
+          <span
+            v-if="item.isbn10"
+            class="isbn-secondary"
+          > • ISBN-10: {{ item.isbn10 }}</span>
+        </div>
 
-  <SessionHistoryModal
-    :visible="historial.isVisible"
-    :book="historial.book"
-    @close="cerrarHistorial"
-  />
+        <div
+          v-if="item.genres && item.genres.length > 0"
+          class="book-categories"
+        >
+          <i class="fas fa-tags" />
+          <div class="category-tags">
+            <span
+              v-for="(genre, index) in item.genres"
+              :key="index"
+              class="category-tag"
+            >
+              {{ genre }}
+            </span>
+          </div>
+        </div>
+      </template>
+
+      <template #extra="{ item, existing }">
+        <div
+          v-if="item.description"
+          class="book-description-section"
+        >
+          <h2 class="section-title">
+            <i class="fas fa-book-open" />
+            Descripción
+          </h2>
+          <!-- eslint-disable vue/no-v-html -- saneado con utils/sanitize.js -->
+          <div
+            class="book-description-content"
+            v-html="sanitizeRich(formatDescription(item.description))"
+          />
+          <!-- eslint-enable vue/no-v-html -->
+        </div>
+
+        <!-- Selector de ediciones: al elegir otra, cambia el ítem de la ficha. -->
+        <EditionSelector
+          v-if="item.work_key"
+          :work-key="item.work_key"
+          :initial-selected-edition="item"
+          :saved-isbn="existing ? existing.isbn : null"
+          @edition-selected="(edicion) => seleccionarEdicion(item, edicion)"
+        />
+
+        <div
+          v-if="item.subjects && item.subjects.length > 0"
+          class="book-subjects-section"
+        >
+          <h2 class="section-title">
+            <i class="fas fa-bookmark" />
+            Temas y Materias
+          </h2>
+          <div class="subject-tags">
+            <a
+              v-for="(subject, index) in item.subjects.slice(0, 15)"
+              :key="index"
+              :href="subject.url"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="subject-tag"
+            >
+              {{ subject.name }}
+            </a>
+          </div>
+        </div>
+
+        <div
+          v-if="item.previewLink || item.infoLink || item.openLibraryUrl"
+          class="book-links-section"
+        >
+          <h2 class="section-title">
+            <i class="fas fa-external-link-alt" />
+            Enlaces Externos
+          </h2>
+          <div class="external-links">
+            <a
+              v-if="item.previewLink"
+              :href="item.previewLink"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="external-link"
+            >
+              <i class="fab fa-google" />
+              Vista previa en Google Books
+            </a>
+            <a
+              v-if="item.infoLink"
+              :href="item.infoLink"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="external-link"
+            >
+              <i class="fab fa-google" />
+              Más información en Google Books
+            </a>
+            <a
+              v-if="item.openLibraryUrl"
+              :href="item.openLibraryUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="external-link"
+            >
+              <i class="fas fa-book" />
+              Ver en OpenLibrary
+            </a>
+          </div>
+        </div>
+
+        <div
+          v-if="item.classifications"
+          class="book-classifications-section"
+        >
+          <h2 class="section-title">
+            <i class="fas fa-list-ol" />
+            Clasificaciones
+          </h2>
+          <div class="classifications-content">
+            <span
+              v-if="item.classifications.lc"
+              class="classification-item"
+            >
+              <strong>LC:</strong> {{ item.classifications.lc.join(', ') }}
+            </span>
+          </div>
+        </div>
+      </template>
+
+      <!-- Lo irreductible del libro dentro de la ficha de biblioteca. -->
+      <template #library-after-rating="{ item }">
+        <ReadingProgressBar
+          :current-page="item.currentPage || 0"
+          :total-pages="item.pages || 0"
+          :editable="false"
+          theme="blue"
+        />
+      </template>
+
+      <template #library-after-status="{ item }">
+        <ReadingStatusWidget
+          v-if="detalle?.existing"
+          :book="item"
+        />
+      </template>
+    </MediaDetailView>
+
+    <SessionHistoryModal
+      :visible="historial.isVisible"
+      :book="historial.book"
+      @close="cerrarHistorial"
+    />
+  </div>
 </template>
 
 <script setup>
@@ -217,6 +225,7 @@ import { useBooksStore } from '@/store/books';
 import { useUIStore } from '@/store/ui';
 import { getLanguageName } from '@/utils/languageConstants';
 import Logger from '@/utils/logger';
+import { sanitizeRich } from '@/utils/sanitize';
 
 /**
  * Ficha de libro. El esqueleto —estados, cabecera, formulario de biblioteca,

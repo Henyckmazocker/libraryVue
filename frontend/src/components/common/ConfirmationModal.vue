@@ -30,10 +30,12 @@
 
       <!-- Content -->
       <div class="modal-content">
+        <!-- eslint-disable vue/no-v-html -- saneado con utils/sanitize.js -->
         <p
           class="modal-message"
-          v-html="message"
+          v-html="sanitizePlain(message)"
         />
+        <!-- eslint-enable vue/no-v-html -->
         
         <!-- Lista de detalles adicionales si se proporcionan -->
         <div
@@ -98,6 +100,7 @@
 <script>
 import { ref, computed, nextTick, watch } from 'vue'
 import { useFocusTrap } from '@/composables/useFocusTrap'
+import { sanitizePlain } from '@/utils/sanitize'
 
 export default {
   name: 'ConfirmationModal',
@@ -273,6 +276,7 @@ export default {
     })
     
     return {
+      sanitizePlain,
       dialogRef,
       confirmationText,
       inputId,

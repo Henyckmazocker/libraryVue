@@ -50,6 +50,12 @@ services:
       # Compartido con producción: cover_file vive en el mirror y su storage_path
       # tiene que significar lo mismo en los dos entornos.
       - covers_data:/var/www/html/storage/covers
+      # El esquema, para la suite de integración: `tests/Integration/bootstrap.php`
+      # siembra la base desechable con init.sql + las migraciones, y esos ficheros
+      # viven FUERA de ./backend. Solo lectura, y en /opt y no bajo /var/www/html
+      # a propósito: dentro del DocumentRoot, Apache serviría el esquema entero
+      # en texto plano a quien pidiera /docker/database/init.sql.
+      - ./docker/database:/opt/db-schema:ro
     environment:
       - APP_ENV=development
       - DB_HOST=mysql
@@ -67,6 +73,15 @@ services:
       - DB_MIRROR_IMPORT_PASSWORD=${DB_MIRROR_IMPORT_PASSWORD}
       - DB_USERNAME=library_user
       - DB_PASSWORD=${DB_PASSWORD}
+      # La BD desechable de la suite de integración. Van aquí y no hardcodeadas
+      # en el bootstrap para que cambiar el servicio no obligue a tocar PHP.
+      # `DB_TEST_HOST` es además la guarda: el bootstrap se NIEGA a sembrar si
+      # no está apuntando aquí, porque init.sql empieza con un DROP DATABASE.
+      - DB_TEST_HOST=mysql-test
+      - DB_TEST_PORT=3306
+      - DB_TEST_DATABASE=library_db
+      - DB_TEST_USERNAME=root
+      - DB_TEST_PASSWORD=test
       - LOG_PATH=/var/www/html/storage/logs
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_BOOKS_API_KEY=${GOOGLE_BOOKS_API_KEY}
@@ -106,6 +121,33 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./docker/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  # MySQL desechable para la suite de integración. NO va en
+  # docker-compose.prod.yml: producción no debe ni saber que existe.
+  mysql-test:
+    image: mysql:8.0        # la MISMA que dev, no `mysql:8`
+    # SIN puerto publicado, y a propósito: la suite corre DENTRO del contenedor
+    # `backend` y llega por la red de compose, así que exponerlo al host no
+    # aporta nada y sí quita. El 3309 que proponía el plan ya lo tiene el MySQL
+    # de statcoin (comprobado el 2026-08-25), y cualquier otro que se elija hoy
+    # puede chocar mañana con otro proyecto del workspace. Sin publicar, no hay
+    # colisión posible — ni forma de conectarse a la base de test por error
+    # creyendo que es la de dev.
+    environment:
+      MYSQL_ROOT_PASSWORD: test
+      MYSQL_DATABASE: library_db
+    # En RAM, y eso no es un lujo: una suite de integración abre y revierte
+    # transacciones cientos de veces. Y garantiza lo que promete el nombre —
+    # al parar el contenedor no queda absolutamente nada, sin volumen que
+    # limpiar ni `down -v` que recordar. Medido: acepta conexiones en 8 s.
+    tmpfs:
+      - /var/lib/mysql
+    # `init.sql` NO se monta en docker-entrypoint-initdb.d como en el servicio
+    # de dev: siembra `tests/Integration/bootstrap.php`, que además aplica las
+    # migraciones (init.sql por sí solo no es el esquema actual) y comprueba
+    # contra qué host está antes de tocar nada.
+    restart: "no"
+    profiles: ["test"]
 
 networks:
   # Creada por `./mirror-sync.sh --bootstrap`, no por este stack: la comparten

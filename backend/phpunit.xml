@@ -10,6 +10,21 @@
         <testsuite name="Unit">
             <directory>tests/Unit</directory>
         </testsuite>
+        <!--
+            Repuesta el 2026-08-25, ahora sobre un directorio que existe. La
+            retiró el plan de higiene del backend porque apuntaba a un
+            directorio vacío y hacía abortar a PHPUnit con `error code 2`.
+
+            NECESITA el servicio `mysql-test` levantado:
+                docker compose [profile test] up -d mysql-test
+
+            `composer test:unit` sigue sin necesitarlo: la base de test se
+            siembra desde `IntegrationTestCase::setUpBeforeClass()`, no desde
+            el bootstrap global.
+        -->
+        <testsuite name="Integration">
+            <directory>tests/Integration</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

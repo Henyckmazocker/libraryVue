@@ -67,8 +67,10 @@ docker compose up --build
 ./mirror-sync.sh --covers   # caduca la caché del catálogo y baja las portadas pendientes
 
 # Tests backend (PHPUnit 11, dentro del contenedor backend)
-docker compose exec backend composer test        # los 1180 tests
-docker compose exec backend composer test:unit   # solo la suite Unit (hoy son lo mismo)
+docker compose --profile test up -d mysql-test   # lo necesita la suite de integración
+docker compose exec backend composer test        # las DOS suites: 1195 tests
+docker compose exec backend composer test:unit   # la rápida: 1180, sin necesitar mysql-test
+docker compose exec backend composer test:integration   # 15, contra una BD desechable
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
 docker compose exec frontend npm test            # 208 tests
@@ -370,6 +372,14 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 - **Endpoint = tres sitios coherentes** (routes, match/getController, controller).
 - **Depende de interfaces de repositorio**; registra los nuevos en `config/container.php`.
 - **PHPUnit dentro del contenedor**; warnings hacen fallar la suite.
+- **Un endpoint nuevo merece un test de INTEGRACIÓN, no solo unitarios.** Los unitarios mockean PDO y
+  por diseño no ven el fallo típico de aquí: la acción declarada a medias en uno de los tres sitios, o
+  un SQL que no casa con el esquema. Se entra por `ActionRouter`, no por HTTP: `tests/Integration/`.
+- **Nunca apuntes el sembrado de test al MySQL de dev.** `docker/database/init.sql` empieza con
+  `DROP DATABASE IF EXISTS library_db` y **el nombre de la base es el mismo** en dev y en test. El
+  bootstrap tiene una lista blanca de hosts y aborta si `DB_TEST_HOST` no está en ella; no la quites.
+- **El aislamiento entre tests de integración es truncando, no por transacción**: 16 ficheros de
+  `src/` abren la suya y PDO no las anida.
 - **Vitest también dentro del contenedor**, y una devDependency nueva pide rebuild de la imagen.
 - **Un medio nuevo se declara en `mediaRegistry`**, no se copia el componente del medio de al lado.
 - **Ni un hex ni un `px` de breakpoint fuera de su sitio**: el color va a `tokens/_colors.scss` /
@@ -381,13 +391,14 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 
 1. `docker compose up --build`; `POST http://localhost:8888/index.php` con `{"action":"ping"}`.
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
-3. `docker compose exec backend composer test` → verde (1180 tests).
+3. `docker compose exec backend composer test` → verde (1195 tests: 1180 unitarios + 15 de
+   integración; estos necesitan `docker compose --profile test up -d mysql-test`).
 4. `docker compose exec frontend npm test` → verde (208 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
 5. Si el cambio se ve en pantalla, **haz capturas**: jsdom no evalúa CSS. Procedimiento con Firefox y
    geckodriver en `.github/skills/frontend.md` → *Visual Verification (headless screenshots)*.
 
-> ℹ️ **`composer test` y `composer test:unit` ejecutan hoy lo mismo**, y es intencionado.
-> `phpunit.xml` declaraba una testsuite `Integration` sobre un `tests/Integration` inexistente que
-> hacía abortar a PHPUnit con `error code 2`; se retiró el 2026-08-24. El día que haya suite de
-> integración (Roadmap #5), `test` correrá las dos y `test:unit` seguirá sirviendo para la rápida.
+> ℹ️ **Desde el 2026-08-25 hay dos suites de verdad.** `composer test` corre las dos (1195);
+> `composer test:unit` es la rápida y **no necesita** `mysql-test`. La suite `Integration` estuvo
+> declarada sobre un directorio inexistente hasta el 2026-08-24, haciendo abortar a PHPUnit con
+> `error code 2`; se retiró entonces y se repuso ahora sobre un directorio con contenido.

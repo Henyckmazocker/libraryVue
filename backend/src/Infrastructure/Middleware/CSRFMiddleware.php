@@ -40,10 +40,13 @@ class CSRFMiddleware implements MiddlewareInterface
                 'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
             ]);
 
+            // 'code' es el codigo simbolico que lee el cliente; 'http_code' es el que lee
+            // Application.php:124. Sin el segundo, un fallo de CSRF sale como 400.
             return [
                 'status' => 'error',
                 'message' => 'Invalid CSRF token. Please refresh and try again.',
-                'code' => 403
+                'code' => 'CSRF_INVALID',
+                'http_code' => 403
             ];
         }
 

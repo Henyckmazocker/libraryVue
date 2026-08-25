@@ -51,10 +51,14 @@ class ValidationMiddleware implements MiddlewareInterface
                 'user_id' => $request['user_id'] ?? 'unknown'
             ]);
 
+            // 'code' simbolico + 'http_code' HTTP: son claves distintas y Application.php:124
+            // solo lee la segunda. Aqui el 400 coincide con el valor por defecto, asi que el
+            // cambio no altera lo que sale hoy; lo que evita es la trampa del dia que sea un 422.
             return [
                 'status' => 'error',
                 'message' => 'Missing required fields: ' . implode(', ', $missingFields),
-                'code' => 400
+                'code' => 'VALIDATION_FAILED',
+                'http_code' => 400
             ];
         }
 

@@ -84,18 +84,8 @@ function configureBasicHeaders(): void {
     // header('X-XSS-Protection: 1; mode=block');
     header('Referrer-Policy: strict-origin-when-cross-origin');
     
-    // CORS headers are handled by .htaccess to avoid duplication
-    // Commenting out PHP CORS headers to prevent duplication
-    /*
-    if (!headers_sent() && !isset($_SERVER['HTTP_ACCESS_CONTROL_ALLOW_ORIGIN'])) {
-        $corsOrigin = $_ENV['CORS_ALLOWED_ORIGINS'] ?? 'http://localhost:8080';
-        header("Access-Control-Allow-Origin: {$corsOrigin}");
-        header('Access-Control-Allow-Credentials: true');
-        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token');
-        header('Access-Control-Max-Age: 86400');
-    }
-    */
+    // CORS lo emite backend/public/.htaccess:10-21, incluida la lista de cabeceras expuestas
+    // (Retry-After y las X-RateLimit-*), que el frontend necesita para el 429.
 }
 
 /**

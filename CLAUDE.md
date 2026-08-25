@@ -71,7 +71,7 @@ docker compose exec backend composer test        # los 1146 tests
 docker compose exec backend composer test:unit   # solo la suite Unit (hoy son lo mismo)
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
-docker compose exec frontend npm test            # 194 tests
+docker compose exec frontend npm test            # 199 tests
 docker compose exec frontend npm run test:watch
 docker compose exec frontend npx vue-cli-service lint --no-fix   # lo corre también ./dev-setup.sh
 docker compose exec frontend npm run lint:styles                 # stylelint; también en ./dev-setup.sh
@@ -234,9 +234,20 @@ se cachean en `mb_track` (ver abajo).
 - **`bin/mirror covers:seed` es imprescindible, no un extra.** `register()` solo corre al añadir, así
   que sin sembrar, lo que ya estaba en la biblioteca no tiene fila y el endpoint le devuelve 404.
   `covers:backfill` lo ejecuta antes de descargar.
-- **En el frontend solo se aplica a la familia `list`** (`MediaListItem`, que es lo que pinta
-  `/library`), no a búsqueda ni carruseles: ahí el ítem no está guardado, no tiene fila, y su portada
-  debe seguir viniendo del CDN. El `<img>` lleva `@error` que cae a la URL remota.
+- **En el frontend se aplica a lo que está guardado, no a lo que se busca.** Sus tres consumidores
+  son `MediaListItem` y `LibraryMediaItem` —la lista y la parrilla de `/library`— y
+  `views/shared/MediaDetailView`, la ficha de detalle. Búsqueda y carruseles quedan fuera: ahí el
+  ítem no está guardado, no tiene fila, y su portada debe seguir viniendo del CDN. El `<img>` lleva
+  `@error` que cae a la URL remota.
+- **En la ficha, la clave sale de `existing`, no de `item`**, y como `computed`: `existing` no está
+  en el primer render, así que cachearla en un `ref` deja la ficha con la URL remota para siempre. Y
+  el reset del estado de fallo **se ancla a la portada, no a `item`** — el enriquecimiento muta
+  `item` a los pocos milisegundos de montar y anularía un fallback recién decidido.
+- **Las series piden `?cover=movie/<imdbID>`**, no `series/…`, y no es un error: se guardan con
+  `AddMovieUseCase`, así que su fila lleva `media_type = 'movie'`. `cover.php:36` acepta `'series'`
+  como medio válido, pero no hay ni una fila con ese `media_type`. La **clave** sí es la suya:
+  `mediaRegistry.js:1488` le asigna a `series` el `libraryItem` de `movie` **fuera del literal del
+  objeto**, que es también lo que hace que `title` y `notesId` funcionen en esa ficha.
 
 ### Frontend (Vue 3 + PrimeVue)
 - Vistas/rutas SPA (búsqueda, biblioteca, detalle, dashboard) con `createWebHashHistory`; ~9 stores
@@ -333,7 +344,7 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 1. `docker compose up --build`; `POST http://localhost:8888/index.php` con `{"action":"ping"}`.
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
 3. `docker compose exec backend composer test` → verde (1146 tests).
-4. `docker compose exec frontend npm test` → verde (194 tests) y
+4. `docker compose exec frontend npm test` → verde (199 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
 5. Si el cambio se ve en pantalla, **haz capturas**: jsdom no evalúa CSS. Procedimiento con Firefox y
    geckodriver en `.github/skills/frontend.md` → *Visual Verification (headless screenshots)*.

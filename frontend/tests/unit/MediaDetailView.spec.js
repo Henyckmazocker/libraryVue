@@ -14,6 +14,9 @@ vi.mock('vue-router', () => ({
 
 const apiCall = vi.fn()
 
+// La URL de CDN de la que este bloque quiere dejar de depender.
+const CDN_TMDB = 'https://image.tmdb.org/t/p/w500/x.jpg'
+
 vi.mock('@/store/auth', () => ({
   useAuthStore: () => ({ isAuthenticated: true, apiCall })
 }))
@@ -33,7 +36,9 @@ const crearStore = (items = []) => ({
   getVideoByYouTubeId: (id) => items.find((i) => i.youtube_id === id),
   getAlbumBySpotifyId: (id) => items.find((i) => i.spotify_id === id),
   getAlbumById: (id) => items.find((i) => i.id === id),
-  getGameById: (id) => items.find((i) => i.id === id)
+  getGameById: (id) => items.find((i) => i.id === id),
+  getMovieById: (id) => items.find((i) => i.imdbID === id),
+  getBookByIsbn: (isbn) => items.find((i) => i.isbn === isbn)
 })
 
 /** Deja un ítem en `history.state`, que es de donde arranca la vista. */
@@ -219,5 +224,78 @@ describe('MediaDetailView — guardar y borrar pasan por el store', () => {
     expect(albumStore.remove).not.toHaveBeenCalled()
 
     confirmar.mockRestore()
+  })
+})
+
+describe('MediaDetailView — la portada sale de la copia local', () => {
+  beforeEach(() => {
+    window.history.replaceState({}, '')
+    route.params = {}
+  })
+
+  it('un ítem guardado pide su portada al backend, no al CDN', async () => {
+    route.params = { imdbId: 'tt0068646' }
+    conEstado('movie', { title: 'El Padrino', imdbID: 'tt0068646', coverUrl: CDN_TMDB })
+    const wrapper = montar('movie', crearStore([
+      { title: 'El Padrino', imdbID: 'tt0068646', coverUrl: CDN_TMDB }
+    ]))
+    await wrapper.vm.$nextTick()
+
+    // Solo se afirma el medio y la clave: la base la pone `VUE_APP_API_URL`.
+    expect(wrapper.find('img.poster-image-large').attributes('src'))
+      .toMatch(/[?&]cover=movie\/tt0068646$/)
+  })
+
+  it('un ítem que no está en la biblioteca sigue tirando del CDN', async () => {
+    // El caso normal al llegar desde la búsqueda: sin fila en `cover_file`,
+    // pedir la portada local sería un 404 garantizado.
+    conEstado('movie', { title: 'Matrix', imdbID: 'tt0133093', coverUrl: CDN_TMDB })
+    const wrapper = montar('movie', crearStore())
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('img.poster-image-large').attributes('src')).toBe(CDN_TMDB)
+  })
+
+  it('si la copia local falla, la portada cae a la URL remota', async () => {
+    route.params = { imdbId: 'tt0068646' }
+    conEstado('movie', { title: 'El Padrino', imdbID: 'tt0068646', coverUrl: CDN_TMDB })
+    const wrapper = montar('movie', crearStore([
+      { title: 'El Padrino', imdbID: 'tt0068646', coverUrl: CDN_TMDB }
+    ]))
+    await flushPromises()
+
+    await wrapper.find('img.poster-image-large').trigger('error')
+
+    expect(wrapper.find('img.poster-image-large').attributes('src')).toBe(CDN_TMDB)
+    expect(wrapper.find('.poster-placeholder').exists()).toBe(false)
+  })
+
+  it('si también falla la remota, se pinta el placeholder del medio', async () => {
+    route.params = { imdbId: 'tt0068646' }
+    conEstado('movie', { title: 'El Padrino', imdbID: 'tt0068646', coverUrl: CDN_TMDB })
+    const wrapper = montar('movie', crearStore([
+      { title: 'El Padrino', imdbID: 'tt0068646', coverUrl: CDN_TMDB }
+    ]))
+    await flushPromises()
+
+    await wrapper.find('img.poster-image-large').trigger('error')
+    await wrapper.find('img.poster-image-large').trigger('error')
+
+    expect(wrapper.find('img.poster-image-large').exists()).toBe(false)
+    expect(wrapper.find('.poster-placeholder i').classes()).toContain('fa-film')
+  })
+
+  it('una serie guardada pide la clave de película, no la suya', async () => {
+    // Las series se guardan con `AddMovieUseCase`, así que su fila de
+    // `cover_file` lleva `media_type = 'movie'`: `?cover=series/…` daría 404.
+    route.params = { imdbId: 'tt0386676' }
+    conEstado('movie', { title: 'The Office', imdbID: 'tt0386676', coverUrl: CDN_TMDB })
+    const wrapper = montar('series', crearStore([
+      { title: 'The Office', imdbID: 'tt0386676', coverUrl: CDN_TMDB }
+    ]))
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('img.poster-image-large').attributes('src'))
+      .toMatch(/[?&]cover=movie\/tt0386676$/)
   })
 })

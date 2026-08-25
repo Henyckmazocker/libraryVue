@@ -36,7 +36,7 @@
         <!-- Película y serie llaman «poster» a lo que el resto llama «cover». -->
         <div :class="d.coverClass || `${media}-cover-large`">
           <img
-            v-if="coverUrl"
+            v-if="coverUrl && !imageError"
             :src="coverUrl"
             :alt="title"
             :class="d.coverImageClass || 'cover-image-large'"
@@ -44,6 +44,7 @@
             :height="d.coverAspect.height"
             loading="lazy"
             decoding="async"
+            @error="handleImageError"
           >
           <div
             v-else
@@ -198,6 +199,7 @@ import MediaNotes from '@/components/shared/MediaNotes.vue'
 import MediaSkeleton from '@/components/shared/MediaSkeleton.vue'
 import EditItemModal from '@/components/EditItemModal.vue'
 import { getMediaConfig, mediaKeys } from '@/config/mediaRegistry'
+import CoverService from '@/services/CoverService'
 import { useAuthStore } from '@/store/auth'
 import { useUIStore } from '@/store/ui'
 import Logger from '@/utils/logger'
@@ -254,6 +256,9 @@ const allowedStatuses = ref([])
 const context = ref({})
 const libraryItemRef = ref(null)
 const editModal = ref({ isVisible: false, item: null })
+// Una portada que no carga pinta el placeholder del medio en vez de dejar el
+// icono de imagen rota del navegador.
+const imageError = ref(false)
 
 const isAuthenticated = computed(() => authStore.isAuthenticated)
 const routeId = computed(() => route.params[d.value.routeParam])
@@ -269,11 +274,50 @@ const itemForLibrary = computed(() => {
 
 // La ficha de detalle puede tener su propia portada: los juegos caen a
 // `background_image` cuando IGDB no manda `coverUrl`.
-const coverUrl = computed(() => {
+const remoteCoverUrl = computed(() => {
   if (!item.value) return null
   const of = d.value.coverOf ?? config.value.libraryItem.coverOf
   return of(item.value)
 })
+
+// La clave con la que el backend registró la portada de este ítem, o `null` si
+// no hay copia local que pedir. Sale de `existing` —la fila de la biblioteca—,
+// no de `item`: lo que llega de la búsqueda tiene otra forma y no está
+// guardado, así que pedirlo daría un 404. Y es un `computed` a propósito:
+// `existing` no está en el primer render, así que cachearlo en un `ref` o
+// calcularlo en `onMounted` dejaría la ficha con la URL remota para siempre.
+const coverKey = computed(() =>
+  (existing.value ? config.value.libraryItem.idOf(existing.value) ?? null : null)
+)
+
+// Mismo escalón doble que `MediaListItem`: la copia local primero, la URL del
+// CDN si esa falla, y solo entonces el placeholder. Así el peor caso es lo que
+// ya se veía antes de este cambio.
+const localFailed = ref(false)
+
+// Leído en frío parece un error, y no lo es: la serie pide su portada como si
+// fuera una película. El backend guarda las series con `AddMovieUseCase`, así
+// que su fila de `cover_file` lleva `media_type = 'movie'`. `cover.php:36`
+// acepta `'series'` como medio válido, pero no hay ni una fila con ese
+// `media_type`: medido el 2026-08-25, `?cover=series/tt0386676` responde 404 y
+// `?cover=movie/tt0386676` responde 200 con la misma imagen.
+// `coverKey` no necesita rama equivalente: `mediaRegistry.js:1488` le asigna a
+// `series` el `libraryItem` de `movie`, así que su `idOf` ya es `i => i.imdbID`.
+const coverMedia = computed(() => (props.media === 'series' ? 'movie' : props.media))
+
+const coverUrl = computed(() => {
+  if (!remoteCoverUrl.value || localFailed.value) return remoteCoverUrl.value
+  return CoverService.localCoverUrl(coverMedia.value, coverKey.value) || remoteCoverUrl.value
+})
+
+const handleImageError = () => {
+  if (!localFailed.value && coverUrl.value !== remoteCoverUrl.value) {
+    localFailed.value = true
+    return
+  }
+  imageError.value = true
+}
+
 // `title` no siempre está: álbumes y juegos caen a `name`.
 const title = computed(() => (item.value ? config.value.libraryItem.titleOf(item.value) : ''))
 const notesId = computed(() => config.value.libraryItem.idOf(existing.value ?? item.value ?? {}) ?? routeId.value)
@@ -440,6 +484,20 @@ onMounted(async () => {
 
 watch(isAuthenticated, async (value) => {
   if (value && !item.value) await loadData()
+})
+
+// La vista se reutiliza al cambiar de ítem —la ficha de libro cambia de edición
+// con `setItem`—, así que el fallo de la portada anterior no puede quedarse
+// pegado: sin esto, la edición nueva se pintaría con el placeholder.
+//
+// Se vigila la portada, no `item`: el enriquecimiento muta `item` a los pocos
+// milisegundos de montar (`mergeExisting`), y colgar el reset de ahí anulaba un
+// fallback legítimo recién decidido —la ficha volvía a pedir la copia local que
+// acababa de dar 404 y gastaba una segunda petición fallida—. Cuando lo que
+// cambia es la imagen de verdad, `remoteCoverUrl` cambia con ella.
+watch(remoteCoverUrl, () => {
+  imageError.value = false
+  localFailed.value = false
 })
 
 /** Reemplaza el ítem cargado. Lo usa la ficha de libro al cambiar de edición. */

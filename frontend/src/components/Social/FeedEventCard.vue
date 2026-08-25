@@ -252,7 +252,7 @@ const relativeTime = computed(() => {
   &__note-more {
     @include button-reset;
 
-    margin-top: spacing(xxs);
+    margin-top: spacing(2xs);
     font-size: 0.8125rem;
     color: var(--color-accent);
     text-decoration: underline;

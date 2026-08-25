@@ -137,7 +137,7 @@ const save = async () => {
   &__row-label {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-xxs);
+    gap: var(--spacing-2xs);
   }
 
   &__row-hint {

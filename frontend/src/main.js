@@ -12,6 +12,7 @@ import router from './router';
 import PrimeVue from 'primevue/config';
 import ToastService from 'primevue/toastservice';
 import MultiSelect from 'primevue/multiselect';
+import Tooltip from 'primevue/tooltip';
 import { CustomPreset } from '@/config/primevue-preset';
 
 const app = createApp(App);
@@ -30,6 +31,13 @@ app.use(PrimeVue, {
   );
 app.use(ToastService);
 app.component('MultiSelect', MultiSelect);
+// `v-tooltip` es una DIRECTIVA, no un componente, así que no basta con importar
+// PrimeVue: hay que registrarla. Sin esto, los tres componentes de Social que la
+// usan (`FriendsList:46`, `FriendRequests`, `UserSearchResult:30`) sueltan
+// «Failed to resolve directive: tooltip» y se quedan sin tooltip. Llevaba así
+// desde el 2026-05-13, y no se notó porque un warning de consola no rompe nada:
+// los botones funcionan, solo falta el texto al pasar por encima.
+app.directive('tooltip', Tooltip);
 
 if (router) {
   app.use(router);

@@ -6,14 +6,15 @@
   >
     <div class="album-cover-wrapper">
       <img
-        v-if="album.cover_url || album.coverUrl"
-        :src="album.cover_url || album.coverUrl"
+        v-if="coverUrl && !imageError"
+        :src="coverUrl"
         :alt="album.title || album.name"
         class="album-cover"
         width="160"
         height="160"
         loading="lazy"
         decoding="async"
+        @error="handleImageError"
       >
       <div
         v-else
@@ -93,8 +94,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useAlbumsStore } from '@/store/albums';
+import CoverService from '@/services/CoverService';
 
 const props = defineProps({
   album: {
@@ -106,6 +108,36 @@ const props = defineProps({
 const emit = defineEmits(['click']);
 
 const albumsStore = useAlbumsStore();
+
+// Una carátula de Cover Art Archive son tres hosts y dos saltos, y el tercero
+// cambia por imagen, así que casi ninguna reaprovecha conexión: medido, 2,4 s
+// de reloj para las doce de una parrilla. Pidiéndosela al backend, la primera
+// vez es un 302 —lo mismo que hoy— y a partir de la segunda sale del disco.
+//
+// `album.id` es el MBID cuando el resultado viene del mirror (AlbumSearch:90);
+// si viniera de Spotify sería un base62 y el backend devolvería 404, que el
+// `@error` de abajo convierte en la URL de siempre.
+const remoteUrl = computed(() => props.album.cover_url || props.album.coverUrl || null);
+const localFailed = ref(false);
+const imageError = ref(false);
+
+const coverUrl = computed(() => {
+  if (!remoteUrl.value || localFailed.value) {
+    return remoteUrl.value;
+  }
+
+  return CoverService.catalogCoverUrl('album', props.album.id) || remoteUrl.value;
+});
+
+// El escalón doble de MediaListItem:124-131: el primer fallo significa «no hay
+// copia local» y cae al CDN; solo si ese también falla se pinta el placeholder.
+const handleImageError = () => {
+  if (!localFailed.value && coverUrl.value !== remoteUrl.value) {
+    localFailed.value = true;
+    return;
+  }
+  imageError.value = true;
+};
 
 const isInLibrary = computed(() => {
   if (typeof props.album.is_in_user_library !== 'undefined') {

@@ -253,7 +253,12 @@ return function (): ContainerInterface {
         // construirlo a mano con su propio cliente.
         \App\Infrastructure\Covers\CoverStore::class => DI\autowire()
             ->constructorParameter('mirror', DI\get('pdo.mirror'))
-            ->constructorParameter('http', DI\get(\App\Infrastructure\Http\HttpClientFactory::class)),
+            ->constructorParameter('http', DI\get(\App\Infrastructure\Http\HttpClientFactory::class))
+            // 'tmdb' explícito por lo mismo que 'http': es opcional en la firma
+            // —CoverStoreTest lo omite— y PHP-DI no autowirea opcionales. Sin
+            // esta línea, resolveCatalog() devolvería null en TODAS las
+            // películas y la búsqueda seguiría sin pósters, en silencio.
+            ->constructorParameter('tmdb', DI\get(\App\Domain\Services\TmdbService::class)),
 
         // 'library' es el PDO normal: la siembra LEE la biblioteca del usuario
         // y ESCRIBE en el mirror a través de CoverStore.

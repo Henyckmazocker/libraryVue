@@ -151,14 +151,30 @@ class AddAlbumUseCase extends AbstractUseCase
             $album->getCoverUrl()
         );
 
-        // Copia local de la portada: registra la fila ahora (sin red) y deja la
-        // descarga para después de la respuesta. Un fallo aquí nunca afecta al
-        // guardado; lo pendiente lo recoge `bin/mirror covers:backfill`.
-        $this->coverService->recordCover(
+        // Si este álbum ya se había visto en una búsqueda, su carátula está en
+        // disco bajo la clave del CATÁLOGO —el MBID—, y la de biblioteca es el
+        // id interno de MySQL. Reetiquetar la fila que hay evita una segunda
+        // copia del mismo JPEG y una descarga que sobra.
+        //
+        // Si se reetiquetó, NO se registra: la fila promovida guarda la URL ya
+        // resuelta y `register()` vería una `source_url` distinta de la que trae
+        // el álbum, con lo que anularía su `storage_path` y la bajaría otra vez.
+        $reaprovechada = $this->coverService->promoteCatalogCover(
             'album',
-            (string) $album->getId(),
-            $album->getCoverUrl()
+            $command->albumId->toString(),
+            (string) $album->getId()
         );
+
+        if (!$reaprovechada) {
+            // Copia local de la portada: registra la fila ahora (sin red) y deja
+            // la descarga para después de la respuesta. Un fallo aquí nunca
+            // afecta al guardado; lo pendiente lo recoge `covers:backfill`.
+            $this->coverService->recordCover(
+                'album',
+                (string) $album->getId(),
+                $album->getCoverUrl()
+            );
+        }
 
         return $album;
     }

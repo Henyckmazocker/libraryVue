@@ -5,15 +5,16 @@
     @click="handleClick"
   >
     <div class="movie-poster-wrapper">
-      <img 
-        v-if="movie.coverUrl" 
-        :src="movie.coverUrl" 
+      <img
+        v-if="coverUrl && !imageError"
+        :src="coverUrl"
         :alt="movie.title"
         class="movie-poster"
         width="150"
         height="225"
         loading="lazy"
         decoding="async"
+        @error="handleImageError"
       >
       <div
         v-else
@@ -79,8 +80,9 @@
 </template>
 
 <script setup>
-import { computed, defineProps, defineEmits } from 'vue';
+import { computed, defineProps, defineEmits, ref } from 'vue';
 import { useMoviesStore } from '@/store/movies';
+import CoverService from '@/services/CoverService';
 
 const props = defineProps({
   movie: {
@@ -92,6 +94,37 @@ const props = defineProps({
 const emit = defineEmits(['click']);
 
 const moviesStore = useMoviesStore();
+
+// Los dumps de IMDb no traen pósters, así que la búsqueda manda `Poster: null`
+// en todas y aquí no había ninguna URL remota a la que caer: se veía el icono
+// de relleno. Ahora el backend resuelve el póster contra TMDB a partir del
+// tconst y lo cachea, así que la segunda búsqueda ya los enseña.
+//
+// El escalón final sigue siendo el placeholder, no una URL remota: es lo que se
+// ve hoy, así que en el peor caso no empeora nada.
+const remoteUrl = computed(() => props.movie.coverUrl || null);
+const localFailed = ref(false);
+const imageError = ref(false);
+
+const coverUrl = computed(() => {
+  if (localFailed.value) {
+    return remoteUrl.value;
+  }
+
+  const clave = props.movie.imdbID || props.movie.imdbId || props.movie.isbn;
+
+  return CoverService.catalogCoverUrl('movie', clave) || remoteUrl.value;
+});
+
+// Mismo escalón doble que el resto: primero la copia local, luego la remota si
+// la hay, y solo entonces el placeholder.
+const handleImageError = () => {
+  if (!localFailed.value && coverUrl.value !== remoteUrl.value) {
+    localFailed.value = true;
+    return;
+  }
+  imageError.value = true;
+};
 
 // Detectar si es serie usando cualquiera de los posibles campos
 const isSeries = computed(() => {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Infrastructure\Covers;
 
+use App\Domain\Services\TmdbService;
 use App\Infrastructure\Covers\CoverStore;
 use App\Infrastructure\Http\HttpClientFactory;
 use GuzzleHttp\Client;
@@ -277,6 +278,314 @@ class CoverStoreTest extends TestCase
     // =========================================================================
 
     /** @param Response[] $responses */
+    // =========================================================================
+    // resolveCatalog / touch / purgeCatalog — la caché del catálogo
+    // =========================================================================
+
+    #[Test]
+    public function an_unknown_key_never_reaches_the_network(): void
+    {
+        // La guarda anti-cuota. Sin ella, pedir ?cover=movie/tt9999999 en bucle
+        // sería una llamada a TMDB por petición: cuota ajena servida en bandeja.
+        //
+        // NO vale un MockHandler vacío aunque parezca lo natural: `resolveAlbumCover`
+        // envuelve el `head()` en try/catch, así que se tragaría su excepción y
+        // el test pasaría igual con la guarda quitada. Comprobado por mutación
+        // el 2026-08-25. Hace falta un transporte que CUENTE.
+        $peticiones = 0;
+        $client = new Client([
+            'handler' => HandlerStack::create(
+                function ($request, array $options) use (&$peticiones) {
+                    $peticiones++;
+                    return \GuzzleHttp\Promise\Create::promiseFor(new Response(200));
+                }
+            ),
+        ]);
+
+        $sinFila = $this->createMock(PDOStatement::class);
+        $sinFila->method('execute')->willReturn(true);
+        $sinFila->method('fetch')->willReturn(false);
+        $sinFila->method('fetchColumn')->willReturn(false);
+
+        $pdo = $this->createMock(PDO::class);
+        $pdo->method('prepare')->willReturn($sinFila);
+
+        // El TmdbService tiene que estar presente y NO ser llamado. Sin él, el
+        // método devolvería null por la rama `$this->tmdb === null` y el test
+        // pasaría con la guarda quitada — comprobado por mutación.
+        $tmdb = $this->createMock(TmdbService::class);
+        $tmdb->expects($this->never())->method('findByImdbId');
+
+        $store = new CoverStore(
+            $pdo,
+            new NullLogger(),
+            $this->tmpDir,
+            $client,
+            new HttpClientFactory(new NullLogger()),
+            $tmdb
+        );
+
+        $this->assertNull($store->resolveCatalog('movie', 'tt9999999'));
+        $this->assertNull($store->resolveCatalog('album', '00000000-0000-0000-0000-000000000000'));
+        $this->assertSame(0, $peticiones, 'Una clave que no está en el mirror no puede salir a la red');
+    }
+
+    #[Test]
+    public function a_key_already_registered_is_not_resolved_again(): void
+    {
+        // Segunda guarda: si ya hay fila, resolver otra vez sería pagar la red
+        // por un dato que ya está en la tabla.
+        $vacio = new MockHandler([]);
+        $client = new Client(['handler' => HandlerStack::create($vacio)]);
+
+        $conFila = $this->createMock(PDOStatement::class);
+        $conFila->method('execute')->willReturn(true);
+        $conFila->method('fetch')->willReturn([
+            'storage_path' => null,
+            'source_url'   => 'https://archive.org/download/mbid-x/x.jpg',
+            'mime_type'    => null,
+        ]);
+
+        $pdo = $this->createMock(PDO::class);
+        $pdo->method('prepare')->willReturn($conFila);
+
+        $store = new CoverStore(
+            $pdo,
+            new NullLogger(),
+            $this->tmpDir,
+            $client,
+            new HttpClientFactory(new NullLogger())
+        );
+
+        $this->assertSame(
+            'https://archive.org/download/mbid-x/x.jpg',
+            $store->resolveCatalog('album', 'algun-mbid')
+        );
+    }
+
+    #[Test]
+    public function an_unresolvable_medium_returns_null_without_touching_anything(): void
+    {
+        // Libros, juegos y vídeos no tienen resolución: su URL no se deduce de
+        // una clave del mirror sin llamar antes a su API.
+        $vacio = new MockHandler([]);
+        $client = new Client(['handler' => HandlerStack::create($vacio)]);
+
+        $sinFila = $this->createMock(PDOStatement::class);
+        $sinFila->method('execute')->willReturn(true);
+        $sinFila->method('fetch')->willReturn(false);
+
+        $pdo = $this->createMock(PDO::class);
+        $pdo->method('prepare')->willReturn($sinFila);
+
+        $store = new CoverStore($pdo, new NullLogger(), $this->tmpDir, $client, new HttpClientFactory(new NullLogger()));
+
+        $this->assertNull($store->resolveCatalog('book', '9788490192955'));
+        $this->assertNull($store->resolveCatalog('game', '305017'));
+        $this->assertNull($store->resolveCatalog('video', 'A9mvuAwl5eo'));
+    }
+
+    #[Test]
+    public function touch_only_writes_once_a_day(): void
+    {
+        // No se comprueba contando UPDATEs —eso lo decide MySQL— sino que la
+        // condición esté en el SQL: es lo que evita un UPDATE por cada imagen
+        // servida en una biblioteca de 40 ítems.
+        $sql = null;
+
+        $stmt = $this->createMock(PDOStatement::class);
+        $stmt->expects($this->once())->method('execute')->willReturn(true);
+
+        $pdo = $this->createMock(PDO::class);
+        $pdo->method('prepare')->willReturnCallback(function (string $s) use ($stmt, &$sql) {
+            $sql = $s;
+            return $stmt;
+        });
+
+        $store = new CoverStore($pdo, new NullLogger(), $this->tmpDir, null, new HttpClientFactory(new NullLogger()));
+        $store->touch('movie', 'tt0068646');
+
+        $this->assertStringContainsString('SET last_access = NOW()', $sql);
+        $this->assertStringContainsString('last_access IS NULL OR last_access < CURDATE()', $sql);
+    }
+
+    #[Test]
+    public function purge_never_selects_library_rows(): void
+    {
+        $sql = [];
+
+        $select = $this->createMock(PDOStatement::class);
+        $select->method('execute')->willReturn(true);
+        $select->method('fetchAll')->willReturn([]);
+
+        $pdo = $this->createMock(PDO::class);
+        $pdo->method('prepare')->willReturnCallback(function (string $s) use ($select, &$sql) {
+            $sql[] = $s;
+            return $select;
+        });
+
+        $store = new CoverStore($pdo, new NullLogger(), $this->tmpDir, null, new HttpClientFactory(new NullLogger()));
+        $store->purgeCatalog(60);
+
+        $this->assertCount(1, $sql, 'Sin filas que borrar, solo se ejecuta el SELECT');
+        $this->assertStringContainsString("scope = 'catalog'", $sql[0]);
+        $this->assertStringNotContainsString('library', $sql[0]);
+    }
+
+    #[Test]
+    public function purge_deletes_the_file_and_the_row(): void
+    {
+        $fichero = $this->tmpDir . '/ab/rancia.jpg';
+        mkdir(dirname($fichero), 0775, true);
+        file_put_contents($fichero, 'jpeg de mentira');
+
+        $borrados = [];
+
+        $pdo = $this->pdoParaPurga(
+            [['id' => 7, 'storage_path' => 'ab/rancia.jpg']],
+            compartido: false,
+            borrados: $borrados
+        );
+
+        $store = new CoverStore($pdo, new NullLogger(), $this->tmpDir, null, new HttpClientFactory(new NullLogger()));
+
+        $this->assertSame(1, $store->purgeCatalog(60));
+        $this->assertSame([7], $borrados);
+        $this->assertFileDoesNotExist($fichero, 'El fichero se borra antes que la fila');
+    }
+
+    #[Test]
+    public function purge_never_deletes_a_file_another_row_still_points_at(): void
+    {
+        // `relativePathFor()` hashea la URL de origen, así que dos filas con la
+        // misma `source_url` comparten fichero — el caso típico: un álbum visto
+        // en una búsqueda y luego guardado. Borrarlo al purgar el catálogo
+        // dejaría a la fila de biblioteca sin imagen, y **en silencio**:
+        // `localPath()` haría `is_file()` → null → 302 al CDN, y como
+        // `fetchPending()` filtra por `storage_path IS NULL`, nadie la volvería
+        // a bajar nunca.
+        $fichero = $this->tmpDir . '/cd/compartida.jpg';
+        mkdir(dirname($fichero), 0775, true);
+        file_put_contents($fichero, 'jpeg de mentira');
+
+        $borrados = [];
+        $pdo = $this->pdoParaPurga(
+            [['id' => 9, 'storage_path' => 'cd/compartida.jpg']],
+            compartido: true,
+            borrados: $borrados
+        );
+
+        $store = new CoverStore($pdo, new NullLogger(), $this->tmpDir, null, new HttpClientFactory(new NullLogger()));
+
+        $this->assertSame(1, $store->purgeCatalog(60));
+        $this->assertSame([9], $borrados, 'La fila de catálogo sí se va');
+        $this->assertFileExists($fichero, 'Pero el fichero se queda: lo usa otra fila');
+    }
+
+    #[Test]
+    public function saving_an_album_relabels_its_catalog_row_instead_of_duplicating_it(): void
+    {
+        $parametros = null;
+        $sql = null;
+
+        $stmt = $this->createMock(PDOStatement::class);
+        $stmt->method('execute')->willReturnCallback(function ($p) use (&$parametros) {
+            $parametros = $p;
+            return true;
+        });
+        $stmt->method('rowCount')->willReturn(1);
+
+        $pdo = $this->createMock(PDO::class);
+        $pdo->method('prepare')->willReturnCallback(function (string $s) use ($stmt, &$sql) {
+            $sql = $s;
+            return $stmt;
+        });
+
+        $store = new CoverStore($pdo, new NullLogger(), $this->tmpDir, null, new HttpClientFactory(new NullLogger()));
+
+        $this->assertTrue($store->promoteToLibrary('album', 'un-mbid', '42'));
+        $this->assertStringContainsString("SET scope = 'library'", $sql);
+        $this->assertStringContainsString("AND scope = 'catalog'", $sql);
+        $this->assertSame(
+            ['media_type' => 'album', 'catalog_key' => 'un-mbid', 'library_key' => '42'],
+            $parametros
+        );
+    }
+
+    #[Test]
+    public function relabelling_does_nothing_when_both_keys_are_the_same(): void
+    {
+        // Un álbum guardado desde Spotify usa el mismo id en las dos claves: no
+        // hay nada que promover y no se toca la base.
+        $pdo = $this->createMock(PDO::class);
+        $pdo->expects($this->never())->method('prepare');
+
+        $store = new CoverStore($pdo, new NullLogger(), $this->tmpDir, null, new HttpClientFactory(new NullLogger()));
+
+        $this->assertFalse($store->promoteToLibrary('album', 'abc', 'abc'));
+    }
+
+    #[Test]
+    public function purge_also_clears_burned_rows_so_they_can_be_retried(): void
+    {
+        // Una fila sin storage_path y con los intentos agotados es un 302 al
+        // origen para siempre: fetchPending() la ignora y nadie la vuelve a
+        // intentar. Borrarla deja que la siguiente petición la registre limpia.
+        $sql = [];
+
+        $select = $this->createMock(PDOStatement::class);
+        $select->method('execute')->willReturn(true);
+        $select->method('fetchAll')->willReturn([]);
+
+        $pdo = $this->createMock(PDO::class);
+        $pdo->method('prepare')->willReturnCallback(function (string $s) use ($select, &$sql) {
+            $sql[] = $s;
+            return $select;
+        });
+
+        $store = new CoverStore($pdo, new NullLogger(), $this->tmpDir, null, new HttpClientFactory(new NullLogger()));
+        $store->purgeCatalog(60);
+
+        $this->assertStringContainsString('storage_path IS NULL AND attempts >= :max_attempts', $sql[0]);
+        // Y lo que está EN VUELO no se toca: registrado hace un momento, sin
+        // fichero y con intentos por gastar, es trabajo del backfill.
+        $this->assertStringContainsString('storage_path IS NOT NULL', $sql[0]);
+    }
+
+    /**
+     * PDO para `purgeCatalog`: devuelve $filas en el SELECT de caducadas, dice
+     * si el fichero está compartido, y apunta en $borrados los DELETE.
+     */
+    private function pdoParaPurga(array $filas, bool $compartido, array &$borrados): PDO
+    {
+        $caducadas = $this->createMock(PDOStatement::class);
+        $caducadas->method('execute')->willReturn(true);
+        $caducadas->method('fetchAll')->willReturn($filas);
+
+        $compartida = $this->createMock(PDOStatement::class);
+        $compartida->method('execute')->willReturn(true);
+        $compartida->method('fetchColumn')->willReturn($compartido ? 1 : false);
+
+        $delete = $this->createMock(PDOStatement::class);
+        $delete->method('execute')->willReturnCallback(function ($params) use (&$borrados) {
+            $borrados[] = $params['id'];
+            return true;
+        });
+
+        $pdo = $this->createMock(PDO::class);
+        $pdo->method('prepare')->willReturnCallback(
+            function (string $s) use ($caducadas, $compartida, $delete) {
+                if (str_starts_with(ltrim($s), 'DELETE')) {
+                    return $delete;
+                }
+
+                return str_contains($s, 'storage_path = :storage_path') ? $compartida : $caducadas;
+            }
+        );
+
+        return $pdo;
+    }
+
     private function store(PDO $pdo, array $responses = []): CoverStore
     {
         $client = null;

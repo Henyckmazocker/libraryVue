@@ -64,14 +64,14 @@ docker compose up --build
 ./mirror-sync.sh --musicbrainz  # reimporta el dump de MusicBrainz (7,6 GB, ~26 min en frío)
 ./mirror-sync.sh --tracks   # baja de MusicBrainz las pistas que falten de tus álbumes
 ./mirror-sync.sh --purge    # caduca el catálogo ajeno: TMDB y el de Spotify en albums
-./mirror-sync.sh --covers   # siembra y baja las portadas pendientes de la biblioteca
+./mirror-sync.sh --covers   # caduca la caché del catálogo y baja las portadas pendientes
 
 # Tests backend (PHPUnit 11, dentro del contenedor backend)
-docker compose exec backend composer test        # los 1170 tests
+docker compose exec backend composer test        # los 1180 tests
 docker compose exec backend composer test:unit   # solo la suite Unit (hoy son lo mismo)
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
-docker compose exec frontend npm test            # 199 tests
+docker compose exec frontend npm test            # 208 tests
 docker compose exec frontend npm run test:watch
 docker compose exec frontend npx vue-cli-service lint --no-fix   # lo corre también ./dev-setup.sh
 docker compose exec frontend npm run lint:styles                 # stylelint; también en ./dev-setup.sh
@@ -254,11 +254,29 @@ se cachean en `mb_track` (ver abajo).
 - **`bin/mirror covers:seed` es imprescindible, no un extra.** `register()` solo corre al añadir, así
   que sin sembrar, lo que ya estaba en la biblioteca no tiene fila y el endpoint le devuelve 404.
   `covers:backfill` lo ejecuta antes de descargar.
-- **En el frontend se aplica a lo que está guardado, no a lo que se busca.** Sus tres consumidores
-  son `MediaListItem` y `LibraryMediaItem` —la lista y la parrilla de `/library`— y
-  `views/shared/MediaDetailView`, la ficha de detalle. Búsqueda y carruseles quedan fuera: ahí el
-  ítem no está guardado, no tiene fila, y su portada debe seguir viniendo del CDN. El `<img>` lleva
-  `@error` que cae a la URL remota.
+- **En el frontend son cinco consumidores, y dos métodos distintos.** `MediaListItem`,
+  `LibraryMediaItem` y `views/shared/MediaDetailView` usan `CoverService.localCoverUrl()` para lo
+  **guardado**; los dos carruseles de búsqueda (`AlbumCarouselItem`, `MovieCarouselItem`) usan
+  `catalogCoverUrl()` para lo que **no** lo está. Todos llevan `@error` con el escalón doble local →
+  remota → placeholder.
+- **La caché del catálogo tiene su propio `scope`, y es lo que salva a la biblioteca.**
+  `cover_file.scope` es `'library'` o `'catalog'`, y `bin/mirror covers:purge [días]` (60 por defecto,
+  lo lanza `./mirror-sync.sh --covers` antes del backfill) **jamás** toca las de biblioteca. Al
+  guardar un álbum visto en una búsqueda, `promoteToLibrary()` **reetiqueta** la fila en vez de crear
+  otra — y por eso `AddAlbumUseCase` **no** llama a `recordCover()` si la promoción tuvo éxito:
+  `register()` vería una `source_url` distinta y bajaría la portada por segunda vez.
+- **`resolveCatalog()` comprueba la clave contra el mirror ANTES de salir a la red**, y eso no es
+  optimización: sin la guarda, `?cover=movie/tt9999999` en bucle es una llamada a TMDB por petición.
+- **Dos filas con la misma `source_url` comparten fichero**: `relativePathFor()` hashea la URL, no la
+  clave. Borrar el fichero de una sin comprobarlo deja a la otra rota **en silencio** —302 al CDN, y
+  `fetchPending()` no la recupera porque filtra por `storage_path IS NULL`—. Lo impide
+  `CoverStore::pathIsShared()`.
+- **La cadena de Cover Art Archive son dos saltos y hay que parar en el primero.** El segundo lleva a
+  un nodo de almacenamiento que rota; el primero (`archive.org/download/mbid-…`) es canónico y cuesta
+  un tercio.
+- **La fila de `tmdb_title` se escribe completa, con dos llamadas a TMDB.**
+  `TmdbMovieCatalog::readCached()` devuelve lo que encuentre dentro de sus 5 meses **sin comprobar si
+  los campos están rellenos**, así que una fila parcial deja esa ficha sin sinopsis ni director.
 - **En la ficha, la clave sale de `existing`, no de `item`**, y como `computed`: `existing` no está
   en el primer render, así que cachearla en un `ref` deja la ficha con la URL remota para siempre. Y
   el reset del estado de fallo **se ancla a la portada, no a `item`** — el enriquecimiento muta
@@ -363,8 +381,8 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 
 1. `docker compose up --build`; `POST http://localhost:8888/index.php` con `{"action":"ping"}`.
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
-3. `docker compose exec backend composer test` → verde (1170 tests).
-4. `docker compose exec frontend npm test` → verde (199 tests) y
+3. `docker compose exec backend composer test` → verde (1180 tests).
+4. `docker compose exec frontend npm test` → verde (208 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
 5. Si el cambio se ve en pantalla, **haz capturas**: jsdom no evalúa CSS. Procedimiento con Firefox y
    geckodriver en `.github/skills/frontend.md` → *Visual Verification (headless screenshots)*.

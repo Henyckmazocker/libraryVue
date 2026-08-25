@@ -57,6 +57,39 @@ class CoverService
      * @param string      $entityKey la clave con la que el frontend pedirá la portada
      * @param string|null $sourceUrl la URL remota; si no hay, no hay nada que hacer
      */
+    /**
+     * Reaprovecha la portada que ya se bajó cuando el ítem estaba en el catálogo.
+     *
+     * Se llama **en lugar de** `recordCover()` cuando devuelve `true`, y eso no
+     * es cosmético: `register()` hace `ON DUPLICATE KEY UPDATE` y, al ver una
+     * `source_url` distinta —la fila promovida guarda la URL **resuelta**
+     * (`archive.org/download/…`) y el álbum trae la de la búsqueda
+     * (`coverartarchive.org/…`)— haría exactamente lo que documenta:
+     * `storage_path = NULL`, `attempts = 0`. La portada se volvería a bajar y
+     * habría dos copias del mismo JPEG en disco, que es justo lo que este
+     * mecanismo existe para evitar. Medido el 2026-08-25.
+     *
+     * Como todo lo de esta clase, se traga sus errores: una portada no tumba un
+     * guardado.
+     *
+     * @return bool si se reaprovechó una fila de catálogo; si es `false`, quien
+     *              llama tiene que registrar la portada como siempre
+     */
+    public function promoteCatalogCover(string $mediaType, string $catalogKey, string $libraryKey): bool
+    {
+        try {
+            return $this->covers->promoteToLibrary($mediaType, $catalogKey, $libraryKey);
+        } catch (Throwable $e) {
+            $this->logger->warning('CoverService: no se pudo reaprovechar la portada de catálogo', [
+                'media_type'  => $mediaType,
+                'catalog_key' => $catalogKey,
+                'error'       => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
     public function recordCover(string $mediaType, string $entityKey, ?string $sourceUrl): void
     {
         if ($sourceUrl === null || $sourceUrl === '') {

@@ -228,3 +228,53 @@ CREATE TABLE IF NOT EXISTS mirror_import (
   rows_loaded    INT UNSIGNED NULL,
   status         VARCHAR(16) NOT NULL     -- 'running' | 'ok' | 'failed'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- ALTERs idempotentes — lo que este fichero NO puede hacer con CREATE TABLE
+-- ============================================================================
+-- Todo lo de arriba es `CREATE TABLE IF NOT EXISTS`, que en un mirror ya creado
+-- no hace absolutamente nada. Una columna nueva sobre una tabla que ya existe
+-- necesita un ALTER, y un ALTER no es idempotente por sí solo: reaplicarlo
+-- falla con «Duplicate column name». De ahí este bloque, guardado contra
+-- information_schema.
+--
+-- Y esto importa más aquí que en otros sitios: el mirror lo COMPARTEN dev y
+-- producción (`docker-compose.mirror.yml`, proyecto `libraryvue-mirror`), así
+-- que un ALTER mal hecho en desarrollo es un ALTER mal hecho en producción.
+-- Por eso solo se añade: ni se renombra, ni se estrecha, ni se borra nada.
+
+-- cover_file: distinguir biblioteca de catálogo, y saber cuándo se usó cada
+-- portada. Sin `scope`, la purga por caducidad del catálogo se llevaría por
+-- delante las portadas de la biblioteca, que son las únicas garantizadas en
+-- disco. `DEFAULT 'library'` etiqueta bien las filas que ya existen sin
+-- necesidad de un UPDATE aparte: todas son de biblioteca.
+SET @sql := IF(
+  (SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = 'library_mirror'
+      AND TABLE_NAME   = 'cover_file'
+      AND COLUMN_NAME  = 'scope') = 0,
+  "ALTER TABLE cover_file ADD COLUMN scope ENUM('library','catalog') NOT NULL DEFAULT 'library' AFTER entity_key",
+  'DO 0');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- `last_access` es NULL hasta que alguien pide la portada. La purga trata NULL
+-- como «nunca usada», así que se apoya en COALESCE(last_access, fetched_at).
+SET @sql := IF(
+  (SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = 'library_mirror'
+      AND TABLE_NAME   = 'cover_file'
+      AND COLUMN_NAME  = 'last_access') = 0,
+  'ALTER TABLE cover_file ADD COLUMN last_access DATETIME NULL AFTER fetched_at',
+  'DO 0');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- El índice de la purga: `DELETE ... WHERE scope='catalog' AND last_access < ?`
+-- sobre una tabla que puede llegar a millones de filas.
+SET @sql := IF(
+  (SELECT COUNT(*) FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA = 'library_mirror'
+      AND TABLE_NAME   = 'cover_file'
+      AND INDEX_NAME   = 'idx_purge') = 0,
+  'ALTER TABLE cover_file ADD KEY idx_purge (scope, last_access)',
+  'DO 0');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

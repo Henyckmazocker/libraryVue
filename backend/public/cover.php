@@ -17,16 +17,27 @@ declare(strict_types=1);
  *   GET /index.php?cover=<media_type>/<entity_key>
  *     → 200 image/*  con Cache-Control: public, max-age=2592000
  *     → 302 a source_url   si aún no hay copia local
- *     → 404                si no hay registro de esa portada
+ *     → 302 + registro     si no hay fila pero la clave SÍ está en el mirror
+ *     → 404                si no hay registro y la clave tampoco está
  *
  * El 302 es lo que hace esto retrocompatible: hasta que el backfill termine, el
  * navegador acaba en la misma URL de siempre y el usuario no nota nada.
+ *
+ * El tercer caso es la caché del catálogo: un resultado de búsqueda no está
+ * guardado y no tiene fila, pero su portada SÍ se deduce de una clave del
+ * mirror (un tconst, un MBID). En vez de un 404, se resuelve la URL de origen,
+ * se registra con scope='catalog' y se encola la descarga para DESPUÉS de la
+ * respuesta. La segunda vez que alguien mire esa portada ya sale del disco.
+ * La guarda contra el gasto de cuota ajena vive en CoverStore::resolveCatalog():
+ * una clave inventada no llega nunca a la red.
  *
  * Se invoca desde index.php ANTES de requerir bootstrap.php.
  */
 
 use App\Infrastructure\Covers\CoverStore;
+use App\Infrastructure\Http\PostResponse;
 use App\Infrastructure\Logging\LoggingService;
+use Psr\Container\ContainerInterface;
 
 /** Un mes: son imágenes que no cambian nunca. Sin esto, cada render de la
  *  biblioteca serían N peticiones a PHP para servir lo mismo. */
@@ -67,7 +78,26 @@ function serveCover(string $cover): never
     }
 
     if ($row === null) {
-        coverNotFound();
+        // No hay fila. Puede que sea catálogo: algo que no está en la
+        // biblioteca pero cuya portada se deduce del mirror.
+        $sourceUrl = $store->resolveCatalog($mediaType, $entityKey);
+
+        if ($sourceUrl === null) {
+            coverNotFound();
+        }
+
+        // La descarga va DESPUÉS de responder. Aquí dentro estamos en la carga
+        // de un <img>: hacer esperar 1-2 s al navegador para servirle un 302
+        // que igualmente iba a seguir sería pagar dos veces.
+        PostResponse::defer(static function () use ($store, $mediaType, $entityKey): void {
+            // Dirigida, no `fetchPending(1)`: esa se llevaría la más antigua de
+            // la cola y la que se acaba de pedir seguiría sin bajar.
+            $store->fetchOneNow($mediaType, $entityKey);
+        });
+
+        header('Cache-Control: no-store');
+        header('Location: ' . $sourceUrl, true, 302);
+        exit;
     }
 
     $local = $store->localPath($mediaType, $entityKey);
@@ -78,6 +108,10 @@ function serveCover(string $cover): never
         header('Location: ' . $row['source_url'], true, 302);
         exit;
     }
+
+    // Servida desde disco: se anota el uso, que es lo que decide qué purga la
+    // caducidad del catálogo. `touch()` escribe como mucho una vez al día.
+    $store->touch($mediaType, $entityKey);
 
     header('Content-Type: ' . ($row['mime_type'] ?: 'image/jpeg'));
     header('Content-Length: ' . (string) filesize($local));
@@ -95,6 +129,18 @@ function serveCover(string $cover): never
  * bin/mirror: tocar el arranque HTTP para ahorrarse diez líneas sale caro.
  */
 function coverStore(): CoverStore
+{
+    return coverContainer()->get(CoverStore::class);
+}
+
+/**
+ * Arranca lo mínimo para resolver del contenedor.
+ *
+ * Devuelve el contenedor entero, no solo CoverStore: desde que la portada de
+ * catálogo se resuelve aquí, CoverStore necesita TmdbService inyectado y eso lo
+ * hace config/container.php.
+ */
+function coverContainer(): ContainerInterface
 {
     $root = dirname(__DIR__);
 
@@ -134,7 +180,7 @@ function coverStore(): CoverStore
 
     $containerFactory = require $root . '/config/container.php';
 
-    return $containerFactory()->get(CoverStore::class);
+    return $containerFactory();
 }
 
 function coverNotFound(): never

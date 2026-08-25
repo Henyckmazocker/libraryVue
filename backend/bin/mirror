@@ -200,6 +200,23 @@ switch ($command) {
         ));
         exit(0);
 
+    case 'covers:purge':
+        // Caduca la caché de portadas del CATÁLOGO. La biblioteca no caduca:
+        // sus portadas son las únicas garantizadas en disco, y `purgeCatalog()`
+        // filtra por scope para que una purga alegre no deje a producción
+        // sirviendo del CDN ajeno en silencio.
+        $dias  = max(1, (int) ($argv[2] ?? 60));
+        $store = $container->get(\App\Infrastructure\Covers\CoverStore::class);
+
+        $borradas = $store->purgeCatalog($dias);
+
+        fwrite(STDOUT, sprintf(
+            "%d portadas de catálogo purgadas (sin usar desde hace %d días, o con los intentos agotados).\n",
+            $borradas,
+            $dias
+        ));
+        exit(0);
+
     case 'covers:backfill':
         // Baja las portadas que quedaron pendientes: las que registró un
         // guardado cuyo trabajo post-respuesta no llegó a completarse, y las de
@@ -258,6 +275,6 @@ switch ($command) {
         exit(0);
 
     default:
-        fwrite(STDERR, "Uso: php bin/mirror <comando>\n\n  import:imdb                   Reimporta los dumps de IMDb\n  import:musicbrainz [--force]  Reimporta el dump de MusicBrainz (álbumes)\n  tracks:backfill               Baja de MusicBrainz las pistas que falten\n  covers:seed                   Registra las portadas de lo que ya está en la biblioteca\n  covers:backfill [lote]        Siembra y baja las portadas pendientes (lote por defecto: 50)\n");
+        fwrite(STDERR, "Uso: php bin/mirror <comando>\n\n  import:imdb                   Reimporta los dumps de IMDb\n  import:musicbrainz [--force]  Reimporta el dump de MusicBrainz (álbumes)\n  tracks:backfill               Baja de MusicBrainz las pistas que falten\n  covers:seed                   Registra las portadas de lo que ya está en la biblioteca\n  covers:backfill [lote]        Siembra y baja las portadas pendientes (lote por defecto: 50)\n  covers:purge [días]           Caduca la caché de portadas del catálogo (por defecto: 60)\n");
         exit(1);
 }

@@ -66,7 +66,7 @@ for arg in "$@"; do
       echo "  --musicbrainz  Reimporta el dump de MusicBrainz (álbumes) si hay uno nuevo"
       echo "  --purge        Caduca el catálogo ajeno: tmdb_title y el de Spotify en albums"
       echo "  --tracks       Baja de MusicBrainz las pistas que falten de tus álbumes"
-      echo "  --covers       Baja las portadas pendientes de los ítems ya guardados"
+      echo "  --covers       Caduca la caché del catálogo y baja las portadas pendientes"
       echo "  --force        Con --musicbrainz, reimporta aunque el dump ya esté dentro"
       echo "  --bootstrap    Crea la red, los volúmenes y los usuarios del mirror y lo levanta"
       exit 0
@@ -492,6 +492,13 @@ cmd_tracks() {
 # fila se queda pendiente y solo la recoge esto.
 cmd_covers() {
   check_running
+
+  # Purgar ANTES de bajar, por lo mismo que covers:backfill siembra antes de
+  # descargar: así el backfill no gasta red en portadas de catálogo que están a
+  # punto de caducar, y las filas quemadas —sin fichero y con los intentos
+  # agotados— vuelven a estar disponibles para reintentarse limpias.
+  info "Caducando la caché de portadas del catálogo..."
+  compose_cmd exec -T backend php bin/mirror covers:purge
 
   info "Bajando las portadas pendientes..."
   compose_cmd exec -T backend php bin/mirror covers:backfill

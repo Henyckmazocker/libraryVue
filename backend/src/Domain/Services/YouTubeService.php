@@ -9,6 +9,7 @@ use GuzzleHttp\Exception\GuzzleException;
 use Psr\Log\LoggerInterface;
 use App\Infrastructure\Cache\CacheService;
 use App\Infrastructure\Cache\ResilientCall;
+use App\Infrastructure\Http\HttpClientFactory;
 
 /**
  * Service for interacting with YouTube Data API v3
@@ -29,17 +30,15 @@ class YouTubeService
     public function __construct(
         private readonly CacheService $cache,
         private readonly ResilientCall $resilient,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        HttpClientFactory $http
     ) {
         $this->apiKey = $_ENV['YOUTUBE_API_KEY'] ?? null;
 
-        $this->client = new Client([
+        $this->client = $http->create(HttpClientFactory::PROFILE_WEB, 'LibraryVue/1.0 (Educational Project)', [
             'timeout'         => 10.0,
             'connect_timeout' => 3.0,
-            'headers'         => [
-                'Accept'     => 'application/json',
-                'User-Agent' => 'LibraryVue/1.0 (Educational Project)',
-            ],
+            'headers'         => ['Accept' => 'application/json'],
         ]);
 
         if (empty($this->apiKey)) {

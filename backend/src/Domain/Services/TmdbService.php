@@ -9,6 +9,7 @@ use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Promise\Utils;
 use Psr\Log\LoggerInterface;
 use App\Infrastructure\Cache\CacheService;
+use App\Infrastructure\Http\HttpClientFactory;
 
 /**
  * Service for interacting with The Movie Database (TMDB) API.
@@ -40,18 +41,16 @@ class TmdbService
 
     public function __construct(
         private readonly CacheService $cache,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        HttpClientFactory $http
     ) {
         $this->apiKey = $_ENV['TMDB_API_KEY'] ?? null;
 
-        $this->client = new Client([
+        $this->client = $http->create(HttpClientFactory::PROFILE_WEB, 'LibraryVue/1.0 (Educational Project)', [
             'base_uri'        => self::BASE_URL,
             'timeout'         => 10.0,
             'connect_timeout' => 3.0,
-            'headers'         => [
-                'User-Agent' => 'LibraryVue/1.0 (Educational Project)',
-                'Accept'     => 'application/json',
-            ],
+            'headers'         => ['Accept' => 'application/json'],
         ]);
 
         if (empty($this->apiKey)) {

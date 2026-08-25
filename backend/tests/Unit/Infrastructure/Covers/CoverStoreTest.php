@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Infrastructure\Covers;
 
 use App\Infrastructure\Covers\CoverStore;
+use App\Infrastructure\Http\HttpClientFactory;
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
@@ -287,7 +288,16 @@ class CoverStoreTest extends TestCase
             ]);
         }
 
-        return new CoverStore($pdo, new NullLogger(), $this->tmpDir, $client);
+        // La factoría va siempre, tenga o no cliente de pega: `CoverStore`
+        // revienta a propósito si no recibe ninguno de los dos, para que un
+        // cableado olvidado no degrade a descargas sin reintento en silencio.
+        return new CoverStore(
+            $pdo,
+            new NullLogger(),
+            $this->tmpDir,
+            $client,
+            new HttpClientFactory(new NullLogger())
+        );
     }
 
     /**

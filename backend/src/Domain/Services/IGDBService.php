@@ -9,6 +9,7 @@ use GuzzleHttp\Exception\GuzzleException;
 use Psr\Log\LoggerInterface;
 use App\Infrastructure\Cache\CacheService;
 use App\Infrastructure\Cache\ResilientCall;
+use App\Infrastructure\Http\HttpClientFactory;
 
 /**
  * Service for interacting with IGDB (Internet Game Database) API
@@ -31,19 +32,20 @@ class IGDBService
     private const CACHE_KEY_TOKEN = 'igdb_access_token';
     private const CACHE_TTL_SEARCH = 21600; // 6 hours
 
-    public function __construct(CacheService $cache, ResilientCall $resilient, LoggerInterface $logger)
-    {
+    public function __construct(
+        CacheService $cache,
+        ResilientCall $resilient,
+        LoggerInterface $logger,
+        HttpClientFactory $http
+    ) {
         // Get credentials from environment
         $this->clientId = $_ENV['IGDB_CLIENT_ID'] ?? null;
         $this->clientSecret = $_ENV['IGDB_CLIENT_SECRET'] ?? null;
         
-        $this->client = new Client([
+        $this->client = $http->create(HttpClientFactory::PROFILE_WEB, 'LibraryVue/1.0 (Educational Project)', [
             'timeout' => 10.0,
             'connect_timeout' => 3.0,
-            'headers' => [
-                'User-Agent' => 'LibraryVue/1.0 (Educational Project)',
-                'Accept' => 'application/json'
-            ]
+            'headers' => ['Accept' => 'application/json'],
         ]);
         $this->cache = $cache;
         $this->resilient = $resilient;

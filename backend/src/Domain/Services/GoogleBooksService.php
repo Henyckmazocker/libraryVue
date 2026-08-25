@@ -9,6 +9,7 @@ use GuzzleHttp\Exception\GuzzleException;
 use Psr\Log\LoggerInterface;
 use App\Infrastructure\Cache\CacheService;
 use App\Infrastructure\Cache\ResilientCall;
+use App\Infrastructure\Http\HttpClientFactory;
 
 /**
  * Service for interacting with Google Books API
@@ -25,18 +26,19 @@ class GoogleBooksService
     private const CACHE_TTL_ISBN = 604800; // 7 days
     private const CACHE_TTL_SEARCH = 21600; // 6 hours
 
-    public function __construct(CacheService $cache, ResilientCall $resilient, LoggerInterface $logger)
-    {
+    public function __construct(
+        CacheService $cache,
+        ResilientCall $resilient,
+        LoggerInterface $logger,
+        HttpClientFactory $http
+    ) {
         // Get API key from environment
         $this->apiKey = $_ENV['GOOGLE_BOOKS_API_KEY'] ?? null;
         
-        $this->client = new Client([
+        $this->client = $http->create(HttpClientFactory::PROFILE_WEB, 'LibraryVue/1.0 (Educational Project)', [
             'timeout' => 5.0, // Reduced from 10s to 5s
             'connect_timeout' => 2.0, // Max 2s to establish connection
-            'headers' => [
-                'User-Agent' => 'LibraryVue/1.0 (Educational Project)',
-                'Accept' => 'application/json'
-            ]
+            'headers' => ['Accept' => 'application/json'],
         ]);
         $this->cache = $cache;
         $this->resilient = $resilient;

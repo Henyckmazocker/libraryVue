@@ -8,6 +8,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Psr\Log\LoggerInterface;
 use App\Infrastructure\Cache\CacheService;
+use App\Infrastructure\Http\HttpClientFactory;
 
 /**
  * Service for interacting with Spotify Web API
@@ -32,18 +33,15 @@ class SpotifyService
     private const SEARCH_CACHE_TTL = 1800;  // 30 min
     private const DETAIL_CACHE_TTL = 86400; // 24 h
 
-    public function __construct(CacheService $cache, LoggerInterface $logger)
+    public function __construct(CacheService $cache, LoggerInterface $logger, HttpClientFactory $http)
     {
         $this->clientId = $_ENV['SPOTIFY_CLIENT_ID'] ?? null;
         $this->clientSecret = $_ENV['SPOTIFY_CLIENT_SECRET'] ?? null;
 
-        $this->client = new Client([
+        $this->client = $http->create(HttpClientFactory::PROFILE_WEB, 'LibraryVue/1.0 (Educational Project)', [
             'timeout'         => 10.0,
             'connect_timeout' => 3.0,
-            'headers'         => [
-                'User-Agent' => 'LibraryVue/1.0 (Educational Project)',
-                'Accept'     => 'application/json',
-            ],
+            'headers'         => ['Accept' => 'application/json'],
         ]);
 
         $this->cache = $cache;

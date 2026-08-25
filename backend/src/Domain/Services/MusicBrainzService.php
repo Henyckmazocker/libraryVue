@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Domain\Services;
 
+use App\Infrastructure\Http\HttpClientFactory;
+use App\Infrastructure\Http\RateGate;
+use GuzzleHttp\Client;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -26,6 +29,12 @@ use Psr\Log\LoggerInterface;
  *   3. **Es lenta y muy variable.** Medido sobre la misma consulta: 4,2 s,
  *      6,8 s, 19,2 s, 23,9 s y 45,2 s. De ahí el timeout generoso, y de ahí que
  *      nadie deba llamar a esto dentro de la petición de un usuario.
+ *
+ * Y una cuarta que hasta 2026-08-25 no se respetaba: **su política de uso es de
+ * 1 petición por segundo**. Con una llamada por petición diferida el proyecto se
+ * salvaba de milagro, pero `bin/mirror tracks:backfill` pide en bucle y ahí no
+ * había nada que lo frenara. De ahí el [[RateGate]], que cruza procesos porque
+ * cada petición de Apache es uno distinto.
  */
 class MusicBrainzService
 {
@@ -33,6 +42,9 @@ class MusicBrainzService
 
     /** Holgado a propósito: la mediana ronda los 8 s y las colas largas son normales */
     private const TIMEOUT = 60;
+
+    /** Su política de uso: una petición por segundo, ni una más. */
+    private const MIN_INTERVAL = 1.0;
 
     /**
      * MusicBrainz pide aplicación, versión y forma de contacto
@@ -44,9 +56,40 @@ class MusicBrainzService
 
     private LoggerInterface $logger;
 
-    public function __construct(LoggerInterface $logger)
-    {
+    private Client $client;
+
+    private RateGate $gate;
+
+    /**
+     * @param Client|null   $client costura de test, igual que en `CoverStore`:
+     *                              `HttpClientFactory` es `final` y no se puede
+     *                              extender para colarle un `MockHandler`
+     * @param RateGate|null $gate   PHP-DI no autowirea opcionales, así que en
+     *                              producción llega null y se construye el de
+     *                              abajo; los tests le pasan uno con intervalo 0
+     */
+    public function __construct(
+        LoggerInterface $logger,
+        HttpClientFactory $http,
+        ?Client $client = null,
+        ?RateGate $gate = null
+    ) {
         $this->logger = $logger;
+
+        // Perfil `batch`: nadie llama aquí dentro de la petición de un usuario
+        // —la de las pistas va diferida con PostResponse—, así que se puede
+        // insistir de verdad y obedecer un `Retry-After` largo.
+        $this->client = $client ?? $http->create(HttpClientFactory::PROFILE_BATCH, self::USER_AGENT, [
+            'timeout'         => self::TIMEOUT,
+            'connect_timeout' => 10.0,
+            // Equivale al `ignore_errors` del stream_context de antes: un 503
+            // trae cuerpo con el motivo, y ese cuerpo es justo lo que permite
+            // distinguirlo de un álbum sin pistas (trampa nº 2).
+            'http_errors'     => false,
+            'headers'         => ['Accept' => 'application/json'],
+        ]);
+
+        $this->gate = $gate ?? new RateGate('musicbrainz', self::MIN_INTERVAL);
     }
 
     /**
@@ -91,29 +134,31 @@ class MusicBrainzService
     }
 
     /**
-     * GET con el User-Agent puesto y sin dejar que un fallo tumbe al llamante
+     * GET con la puerta de cadencia delante y sin dejar que un fallo tumbe al llamante
+     *
+     * La espera va **antes** de la llamada y no después: lo que la puerta
+     * reserva es el turno de salida, así que dormir primero es lo que garantiza
+     * que dos procesos no llamen dentro del mismo segundo.
      */
     private function get(string $url): ?string
     {
-        $context = stream_context_create([
-            'http' => [
-                'method'        => 'GET',
-                'header'        => "User-Agent: " . self::USER_AGENT . "\r\nAccept: application/json\r\n",
-                'timeout'       => self::TIMEOUT,
-                // Un 503 trae cuerpo con el motivo, y ese cuerpo es justo lo que
-                // hace falta para distinguirlo de un álbum sin pistas.
-                'ignore_errors' => true,
-            ],
-        ]);
+        $espera = $this->gate->wait();
 
-        $body = @file_get_contents($url, false, $context);
+        if ($espera > 0.0) {
+            $this->logger->info('musicbrainz: esperando su turno', ['espera' => round($espera, 3)]);
+        }
 
-        if ($body === false) {
-            $this->logger->warning('musicbrainz: la llamada falló', ['url' => $url]);
+        try {
+            $response = $this->client->get($url);
+        } catch (\Throwable $e) {
+            $this->logger->warning('musicbrainz: la llamada falló', [
+                'url'   => $url,
+                'error' => $e->getMessage(),
+            ]);
 
             return null;
         }
 
-        return $body;
+        return (string) $response->getBody();
     }
 }

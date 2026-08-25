@@ -67,7 +67,7 @@ docker compose up --build
 ./mirror-sync.sh --covers   # siembra y baja las portadas pendientes de la biblioteca
 
 # Tests backend (PHPUnit 11, dentro del contenedor backend)
-docker compose exec backend composer test        # los 1146 tests
+docker compose exec backend composer test        # los 1170 tests
 docker compose exec backend composer test:unit   # solo la suite Unit (hoy son lo mismo)
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
@@ -113,6 +113,26 @@ De Spotify solo quedan vivas tres acciones —pistas, artista y novedades—, ca
 
 Las **pistas** de los álbumes del mirror ya no salen de Spotify: se piden a la API de MusicBrainz y
 se cachean en `mb_track` (ver abajo).
+
+- **Ningún servicio construye su propio cliente HTTP.** `Infrastructure/Http/HttpClientFactory` es la
+  única fábrica, y `grep -rn "new Client(" backend/src` debe seguir devolviendo **solo** ese fichero.
+  Da un `HandlerStack` con reintento en **dos perfiles**: `PROFILE_WEB` (2 intentos, 250 ms de
+  backoff, tope 1 s) para lo que corre dentro de una petición, y `PROFILE_BATCH` (5 intentos,
+  exponencial 1-16 s, tope 60 s) para `bin/mirror` y el trabajo diferido. El `User-Agent` es un
+  parámetro **obligatorio**, no un default: MusicBrainz rechaza al que no se identifica.
+- **El reintento va en el transporte, no en `ResilientCall`**, que se queda intacto. Aquí se insiste;
+  por encima, `ResilientCall` decide si lo que falló de verdad se degrada a caché rancia. Un **404 no
+  se reintenta nunca**: es una respuesta, no un fallo.
+- **En `web` un timeout NO se reintenta, y esto no es un descuido.** El tope del perfil acota el
+  *backoff*, no el *timeout*: reintentar un proveedor que agota sus 5 s convierte el peor caso en
+  10,3 s por llamada, y `runSearchStrategy` de Google Books hace dos, así que una búsqueda pasaría de
+  ~10 s a ~20 s (medido: 8,26 s reales). En `batch` sí se reintenta.
+- **`Infrastructure/Http/RateGate` es la puerta de 1 req/s de MusicBrainz**, con `flock` sobre fichero
+  porque cada petición de Apache es un proceso distinto. Coge el lock, reserva el turno **futuro** y
+  lo **suelta antes de dormir**: dormir con el lock cogido serializa los procesos en cadena.
+- **PHP-DI no autowirea parámetros opcionales.** Por eso el `http` de `CoverStore` va explícito en
+  `config/container.php`. Cualquier dependencia nueva declarada como `?Tipo $x = null` llegará en
+  `null` en producción si no se cablea a mano.
 
 ### Mirror local de catálogos (`library_mirror`)
 - **Películas y series no dependen de una API para buscarse.** Un **segundo esquema MySQL**,
@@ -343,7 +363,7 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 
 1. `docker compose up --build`; `POST http://localhost:8888/index.php` con `{"action":"ping"}`.
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
-3. `docker compose exec backend composer test` → verde (1146 tests).
+3. `docker compose exec backend composer test` → verde (1170 tests).
 4. `docker compose exec frontend npm test` → verde (199 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
 5. Si el cambio se ve en pantalla, **haz capturas**: jsdom no evalúa CSS. Procedimiento con Firefox y

@@ -8,6 +8,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use PDO;
 use Psr\Log\LoggerInterface;
+use App\Infrastructure\Http\HttpClientFactory;
 use RuntimeException;
 use Throwable;
 
@@ -44,16 +45,33 @@ class CoverStore
         private readonly PDO $mirror,
         private readonly LoggerInterface $logger,
         private readonly string $basePath = '/var/www/html/storage/covers',
-        ?Client $client = null
+        ?Client $client = null,
+        ?HttpClientFactory $http = null
     ) {
-        $this->client = $client ?? new Client([
-            'timeout'         => self::TIMEOUT,
-            'connect_timeout' => self::CONNECT_TIMEOUT,
-            'allow_redirects' => ['max' => self::MAX_REDIRECTS],
-            'headers'         => [
-                'User-Agent' => 'LibraryVue/1.0 (Educational Project)',
-            ],
-        ]);
+        // Perfil `batch`: descargar una portada siempre pasa en diferido
+        // (`PostResponse`) o dentro de `covers:backfill`, nunca dentro de la
+        // petición de un usuario, así que aquí sí se puede insistir de verdad.
+        //
+        // La factoría llega por `container.php` de forma **explícita**: PHP-DI
+        // no autowirea parámetros opcionales —comprobado el 2026-08-25—, así
+        // que sin esa línea esto se quedaría en null. El `?Client` de delante se
+        // queda porque es la costura que usa CoverStoreTest.
+        //
+        // Y si no llega ninguno de los dos, **revienta aquí**. Un respaldo a
+        // `new Client` sin política sería lo peor posible: portadas
+        // descargándose sin reintento y sin que nadie se entere hasta que un
+        // proveedor empiece a cortar.
+        $this->client = $client ?? $http?->create(
+            HttpClientFactory::PROFILE_BATCH,
+            'LibraryVue/1.0 (Educational Project)',
+            [
+                'timeout'         => self::TIMEOUT,
+                'connect_timeout' => self::CONNECT_TIMEOUT,
+                'allow_redirects' => ['max' => self::MAX_REDIRECTS],
+            ]
+        ) ?? throw new RuntimeException(
+            'CoverStore necesita un HttpClientFactory o un Client: revisa el cableado de container.php'
+        );
     }
 
     /**

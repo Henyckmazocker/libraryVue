@@ -246,8 +246,14 @@ return function (): ContainerInterface {
         // 'mirror' explícito por lo mismo que el catálogo: cover_file vive en
         // library_mirror, y sin esto PHP-DI autowirea el PDO de library_db.
 
+        // 'http' explícito, y no es opcional que lo sea: PHP-DI **no** autowirea
+        // parámetros opcionales, así que sin esta línea CoverStore se quedaría
+        // con `$http = null` y volvería al cliente pelado sin reintentos, en
+        // silencio. El parámetro es nullable solo para que CoverStoreTest pueda
+        // construirlo a mano con su propio cliente.
         \App\Infrastructure\Covers\CoverStore::class => DI\autowire()
-            ->constructorParameter('mirror', DI\get('pdo.mirror')),
+            ->constructorParameter('mirror', DI\get('pdo.mirror'))
+            ->constructorParameter('http', DI\get(\App\Infrastructure\Http\HttpClientFactory::class)),
 
         // 'library' es el PDO normal: la siembra LEE la biblioteca del usuario
         // y ESCRIBE en el mirror a través de CoverStore.

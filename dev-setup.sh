@@ -300,7 +300,17 @@ start_services() {
   # Esperar a que MySQL esté listo
   info "Esperando a que MySQL esté disponible..."
   local retries=30
-  until compose_cmd exec -T mysql mysqladmin ping -h localhost --silent 2>/dev/null; do
+  #
+  # Se consulta la base SEMBRADA por TCP, no `mysqladmin ping -h localhost`.
+  # En un volumen virgen el entrypoint de la imagen levanta un servidor
+  # TEMPORAL con `port: 0` (solo socket) para correr init.sql, y lo para al
+  # acabar. El ping por socket respondía contra ESE servidor, así que daba
+  # «MySQL listo» ~8 s antes de que existiera la base de verdad. Con `--protocol=TCP`
+  # no hay falso positivo posible: el temporal no escucha en el puerto. Y un
+  # SELECT contra library_db prueba además que init.sql terminó y creó el usuario.
+  until compose_cmd exec -T mysql sh -c \
+      'mysql -h 127.0.0.1 --protocol=TCP -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" -e "SELECT 1"' \
+      >/dev/null 2>&1; do
     retries=$((retries - 1))
     if [[ $retries -le 0 ]]; then
       error "MySQL no respondió a tiempo. Revisa los logs: ./dev-setup.sh --logs"
@@ -310,10 +320,40 @@ start_services() {
   done
   success "MySQL listo."
 
+  # ---------------------------------------------------------------------------
+  # Poner la base al día ANTES de dar el entorno por arrancado.
+  # ---------------------------------------------------------------------------
+  # init.sql no es el esquema actual: sigue creando user_follows (que la
+  # migración de mayo elimina) y no crea friendships, feed_events,
+  # user_privacy_settings, users.username, users.is_admin, el 'video' del ENUM
+  # de feed_events ni las columnas MusicBrainz de albums. Hasta hoy solo
+  # cmd_migrate aplicaba las migraciones, así que un --reset dejaba una base sin
+  # feed social y había que acordarse de teclear ./dev-setup.sh --migrate.
+  #
+  # Va aquí y no en cmd_start/cmd_reset porque el banner de éxito se imprime al
+  # final de esta misma función: detrás, esto saldría después de anunciar que ya
+  # está todo listo. Y se replica el orden de cmd_migrate — mirror primero,
+  # migraciones después—: sin el mirror, la búsqueda de películas y de álbumes
+  # no funciona y NO sale a la red por diseño, así que falla en silencio.
+  #
+  # Las dos cosas son idempotentes: mirror_schema.sql usa IF NOT EXISTS en todo
+  # y run_migrations.sh lleva su propia tabla schema_migrations.
+  bootstrap_mirror_db
+
+  info "Aplicando migraciones pendientes..."
+  "$ROOT_DIR/docker/database/run_migrations.sh"
+
   # Esperar a que el backend esté disponible
+  #
+  # Con POST y una acción de verdad, no con un GET: el endpoint es único y la
+  # acción va en el body, así que una petición sin ella responde 500 y el `-f`
+  # de curl la daba por caída. Esta espera SIEMPRE agotaba sus 30 reintentos y
+  # avisaba de un backend caído que llevaba rato sirviendo.
   info "Esperando a que el backend esté disponible..."
   retries=30
-  until curl -sf http://127.0.0.1:8888/index.php -o /dev/null 2>/dev/null; do
+  until curl -sf -X POST http://127.0.0.1:8888/index.php \
+          -H 'Content-Type: application/json' \
+          -d '{"action":"ping"}' -o /dev/null 2>/dev/null; do
     retries=$((retries - 1))
     if [[ $retries -le 0 ]]; then
       warn "Backend no respondió en el tiempo esperado. Puede que aún esté iniciando."

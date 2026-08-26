@@ -49,7 +49,9 @@ Todo corre en Docker; no se ejecuta PHP/Node en el host.
 
 ```bash
 cp .env.example .env        # claves de APIs externas + DB; ver "Variables de entorno"
-docker compose up --build
+./dev-setup.sh              # la vía recomendada: levanta, arranca el mirror y MIGRA
+./dev-setup.sh --reset      # lo mismo, pero borrando volúmenes (se lleva la BD)
+docker compose up --build   # equivalente crudo: NO migra ni arranca el mirror
 
 # URLs (dev)
 #   Frontend  http://localhost:8080
@@ -68,9 +70,9 @@ docker compose up --build
 
 # Tests backend (PHPUnit 11, dentro del contenedor backend)
 docker compose --profile test up -d mysql-test   # lo necesita la suite de integración
-docker compose exec backend composer test        # las DOS suites: 1204 tests
-docker compose exec backend composer test:unit   # la rápida: 1180, sin necesitar mysql-test
-docker compose exec backend composer test:integration   # 15, contra una BD desechable
+docker compose exec backend composer test        # las DOS suites: 1206 tests
+docker compose exec backend composer test:unit   # la rápida: 1184, sin necesitar mysql-test
+docker compose exec backend composer test:integration   # 22, contra una BD desechable
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
 docker compose exec frontend npm test            # 222 tests
@@ -154,8 +156,18 @@ se cachean en `mb_track` (ver abajo).
   sale a la red por diseño y `MySqlMovieCatalog` no captura la `PDOException`, así que un
   `compose down` en desarrollo dejaría library.dcahomelab.com respondiendo **500**, no degradando.
   Y `--musicbrainz` hace DROP/RENAME y sube el buffer pool a 4 GB, algo que no puede pasar en el
-  servidor que atiende a producción. Lo levanta todo `./mirror-sync.sh --bootstrap`, y
-  `prod-deploy.sh` se **niega a desplegar** si no lo encuentra (`check_mirror`).
+  servidor que atiende a producción. Lo levanta todo `./mirror-sync.sh --bootstrap`, que **desde el
+  2026-08-26 lo llama también `start_services`** (`dev-setup.sh:311`), así que un `./dev-setup.sh` o
+  un `--reset` dejan el catálogo arriba sin teclearlo aparte; y `prod-deploy.sh` se **niega a
+  desplegar** si no lo encuentra (`check_mirror`).
+- **Ninguna espera de MySQL se escribe con `mysqladmin ping -h localhost`.** Sobre un volumen virgen
+  el entrypoint de `mysql:8.0` levanta un servidor **temporal** con `port: 0` (solo socket) para
+  inicializar el datadir y correr lo de `docker-entrypoint-initdb.d`, y lo para al acabar: el ping
+  por socket responde contra **ese**, así que la espera termina antes de que exista la base. Se
+  consulta la base sembrada con `--protocol=TCP`, donde el falso positivo es imposible —
+  `dev-setup.sh:311`, `mirror-sync.sh:211` y `prod-deploy.sh:381`—. Los que **informan** en vez de
+  bloquear (`prod-deploy.sh:600`, `mirror-sync.sh:150,158` y el `healthcheck` del compose) siguen con
+  `ping` a propósito.
 - **La red y los volúmenes compartidos son `external: true` en los tres compose**, y eso es la red
   de seguridad, no burocracia: significa que ningún proyecto los posee y que un
   `docker compose down -v` en dev o en prod **no puede** llevarse el catálogo ni las portadas.
@@ -358,7 +370,22 @@ se cachean en `mb_track` (ver abajo).
 
 ### Base de datos
 Esquema y seed en `docker/database/init.sql` (solo en BD virgen). Cambios posteriores → archivos
-datados en `docker/database/migrations/` aplicados a mano.
+datados en `docker/database/migrations/`.
+
+- **`init.sql` NO es el esquema actual, y nunca lo ha sido.** Sigue creando `user_follows` (que la
+  migración de mayo elimina) y no crea `friendships`, `feed_events`, `user_privacy_settings`,
+  `users.username`, `users.is_admin`, el `'video'` del ENUM de `feed_events` ni las columnas de
+  MusicBrainz de `albums`. Consolidarlo se descartó a propósito: regenerarlo desde un `mysqldump`
+  perdería los comentarios en español y el seed, y aplicar los deltas a mano se arriesga a dejarse
+  uno y quedar igual de mal creyendo que no.
+- **La vía elegida es que sea imposible tener una base sin migrar.** `start_services`
+  (`dev-setup.sh:311`) arranca el mirror y aplica las migraciones **antes** de dar el entorno por
+  levantado, así que `./dev-setup.sh` y `./dev-setup.sh --reset` dejan la base al día sin teclear
+  nada más. `--migrate` sigue existiendo para aplicar una migración nueva sin reiniciar. Las dos
+  llamadas son idempotentes: `mirror_schema.sql` usa `IF NOT EXISTS` y `run_migrations.sh` lleva su
+  propia tabla `schema_migrations`.
+- **En producción no es automático**: `prod-deploy.sh` tiene su propio `warn_pending_migrations`
+  (`:332`) y `--migrate` se teclea aparte, a propósito.
 
 ## Variables de entorno (`.env`)
 
@@ -401,7 +428,7 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 
 1. `docker compose up --build`; `POST http://localhost:8888/index.php` con `{"action":"ping"}`.
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
-3. `docker compose exec backend composer test` → verde (1204 tests: 1184 unitarios + 20 de
+3. `docker compose exec backend composer test` → verde (1206 tests: 1184 unitarios + 22 de
    integración; estos necesitan `docker compose --profile test up -d mysql-test`).
 4. `docker compose exec frontend npm test` → verde (222 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
@@ -420,7 +447,7 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
    los warnings, engancha `console.warn` antes de navegar y navega **dentro** de la SPA, o el hook se
    pierde con la recarga.
 
-> ℹ️ **Desde el 2026-08-25 hay dos suites de verdad.** `composer test` corre las dos (1204);
+> ℹ️ **Desde el 2026-08-25 hay dos suites de verdad.** `composer test` corre las dos (1206);
 > `composer test:unit` es la rápida y **no necesita** `mysql-test`. La suite `Integration` estuvo
 > declarada sobre un directorio inexistente hasta el 2026-08-24, haciendo abortar a PHPUnit con
 > `error code 2`; se retiró entonces y se repuso ahora sobre un directorio con contenido.

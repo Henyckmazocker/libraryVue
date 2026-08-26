@@ -376,9 +376,28 @@ deploy_services() {
   compose_cmd up -d
 
   # Esperar MySQL
+  #
+  # Se consulta la base SEMBRADA por TCP, no `mysqladmin ping -h localhost`.
+  # Sobre un volumen virgen el entrypoint de la imagen levanta un servidor
+  # TEMPORAL con `port: 0` (solo socket) para correr init.prod.sql, y lo para al
+  # acabar: el ping por socket responde contra ESE, así que daría «MySQL listo»
+  # varios segundos antes de que exista la base. Con `--protocol=TCP` no hay
+  # falso positivo posible —el temporal no escucha en el puerto— y el SELECT
+  # prueba además que init.prod.sql terminó y creó el usuario.
+  #
+  # Hoy en producción eso no rompe nada: prod NUNCA hace `down -v`, así que
+  # init.prod.sql solo corre en la primera instalación, y nada consulta la base
+  # en esa ventana —warn_pending_migrations va ANTES de deploy_services, y
+  # detrás de esta espera solo quedan el curl a Nginx y el banner—. Se endurece
+  # por simetría con dev-setup.sh:311 y porque ahí el mismo fallo SÍ mordió en
+  # cuanto algo empezó a correr en esa ventana: llevaba años invisible.
+  # $MYSQL_DATABASE lo resuelve el propio contenedor (library_db_prod), así que
+  # el nombre no se repite aquí.
   info "Esperando a que MySQL esté disponible..."
   local retries=40
-  until compose_cmd exec -T mysql mysqladmin ping -h localhost --silent 2>/dev/null; do
+  until compose_cmd exec -T mysql sh -c \
+      'mysql -h 127.0.0.1 --protocol=TCP -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" -e "SELECT 1"' \
+      >/dev/null 2>&1; do
     retries=$((retries - 1))
     if [[ $retries -le 0 ]]; then
       error "MySQL no respondió a tiempo. Revisa los logs: ./prod-deploy.sh --logs"

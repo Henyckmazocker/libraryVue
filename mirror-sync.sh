@@ -206,9 +206,23 @@ cmd_bootstrap() {
   info "Levantando el stack del mirror..."
   mirror_compose_cmd up -d
 
+  # Se consulta la base SEMBRADA por TCP, no `mysqladmin ping -h localhost`.
+  # En un volumen virgen —que es justo el caso que --bootstrap viene a cubrir— el
+  # entrypoint de la imagen levanta un servidor TEMPORAL con `port: 0` (solo
+  # socket) para inicializar el datadir y correr el mirror_schema.sql de
+  # docker-entrypoint-initdb.d, y lo para al acabar. El ping por socket responde
+  # contra ESE, así que esta espera terminaba antes de tiempo y el
+  # `mysql -uroot` de aquí abajo se encontraba con una contraseña de root que el
+  # entrypoint aún estaba fijando: fallo y `exit 1`, que desde el 2026-08-26
+  # además tumba el `./dev-setup.sh` entero (start_services llama a
+  # bootstrap_mirror_db). Con `--protocol=TCP` no hay falso positivo: el
+  # temporal no escucha en el puerto. Mismo arreglo que dev-setup.sh:311 y
+  # prod-deploy.sh:381.
   info "Esperando a que el MySQL del mirror responda..."
   local intentos=0
-  until docker exec "$MIRROR_CONTAINER" mysqladmin ping -h localhost --silent &>/dev/null; do
+  until docker exec "$MIRROR_CONTAINER" sh -c \
+      'mysql -h 127.0.0.1 --protocol=TCP -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" -e "SELECT 1"' \
+      &>/dev/null; do
     intentos=$((intentos + 1))
     if [[ $intentos -gt 60 ]]; then
       error "El MySQL del mirror no arrancó en 120 s."

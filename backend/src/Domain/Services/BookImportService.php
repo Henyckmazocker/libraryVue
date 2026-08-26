@@ -168,9 +168,17 @@ final class BookImportService implements BookImportServiceInterface
         }
 
         // Create new edition
+        //
+        // La columna es NOT NULL UNIQUE (init.sql:81) y Open Library no siempre da
+        // clave: en toda alta manual llega null. Se usa la MISMA forma que el
+        // respaldo de AddBookUseCase.php:143 — si cambia una, cambia la otra.
+        // Ojo: la búsqueda por findByOpenLibraryKey() de arriba tiene que seguir
+        // recibiendo la clave real o null, nunca esta.
+        $editionKey = $openlibraryKey ?? ('synthetic_' . ($isbn13 ?? $isbn10));
+
         $edition = Edition::fromArray([
             'work_id' => $work->getWorkId(),
-            'openlibrary_edition_key' => $openlibraryKey,
+            'openlibrary_edition_key' => $editionKey,
             'isbn_13' => $isbn13,
             'isbn_10' => $isbn10,
             'title' => $editionData['title'] ?? $work->getTitle(),

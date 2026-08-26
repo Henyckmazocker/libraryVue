@@ -192,7 +192,11 @@ final class BookImportService implements BookImportServiceInterface
             'illustrators' => $this->extractContributors($editionData, 'illustrators'),
             'translators' => $this->extractContributors($editionData, 'translators'),
             'covers' => $editionData['covers'] ?? [],
-            'cover_urls' => $this->buildCoverUrls($editionData),
+            // Desplegadas, no bajo una clave `cover_urls`: `Edition::fromArray()`
+            // lee `cover_url_small`/`_medium`/`_large` (`Edition.php:428-434`) y
+            // nunca ha leído `cover_urls`, así que lo que construía este método se
+            // tiraba entero y en silencio.
+            ...$this->buildCoverUrls($editionData),
             'series' => $editionData['series'] ?? null,
             'notes' => $editionData['notes'] ?? null,
             'weight' => $editionData['weight'] ?? null,
@@ -339,19 +343,40 @@ final class BookImportService implements BookImportServiceInterface
     }
 
     /**
-     * Build cover URLs from OpenLibrary data
+     * Las URLs de portada de una edición, con las claves que `Edition::fromArray()`
+     * lee de verdad.
+     *
+     * Dos orígenes y no uno. Open Library da **ids** de portada en `covers`, de los
+     * que se derivan los tres tamaños. Pero por aquí también entra el alta desde el
+     * formulario (`AddBookUseCase`), que no tiene ningún id y sí una **URL directa**
+     * —de Google Books, normalmente—: sin contemplarla, un libro buscado por
+     * cualquier vía que no fuera Open Library se guardaba con las tres columnas a
+     * NULL, y eso no se nota al añadirlo (la ficha aún tiene el dato en memoria)
+     * sino después, cuando la biblioteca lo pinta sin carátula y `covers:seed` no
+     * puede registrarlo porque filtra por esas mismas columnas.
+     *
+     * De la URL directa solo se conoce un tamaño, así que se asigna al **medio**,
+     * que es el que prefieren `toLegacyFormat()` y `CoverSeeder`. Inventar los otros
+     * dos sería mentir sobre lo que hay.
+     *
+     * @return array{cover_url_small?: string, cover_url_medium?: string, cover_url_large?: string}
      */
     private function buildCoverUrls(array $data): array
     {
-        $urls = [];
-
         if (!empty($data['covers']) && is_array($data['covers'])) {
             $coverId = $data['covers'][0];
-            $urls['S'] = "https://covers.openlibrary.org/b/id/{$coverId}-S.jpg";
-            $urls['M'] = "https://covers.openlibrary.org/b/id/{$coverId}-M.jpg";
-            $urls['L'] = "https://covers.openlibrary.org/b/id/{$coverId}-L.jpg";
+
+            return [
+                'cover_url_small'  => "https://covers.openlibrary.org/b/id/{$coverId}-S.jpg",
+                'cover_url_medium' => "https://covers.openlibrary.org/b/id/{$coverId}-M.jpg",
+                'cover_url_large'  => "https://covers.openlibrary.org/b/id/{$coverId}-L.jpg",
+            ];
         }
 
-        return $urls;
+        if (!empty($data['cover_url'])) {
+            return ['cover_url_medium' => $data['cover_url']];
+        }
+
+        return [];
     }
 }

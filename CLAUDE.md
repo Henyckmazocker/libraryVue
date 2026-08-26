@@ -70,9 +70,9 @@ docker compose up --build   # equivalente crudo: NO migra ni arranca el mirror
 
 # Tests backend (PHPUnit 11, dentro del contenedor backend)
 docker compose --profile test up -d mysql-test   # lo necesita la suite de integración
-docker compose exec backend composer test        # las DOS suites: 1209 tests
+docker compose exec backend composer test        # las DOS suites: 1212 tests
 docker compose exec backend composer test:unit   # la rápida: 1184, sin necesitar mysql-test
-docker compose exec backend composer test:integration   # 25, contra una BD desechable
+docker compose exec backend composer test:integration   # 28, contra una BD desechable
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
 docker compose exec frontend npm test            # 256 tests
@@ -269,6 +269,14 @@ se cachean en `mb_track` (ver abajo).
 - **`bin/mirror covers:seed` es imprescindible, no un extra.** `register()` solo corre al añadir, así
   que sin sembrar, lo que ya estaba en la biblioteca no tiene fila y el endpoint le devuelve 404.
   `covers:backfill` lo ejecuta antes de descargar.
+- **Y solo puede sembrar lo que esté en la columna.** `CoverSeeder` sale de `cover_url_*` /
+  `coverUrl` / `cover_url` de cada medio: si el alta no persiste la URL, el ítem es **irrecuperable**
+  para el sembrado, no solo «pendiente». En libros pasó, y con tres fallos encadenados que no
+  rompían nada — `AddBookUseCase` no le pasaba `$command->coverUrl` a `BookImportService`, este
+  devolvía las URLs bajo una clave `cover_urls` que `Edition::fromArray()` nunca ha leído, y luego
+  leía `$legacyFormat['cover']`, clave que `toLegacyFormat()` no emite (la suya es `coverUrl`). Lo
+  fija `tests/Integration/BookCoverTest.php`, y por integración: los tres viven en puntos distintos
+  de la misma cadena y un mock de cualquiera la corta justo donde está el fallo.
 - **En el frontend son seis consumidores, y dos métodos distintos.** `MediaListItem`,
   `LibraryMediaItem`, `views/shared/MediaDetailView` y —desde el 2026-08-26— `Social/FeedEventCard`
   usan `CoverService.localCoverUrl()` para lo **guardado**; los dos carruseles de búsqueda
@@ -440,7 +448,7 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 
 1. `docker compose up --build`; `POST http://localhost:8888/index.php` con `{"action":"ping"}`.
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
-3. `docker compose exec backend composer test` → verde (1209 tests: 1184 unitarios + 25 de
+3. `docker compose exec backend composer test` → verde (1212 tests: 1184 unitarios + 28 de
    integración; estos necesitan `docker compose --profile test up -d mysql-test`).
 4. `docker compose exec frontend npm test` → verde (256 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
@@ -459,7 +467,7 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
    los warnings, engancha `console.warn` antes de navegar y navega **dentro** de la SPA, o el hook se
    pierde con la recarga.
 
-> ℹ️ **Desde el 2026-08-25 hay dos suites de verdad.** `composer test` corre las dos (1209);
+> ℹ️ **Desde el 2026-08-25 hay dos suites de verdad.** `composer test` corre las dos (1212);
 > `composer test:unit` es la rápida y **no necesita** `mysql-test`. La suite `Integration` estuvo
 > declarada sobre un directorio inexistente hasta el 2026-08-24, haciendo abortar a PHPUnit con
 > `error code 2`; se retiró entonces y se repuso ahora sobre un directorio con contenido.

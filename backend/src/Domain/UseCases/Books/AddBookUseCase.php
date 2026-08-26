@@ -100,7 +100,15 @@ class AddBookUseCase extends AbstractUseCase
                     'number_of_pages' => $command->pages,
                     'description' => $command->description,
                     'subjects' => $command->genres, // Pass genres from command
-                    'covers' => []
+                    // `covers` son ids de portada de Open Library, y por aquí no
+                    // llega ninguno: esta llamada la alimenta el formulario, no la
+                    // API. La portada viaja como URL directa en `cover_url`, y sin
+                    // pasarla el alta perdía la carátula en silencio — el ítem se
+                    // guardaba bien y sus tres `cover_url_*` quedaban a NULL, así
+                    // que ni la biblioteca la pintaba ni `covers:seed` podía
+                    // registrarla después.
+                    'covers' => [],
+                    'cover_url' => $command->coverUrl
                 ]);
 
                 $work = $result['work'];
@@ -189,12 +197,15 @@ class AddBookUseCase extends AbstractUseCase
         // Return in legacy format for frontend compatibility
         $legacyFormat = $edition->toLegacyFormat($work);
 
+        // `coverUrl`, no `cover`: `Edition::toLegacyFormat()` (`Edition.php:314`) no
+        // emite ninguna clave `cover`, así que el `?? null` ganaba SIEMPRE y todo
+        // libro entraba en el feed sin portada y sin fila en `cover_file`.
         $this->feedEventService->recordItemAdded(
             $command->userId,
             'book',
             $command->isbn->toString(),
             $edition->getTitle(),
-            $legacyFormat['cover'] ?? null
+            $legacyFormat['coverUrl'] ?? null
         );
 
         // Copia local de la portada: registra la fila ahora (sin red) y deja la
@@ -203,7 +214,7 @@ class AddBookUseCase extends AbstractUseCase
         $this->coverService->recordCover(
             'book',
             $command->isbn->toString(),
-            $legacyFormat['cover'] ?? null
+            $legacyFormat['coverUrl'] ?? null
         );
 
         return $legacyFormat;

@@ -65,9 +65,19 @@ final class MySqlFeedEventRepository implements FeedEventRepositoryInterface
 
         [$whereClauses, $params] = $this->buildAllowedConditions($allowedByUser);
 
-        $sql = "SELECT fe.*, u.username, u.name AS user_name, u.picture AS user_picture"
+        // El `LEFT JOIN` a `movie` es lo que deja al cliente distinguir una serie de
+        // una película: `feed_events.entity_type` no tiene —ni puede tener— un
+        // `'series'`, porque en el backend las dos son la misma entidad y se
+        // guardan con `AddMovieUseCase`. Lo que las separa es `movie.media_type`.
+        //
+        // `LEFT` y no `JOIN` a secas, y la condición en el `ON` y no en el `WHERE`:
+        // con cualquiera de las dos cosas al revés, un evento de libro no casaría
+        // con ninguna fila de `movie` y desaparecería del feed.
+        $sql = "SELECT fe.*, u.username, u.name AS user_name, u.picture AS user_picture,"
+             . " m.media_type AS entity_media_type"
              . " FROM " . self::TABLE . " fe"
              . " JOIN users u ON u.id = fe.user_id"
+             . " LEFT JOIN movie m ON fe.entity_type = 'movie' AND m.isbn = fe.entity_id"
              . " WHERE (" . implode(' OR ', $whereClauses) . ")"
              . " ORDER BY fe.created_at DESC"
              . " LIMIT :lim OFFSET :off";

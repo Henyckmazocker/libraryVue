@@ -70,12 +70,12 @@ docker compose up --build   # equivalente crudo: NO migra ni arranca el mirror
 
 # Tests backend (PHPUnit 11, dentro del contenedor backend)
 docker compose --profile test up -d mysql-test   # lo necesita la suite de integración
-docker compose exec backend composer test        # las DOS suites: 1206 tests
+docker compose exec backend composer test        # las DOS suites: 1209 tests
 docker compose exec backend composer test:unit   # la rápida: 1184, sin necesitar mysql-test
-docker compose exec backend composer test:integration   # 22, contra una BD desechable
+docker compose exec backend composer test:integration   # 25, contra una BD desechable
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
-docker compose exec frontend npm test            # 222 tests
+docker compose exec frontend npm test            # 256 tests
 docker compose exec frontend npm run test:watch
 docker compose exec frontend npx vue-cli-service lint --no-fix   # lo corre también ./dev-setup.sh
 docker compose exec frontend npm run lint:styles                 # stylelint; también en ./dev-setup.sh
@@ -269,11 +269,17 @@ se cachean en `mb_track` (ver abajo).
 - **`bin/mirror covers:seed` es imprescindible, no un extra.** `register()` solo corre al añadir, así
   que sin sembrar, lo que ya estaba en la biblioteca no tiene fila y el endpoint le devuelve 404.
   `covers:backfill` lo ejecuta antes de descargar.
-- **En el frontend son cinco consumidores, y dos métodos distintos.** `MediaListItem`,
-  `LibraryMediaItem` y `views/shared/MediaDetailView` usan `CoverService.localCoverUrl()` para lo
-  **guardado**; los dos carruseles de búsqueda (`AlbumCarouselItem`, `MovieCarouselItem`) usan
-  `catalogCoverUrl()` para lo que **no** lo está. Todos llevan `@error` con el escalón doble local →
-  remota → placeholder.
+- **En el frontend son seis consumidores, y dos métodos distintos.** `MediaListItem`,
+  `LibraryMediaItem`, `views/shared/MediaDetailView` y —desde el 2026-08-26— `Social/FeedEventCard`
+  usan `CoverService.localCoverUrl()` para lo **guardado**; los dos carruseles de búsqueda
+  (`AlbumCarouselItem`, `MovieCarouselItem`) usan `catalogCoverUrl()` para lo que **no** lo está.
+  Todos llevan `@error` con el escalón doble local → remota → placeholder.
+- **La tarjeta del feed necesita DOS indicadores de fallo, no uno.** Los otros consumidores tienen
+  siempre una URL remota que pintar, así que les basta un `localFailed`. En el feed no: sin
+  distinguir «estoy pintando la local» (`usingLocal`), un evento sin copia local gasta su primer
+  `@error` marcando un fallo que no ha ocurrido y, como el `src` no cambia, el navegador no reintenta
+  y **el placeholder no llega nunca**. Y su clave de medio es `entity_type`, **no** el medio del
+  registry: una serie se guarda con `AddMovieUseCase` y su fila lleva `media_type = 'movie'`.
 - **La caché del catálogo tiene su propio `scope`, y es lo que salva a la biblioteca.**
   `cover_file.scope` es `'library'` o `'catalog'`, y `bin/mirror covers:purge [días]` (60 por defecto,
   lo lanza `./mirror-sync.sh --covers` antes del backfill) **jamás** toca las de biblioteca. Al
@@ -349,6 +355,12 @@ se cachean en `mb_track` (ver abajo).
   **ningún import cambió**: la factoría genera hasta los alias con nombre de medio (`fetchVideos`,
   `getVideoByYouTubeId`…).
   **Antes de duplicar algo para un medio nuevo, mira si su familia ya tiene genérico.**
+- **El destino de una ficha se compone, no se declara otra vez.** `detailRouteFor(media, entityId)`
+  (`mediaRegistry.js`, junto a `getMediaConfig`) devuelve el `{ name, params }` de la ruta de detalle
+  a partir del `routeName` y el `detail.routeParam` que cada entrada **ya tenía**; devuelve `null`
+  para un medio desconocido o un id vacío, en vez de reventar como `getMediaConfig`, porque quien
+  llama es la tarjeta del feed y `feed_events.entity_type` es NULLable. Si añades una ruta de
+  detalle, no le pongas un campo nuevo al registry: rellena esos dos.
 - **La espera también tiene su genérico.** `components/shared/MediaSkeleton.vue` cubre las cuatro
   familias de tarjeta con una prop `variant` (`list-item` · `library-item` · `carousel` · `detail`):
   no escribas otro «Cargando…» ni otro spinner. Sus medidas salen de los mixins SCSS de cada familia
@@ -428,9 +440,9 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 
 1. `docker compose up --build`; `POST http://localhost:8888/index.php` con `{"action":"ping"}`.
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
-3. `docker compose exec backend composer test` → verde (1206 tests: 1184 unitarios + 22 de
+3. `docker compose exec backend composer test` → verde (1209 tests: 1184 unitarios + 25 de
    integración; estos necesitan `docker compose --profile test up -d mysql-test`).
-4. `docker compose exec frontend npm test` → verde (222 tests) y
+4. `docker compose exec frontend npm test` → verde (256 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
 5. **`docker compose exec frontend npm run build` → `Build complete`.** No es redundante con el paso
    anterior: **ninguno de los tres comandos de arriba compila SCSS**. Los helpers de
@@ -447,7 +459,7 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
    los warnings, engancha `console.warn` antes de navegar y navega **dentro** de la SPA, o el hook se
    pierde con la recarga.
 
-> ℹ️ **Desde el 2026-08-25 hay dos suites de verdad.** `composer test` corre las dos (1206);
+> ℹ️ **Desde el 2026-08-25 hay dos suites de verdad.** `composer test` corre las dos (1209);
 > `composer test:unit` es la rápida y **no necesita** `mysql-test`. La suite `Integration` estuvo
 > declarada sobre un directorio inexistente hasta el 2026-08-24, haciendo abortar a PHPUnit con
 > `error code 2`; se retiró entonces y se repuso ahora sobre un directorio con contenido.

@@ -31,6 +31,13 @@ class FeedEventDataMapper
         $event = $this->toDomain($row);
         $arr   = $event->toArray();
 
+        // `media_type` de la fila de `movie`, que llega por el `LEFT JOIN` del
+        // repositorio. Es `null` para todo lo que no sea película —un libro no
+        // casa con ninguna fila— y también para una película que el `JOIN` no
+        // encuentre, así que el cliente tiene que tratar la ausencia como
+        // «película», que es el valor por defecto de la columna.
+        $arr['entity_media_type'] = $this->extractString($row, 'entity_media_type', null);
+
         // Enrich with user data joined from SELECT
         $arr['user'] = [
             'id'       => $this->extractInt($row, 'user_id', null),

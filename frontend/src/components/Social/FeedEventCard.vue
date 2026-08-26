@@ -3,7 +3,11 @@
     class="feed-event-card"
     :class="`feed-event-card--${event.entity_type}`"
   >
-    <div class="feed-event-card__avatar">
+    <component
+      :is="tagFor(profileRoute, 'div')"
+      class="feed-event-card__avatar"
+      :to="profileRoute"
+    >
       <img
         v-if="event.user?.picture"
         :src="event.user.picture"
@@ -15,17 +19,22 @@
         v-else
         class="pi pi-user"
       />
-    </div>
+    </component>
 
-    <div class="feed-event-card__cover">
+    <component
+      :is="tagFor(itemRoute, 'div')"
+      class="feed-event-card__cover"
+      :to="itemRoute"
+    >
       <img
-        v-if="event.entity_cover"
-        :src="event.entity_cover"
+        v-if="coverSrc"
+        :src="coverSrc"
         :alt="event.entity_title"
         width="48"
         height="64"
         loading="lazy"
         decoding="async"
+        @error="onCoverError"
       >
       <div
         v-else
@@ -33,15 +42,27 @@
       >
         <i :class="entityIcon" />
       </div>
-    </div>
+    </component>
 
     <div class="feed-event-card__content">
       <div class="feed-event-card__header">
-        <span class="feed-event-card__user">{{ event.user?.username || event.user?.name || 'Usuario' }}</span>
+        <component
+          :is="tagFor(profileRoute, 'span')"
+          class="feed-event-card__user"
+          :to="profileRoute"
+        >
+          {{ event.user?.username || event.user?.name || 'Usuario' }}
+        </component>
         <span class="feed-event-card__time">{{ relativeTime }}</span>
       </div>
       <p class="feed-event-card__description">
-        <strong>{{ event.entity_title }}</strong>
+        <component
+          :is="tagFor(itemRoute, 'span')"
+          class="feed-event-card__title"
+          :to="itemRoute"
+        >
+          <strong>{{ event.entity_title }}</strong>
+        </component>
         {{ eventDescription }}
       </p>
 
@@ -71,13 +92,117 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { RouterLink } from 'vue-router'
+import { detailRouteFor } from '@/config/mediaRegistry'
+import CoverService from '@/services/CoverService'
 
 const props = defineProps({
   event: {
     type: Object,
     required: true
   }
+})
+
+/**
+ * El medio del registry al que va este evento, que **no** es siempre su
+ * `entity_type`.
+ *
+ * Una serie se guarda con `AddMovieUseCase` y por tanto emite
+ * `entity_type = 'movie'`: el ENUM de `feed_events` no tiene `'series'` y no
+ * puede tenerlo, porque en el backend series y películas son la misma entidad.
+ * Lo que las separa es `movie.media_type`, que llega en `entity_media_type` por
+ * el `LEFT JOIN` de `MySqlFeedEventRepository`. Sin esto, *Twin Peaks* abre
+ * `/movies/tt0098936`: una ruta que existe y carga, pero pinta la ficha de
+ * película sin temporadas.
+ *
+ * La ausencia se lee como «película»: es el `DEFAULT` de la columna
+ * (`init.sql:385`) y es lo que llega para todo lo que no es película.
+ */
+const registryKey = computed(() =>
+  props.event.entity_type === 'movie' && props.event.entity_media_type === 'series'
+    ? 'series'
+    : props.event.entity_type
+)
+
+/**
+ * Los dos destinos de la tarjeta: el ítem y la persona.
+ *
+ * Los dos pueden ser `null`, y no como caso raro: `feed_events.entity_type` y
+ * `entity_id` son NULLables, y en el ENUM de `event_type` hay tipos que hoy no
+ * emite nadie (`achievement`) y que el día que se emitan no traerán entidad.
+ * Cuando el destino falta, la zona se pinta con la etiqueta neutra en vez de
+ * con un enlace: nada de un `<a>` sin `href` ni de un `<div>` con `@click`,
+ * que además tumbaría el lint (20 reglas de accesibilidad en `error`).
+ */
+const itemRoute = computed(() =>
+  detailRouteFor(registryKey.value, props.event.entity_id)
+)
+
+// El perfil se resuelve por `username`, que es lo que pide `/user/:username`.
+// El `name` sirve para pintar la tarjeta, pero no para navegar: quien no tiene
+// username no tiene perfil al que ir.
+const profileRoute = computed(() => {
+  const username = props.event.user?.username
+  return username ? { name: 'PublicProfile', params: { username } } : null
+})
+
+// La etiqueta neutra cambia según dónde caiga: dentro del `<p>` de la
+// descripción un `<div>` sería HTML inválido, así que ahí es un `<span>`.
+const tagFor = (route, fallbackTag) => (route ? RouterLink : fallbackTag)
+
+/**
+ * La portada, con el escalón doble que ya usan los otros cinco consumidores.
+ *
+ * `event.entity_cover` es una URL de CDN **congelada**: se rellenó en el momento
+ * del evento con la que el ítem tuviera entonces y nada la refresca nunca, así
+ * que además de salir fuera puede haber caducado. La copia local la sirve el
+ * propio backend por `?cover=`, y el endpoint degrada solo —302 al origen si aún
+ * no hay fichero—, así que apuntar aquí nunca es peor.
+ *
+ * La clave es `entity_type` **y no `registryKey`**: una serie se guarda con
+ * `AddMovieUseCase`, así que su fila de `cover_file` lleva `media_type = 'movie'`.
+ * Es la misma regla que ya aplica `MediaDetailView`. Y no hay que traducir el id:
+ * los cinco emisores pasan el mismo valor a `recordItemAdded()` y a
+ * `recordCover()` (`AddAlbumUseCase.php:149` y `:174`, y las otras cuatro igual).
+ */
+const localCover = computed(() =>
+  CoverService.localCoverUrl(props.event.entity_type, props.event.entity_id)
+)
+
+const localFailed = ref(false)
+const remoteFailed = ref(false)
+
+// Hay que saber **qué** se está pintando para decidir a dónde caer: sin esto, un
+// evento sin copia local gastaría su primer `@error` en marcar un fallo local que
+// no ha ocurrido, y como el `src` no cambiaría, el navegador no reintentaría y el
+// placeholder no llegaría nunca.
+const usingLocal = computed(() => Boolean(localCover.value) && !localFailed.value)
+
+const coverSrc = computed(() => {
+  if (usingLocal.value) {
+    return localCover.value
+  }
+
+  return remoteFailed.value ? null : (props.event.entity_cover || null)
+})
+
+/** Local → remota → placeholder, un escalón por error. */
+const onCoverError = () => {
+  if (usingLocal.value) {
+    localFailed.value = true
+    return
+  }
+
+  remoteFailed.value = true
+}
+
+// El reset se ancla a la portada y no al evento: `FeedList` teclea las tarjetas
+// por `event.id`, así que al paginar un componente se reutiliza con otro evento
+// y arrastraría el fallo del anterior.
+watch(localCover, () => {
+  localFailed.value = false
+  remoteFailed.value = false
 })
 
 const entityIcon = computed(() => {
@@ -211,9 +336,26 @@ const relativeTime = computed(() => {
     margin-bottom: spacing(2xs);
   }
 
+  // Los dos enlaces de texto no se subrayan en reposo —dentro de una tarjeta
+  // serían dos rayas compitiendo con el texto— y sí al pasar por encima. El
+  // foco no se toca: lo pone el anillo global de `base/_globals.scss:10-12`
+  // sobre cualquier `a`, y `:where()` lo deja a especificidad cero justo para
+  // que nadie tenga que redefinirlo.
   &__user {
     font-weight: 600;
     color: var(--color-primary);
+    text-decoration: none;
+
+    &:hover { text-decoration: underline; }
+  }
+
+  // El título hereda el color del párrafo: es un enlace, pero lo que lo
+  // distingue en la tarjeta es la negrita que ya tenía, no un color nuevo.
+  &__title {
+    color: inherit;
+    text-decoration: none;
+
+    &:hover { text-decoration: underline; }
   }
 
   &__time {

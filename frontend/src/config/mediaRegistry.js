@@ -1504,3 +1504,33 @@ export function getMediaConfig (media) {
   }
   return config
 }
+
+/**
+ * El destino de la ficha de detalle de un ítem, para `router.push()` o el `to`
+ * de un `<router-link>`.
+ *
+ * Las dos mitades del destino ya estaban declaradas por medio —`routeName` en la
+ * raíz del bloque y `detail.routeParam`—, así que esto **no declara nada nuevo**:
+ * las compone. Un campo `detailRoute` por entrada habría sido una tercera copia
+ * del nombre de la ruta y del parámetro, con dos sitios que pueden divergir.
+ *
+ * A diferencia de `getMediaConfig()`, aquí un medio desconocido **no revienta**:
+ * quien llama es la tarjeta del feed, y `feed_events.entity_type` es NULLable y
+ * tiene en su ENUM tipos que hoy no emite nadie (`achievement`). Devolver `null`
+ * es lo que deja pintar la tarjeta sin enlace en vez de romper el feed entero.
+ *
+ * @param {string} media clave del registry: 'book' | 'movie' | 'game' | 'album' | 'video' | 'series'
+ * @param {string|number} entityId la clave natural del medio, que es la que la ruta espera
+ * @returns {{name: string, params: Object}|null} null si el medio no existe o no hay id
+ */
+export function detailRouteFor (media, entityId) {
+  const config = mediaRegistry[media]
+  if (!config || entityId === null || entityId === undefined || entityId === '') {
+    return null
+  }
+
+  return {
+    name: config.routeName,
+    params: { [config.detail.routeParam]: entityId }
+  }
+}

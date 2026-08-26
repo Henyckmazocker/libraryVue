@@ -456,11 +456,33 @@ Useful extras:
   `el.attributes` to confirm a `data-v-*` scope id is present — that is how the scoped-CSS bug above
   was diagnosed.
 
-### 4. Close
+### 4. Close — **kill the whole thing, always**
+
+`DELETE $B` only ends the *session*: it closes the Firefox window but leaves **geckodriver listening
+on 4444 forever**, and a session that is never deleted leaves a **headless Firefox running too**.
+Neither shows up in a window, so they accumulate silently across sessions — one leftover
+`firefox -headless` holds hundreds of MB.
+
+**Close the session and then kill the driver.** Both, every time, even when the run failed halfway:
 
 ```bash
-curl -s -X DELETE $B
+curl -s -X DELETE $B                    # 1. ends the session, closes that Firefox
+pkill -f 'geckodriver --port 4444'      # 2. the daemon itself — DELETE never touches it
+pgrep -a geckodriver; pgrep -a firefox  # 3. verify: nothing of yours must be left
 ```
+
+Two things that bite in step 3:
+
+- **`pgrep -a firefox` also lists the user's own browser.** Check `ps -o pid,lstart,etime -p <pid>`
+  before killing anything: an `ELAPSED` of hours or days is David's, not yours. Only kill what you
+  started in this run.
+- **Under snap, `kill` can fail with `Permission denied` even as the owning user**, because the
+  process runs inside snap's confinement. When that happens the process cannot be reaped from here:
+  say so and hand David the command to run himself (`! pkill -f geckodriver` in the prompt).
+
+Starting the driver with `geckodriver --port 4444 &` inside a `Bash` call makes it outlive the call,
+so **prefer reusing a driver that is already listening** (`pgrep -a geckodriver`) over spawning a
+second one.
 
 ## Docker Development
 

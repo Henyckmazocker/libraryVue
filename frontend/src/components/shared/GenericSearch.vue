@@ -37,6 +37,12 @@
       {{ errorMessage }}
     </div>
 
+    <StaleNotice
+      :stale="isStale"
+      :cached-at="cachedAt"
+      :provider="config.staleProvider"
+    />
+
     <!-- Resultados en carrusel horizontal -->
     <div
       v-if="results && results.length"
@@ -59,9 +65,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import HorizontalCarousel from '@/components/shared/HorizontalCarousel.vue';
+import StaleNotice from '@/components/shared/StaleNotice.vue';
+import { getMediaConfig, mediaKeys } from '@/config/mediaRegistry';
 import Logger from '@/utils/logger';
 
 // Props
@@ -80,7 +88,10 @@ const props = defineProps({
         typeof config.transformResult === 'function' &&
         typeof config.navigateToDetail === 'function' &&
         typeof config.getResultKey === 'function' &&
-        typeof config.fetchAllowedStatuses === 'function'
+        typeof config.fetchAllowedStatuses === 'function' &&
+        // Opcional, pero si `media` viene tiene que ser una clave del registry:
+        // un typo dejaría la franja muda en silencio.
+        (config.media === undefined || mediaKeys.includes(config.media))
       );
     }
   }
@@ -94,6 +105,22 @@ const inputValues = ref(props.config.inputs.map(() => ''));
 const results = ref([]);
 const errorMessage = ref('');
 const allowedStatuses = ref([]);
+
+// Degradación visible. `supportsStale` sale del `api` del registry —la única
+// descripción de lo que diferencia a un medio— y no de la config, para que
+// añadir un medio que puede degradar sea una línea en un sitio. Un medio que no
+// lo declara no cambia ni un píxel: `isStale` se queda en `false` para siempre.
+const supportsStale = computed(() => {
+  // `getMediaConfig` LANZA con un medio desconocido (`mediaRegistry.js:1497`),
+  // así que se pregunta antes: aquí un typo no puede tumbar la búsqueda entera.
+  if (!mediaKeys.includes(props.config.media)) return false;
+  return getMediaConfig(props.config.media).api?.supportsStale === true;
+});
+
+const staleFlag = ref(false);
+const cachedAt = ref(null);
+
+const isStale = computed(() => supportsStale.value && staleFlag.value);
 
 // Métodos
 const handleSearch = async (input, index) => {
@@ -127,12 +154,25 @@ const handleSearch = async (input, index) => {
       return;
     }
     
-    // Para búsquedas normales, usar el handler de búsqueda
-    const searchResults = await props.config.searchHandler(query, searchType);
-    
+    // Para búsquedas normales, usar el handler de búsqueda.
+    //
+    // El handler puede devolver la lista pelada de siempre o el sobre
+    // `{ results, stale, cached_at }`. Las dos formas conviven a propósito: solo
+    // los medios que pueden degradar necesitan mandar la frescura, y los otros
+    // dos no tienen por qué cambiar de contrato para no decir nada.
+    const respuesta = await props.config.searchHandler(query, searchType);
+    const searchResults = Array.isArray(respuesta) ? respuesta : (respuesta?.results || []);
+
+    staleFlag.value = Array.isArray(respuesta) ? false : respuesta?.stale === true;
+    cachedAt.value = Array.isArray(respuesta) ? null : (respuesta?.cached_at ?? null);
+
     if (!searchResults || searchResults.length === 0) {
       errorMessage.value = 'No se encontraron resultados.';
       results.value = [];
+      // Sin nada que enseñar, la franja no describe nada: el proveedor caído y
+      // sin caché tiene que dar el error de siempre, no un aviso sobre el vacío.
+      staleFlag.value = false;
+      cachedAt.value = null;
       return;
     }
     
@@ -142,6 +182,10 @@ const handleSearch = async (input, index) => {
     Logger.error('[GenericSearch] Search error:', error);
     errorMessage.value = input.errorMessage || 'Error al realizar la búsqueda.';
     results.value = [];
+    // Sin resultados no hay nada que la franja describa, y dejarla puesta
+    // pondría un aviso de caché encima de un error de búsqueda.
+    staleFlag.value = false;
+    cachedAt.value = null;
   }
 };
 

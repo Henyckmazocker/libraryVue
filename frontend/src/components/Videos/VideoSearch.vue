@@ -74,7 +74,11 @@ const searchVideos = async (query) => {
     });
 
     if (response.data.status === 'success') {
-      return response.data.data || [];
+      return {
+        results: response.data.data?.videos || [],
+        stale: response.data.data?.stale === true,
+        cached_at: response.data.data?.cached_at ?? null
+      };
     } else {
       throw new Error(response.data.message || 'Error searching videos');
     }
@@ -150,6 +154,8 @@ const searchConfig = computed(() => ({
   ],
   carouselItemComponent: VideoCarouselItem,
   itemProp: 'video',
+  media: 'video',
+  staleProvider: 'YouTube',
   searchHandler: searchVideos,
   transformResult: transformResult,
   navigateToDetail: navigateToDetail,

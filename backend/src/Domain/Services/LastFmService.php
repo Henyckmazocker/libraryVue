@@ -63,7 +63,17 @@ class LastFmService
      */
     public function getUserInfo(string $username): array
     {
-        return $this->cachedCall(
+        return $this->getUserInfoResilient($username)['data'];
+    }
+
+    /**
+     * Same call, keeping the freshness of what is being served.
+     *
+     * @return array{data: array, stale: bool, cached_at: int|null}
+     */
+    public function getUserInfoResilient(string $username): array
+    {
+        return $this->cachedCallResilient(
             "user_info_{$username}",
             self::TTL_USER_INFO,
             fn() => $this->request(['method' => 'user.getInfo', 'user' => $username])
@@ -77,7 +87,17 @@ class LastFmService
      */
     public function getTopAlbums(string $username, string $period = 'overall', int $limit = 20): array
     {
-        return $this->cachedCall(
+        return $this->getTopAlbumsResilient($username, $period, $limit)['data'];
+    }
+
+    /**
+     * Same call, keeping the freshness of what is being served.
+     *
+     * @return array{data: array, stale: bool, cached_at: int|null}
+     */
+    public function getTopAlbumsResilient(string $username, string $period = 'overall', int $limit = 20): array
+    {
+        return $this->cachedCallResilient(
             "top_albums_{$username}_{$period}_{$limit}",
             self::TTL_TOP,
             fn() => $this->request([
@@ -96,7 +116,17 @@ class LastFmService
      */
     public function getTopArtists(string $username, string $period = 'overall', int $limit = 20): array
     {
-        return $this->cachedCall(
+        return $this->getTopArtistsResilient($username, $period, $limit)['data'];
+    }
+
+    /**
+     * Same call, keeping the freshness of what is being served.
+     *
+     * @return array{data: array, stale: bool, cached_at: int|null}
+     */
+    public function getTopArtistsResilient(string $username, string $period = 'overall', int $limit = 20): array
+    {
+        return $this->cachedCallResilient(
             "top_artists_{$username}_{$period}_{$limit}",
             self::TTL_TOP,
             fn() => $this->request([
@@ -115,7 +145,17 @@ class LastFmService
      */
     public function getTopTracks(string $username, string $period = 'overall', int $limit = 20): array
     {
-        return $this->cachedCall(
+        return $this->getTopTracksResilient($username, $period, $limit)['data'];
+    }
+
+    /**
+     * Same call, keeping the freshness of what is being served.
+     *
+     * @return array{data: array, stale: bool, cached_at: int|null}
+     */
+    public function getTopTracksResilient(string $username, string $period = 'overall', int $limit = 20): array
+    {
+        return $this->cachedCallResilient(
             "top_tracks_{$username}_{$period}_{$limit}",
             self::TTL_TOP,
             fn() => $this->request([
@@ -132,7 +172,17 @@ class LastFmService
      */
     public function getRecentTracks(string $username, int $limit = 20): array
     {
-        return $this->cachedCall(
+        return $this->getRecentTracksResilient($username, $limit)['data'];
+    }
+
+    /**
+     * Same call, keeping the freshness of what is being served.
+     *
+     * @return array{data: array, stale: bool, cached_at: int|null}
+     */
+    public function getRecentTracksResilient(string $username, int $limit = 20): array
+    {
+        return $this->cachedCallResilient(
             "recent_tracks_{$username}_{$limit}",
             self::TTL_RECENT,
             fn() => $this->request([
@@ -149,7 +199,17 @@ class LastFmService
      */
     public function getLovedTracks(string $username, int $limit = 20): array
     {
-        return $this->cachedCall(
+        return $this->getLovedTracksResilient($username, $limit)['data'];
+    }
+
+    /**
+     * Same call, keeping the freshness of what is being served.
+     *
+     * @return array{data: array, stale: bool, cached_at: int|null}
+     */
+    public function getLovedTracksResilient(string $username, int $limit = 20): array
+    {
+        return $this->cachedCallResilient(
             "loved_tracks_{$username}_{$limit}",
             self::TTL_LOVED,
             fn() => $this->request([
@@ -165,7 +225,17 @@ class LastFmService
      */
     public function getWeeklyAlbumChart(string $username): array
     {
-        return $this->cachedCall(
+        return $this->getWeeklyAlbumChartResilient($username)['data'];
+    }
+
+    /**
+     * Same call, keeping the freshness of what is being served.
+     *
+     * @return array{data: array, stale: bool, cached_at: int|null}
+     */
+    public function getWeeklyAlbumChartResilient(string $username): array
+    {
+        return $this->cachedCallResilient(
             "weekly_album_chart_{$username}",
             self::TTL_WEEKLY_CHART,
             fn() => $this->request([
@@ -180,7 +250,17 @@ class LastFmService
      */
     public function getWeeklyArtistChart(string $username): array
     {
-        return $this->cachedCall(
+        return $this->getWeeklyArtistChartResilient($username)['data'];
+    }
+
+    /**
+     * Same call, keeping the freshness of what is being served.
+     *
+     * @return array{data: array, stale: bool, cached_at: int|null}
+     */
+    public function getWeeklyArtistChartResilient(string $username): array
+    {
+        return $this->cachedCallResilient(
             "weekly_artist_chart_{$username}",
             self::TTL_WEEKLY_CHART,
             fn() => $this->request([
@@ -199,8 +279,18 @@ class LastFmService
      */
     public function getAlbumInfo(string $artist, string $album, ?string $username = null): array
     {
+        return $this->getAlbumInfoResilient($artist, $album, $username)['data'];
+    }
+
+    /**
+     * Same call, keeping the freshness of what is being served.
+     *
+     * @return array{data: array, stale: bool, cached_at: int|null}
+     */
+    public function getAlbumInfoResilient(string $artist, string $album, ?string $username = null): array
+    {
         $key = 'album_info_' . md5($artist . '|' . $album . '|' . ($username ?? ''));
-        return $this->cachedCall(
+        return $this->cachedCallResilient(
             $key,
             self::TTL_USER_INFO,
             function () use ($artist, $album, $username) {
@@ -409,7 +499,20 @@ class LastFmService
      */
     private function cachedCall(string $key, int $ttl, callable $fetch): array
     {
-        return $this->resilient->around($key, self::CACHE_NS, $ttl, $fetch)['data'];
+        return $this->cachedCallResilient($key, $ttl, $fetch)['data'];
+    }
+
+    /**
+     * The same call, without throwing away the two flags ResilientCall computes.
+     *
+     * Being private and shared by every public method is what makes this cheap:
+     * each `…Resilient()` sibling is its flat twin with this call swapped in.
+     *
+     * @return array{data: array, stale: bool, cached_at: int|null}
+     */
+    private function cachedCallResilient(string $key, int $ttl, callable $fetch): array
+    {
+        return $this->resilient->around($key, self::CACHE_NS, $ttl, $fetch);
     }
 
     /**

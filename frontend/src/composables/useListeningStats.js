@@ -17,6 +17,12 @@ export function useListeningStats() {
   const isLoading = ref(false)
   const error = ref(null)
 
+  // Frescura de la última consulta: el backend la manda en `data` desde el M2 de
+  // la degradación visible, y el dashboard tiene que poder decir de cuándo son
+  // las gráficas que está pintando.
+  const stale = ref(false)
+  const cachedAt = ref(null)
+
   const hasLastFmUsername = computed(() => !!userLastFmUsername.value)
 
   /**
@@ -39,6 +45,8 @@ export function useListeningStats() {
     isLoading.value = true
     error.value = null
     stats.value = null
+    stale.value = false
+    cachedAt.value = null
 
     try {
       const payload = { stats_type: statsType, period, limit }
@@ -49,6 +57,8 @@ export function useListeningStats() {
 
       if (response.data.status === 'success') {
         stats.value = response.data.data
+        stale.value = response.data.data?.stale === true
+        cachedAt.value = response.data.data?.cached_at ?? null
       } else {
         error.value = response.data.message || 'Error al obtener estadísticas de Last.fm'
       }
@@ -63,6 +73,8 @@ export function useListeningStats() {
     stats,
     isLoading,
     error,
+    stale,
+    cachedAt,
     hasLastFmUsername,
     fetchStats
   }

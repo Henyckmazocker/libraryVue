@@ -99,9 +99,16 @@ const searchGames = async (query, searchType) => {
     }
     
     if (response.data.status === 'success') {
-      return searchType === 'id' 
-        ? (response.data.data.game ? [response.data.data.game] : [])
-        : (response.data.data.games || []);
+      // La búsqueda por ID no pasa por la caché resiliente: no lleva sobre.
+      if (searchType === 'id') {
+        return response.data.data.game ? [response.data.data.game] : [];
+      }
+
+      return {
+        results: response.data.data.games || [],
+        stale: response.data.data.stale === true,
+        cached_at: response.data.data.cached_at ?? null
+      };
     } else {
       throw new Error(response.data.message || 'Error searching games');
     }
@@ -236,6 +243,8 @@ const searchConfig = computed(() => ({
   ],
   carouselItemComponent: GameCarouselItem,
   itemProp: 'game',
+  media: 'game',
+  staleProvider: 'IGDB',
   searchHandler: searchGames,
   transformResult: transformResult,
   navigateToDetail: navigateToDetail,

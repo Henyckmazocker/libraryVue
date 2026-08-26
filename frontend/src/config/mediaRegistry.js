@@ -498,6 +498,11 @@ export const mediaRegistry = {
           ? ['search_book_isbn', { isbn: query }]
           : ['search_book_name', { name: query }]
       },
+      // Su búsqueda depende de una API viva sin dump abierto, así que el
+      // backend puede servir caché caducada y `GenericSearch` tiene que
+      // decirlo. Películas y álbumes NO lo declaran: los sirve el mirror
+      // local y no pueden ser rancios.
+      supportsStale: true,
       add: 'add_book',
       remove: 'delete_book',
       rating: 'update_book_rating',
@@ -927,6 +932,11 @@ export const mediaRegistry = {
       listPayload: { filters: {} },
       search: 'search_game_name',
       searchKey: 'name',
+      // Su búsqueda depende de una API viva sin dump abierto, así que el
+      // backend puede servir caché caducada y `GenericSearch` tiene que
+      // decirlo. Películas y álbumes NO lo declaran: los sirve el mirror
+      // local y no pueden ser rancios.
+      supportsStale: true,
       add: 'add_game',
       remove: 'delete_game',
       rating: 'update_game_rating',
@@ -1359,6 +1369,11 @@ export const mediaRegistry = {
       listPayload: { filters: {} },
       search: 'search_youtube_videos',
       searchKey: 'q',
+      // Su búsqueda depende de una API viva sin dump abierto, así que el
+      // backend puede servir caché caducada y `GenericSearch` tiene que
+      // decirlo. Películas y álbumes NO lo declaran: los sirve el mirror
+      // local y no pueden ser rancios.
+      supportsStale: true,
       add: 'add_video',
       remove: 'delete_video',
       rating: 'update_video_rating',

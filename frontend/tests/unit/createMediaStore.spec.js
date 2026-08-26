@@ -127,6 +127,44 @@ describe('createMediaStore — cada acción llama a la acción correcta del back
     expect(authenticatedApiCall).toHaveBeenCalledWith('search_youtube_videos', { q: 'vue' })
   })
 
+  it('searchVideos acepta la forma nueva: los resultados anidados bajo su colección', async () => {
+    // Desde la degradación visible, `search_youtube_videos` devuelve un MAPA
+    // para poder mandar `stale`/`cached_at` al lado de los resultados. El store
+    // tiene que sacarlos de `data.videos`, no tratar el mapa como si fuera la
+    // lista — que daría 0 resultados en silencio.
+    authenticatedApiCall.mockResolvedValue(ok({
+      videos: [{ id: 'abc', title: 'Charla' }],
+      count: 1,
+      stale: true,
+      cached_at: '2026-08-03T11:42:07+00:00'
+    }))
+
+    const resultado = await useVideosStore().searchVideos('vue')
+
+    expect(resultado).toHaveLength(1)
+    expect(resultado[0].id).toBe('abc')
+    expect(useVideosStore().searchResults).toHaveLength(1)
+  })
+
+  it('searchAlbums sigue aceptando la forma vieja: la lista pelada en data', async () => {
+    // La tolerancia va en las dos direcciones a propósito: cuatro de los cinco
+    // medios no han cambiado de forma y no deben enterarse.
+    authenticatedApiCall.mockResolvedValue(ok([{ id: 'x', name: 'Kind of Blue' }]))
+
+    const resultado = await useAlbumsStore().searchAlbums('kind of blue')
+
+    expect(resultado).toHaveLength(1)
+    expect(resultado[0].name).toBe('Kind of Blue')
+  })
+
+  it('un mapa sin la clave de la colección deja la búsqueda vacía, no reventada', async () => {
+    authenticatedApiCall.mockResolvedValue(ok({ stale: false, cached_at: null }))
+
+    const resultado = await useVideosStore().searchVideos('vue')
+
+    expect(resultado).toEqual([])
+  })
+
   it('addVideo normaliza el ítem de la búsqueda al payload de add_video', async () => {
     authenticatedApiCall.mockResolvedValue(ok({ youtube_id: 'abc' }))
     const store = useVideosStore()

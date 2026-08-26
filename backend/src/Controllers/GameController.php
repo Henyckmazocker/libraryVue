@@ -354,11 +354,14 @@ class GameController extends BaseController implements Contracts\GameControllerI
                 return $this->errorResponse('Query parameter is required', 400);
             }
 
-            $games = $this->igdbService->searchGames($query, $limit);
+            $result = $this->igdbService->searchGamesResilient($query, $limit);
+            $games  = $result['data'];
 
             return $this->successResponse('Games found', [
                 'games' => $games,
-                'count' => count($games)
+                'count' => count($games),
+                'stale' => $result['stale'],
+                'cached_at' => $result['cached_at'] ? date('c', $result['cached_at']) : null
             ]);
         } catch (\Exception $e) {
             return $this->externalServiceError('IGDB');

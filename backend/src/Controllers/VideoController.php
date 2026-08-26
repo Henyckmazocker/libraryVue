@@ -114,8 +114,17 @@ class VideoController extends BaseController implements Contracts\VideoControlle
                 return $this->errorResponse('Search query is required', 400);
             }
 
-            $results = $this->youTubeService->searchVideos($query, $maxResults);
-            return $this->successResponse('YouTube search results.', $results);
+            // data es un MAPA, no la lista pelada de antes: el aviso de degradacion
+            // necesita viajar al lado de los resultados, igual que en libros y juegos.
+            $result = $this->youTubeService->searchVideosResilient($query, $maxResults);
+            $videos = $result['data'];
+
+            return $this->successResponse('YouTube search results.', [
+                'videos' => $videos,
+                'count' => count($videos),
+                'stale' => $result['stale'],
+                'cached_at' => $result['cached_at'] ? date('c', $result['cached_at']) : null
+            ]);
         } catch (\Exception $e) {
             return $this->externalServiceError('YouTube');
         }

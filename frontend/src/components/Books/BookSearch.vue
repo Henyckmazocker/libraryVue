@@ -36,7 +36,7 @@ const router = useRouter();
 
 // Composables & Stores
 const booksComposable = useBooks();
-const { searchWorks } = useWorkSearch();
+const { searchWorks, stale: worksStale, cachedAt: worksCachedAt } = useWorkSearch();
 const authStore = useAuthStore();
 const booksStore = useBooksStore();
 const uiStore = useUIStore();
@@ -115,24 +115,29 @@ const searchBooks = async (query, searchType) => {
       
       Logger.debug(`Found ${works.length} works from composable`);
       
-      // Transform works to the format expected by GenericSearch
-      return works.map(work => ({
-        isbn: work.sample_isbn || work.work_key, 
-        title: work.title || 'Title not available',
-        author: Array.isArray(work.authors) ? work.authors : [work.authors_display || 'Author not available'],
-        cover_i: work.cover_url || work.cover_id || '', // Use cover_url (Google Books) or cover_id (OpenLibrary)
-        coverUrl: work.cover_url || '',
-        publisher: [],
-        pages: null,
-        genres: work.subjects || [],
-        key: work.work_key,
-        // Additional work metadata
-        work_key: work.work_key,
-        editions_count: work.editions_count || 0,
-        first_publish_year: work.first_publish_year || null,
-        languages: work.languages || []
-      }));
-      
+      // El sobre, no la lista pelada: `GenericSearch` necesita la frescura para
+      // decidir si pinta la franja de degradación.
+      return {
+        stale: worksStale.value,
+        cached_at: worksCachedAt.value,
+        results: works.map(work => ({
+          isbn: work.sample_isbn || work.work_key,
+          title: work.title || 'Title not available',
+          author: Array.isArray(work.authors) ? work.authors : [work.authors_display || 'Author not available'],
+          cover_i: work.cover_url || work.cover_id || '', // Use cover_url (Google Books) or cover_id (OpenLibrary)
+          coverUrl: work.cover_url || '',
+          publisher: [],
+          pages: null,
+          genres: work.subjects || [],
+          key: work.work_key,
+          // Additional work metadata
+          work_key: work.work_key,
+          editions_count: work.editions_count || 0,
+          first_publish_year: work.first_publish_year || null,
+          languages: work.languages || []
+        }))
+      };
+
     } catch (error) {
       Logger.error("Work search failed:", error);
       throw new Error("Error searching books. Please try again.");
@@ -248,6 +253,8 @@ const searchConfig = computed(() => ({
   ],
   carouselItemComponent: BookCarouselItem,
   itemProp: 'book',
+  media: 'book',
+  staleProvider: 'Open Library',
   searchHandler: searchBooks,
   transformResult: transformResult,
   navigateToDetail: navigateToDetail,

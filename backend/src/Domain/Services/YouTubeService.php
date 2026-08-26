@@ -55,8 +55,24 @@ class YouTubeService
      */
     public function searchVideos(string $query, int $maxResults = 10): array
     {
+        return $this->searchVideosResilient($query, $maxResults)['data'];
+    }
+
+    /**
+     * Search videos, keeping the freshness of what is being served
+     *
+     * Same fallback behaviour as searchVideos() -- an empty list rather than an
+     * exception when there is nothing cached -- but without throwing away the
+     * two flags ResilientCall computes. Note the two empty-list exits are never
+     * stale: a missing API key and an unreachable API with no cached copy are
+     * both "no results", not "old results".
+     *
+     * @return array{data: array, stale: bool, cached_at: int|null}
+     */
+    public function searchVideosResilient(string $query, int $maxResults = 10): array
+    {
         if (empty($this->apiKey)) {
-            return [];
+            return ['data' => [], 'stale' => false, 'cached_at' => null];
         }
 
         // No cache->get() here on purpose: it deletes the entry when it finds it
@@ -84,13 +100,13 @@ class YouTubeService
 
                     return array_map(fn($item) => $this->normalizeSearchItem($item), $items);
                 }
-            )['data'];
+            );
         } catch (GuzzleException $e) {
             $this->logger->error('YouTube search failed with no cache to fall back on', [
                 'query' => $query,
                 'error' => $e->getMessage(),
             ]);
-            return [];
+            return ['data' => [], 'stale' => false, 'cached_at' => null];
         }
     }
 

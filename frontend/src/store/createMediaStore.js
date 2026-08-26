@@ -188,7 +188,13 @@ export function createMediaStore (media) {
         const response = await authStore.authenticatedApiCall(action, payload)
 
         if (response.data.status === 'success') {
-          this.searchResults = response.data.data || []
+          // La mayoría de búsquedas devuelven la lista pelada en `data`; las que
+          // avisan de degradación (vídeos) la anidan bajo su colección para poder
+          // mandar `stale`/`cached_at` al lado. Se aceptan las dos formas.
+          const payload = response.data.data
+          this.searchResults = Array.isArray(payload)
+            ? payload
+            : (payload?.[collection] || [])
           Logger.debug(`${log} Found ${this.searchResults.length} ${collection}`)
           return this.searchResults
         }

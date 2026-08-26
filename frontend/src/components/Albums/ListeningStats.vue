@@ -81,6 +81,13 @@
         </div>
       </div>
 
+      <!-- Degradación: las gráficas salen de una caché caducada -->
+      <StaleNotice
+        :stale="stale"
+        :cached-at="cachedAt"
+        provider="Last.fm"
+      />
+
       <!-- Loading -->
       <div
         v-if="isLoading"
@@ -209,12 +216,15 @@
 <script>
 import { ref, computed, onMounted } from 'vue'
 import { useListeningStats } from '@/composables/useListeningStats'
+import StaleNotice from '@/components/shared/StaleNotice.vue'
 
 export default {
   name: 'ListeningStats',
 
+  components: { StaleNotice },
+
   setup() {
-    const { stats, isLoading, error, hasLastFmUsername, fetchStats } = useListeningStats()
+    const { stats, isLoading, error, stale, cachedAt, hasLastFmUsername, fetchStats } = useListeningStats()
 
     const selectedType = ref('user_info')
     const selectedPeriod = ref('overall')
@@ -248,6 +258,8 @@ export default {
       stats,
       isLoading,
       error,
+      stale,
+      cachedAt,
       hasLastFmUsername,
       selectedType,
       selectedPeriod,

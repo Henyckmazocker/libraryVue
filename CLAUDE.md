@@ -70,12 +70,12 @@ docker compose up --build   # equivalente crudo: NO migra ni arranca el mirror
 
 # Tests backend (PHPUnit 11, dentro del contenedor backend)
 docker compose --profile test up -d mysql-test   # lo necesita la suite de integración
-docker compose exec backend composer test        # las DOS suites: 1212 tests
-docker compose exec backend composer test:unit   # la rápida: 1184, sin necesitar mysql-test
-docker compose exec backend composer test:integration   # 28, contra una BD desechable
+docker compose exec backend composer test        # las DOS suites: 1224 tests
+docker compose exec backend composer test:unit   # la rápida: 1193, sin necesitar mysql-test
+docker compose exec backend composer test:integration   # 31, contra una BD desechable
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
-docker compose exec frontend npm test            # 256 tests
+docker compose exec frontend npm test            # 275 tests
 docker compose exec frontend npm run test:watch
 docker compose exec frontend npx vue-cli-service lint --no-fix   # lo corre también ./dev-setup.sh
 docker compose exec frontend npm run lint:styles                 # stylelint; también en ./dev-setup.sh
@@ -125,6 +125,22 @@ se cachean en `mb_track` (ver abajo).
   backoff, tope 1 s) para lo que corre dentro de una petición, y `PROFILE_BATCH` (5 intentos,
   exponencial 1-16 s, tope 60 s) para `bin/mirror` y el trabajo diferido. El `User-Agent` es un
   parámetro **obligatorio**, no un default: MusicBrainz rechaza al que no se identifica.
+- **Lo que `ResilientCall` devuelve es un sobre, y tirarlo es el fallo por defecto.** `around()` da
+  `['data' => …, 'stale' => bool, 'cached_at' => int|null]`, y durante un año tres servicios de
+  cuatro escribían `)['data'];` en la misma línea. Desde el 2026-08-26 cada uno tiene un hermano
+  `…Resilient()` que devuelve el sobre y un método plano que delega y lo aplana: `searchGamesResilient`,
+  `searchVideosResilient` y los **nueve** de `LastFmService` sobre un `cachedCallResilient()` privado.
+  **Ninguna firma existente cambió**, y eso no es cortesía: en PHP una firma cambiada rompe en
+  *runtime* y los unitarios mockean la interfaz, así que un llamante olvidado no lo ve nadie.
+  `search_works`, `search_igdb_games`, `search_youtube_videos` y `get_listening_stats` lo sacan en
+  `data`. **`stale` nunca falta** y **`cached_at` puede ser `null` con `stale: true`**, así que jamás
+  se pasa por `date('c', …)` sin comprobarlo: con `null` daría hoy y el aviso mentiría.
+- **Un 404 no es una degradación**, y eso llega hasta el aviso. `GetListeningStatsUseCase` captura la
+  excepción de un álbum que Last.fm no tiene y devuelve `data: null` con `stale: false`: marcarlo
+  rancio pintaría un aviso de proveedor caído sobre una respuesta.
+- **`get_listening_stats` hace UNA llamada por petición, no diez.** Su `match($query->statsType)`
+  ejecuta una sola rama —el tipo lo elige el selector de `ListeningStats.vue`—, así que no hay
+  frescuras que agregar. Las diez ramas del `match` se leen como diez llamadas y no lo son.
 - **El reintento va en el transporte, no en `ResilientCall`**, que se queda intacto. Aquí se insiste;
   por encima, `ResilientCall` decide si lo que falló de verdad se degrada a caché rancia. Un **404 no
   se reintenta nunca**: es una respuesta, no un fallo.
@@ -369,6 +385,16 @@ se cachean en `mb_track` (ver abajo).
   para un medio desconocido o un id vacío, en vez de reventar como `getMediaConfig`, porque quien
   llama es la tarjeta del feed y `feed_events.entity_type` es NULLable. Si añades una ruta de
   detalle, no le pongas un campo nuevo al registry: rellena esos dos.
+- **Cuando la búsqueda sirve caché caducada, se dice, y una vez.**
+  `components/shared/StaleNotice.vue` es la franja, y la gobierna un `supportsStale` del bloque `api`
+  del registry: lo declaran **`book`, `game` y `video`**, y películas y álbumes **no**, que es lo que
+  garantiza que no cambien ni un píxel —los sirve el mirror local y no pueden ser rancios—. Tres
+  detalles que cuestan una tarde: el sobre entra por el `searchHandler`, que **acepta la lista pelada
+  de siempre o `{ results, stale, cached_at }`**; el puente hasta el registry es una clave `media` en
+  la config de `GenericSearch`, porque los cinco `*Search.vue` la construyen a mano y no leen el
+  registry; y la comprobación va contra `mediaKeys`, **no** llamando a `getMediaConfig`, que **lanza**
+  con un medio desconocido. La franja se retira con **cero resultados** y con **búsqueda fallida**: un
+  proveedor caído sin caché tiene que dar el error de siempre, no un aviso de caché sobre el vacío.
 - **La espera también tiene su genérico.** `components/shared/MediaSkeleton.vue` cubre las cuatro
   familias de tarjeta con una prop `variant` (`list-item` · `library-item` · `carousel` · `detail`):
   no escribas otro «Cargando…» ni otro spinner. Sus medidas salen de los mixins SCSS de cada familia
@@ -448,9 +474,9 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 
 1. `docker compose up --build`; `POST http://localhost:8888/index.php` con `{"action":"ping"}`.
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
-3. `docker compose exec backend composer test` → verde (1212 tests: 1184 unitarios + 28 de
+3. `docker compose exec backend composer test` → verde (1224 tests: 1193 unitarios + 31 de
    integración; estos necesitan `docker compose --profile test up -d mysql-test`).
-4. `docker compose exec frontend npm test` → verde (256 tests) y
+4. `docker compose exec frontend npm test` → verde (275 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
 5. **`docker compose exec frontend npm run build` → `Build complete`.** No es redundante con el paso
    anterior: **ninguno de los tres comandos de arriba compila SCSS**. Los helpers de
@@ -467,7 +493,16 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
    los warnings, engancha `console.warn` antes de navegar y navega **dentro** de la SPA, o el hook se
    pierde con la recarga.
 
-> ℹ️ **Desde el 2026-08-25 hay dos suites de verdad.** `composer test` corre las dos (1212);
+   > ⚠️ **Al acabar, mata el proceso entero: las dos cosas.** `DELETE $B` cierra la *sesión* y su
+   > Firefox, pero **deja geckodriver escuchando en 4444 para siempre**; y una sesión que no se borra
+   > deja además un `firefox -headless` vivo. Ninguno de los dos aparece en una ventana, así que se
+   > acumulan en silencio de sesión en sesión. `curl -s -X DELETE $B` **y**
+   > `pkill -f 'geckodriver --port 4444'`, y verifica con `pgrep -a geckodriver; pgrep -a firefox` —
+   > lo que lleve horas de `ELAPSED` es el navegador de David, no lo mates—. Bajo snap el `kill`
+   > puede dar `Permission denied` aun siendo el mismo usuario: entonces no se puede desde aquí y hay
+   > que decírselo a David.
+
+> ℹ️ **Desde el 2026-08-25 hay dos suites de verdad.** `composer test` corre las dos (1224);
 > `composer test:unit` es la rápida y **no necesita** `mysql-test`. La suite `Integration` estuvo
 > declarada sobre un directorio inexistente hasta el 2026-08-24, haciendo abortar a PHPUnit con
 > `error code 2`; se retiró entonces y se repuso ahora sobre un directorio con contenido.

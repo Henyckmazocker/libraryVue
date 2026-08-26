@@ -17,6 +17,12 @@ export function useWorkSearch() {
   const error = ref(null);
   const lastQuery = ref('');
 
+  // Frescura de la última búsqueda. El backend manda `stale` y `cached_at` en
+  // `search_works` desde el plan de resiliencia, y hasta hoy este composable los
+  // recibía y los tiraba en la misma línea.
+  const stale = ref(false);
+  const cachedAt = ref(null);
+
   // Computed
   const hasWorks = computed(() => works.value.length > 0);
   const hasError = computed(() => error.value !== null);
@@ -41,6 +47,8 @@ export function useWorkSearch() {
     isSearching.value = true;
     error.value = null;
     lastQuery.value = query;
+    stale.value = false;
+    cachedAt.value = null;
 
     try {
       Logger.debug('[useWorkSearch] Searching works:', { query, limit, enrich });
@@ -54,6 +62,8 @@ export function useWorkSearch() {
       if (response.data && response.data.status === 'success' && response.data.data) {
         const foundWorks = response.data.data.works || [];
         works.value = foundWorks;
+        stale.value = response.data.data.stale === true;
+        cachedAt.value = response.data.data.cached_at ?? null;
         
         Logger.debug(`[useWorkSearch] Found ${foundWorks.length} works`);
         return foundWorks;
@@ -268,6 +278,8 @@ export function useWorkSearch() {
     isSearching,
     error,
     lastQuery,
+    stale,
+    cachedAt,
     
     // Computed
     hasWorks,

@@ -510,10 +510,24 @@ export const mediaRegistry = {
       edit: 'edit_user_book',
       allowedStatuses: 'get_book_allowed_statuses',
       tags: {
+        // `get` son las etiquetas de UN ítem; `list`, todas las del usuario.
+        get: 'get_book_tags',
         list: 'get_user_book_tags',
         create: 'create_user_book_tag',
         update: 'update_book_tags'
       }
+    },
+    /**
+     * Lo propio de libros que `createMediaComposable` no deduce del bloque
+     * `store`. Las sesiones de lectura NO se declaran aquí: son un extra del
+     * medio y viven en el cuerpo de `useBooks`.
+     */
+    composable: {
+      // Único medio cuyo helper por id no se llama `find{One}ById`.
+      findByIdName: 'findBookByISBN',
+      deleteIdLabel: 'ISBN',
+      deleteWarning: 'También se eliminarán todas las sesiones de lectura asociadas',
+      editSyncFields: ['currentPage']
     },
     list: {
       // Dimensiones intrínsecas de la portada en esta familia, en px: el navegador las usa
@@ -720,10 +734,18 @@ export const mediaRegistry = {
       edit: 'edit_user_movie',
       allowedStatuses: 'get_movie_allowed_statuses',
       tags: {
+        get: 'get_movie_tags',
         list: 'get_user_movie_tags',
         create: 'create_user_movie_tag',
         update: 'update_movie_tags'
       }
+    },
+    /**
+     * Lo propio de películas. El seguimiento de temporadas es un extra del
+     * medio y vive en el cuerpo de `useMovies`.
+     */
+    composable: {
+      editSyncFields: ['ownership_format_id', 'ownershipFormat']
     },
     list: {
       // Dimensiones intrínsecas de la portada en esta familia, en px: el navegador las usa
@@ -944,10 +966,23 @@ export const mediaRegistry = {
       edit: 'edit_user_game',
       allowedStatuses: 'get_game_allowed_statuses',
       tags: {
+        get: 'get_game_tags',
         list: 'get_user_game_tags',
         create: 'create_user_game_tag',
         update: 'update_game_tags'
       }
+    },
+    /** Lo propio de juegos. */
+    composable: {
+      editSyncFields: [
+        'hoursPlayed',
+        'platformPlayed',
+        'dateStarted',
+        'dateFinished',
+        'personalNotes',
+        'ownership_format_id',
+        'ownershipFormat'
+      ]
     },
     list: {
       // Dimensiones intrínsecas de la portada en esta familia, en px: el navegador las usa
@@ -1207,10 +1242,27 @@ export const mediaRegistry = {
       edit: 'edit_user_album',
       allowedStatuses: 'get_album_allowed_statuses',
       tags: {
+        get: 'get_album_tags',
         list: 'get_user_album_tags',
         create: 'create_user_album_tag',
         update: 'update_album_tags'
       }
+    },
+    /**
+     * Lo que `createMediaComposable` no puede deducir del bloque `store`: los
+     * campos que `editUserAlbum` propaga al array local tras el OK del backend.
+     * El resto sale de `store` y `api`.
+     */
+    composable: {
+      editSyncFields: [
+        'listenCount',
+        'favoriteTrack',
+        'dateStarted',
+        'dateFinished',
+        'personalNotes',
+        'ownership_format_id',
+        'ownershipFormat'
+      ]
     },
     list: {
       // Dimensiones intrínsecas de la portada en esta familia, en px: el navegador las usa
@@ -1381,10 +1433,23 @@ export const mediaRegistry = {
       edit: 'edit_user_video',
       allowedStatuses: 'get_video_allowed_statuses',
       tags: {
+        get: 'get_video_tags',
         list: 'get_user_video_tags',
         create: 'create_user_video_tag',
         update: 'update_video_tags'
       }
+    },
+    /**
+     * Lo propio de vídeos.
+     *
+     * `editSyncFields` lleva **solo** `personalNotes` a propósito. `EditItemModal`
+     * manda además `ownership_format_id` para los cinco medios, pero
+     * `EditUserVideoCommand` no lo lee y el repositorio de vídeos no lo guarda:
+     * sincronizarlo en el array local enseñaría un formato de propiedad que
+     * desaparece en el siguiente refresco.
+     */
+    composable: {
+      editSyncFields: ['personalNotes']
     },
     list: {
       // Dimensiones intrínsecas de la portada en esta familia, en px: el navegador las usa

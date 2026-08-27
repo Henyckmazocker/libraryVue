@@ -617,6 +617,39 @@ const handleSave = async () => {
       data.ownership_format_id = localOwnershipFormatId.value
     }
 
+    // Los estados de un libro NO viajan dentro de edit_user_book: pasan por
+    // `updateBookStatuses`, que es quien confirma antes de cerrar un libro con
+    // una sesión abierta y quien notifica la transición (inicio, pausa, fin,
+    // abandono). Metiéndolos en `data.statuses` esa máquina no llegaba a
+    // ejecutarse nunca, y marcar un libro como leído no avisaba de nada.
+    //
+    // Solo cuando el libro está en el store: `updateBookStatuses` lo busca ahí
+    // para leer su sesión activa, y sin él daría 'Book not found'. Si no está,
+    // se mantiene el camino de antes.
+    if (props.itemType === 'book' && booksComposable.findBookByISBN(itemId)) {
+      const previos = props.item.userStatuses || []
+      const nuevos = [...localStatuses.value]
+      const cambian = nuevos.length !== previos.length ||
+        nuevos.some((estado) => !previos.includes(estado))
+
+      if (cambian) {
+        const cambio = await booksComposable.updateBookStatuses(itemId, nuevos)
+
+        // El usuario dijo que no en la confirmación: no se guarda nada.
+        if (cambio.cancelled) {
+          isSaving.value = false
+          return
+        }
+        if (!cambio.success) {
+          throw new Error(cambio.message || 'Error al actualizar los estados')
+        }
+      }
+
+      // El backend deja los estados en paz si no se los mandan
+      // (EditUserBookUseCase.php:91), así que no se escriben dos veces.
+      delete data.statuses
+    }
+
     Logger.debug('Saving item with data:', { itemType: props.itemType, itemId, data })
     
     const result = await itemEdit.editItem(props.itemType, itemId, data, [...localTags.value], [])

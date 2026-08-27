@@ -70,12 +70,12 @@ docker compose up --build   # equivalente crudo: NO migra ni arranca el mirror
 
 # Tests backend (PHPUnit 11, dentro del contenedor backend)
 docker compose --profile test up -d mysql-test   # lo necesita la suite de integración
-docker compose exec backend composer test        # las DOS suites: 1224 tests
+docker compose exec backend composer test        # las DOS suites: 1229 tests
 docker compose exec backend composer test:unit   # la rápida: 1193, sin necesitar mysql-test
-docker compose exec backend composer test:integration   # 31, contra una BD desechable
+docker compose exec backend composer test:integration   # 36, contra una BD desechable
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
-docker compose exec frontend npm test            # 275 tests
+docker compose exec frontend npm test            # 296 tests
 docker compose exec frontend npm run test:watch
 docker compose exec frontend npx vue-cli-service lint --no-fix   # lo corre también ./dev-setup.sh
 docker compose exec frontend npm run lint:styles                 # stylelint; también en ./dev-setup.sh
@@ -371,14 +371,23 @@ se cachean en `mb_track` (ver abajo).
   ya no existe. Chart.js pinta en `<canvas>` y no entiende `var()`, así que el módulo expone un `ref`
   que todas sus funciones tocan: cualquier `computed` que las llame repinta solo al cambiar de tema.
 - **Lo que varía por medio se declara, no se copia.** `src/config/mediaRegistry.js` es la única
-  descripción de lo que diferencia a un medio, y de ella se configuran **cinco genéricos**:
+  descripción de lo que diferencia a un medio, y de ella se configuran **seis genéricos**:
   `GenericSearch` (los cinco `*Search.vue`), `MediaNotes` + `useMediaNotes` (los `*Notes.vue`),
-  `MediaListItem` (los `*ListItem.vue`), `shared/LibraryMediaItem` (los `Library*Item.vue`) y
-  `views/shared/MediaDetailView` (las seis `*DetailView.vue`); además, `store/createMediaStore.js`
-  genera los cinco stores de Pinia. Los ficheros por medio siguen existiendo como wrappers, así que
-  **ningún import cambió**: la factoría genera hasta los alias con nombre de medio (`fetchVideos`,
-  `getVideoByYouTubeId`…).
+  `MediaListItem` (los `*ListItem.vue`), `shared/LibraryMediaItem` (los `Library*Item.vue`),
+  `views/shared/MediaDetailView` (las seis `*DetailView.vue`) y —desde el 2026-08-27—
+  `composables/createMediaComposable.js` (los cinco `use<Medio>.js`, de 1.382 líneas a 535); además,
+  `store/createMediaStore.js` genera los cinco stores de Pinia. Los ficheros por medio siguen
+  existiendo como wrappers, así que **ningún import cambió**: la factoría genera hasta los alias con
+  nombre de medio (`fetchVideos`, `getVideoByYouTubeId`…).
   **Antes de duplicar algo para un medio nuevo, mira si su familia ya tiene genérico.**
+- **En el composable, lo propio de un medio va en su wrapper y SUSTITUYE al núcleo.**
+  `createMediaComposable(media, extras)` mezcla `extras` **después**, así que un miembro con el mismo
+  nombre gana: es lo que hace `useBooks` con `updateBookStatuses` (la máquina de transiciones) frente
+  a la delegación de tres líneas que genera el núcleo. Invertir ese orden borraría la máquina sin que
+  nada fallara ruidosamente; hay un test que lo fija. Y el mapa de `useXStore` vive en la factoría, no
+  en el registry: el registry es lo que importa `createMediaStore`, y meterlo ahí cerraría el ciclo.
+- **`createMediaComposable('series')` lanza a propósito**, como `createMediaStore('series')`. Iterar
+  sobre `mediaKeys` (los seis) en vez de `storeMediaKeys` (los cinco) es el error fácil.
 - **El destino de una ficha se compone, no se declara otra vez.** `detailRouteFor(media, entityId)`
   (`mediaRegistry.js`, junto a `getMediaConfig`) devuelve el `{ name, params }` de la ruta de detalle
   a partir del `routeName` y el `detail.routeParam` que cada entrada **ya tenía**; devuelve `null`
@@ -458,6 +467,17 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 - **Un endpoint nuevo merece un test de INTEGRACIÓN, no solo unitarios.** Los unitarios mockean PDO y
   por diseño no ven el fallo típico de aquí: la acción declarada a medias en uno de los tres sitios, o
   un SQL que no casa con el esquema. Se entra por `ActionRouter`, no por HTTP: `tests/Integration/`.
+- **Una acción que el frontend no llama es una acción que nadie sabe si funciona.** El 2026-08-27, al
+  conectar por primera vez `update_book_user_statuses` desde la UI, resultó que respondía **500 a
+  todo** por dos motivos a la vez: `ActionRouter.php:261` construía su comando con los argumentos en
+  otro orden que el constructor, y `MySqlUserBookRepository::hasBook()` consultaba `user_books`, una
+  tabla que el esquema **no tiene** —la `PDOException` caía en su propio `catch`, que devuelve
+  `false`, así que contestaba «Book not found» con el libro delante—. `get_user_active_reading_sessions`
+  estaba igual: llamaba a `getActiveSessions()` y el repositorio lo tiene como
+  `getUserActiveSessions()`. **Las dos suites en verde durante meses**, porque los tres fallos viven
+  en la costura que un mock sustituye. Antes de conectar una acción que no usaba nadie, pruébala con
+  `curl` contra el backend de dev; y `MySqlUserBookRepository` sigue a medio migrar al modelo
+  Work/Edition en otros siete puntos.
 - **Nunca apuntes el sembrado de test al MySQL de dev.** `docker/database/init.sql` empieza con
   `DROP DATABASE IF EXISTS library_db` y **el nombre de la base es el mismo** en dev y en test. El
   bootstrap tiene una lista blanca de hosts y aborta si `DB_TEST_HOST` no está en ella; no la quites.
@@ -474,9 +494,9 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 
 1. `docker compose up --build`; `POST http://localhost:8888/index.php` con `{"action":"ping"}`.
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
-3. `docker compose exec backend composer test` → verde (1224 tests: 1193 unitarios + 31 de
+3. `docker compose exec backend composer test` → verde (1229 tests: 1193 unitarios + 36 de
    integración; estos necesitan `docker compose --profile test up -d mysql-test`).
-4. `docker compose exec frontend npm test` → verde (275 tests) y
+4. `docker compose exec frontend npm test` → verde (296 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
 5. **`docker compose exec frontend npm run build` → `Build complete`.** No es redundante con el paso
    anterior: **ninguno de los tres comandos de arriba compila SCSS**. Los helpers de

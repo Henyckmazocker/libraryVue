@@ -2,18 +2,25 @@ import { useBooks } from './useBooks'
 import { useMovies } from './useMovies'
 import { useGames } from './useGames'
 import { useAlbums } from './useAlbums'
-import { useVideosStore } from '@/store/videos'
+import { useVideos } from './useVideos'
 import Logger from '@/utils/logger'
 
 /**
- * Composable para edición unificada de items (books/movies)
+ * Edición unificada de los cinco medios.
+ *
+ * Los cinco brazos tienen la misma forma. Vídeos fue el último en tenerla: hasta
+ * que `useVideos` existió llamaba a `videosStore.editVideo` con un payload plano,
+ * sin `userId`, sin `tags` y sin `notes`, así que editar un vídeo desde
+ * `EditItemModal` no podía guardarle etiquetas. El backend ya lo admitía —
+ * `EditUserVideoCommand::fromArray` lee el payload anidado y los `tags` de la
+ * raíz—; era el frontend el que no lo usaba.
  */
 export function useItemEdit() {
   const booksComposable = useBooks()
   const moviesComposable = useMovies()
   const gamesComposable = useGames()
   const albumsComposable = useAlbums()
-  const videosStore = useVideosStore()
+  const videosComposable = useVideos()
   
   const editItem = async (itemType, id, data, tags = [], notes = []) => {
     try {
@@ -29,7 +36,7 @@ export function useItemEdit() {
       } else if (itemType === 'album') {
         result = await albumsComposable.editUserAlbum(id, data.userId || data.user_id, data, tags, notes)
       } else if (itemType === 'video') {
-        result = await videosStore.editVideo(id, { ...data, statuses: data.statuses })
+        result = await videosComposable.editUserVideo(id, data.userId || data.user_id, data, tags, notes)
       } else {
         throw new Error(`Tipo de item no soportado: ${itemType}`)
       }

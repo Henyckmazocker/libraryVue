@@ -106,8 +106,10 @@
       </div>
     </div>
 
+    <!-- Se retira con el PRIMER medio que responde, no con el último: la lista
+         se rellena sola conforme llegan los otros cuatro. -->
     <MediaSkeleton
-      v-if="isLoading"
+      v-if="isLoading && displayedItems.length === 0"
       variant="list-item"
       :count="8"
       label="Cargando biblioteca…"
@@ -157,7 +159,8 @@ import { useBooks } from '@/composables/useBooks';
 import { useMovies } from '@/composables/useMovies';
 import { useGames } from '@/composables/useGames';
 import { useAlbums } from '@/composables/useAlbums';
-import { useVideosStore } from '@/store/videos';
+import { useVideos } from '@/composables/useVideos';
+import { getMediaConfig, storeMediaKeys } from '@/config/mediaRegistry';
 import { useSearch } from '@/composables/useSearch';
 import { useUIStore } from '@/store/ui';
 import { useAuth } from '@/composables/useAuth';
@@ -174,7 +177,7 @@ const moviesComposable = useMovies();
   const gamesComposable = useGames();
   const albumsComposable = useAlbums();
   const uiStore = useUIStore();
-const videosStore = useVideosStore();
+const videosComposable = useVideos();
 const searchSystem = useSearch({
   debounceDelay: 300,
   minQueryLength: 2
@@ -186,7 +189,16 @@ const showMovies = ref(true);
 const showGames = ref(true);
 const showAlbums = ref(true);
 const showVideos = ref(true);
-const fetchError = ref("");
+// Un fallo por medio, no una cadena única: así el aviso puede decir cuál cayó
+// y los otros cuatro siguen enseñando lo suyo.
+const loadErrors = ref({});
+const noteError = (key, message) => {
+  loadErrors.value = { ...loadErrors.value, [key]: message };
+};
+const fetchError = computed(() => Object.entries(loadErrors.value)
+  .filter(([, message]) => message)
+  .map(([key, message]) => `${getMediaConfig(key).labelPlural}: ${message}`)
+  .join('; '));
 const sortField = ref('date');
 const sortDirection = ref('desc');
 const showImportModal = ref(false);
@@ -209,7 +221,7 @@ const toggleSort = (field) => {
 
 // Estados computados combinados
 const isLoading = computed(() =>
-  booksComposable.isLoading.value || moviesComposable.isLoading.value || gamesComposable.isLoading.value || albumsComposable.isLoading.value || videosStore.isLoading
+  booksComposable.isLoading.value || moviesComposable.isLoading.value || gamesComposable.isLoading.value || albumsComposable.isLoading.value || videosComposable.isLoading.value
 );
 
 const items = computed(() => {
@@ -217,7 +229,7 @@ const items = computed(() => {
   const movies = moviesComposable.movies.value.map(movie => ({ ...movie, itemType: 'movie' }));
   const games = gamesComposable.games.value.map(game => ({ ...game, itemType: 'game' }));
   const albums = albumsComposable.albums.value.map(album => ({ ...album, itemType: 'album' }));
-  const videos = videosStore.videos.map(video => ({ ...video, itemType: 'video' }));
+  const videos = videosComposable.videos.value.map(video => ({ ...video, itemType: 'video' }));
   return [...books, ...movies, ...games, ...albums, ...videos];
 });
 
@@ -225,7 +237,7 @@ const allowedBookUserStatuses = computed(() => booksComposable.allowedStatuses.v
 const allowedMovieUserStatuses = computed(() => moviesComposable.allowedStatuses.value);
 const allowedGameUserStatuses = computed(() => gamesComposable.allowedStatuses.value);
 const allowedAlbumUserStatuses = computed(() => albumsComposable.allowedStatuses.value);
-const allowedVideoUserStatuses = computed(() => videosStore.allowedStatuses.map(s => (typeof s === 'object' && s !== null) ? s.name : s));
+const allowedVideoUserStatuses = computed(() => videosComposable.allowedStatuses.value.map(s => (typeof s === 'object' && s !== null) ? s.name : s));
 
 const allowedUserStatusesList = (itemType, mediaType = null) => {
   if (itemType === 'movie') {
@@ -243,32 +255,50 @@ const allowedUserStatusesList = (itemType, mediaType = null) => {
   return allowedBookUserStatuses.value;
 };
 
-const fetchLibrary = async () => {
-  fetchError.value = "";
-  try {
-    // Cargar libros, películas y juegos en paralelo usando los composables
-    await Promise.all([
-      booksComposable.fetchBooks(),
-      moviesComposable.fetchMovies(),
-      gamesComposable.fetchGames(),
-      albumsComposable.fetchAlbums(),
-      booksComposable.fetchAllowedStatuses(),
-      moviesComposable.fetchAllowedStatuses(),
-      gamesComposable.fetchAllowedStatuses(),
-      albumsComposable.fetchAllowedStatuses(),
-      videosStore.fetchVideos(),
-      videosStore.fetchAllowedStatuses()
-    ]);
+const composables = {
+  book: booksComposable,
+  movie: moviesComposable,
+  game: gamesComposable,
+  album: albumsComposable,
+  video: videosComposable
+};
 
-    // Verificar errores de los composables
-    if (booksComposable.error.value || moviesComposable.error.value || gamesComposable.error.value || albumsComposable.error.value) {
-      const errors = [booksComposable.error.value, moviesComposable.error.value, gamesComposable.error.value, albumsComposable.error.value].filter(Boolean);
-      fetchError.value = errors.join('; ');
-    }
-  } catch (error) {
-    Logger.error("Error fetching library:", error);
-    fetchError.value = "Error connecting to backend to fetch library.";
-  }
+/**
+ * Carga los cinco medios sin esperar unos por otros.
+ *
+ * Cada uno entra en la lista en cuanto responde —`items` es reactivo— y su
+ * fallo se anota **por separado**: antes los cuatro errores se juntaban en una
+ * sola cadena que no decía cuál había caído, se calculaban solo cuando había
+ * vuelto la última de las diez llamadas, y vídeos ni siquiera se contaba.
+ *
+ * Sigue devolviendo una promesa de «todo cargado» porque tres llamantes hacen
+ * `await fetchLibrary()` para refrescar; lo que ya no hace es retener el
+ * pintado hasta entonces.
+ */
+const fetchLibrary = () => {
+  loadErrors.value = {};
+
+  return Promise.all(storeMediaKeys.map((key) => {
+    const composable = composables[key];
+    const { Many } = getMediaConfig(key).store;
+
+    // Las dos llamadas del medio se encadenan por separado a propósito: si la
+    // lista falla, el aviso sale ya, sin esperar a que vuelvan sus estados
+    // permitidos.
+    const anotar = (error) => {
+      Logger.error(`[MyLibrary] Error cargando ${key}:`, error);
+      noteError(key, error.message || 'Error de conexión con el backend');
+    };
+    // El store se traga sus propios errores y los deja en `error`.
+    const revisar = () => {
+      if (composable.error.value) noteError(key, composable.error.value);
+    };
+
+    return Promise.all([
+      composable[`fetch${Many}`]().then(revisar).catch(anotar),
+      composable.fetchAllowedStatuses().then(revisar).catch(anotar)
+    ]);
+  }));
 };
 
 const displayedItems = computed(() => {

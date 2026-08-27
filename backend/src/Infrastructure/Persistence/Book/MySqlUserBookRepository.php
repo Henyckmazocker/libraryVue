@@ -116,12 +116,19 @@ final class MySqlUserBookRepository implements UserBookRepositoryInterface
     public function hasBook(int $userId, string $isbn): bool
     {
         try {
+            // Por el modelo Work/Edition, como ya hace `updateStatuses()` unas
+            // lineas mas abajo. Consultaba `user_books`, que NO existe en el
+            // esquema: la PDOException caia en el catch de abajo y devolvia
+            // `false`, asi que `update_book_user_statuses` respondia
+            // «Book not found in your library» con el libro delante.
             $stmt = $this->db->prepare("
-                SELECT COUNT(*) as count 
-                FROM user_books 
-                WHERE user_id = :userId AND book_isbn = :isbn
+                SELECT COUNT(*) as count
+                FROM user_book_editions ube
+                INNER JOIN book_editions be ON be.edition_id = ube.edition_id
+                WHERE ube.user_id = :userId
+                  AND (be.isbn_13 = :isbn OR be.isbn_10 = :isbn2)
             ");
-            $stmt->execute([':userId' => $userId, ':isbn' => $isbn]);
+            $stmt->execute([':userId' => $userId, ':isbn' => $isbn, ':isbn2' => $isbn]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
             return $result && (int) $result['count'] > 0;

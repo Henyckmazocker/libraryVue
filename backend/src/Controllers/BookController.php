@@ -372,7 +372,11 @@ class BookController extends BaseController implements Contracts\BookControllerI
     public function getUserActiveReadingSessions(GetUserReadingStatsQuery $query): array
     {
         try {
-            $sessions = $this->readingSessionRepository->getActiveSessions($query->userId);
+            // `getUserActiveSessions`, que es como se llama en el repositorio
+            // (MySqlReadingSessionRepository.php:367). Con el nombre de al lado
+            // la accion respondia 500, y el unitario no lo veia porque mockea
+            // la interfaz.
+            $sessions = $this->readingSessionRepository->getUserActiveSessions($query->userId);
             return $this->successResponse('Sesiones activas del usuario obtenidas', $sessions);
         } catch (\Exception $e) {
             return $this->errorResponse('Error al obtener sesiones activas: ' . $e->getMessage());

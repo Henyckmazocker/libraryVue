@@ -258,7 +258,12 @@ class ActionRouter
                 new UpdateBookRatingCommand($userId, $data['isbn'] ?? '', $data['rating'] ?? null)
             ),
             'update_book_user_statuses' => $controller->updateBookUserStatuses(
-                new UpdateBookStatusesCommand($userId, $data['isbn'] ?? '', $data['statuses'] ?? [])
+                // Por `fromArray`, como sus vecinas: el constructor es
+                // (ISBN, int, array) y aqui se le pasaba (int, string, array),
+                // asi que la accion respondia 500 a todo. No lo vio nadie
+                // durante meses porque el frontend metia los estados dentro de
+                // `edit_user_book` y esta accion no la llamaba nada.
+                UpdateBookStatusesCommand::fromArray($data, $userId)
             ),
             'edit_user_book' => $controller->editUserBook(
                 EditUserBookCommand::fromArray($data, $userId)

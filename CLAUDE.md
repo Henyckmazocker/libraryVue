@@ -70,12 +70,12 @@ docker compose up --build   # equivalente crudo: NO migra ni arranca el mirror
 
 # Tests backend (PHPUnit 11, dentro del contenedor backend)
 docker compose --profile test up -d mysql-test   # lo necesita la suite de integración
-docker compose exec backend composer test        # las DOS suites: 1245 tests
-docker compose exec backend composer test:unit   # la rápida: 1201, sin necesitar mysql-test
-docker compose exec backend composer test:integration   # 44, contra una BD desechable
+docker compose exec backend composer test        # las DOS suites: 1303 tests
+docker compose exec backend composer test:unit   # la rápida: 1230, sin necesitar mysql-test
+docker compose exec backend composer test:integration   # 73, contra una BD desechable
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
-docker compose exec frontend npm test            # 314 tests
+docker compose exec frontend npm test            # 351 tests
 docker compose exec frontend npm run test:watch
 docker compose exec frontend npx vue-cli-service lint --no-fix   # lo corre también ./dev-setup.sh
 docker compose exec frontend npm run lint:styles                 # stylelint; también en ./dev-setup.sh
@@ -103,8 +103,8 @@ cd frontend && npm run cap:sync && npm run build:mobile
   `match($action)`. **Añadir un endpoint = tocar `routes.php`, el `match`/`getController` de
   `ActionRouter`, y el método del controller.**
 - Controllers en `backend/src/Controllers`: `Book`, `Movie`, `Game`, `Album`, `Video` (cada medio),
-  `Library` / `LibraryX` (colección del usuario), `Feed` + `Social` (feed social), `Stats`, `Auth`.
-  Extienden `BaseController` (`successResponse`/`errorResponse`).
+  `Library` / `LibraryX` (colección del usuario), `Feed` + `Social` (feed social), `List` (listas de
+  medios), `Stats`, `Auth`. Extienden `BaseController` (`successResponse`/`errorResponse`).
 - Dominio: `src/Domain/**` con interfaces de repositorio (modelo Work/Edition) + ~40 use cases;
   persistencia `MySql*Repository` con PDO. Registro en `config/container.php` (interfaz → impl.).
 
@@ -387,6 +387,14 @@ se cachean en `mb_track` (ver abajo).
   existiendo como wrappers, así que **ningún import cambió**: la factoría genera hasta los alias con
   nombre de medio (`fetchVideos`, `getVideoByYouTubeId`…).
   **Antes de duplicar algo para un medio nuevo, mira si su familia ya tiene genérico.**
+  El matiz que costó una tarde el 2026-08-28: el genérico sirve si tu ítem tiene **la forma del
+  medio**. `MediaListItem` no lee el ítem, lo lee a través de los accessors del registry —`idOf:
+  i.isbn` en libros, `i.imdbID` en películas, `subtitleOf` con `i.author`—, así que una fila de
+  `media_list_item` (que solo tiene `entity_type`/`_id`/`_title`/`_cover`) pinta pero **miente**:
+  todas las tarjetas de libro dirían «Autor desconocido». Por eso `components/Lists/ListItemCard.vue`
+  es propia y del registry solo saca lo declarativo de verdad — `list.iconOf`, `list.coverAspect`,
+  `label` y el acento—. Y comprueba el medio contra `mediaKeys` antes de llamar a `getMediaConfig`,
+  que **lanza** con uno desconocido.
 - **En el composable, lo propio de un medio va en su wrapper y SUSTITUYE al núcleo.**
   `createMediaComposable(media, extras)` mezcla `extras` **después**, así que un miembro con el mismo
   nombre gana: es lo que hace `useBooks` con `updateBookStatuses` (la máquina de transiciones) frente
@@ -507,6 +515,22 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
   **recrea entera**, porque sus migraciones están aplicadas sin registrar y no todas son
   idempotentes.
 - **Vitest también dentro del contenedor**, y una devDependency nueva pide rebuild de la imagen.
+- **La visibilidad de una lista se pregunta a `Domain/Services/ListAccess.php`, y a nada más.** Es la
+  única copia de la regla —once use cases la consultan— y su tabla de verdad de 24 casos vive en su
+  docblock, fijada por 29 tests. Tres lecturas que se hacen mal: la **amistad no entra** (amigo y
+  desconocido tienen permisos idénticos, y hay un test que lo afirma); `collaborative` **no es
+  pública** y la tabla de colaboradores se consulta en las tres visibilidades; y **«editar» es el
+  CONTENIDO** —`canEdit` gobierna añadir y quitar ítems, mientras que renombrar, cambiar visibilidad,
+  borrar e invitar son del dueño (`MediaList::isOwnedBy`)—. `get_my_lists` y `get_user_lists` **no**
+  pasan por ahí a propósito: su filtro es el `WHERE` de la consulta, y hacerlo en PHP significaría
+  traerse las listas privadas de otro.
+- **`Recommendation` tiene DOS constantes de tipo y confundirlas abre un agujero.**
+  `MEDIA_ENTITY_TYPES` son los cinco medios y es contra lo que valida `send_recommendation`;
+  `VALID_ENTITY_TYPES` añade `'list'` y es lo que la **columna** acepta, porque la invitación a
+  colaborar viaja por el mismo buzón. Si `send_recommendation` validara contra la segunda, se podría
+  «recomendar» una lista como si fuera un ítem y la bandeja intentaría darla de alta con el `enrich`
+  de un medio inexistente. Van juntas por `get_inbox_count`, que es la acción más llamada de la app y
+  tiene que seguir siendo un `COUNT(*)` que sale entero de `idx_inbox`.
 - **Un medio nuevo se declara en `mediaRegistry`**, no se copia el componente del medio de al lado.
 - **Ni un hex ni un `px` de breakpoint fuera de su sitio**: el color va a `tokens/_colors.scss` /
   `themes/_dark.scss` y los umbrales a `abstracts/_breakpoints.scss`. `stylelint` lo comprueba.
@@ -517,9 +541,9 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 
 1. `docker compose up --build`; `POST http://localhost:8888/index.php` con `{"action":"ping"}`.
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
-3. `docker compose exec backend composer test` → verde (1245 tests: 1201 unitarios + 44 de
+3. `docker compose exec backend composer test` → verde (1303 tests: 1230 unitarios + 73 de
    integración; estos necesitan `docker compose --profile test up -d mysql-test`).
-4. `docker compose exec frontend npm test` → verde (314 tests) y
+4. `docker compose exec frontend npm test` → verde (351 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
 5. **`docker compose exec frontend npm run build` → `Build complete`.** No es redundante con el paso
    anterior: **ninguno de los tres comandos de arriba compila SCSS**. Los helpers de

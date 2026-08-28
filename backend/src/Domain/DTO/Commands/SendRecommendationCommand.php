@@ -31,8 +31,10 @@ final readonly class SendRecommendationCommand
         }
 
         $entityType = trim((string) ($data['entityType'] ?? $data['entity_type'] ?? ''));
-        if (!in_array($entityType, Recommendation::VALID_ENTITY_TYPES, true)) {
-            throw new InvalidArgumentException('entityType must be one of: ' . implode(', ', Recommendation::VALID_ENTITY_TYPES));
+        // Contra los CINCO MEDIOS, no contra lo que la columna acepta: `list`
+        // es un tipo del buzón, no algo que se pueda recomendar.
+        if (!in_array($entityType, Recommendation::MEDIA_ENTITY_TYPES, true)) {
+            throw new InvalidArgumentException('entityType must be one of: ' . implode(', ', Recommendation::MEDIA_ENTITY_TYPES));
         }
 
         $entityId = trim((string) ($data['entityId'] ?? $data['entity_id'] ?? ''));

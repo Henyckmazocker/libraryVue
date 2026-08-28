@@ -129,6 +129,22 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/lists',
+    name: 'Lists',
+    component: () => import('../views/ListsView.vue'),
+    // Sin `requiresAuth` la vista es accesible sin sesión y `get_my_lists`
+    // devuelve un 401 que no espera: las once acciones de listas llevan `Auth`,
+    // incluidas las de lectura.
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/lists/:listId',
+    name: 'ListDetail',
+    component: () => import('../views/ListDetailView.vue'),
+    props: true,
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/inbox',
     name: 'Inbox',
     component: () => import('../views/InboxView.vue'),

@@ -88,7 +88,13 @@ export const useInboxStore = defineStore('inbox', {
 
         if (response.data.status === 'success') {
           const data = response.data.data ?? {}
-          this.items = (data.recommendations ?? []).map((r) => ({ ...r, kind: 'recommendation' }))
+          // El `kind` sale del `entity_type`: la invitación a colaborar viaja
+          // por el MISMO buzón, con `entity_type = 'list'`. Añadir un tipo es
+          // una línea aquí y un componente en `InboxView`.
+          this.items = (data.recommendations ?? []).map((r) => ({
+            ...r,
+            kind: r.entity_type === 'list' ? 'list_invitation' : 'recommendation'
+          }))
           this.total = data.total ?? this.items.length
           // El contador sale de la misma respuesta cuando se piden las
           // pendientes: una petición menos y no puede quedar desfasado.
@@ -212,6 +218,47 @@ export const useInboxStore = defineStore('inbox', {
       }
     },
 
+    /**
+     * Acepta una invitación a colaborar: da de alta al colaborador y resuelve
+     * la fila, las dos cosas en el backend.
+     *
+     * No pasa por `_resolve` aunque acabe igual —la fila sale del buzón—:
+     * `resolve_recommendation` solo marca el estado, y aquí hace falta además
+     * el alta en `media_list_collaborator`.
+     */
+    async acceptCollaboration (invitation) {
+      const authStore = useAuthStore()
+      this.resolvingId = invitation.id
+      this.error = null
+
+      try {
+        const response = await authStore.authenticatedApiCall('accept_collaboration', {
+          recommendationId: invitation.id
+        })
+
+        if (response.data.status !== 'success') {
+          throw new Error(response.data.message || 'No se pudo aceptar la invitación')
+        }
+
+        this._forget(invitation.id)
+
+        return { success: true, listId: response.data.data?.listId }
+      } catch (err) {
+        Logger.error('[InboxStore] acceptCollaboration error:', err)
+        this.error = err.response?.data?.message || err.message || 'No se pudo aceptar la invitación'
+        return { success: false, message: this.error }
+      } finally {
+        this.resolvingId = null
+      }
+    },
+
+    /** Saca una fila del buzón y ajusta los dos contadores. */
+    _forget (id) {
+      this.items = this.items.filter((item) => item.id !== id)
+      this.total = Math.max(0, this.total - 1)
+      this.pendingCount = Math.max(0, this.pendingCount - 1)
+    },
+
     /** El paso común de los dos botones: marcar resuelta y sacarla de la lista. */
     async _resolve (recommendation, resolution) {
       const authStore = useAuthStore()
@@ -229,9 +276,7 @@ export const useInboxStore = defineStore('inbox', {
           throw new Error(response.data.message || 'No se pudo resolver la recomendación')
         }
 
-        this.items = this.items.filter((item) => item.id !== recommendation.id)
-        this.total = Math.max(0, this.total - 1)
-        this.pendingCount = Math.max(0, this.pendingCount - 1)
+        this._forget(recommendation.id)
 
         return { success: true }
       } catch (err) {

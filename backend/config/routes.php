@@ -1600,5 +1600,131 @@ return [
         ],
         'validation' => ['recommendationId', 'resolution']
     ],
-];
+    // ============================================================================
+    // MEDIA LISTS - Colecciones con nombre que mezclan medios
+    // ============================================================================
+    //
+    // `get_list` y `get_my_lists` llevan `Auth` como las demás: no hay acceso
+    // anónimo a nada, ni siquiera a una lista pública. Quien decide qué se ve es
+    // `Domain/Services/ListAccess.php`, y necesita saber quién mira.
 
+    'create_list' => [
+        'controller' => ['ListController', 'createList'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['name']]]
+        ],
+        'validation' => ['name']
+    ],
+
+    'update_list' => [
+        'controller' => ['ListController', 'updateList'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['listId']]]
+        ],
+        'validation' => ['listId']
+    ],
+
+    'delete_list' => [
+        'controller' => ['ListController', 'deleteList'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['listId']]]
+        ],
+        'validation' => ['listId']
+    ],
+
+    'get_my_lists' => [
+        'controller' => ['ListController', 'getMyLists'],
+        'middleware' => [LoggingMiddleware::class, AuthenticationMiddleware::class],
+        'validation' => []
+    ],
+
+    'get_list' => [
+        'controller' => ['ListController', 'getList'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['listId']]]
+        ],
+        'validation' => ['listId']
+    ],
+
+    // Las públicas de otro, para `/user/:username`. Lleva `Auth` como las demás:
+    // una lista pública lo es para usuarios REGISTRADOS, no para el mundo.
+    'get_user_lists' => [
+        'controller' => ['ListController', 'getUserLists'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['username']]]
+        ],
+        'validation' => ['username']
+    ],
+
+    'add_list_item' => [
+        'controller' => ['ListController', 'addListItem'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['listId', 'entityType', 'entityId']]]
+        ],
+        'validation' => ['listId', 'entityType', 'entityId']
+    ],
+
+    // ---- Colaboración ----
+    // `userId` es a QUIÉN se invita, no quién invita: eso sale de la sesión.
+    'invite_collaborator' => [
+        'controller' => ['ListController', 'inviteCollaborator'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['listId', 'userId']]]
+        ],
+        'validation' => ['listId', 'userId']
+    ],
+
+    // Por `recommendationId` y no por `listId`: es lo que garantiza que solo se
+    // acepta algo que de verdad te mandaron.
+    'accept_collaboration' => [
+        'controller' => ['ListController', 'acceptCollaboration'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['recommendationId']]]
+        ],
+        'validation' => ['recommendationId']
+    ],
+
+    'remove_collaborator' => [
+        'controller' => ['ListController', 'removeCollaborator'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['listId', 'userId']]]
+        ],
+        'validation' => ['listId', 'userId']
+    ],
+
+    'remove_list_item' => [
+        'controller' => ['ListController', 'removeListItem'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['listId', 'itemId']]]
+        ],
+        'validation' => ['listId', 'itemId']
+    ],
+];

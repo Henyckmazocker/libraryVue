@@ -91,23 +91,60 @@
           <span class="public-profile-view__stat-label">Álbumes</span>
         </div>
       </div>
+
+      <!-- Listas públicas. Solo aparece la sección si hay alguna: un perfil sin
+           listas no gana nada con un hueco que diga que no tiene. Lo que llega
+           aquí ya viene filtrado por el `WHERE` del backend, no por el cliente. -->
+      <section
+        v-if="hasUserLists"
+        class="public-profile-view__lists"
+      >
+        <h2 class="public-profile-view__lists-title">
+          <i class="pi pi-list" />
+          Listas públicas
+        </h2>
+
+        <div class="public-profile-view__lists-grid">
+          <RouterLink
+            v-for="list in userLists"
+            :key="list.id"
+            class="public-profile-view__list-card"
+            :to="{ name: 'ListDetail', params: { listId: String(list.id) } }"
+          >
+            <!-- Con `{{ }}`, nunca `v-html`: lo escribe otra persona. -->
+            <span class="public-profile-view__list-name">{{ list.name }}</span>
+            <span
+              v-if="list.description"
+              class="public-profile-view__list-description"
+            >{{ list.description }}</span>
+            <span class="public-profile-view__list-count">
+              {{ list.item_count }} {{ list.item_count === 1 ? 'ítem' : 'ítems' }}
+            </span>
+          </RouterLink>
+        </div>
+      </section>
     </template>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, RouterLink } from 'vue-router'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import { useToast } from 'primevue/usetoast'
 import { useAuthStore } from '@/store/auth'
 import { useSocialStore } from '@/store/social'
+import { storeToRefs } from 'pinia'
+import { useListsStore } from '@/store/lists'
 
 const route = useRoute()
 const toast = useToast()
 const authStore = useAuthStore()
 const socialStore = useSocialStore()
+const listsStore = useListsStore()
+const { userLists } = storeToRefs(listsStore)
+const hasUserLists = computed(() => listsStore.hasUserLists)
 
 const profile = ref(null)
 const loading = ref(true)
@@ -133,6 +170,10 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+
+  // Fuera del try del perfil y sin `await` que lo bloquee: si las listas
+  // fallan, el perfil ya se ha pintado y lo único que falta es la sección.
+  listsStore.fetchUserLists(route.params.username)
 })
 
 const handleSendRequest = async () => {
@@ -240,6 +281,57 @@ const handleSendRequest = async () => {
       font-size: 0.75rem;
       color: var(--color-text-secondary);
     }
+  }
+
+  &__lists {
+    margin-top: spacing(xl);
+  }
+
+  &__lists-title {
+    display: flex;
+    align-items: center;
+    gap: spacing(sm);
+    margin-bottom: spacing(md);
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--color-text);
+
+    i { color: var(--color-primary); }
+  }
+
+  &__lists-grid {
+    display: flex;
+    flex-direction: column;
+    gap: spacing(sm);
+  }
+
+  &__list-card {
+    display: flex;
+    flex-direction: column;
+    gap: spacing(3xs);
+    padding: spacing(md);
+    border-radius: radius(md);
+    background: var(--color-background-mute);
+    // Hairline suave de tarjeta decorativa, no el borde de inputs y botones.
+    border: 1px solid var(--color-border-light);
+    text-decoration: none;
+
+    &:hover { border-color: var(--color-primary); }
+  }
+
+  &__list-name {
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  &__list-description {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+  }
+
+  &__list-count {
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
   }
 }
 </style>

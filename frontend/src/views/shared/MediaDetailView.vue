@@ -22,6 +22,20 @@
         />
         <span>Recomendar</span>
       </button>
+
+      <!-- Añadir a una lista. Solo con sesión: las once acciones de listas
+           llevan `Auth`, y sin sesión no habría lista que ofrecer. -->
+      <button
+        v-if="isAuthenticated && item"
+        class="recommend-button"
+        @click="showAddToListDialog = true"
+      >
+        <i
+          class="fas fa-list-ul"
+          aria-hidden="true"
+        />
+        <span>Añadir a lista</span>
+      </button>
     </div>
 
     <MediaSkeleton
@@ -172,6 +186,23 @@
         :entity-cover="remoteCoverUrl"
       />
 
+      <!-- Mismo criterio y mismas claves que el de recomendar: el medio que
+           viaja es `coverMedia` y la clave es `routeId`, la misma con la que la
+           tarjeta de la lista pedirá su portada.
+
+           Con `v-if` y no solo con `v-model`: el diálogo usa un store de Pinia
+           en su `setup` y pide `get_my_lists` al montar, así que sin esto toda
+           ficha visitada haría esa llamada para un diálogo que casi nunca se
+           abre. -->
+      <AddToListDialog
+        v-if="showAddToListDialog"
+        v-model="showAddToListDialog"
+        :entity-type="coverMedia"
+        :entity-id="routeId"
+        :entity-title="title"
+        :entity-cover="remoteCoverUrl"
+      />
+
       <!-- Atribución del proveedor. La exigen las condiciones de uso de TMDB
            en cualquier pantalla que muestre datos suyos, así que no se quita. -->
       <footer
@@ -231,6 +262,7 @@ import MediaNotes from '@/components/shared/MediaNotes.vue'
 import MediaSkeleton from '@/components/shared/MediaSkeleton.vue'
 import EditItemModal from '@/components/EditItemModal.vue'
 import RecommendDialog from '@/components/Social/RecommendDialog.vue'
+import AddToListDialog from '@/components/Lists/AddToListDialog.vue'
 import { getMediaConfig, mediaKeys } from '@/config/mediaRegistry'
 import CoverService from '@/services/CoverService'
 import { useAuthStore } from '@/store/auth'
@@ -290,6 +322,7 @@ const context = ref({})
 const libraryItemRef = ref(null)
 const editModal = ref({ isVisible: false, item: null })
 const showRecommendDialog = ref(false)
+const showAddToListDialog = ref(false)
 // Una portada que no carga pinta el placeholder del medio en vez de dejar el
 // icono de imagen rota del navegador.
 const imageError = ref(false)

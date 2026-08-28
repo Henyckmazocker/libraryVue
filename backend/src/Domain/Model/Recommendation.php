@@ -23,7 +23,23 @@ class Recommendation
 
     private const VALID_STATUSES = [self::STATUS_PENDING, self::STATUS_ADDED, self::STATUS_DISMISSED];
 
-    public const VALID_ENTITY_TYPES = ['book', 'movie', 'game', 'album', 'video'];
+    /**
+     * Los cinco medios. Es lo que `send_recommendation` acepta.
+     */
+    public const MEDIA_ENTITY_TYPES = ['book', 'movie', 'game', 'album', 'video'];
+
+    /** Una invitación a colaborar en una lista, que entra por el mismo buzón. */
+    public const ENTITY_LIST = 'list';
+
+    /**
+     * Lo que la COLUMNA acepta, que es más que lo que se puede recomendar.
+     *
+     * La separación no es cosmética: si `send_recommendation` validara contra
+     * esta constante, se podría «recomendar» una lista como si fuera un ítem y
+     * la bandeja intentaría darla de alta en la biblioteca con el `enrich` de un
+     * medio que no existe.
+     */
+    public const VALID_ENTITY_TYPES = [...self::MEDIA_ENTITY_TYPES, self::ENTITY_LIST];
 
     public function __construct(
         private ?int    $id,
@@ -65,6 +81,9 @@ class Recommendation
     public function getResolvedAt(): ?string  { return $this->resolvedAt; }
 
     public function isPending(): bool { return $this->status === self::STATUS_PENDING; }
+
+    /** Una invitación a colaborar no es una recomendación de un ítem. */
+    public function isListInvitation(): bool { return $this->entityType === self::ENTITY_LIST; }
 
     /**
      * Marca la recomendación como atendida. Solo desde `pending`: resolver dos

@@ -35,9 +35,10 @@
         :is="cardFor(item.kind)"
         v-for="item in items"
         :key="item.id"
-        :recommendation="item"
+        v-bind="propsFor(item)"
         :busy="resolvingId === item.id"
         @add="handleAdd"
+        @accept="handleAccept"
         @dismiss="handleDismiss"
       />
     </div>
@@ -57,6 +58,8 @@ import { computed, inject, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useInboxStore } from '@/store/inbox'
 import RecommendationCard from '@/components/Inbox/RecommendationCard.vue'
+import ListInvitationCard from '@/components/Inbox/ListInvitationCard.vue'
+import { useRouter } from 'vue-router'
 
 const inbox = useInboxStore()
 const { items, isLoading, resolvingId, error } = storeToRefs(inbox)
@@ -66,10 +69,19 @@ const notifications = inject('notifications', null)
 
 // El mapa de tipos: añadir uno es añadir una línea y un componente.
 const CARDS = {
-  recommendation: RecommendationCard
+  recommendation: RecommendationCard,
+  list_invitation: ListInvitationCard
 }
 
 const cardFor = (kind) => CARDS[kind] ?? RecommendationCard
+
+// Cada tarjeta nombra su prop principal por lo que la cosa ES, no por la fila
+// que la transporta: una invitación no es una recomendación aunque comparta
+// tabla. Un `v-bind` dinámico evita pasarle las dos a todas.
+const propsFor = (item) =>
+  item.kind === 'list_invitation' ? { invitation: item } : { recommendation: item }
+
+const router = useRouter()
 
 onMounted(() => inbox.fetchInbox())
 
@@ -80,6 +92,21 @@ const handleAdd = async (recommendation) => {
     notifications?.showSuccess?.('Añadido a tu biblioteca')
   } else {
     notifications?.showError?.(result.message || 'No se pudo añadir')
+  }
+}
+
+const handleAccept = async (invitation) => {
+  const result = await inbox.acceptCollaboration(invitation)
+
+  if (!result.success) {
+    notifications?.showError?.(result.message || 'No se pudo aceptar la invitación')
+    return
+  }
+
+  notifications?.showSuccess?.('Ya colaboras en la lista')
+  // Se entra directo: lo siguiente que quiere quien acepta es verla.
+  if (result.listId) {
+    router.push({ name: 'ListDetail', params: { listId: String(result.listId) } })
   }
 }
 

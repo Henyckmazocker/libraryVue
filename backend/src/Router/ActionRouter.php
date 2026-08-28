@@ -13,11 +13,23 @@ use App\Controllers\MovieController;
 use App\Controllers\GameController;
 use App\Controllers\LibraryController;
 use App\Controllers\LibraryXController;
+use App\Controllers\ListController;
 use App\Controllers\StatsController;
 use App\Controllers\VideoController;
 use App\Infrastructure\Middleware\MiddlewarePipeline;
 use App\Infrastructure\RateLimit\RateLimitMiddleware;
 use App\Domain\DTO\Commands\AddBookCommand;
+use App\Domain\DTO\Commands\CreateListCommand;
+use App\Domain\DTO\Commands\UpdateListCommand;
+use App\Domain\DTO\Commands\DeleteListCommand;
+use App\Domain\DTO\Commands\AddListItemCommand;
+use App\Domain\DTO\Commands\InviteCollaboratorCommand;
+use App\Domain\DTO\Commands\AcceptCollaborationCommand;
+use App\Domain\DTO\Commands\RemoveCollaboratorCommand;
+use App\Domain\DTO\Commands\RemoveListItemCommand;
+use App\Domain\DTO\Queries\GetMyListsQuery;
+use App\Domain\DTO\Queries\GetListQuery;
+use App\Domain\DTO\Queries\GetUserListsQuery;
 use App\Domain\DTO\Commands\DeleteBookCommand;
 use App\Domain\DTO\Commands\UpdateBookRatingCommand;
 use App\Domain\DTO\Commands\UpdateBookStatusesCommand;
@@ -111,6 +123,7 @@ class ActionRouter
     private ?VideoController $videoController = null;
     private ?SocialController $socialController = null;
     private ?FeedController $feedController = null;
+    private ?ListController $listController = null;
 
     public function __construct(
         array $routes,
@@ -634,6 +647,41 @@ class ActionRouter
                 UpdatePrivacySettingsCommand::fromArray($data, $userId)
             ),
 
+            // MEDIA LISTS
+            'create_list' => $controller->createList(
+                CreateListCommand::fromArray($data, $userId)
+            ),
+            'update_list' => $controller->updateList(
+                UpdateListCommand::fromArray($data, $userId)
+            ),
+            'delete_list' => $controller->deleteList(
+                DeleteListCommand::fromArray($data, $userId)
+            ),
+            'get_my_lists' => $controller->getMyLists(
+                new GetMyListsQuery($userId)
+            ),
+            'get_list' => $controller->getList(
+                GetListQuery::fromArray($data, $userId)
+            ),
+            'get_user_lists' => $controller->getUserLists(
+                GetUserListsQuery::fromArray($data, $userId)
+            ),
+            'add_list_item' => $controller->addListItem(
+                AddListItemCommand::fromArray($data, $userId)
+            ),
+            'invite_collaborator' => $controller->inviteCollaborator(
+                InviteCollaboratorCommand::fromArray($data, $userId)
+            ),
+            'accept_collaboration' => $controller->acceptCollaboration(
+                AcceptCollaborationCommand::fromArray($data, $userId)
+            ),
+            'remove_collaborator' => $controller->removeCollaborator(
+                RemoveCollaboratorCommand::fromArray($data, $userId)
+            ),
+            'remove_list_item' => $controller->removeListItem(
+                RemoveListItemCommand::fromArray($data, $userId)
+            ),
+
             // SOCIAL - Recommendations
             'send_recommendation' => $controller->sendRecommendation(
                 SendRecommendationCommand::fromArray($data, $userId)
@@ -673,6 +721,7 @@ class ActionRouter
             'VideoController' => $this->videoController ??= $this->container->get(VideoController::class),
             'SocialController' => $this->socialController ??= $this->container->get(SocialController::class),
             'FeedController' => $this->feedController ??= $this->container->get(FeedController::class),
+            'ListController' => $this->listController ??= $this->container->get(ListController::class),
             default => throw new \RuntimeException("Unknown controller: {$controllerName}")
         };
     }

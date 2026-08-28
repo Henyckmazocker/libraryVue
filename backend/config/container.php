@@ -114,6 +114,14 @@ return function (): ContainerInterface {
         \App\Infrastructure\Persistence\Social\MySqlFeedEventRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Social\MySqlPrivacySettingsRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Social\MySqlRecommendationRepository::class => DI\autowire(),
+
+        // MEDIA LISTS
+        \App\Domain\Repository\MediaList\MediaListRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\MediaList\MySqlMediaListRepository::class),
+        \App\Domain\Repository\MediaList\MediaListItemRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\MediaList\MySqlMediaListItemRepository::class),
+        \App\Domain\Repository\MediaList\MediaListCollaboratorRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\MediaList\MySqlMediaListCollaboratorRepository::class),
+        \App\Infrastructure\Persistence\MediaList\MySqlMediaListRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\MediaList\MySqlMediaListItemRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\MediaList\MySqlMediaListCollaboratorRepository::class => DI\autowire(),
         
         // Note: Most repositories use 'db' as the constructor parameter name for PDO
         \App\Infrastructure\Persistence\Game\MySqlGameRepository::class => DI\autowire(),
@@ -393,6 +401,23 @@ return function (): ContainerInterface {
         \App\Domain\UseCases\Social\GetInboxCountUseCase::class => DI\autowire(),
         \App\Domain\UseCases\Social\ResolveRecommendationUseCase::class => DI\autowire(),
         \App\Domain\Services\FeedEventService::class => DI\autowire(),
+
+        // MEDIA LISTS
+        // `ListAccess` es la ÚNICA copia de la regla de visibilidad. Se autowirea
+        // porque su única dependencia es la interfaz de colaboradores, ya atada
+        // arriba a su implementación.
+        \App\Domain\Services\ListAccess::class => DI\autowire(),
+        \App\Domain\UseCases\Lists\CreateListUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Lists\UpdateListUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Lists\DeleteListUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Lists\GetMyListsUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Lists\GetListUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Lists\GetUserListsUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Lists\AddListItemUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Lists\RemoveListItemUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Lists\InviteCollaboratorUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Lists\AcceptCollaborationUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Lists\RemoveCollaboratorUseCase::class => DI\autowire(),
         
         // ===========================
         // MIDDLEWARE
@@ -419,6 +444,7 @@ return function (): ContainerInterface {
         \App\Controllers\StatsController::class => DI\autowire(),
         \App\Controllers\SocialController::class => DI\autowire(),
         \App\Controllers\FeedController::class => DI\autowire(),
+        \App\Controllers\ListController::class => DI\autowire(),
         
         // ===========================
         // ROUTER

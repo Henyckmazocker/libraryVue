@@ -53,4 +53,6 @@ interface VideoControllerInterface
     public function deleteVideoNote(int $noteId, int $userId): array;
 
     public function searchVideos(array $params): array;
+
+    public function getVideoDetails(array $params): array;
 }

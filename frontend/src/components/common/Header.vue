@@ -51,6 +51,27 @@
       </template>
       
       <template v-if="isLoggedIn">
+        <!-- La bandeja. El icono se pinta SIEMPRE y solo el contador aparece y
+             desaparece: si se ocultara el icono entero, la cabecera daría un
+             salto cada vez que llega o se resuelve una recomendación. -->
+        <router-link
+          to="/inbox"
+          class="app-header__inbox"
+        >
+          <i
+            class="fas fa-inbox"
+            aria-hidden="true"
+          />
+          <span
+            v-if="pendingCount > 0"
+            class="app-header__inbox-badge"
+            aria-hidden="true"
+          >{{ pendingCount > 99 ? '99+' : pendingCount }}</span>
+          <!-- El texto va en .u-sr-only y no en un aria-label: es la convención
+               del proyecto para lo que solo existe como icono. -->
+          <span class="u-sr-only">{{ inboxLabel }}</span>
+        </router-link>
+
         <div class="app-header__user-menu">
           <img
             :src="user?.picture"
@@ -92,9 +113,10 @@ export default {
 </script>
 
 <script setup>
-import { watch, onMounted, defineEmits } from 'vue';
+import { computed, watch, onMounted, defineEmits } from 'vue';
 import { useAuth, useGoogleAuth } from '@/composables';
 import { useUIStore } from '@/store/ui';
+import { useInboxStore } from '@/store/inbox';
 import { storeToRefs } from 'pinia';
 import Logger from '@/utils/logger';
 
@@ -123,6 +145,21 @@ const {
   clearGoogleError
 } = useGoogleAuth();
 
+// La bandeja: el contador se pide al montar, y en cada navegación lo refresca la
+// suscripción que `main.js` engancha sobre el store.
+const inboxStore = useInboxStore();
+const { pendingCount } = storeToRefs(inboxStore);
+
+const inboxLabel = computed(() => {
+  if (pendingCount.value === 0) return 'Recomendaciones';
+
+  // Concuerda en singular: esto lo lee un lector de pantalla, y «1 pendientes»
+  // es justo el tipo de detalle que solo se oye.
+  return pendingCount.value === 1
+    ? 'Recomendaciones: 1 pendiente'
+    : `Recomendaciones: ${pendingCount.value} pendientes`;
+});
+
 // UI Store para tema
 const uiStore = useUIStore();
 const { isDark } = storeToRefs(uiStore);
@@ -144,6 +181,11 @@ onMounted(async () => {
   } catch (error) {
     Logger.error('[Header] Failed to initialize:', error);
   }
+
+  // DESPUÉS de `initializeAuth`, no antes: `refreshCount` se rinde sin sesión, y
+  // pedirlo mientras la auth se resuelve dejaría el contador a cero hasta la
+  // primera navegación.
+  inboxStore.refreshCount();
 });
 
 // Watch para renderizar el botón y mostrar One Tap cuando Google esté listo
@@ -278,6 +320,47 @@ const handleLogout = async () => {
 
 .app-header__theme-toggle i {
   transition: var(--transition-fast);
+}
+
+/* La bandeja. Mismo tamaño y forma que el botón de tema, para que los dos
+   controles de la cabecera se lean como una pareja. */
+.app-header__inbox {
+  position: relative;
+  background: var(--color-background-card);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-dark);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-fast);
+  font-size: 18px;
+  box-shadow: var(--shadow-light);
+  text-decoration: none;
+}
+
+.app-header__inbox:hover {
+  background: var(--color-secondary);
+  border-color: var(--color-secondary);
+  box-shadow: var(--shadow-medium);
+}
+
+.app-header__inbox-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--color-error);
+  color: var(--color-on-status);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
 }
 
 .app-header__loading {

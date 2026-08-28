@@ -130,6 +130,35 @@ class VideoController extends BaseController implements Contracts\VideoControlle
         }
     }
 
+    /**
+     * Ficha completa de un vídeo a partir de su id de YouTube.
+     *
+     * Es el equivalente de get_movie_details_omdb, get_igdb_game_details y
+     * get_spotify_album en los otros medios: sin ella, la ficha de un vídeo que
+     * no está en tu biblioteca no se puede pintar, porque la búsqueda solo
+     * consulta por texto.
+     */
+    public function getVideoDetails(array $params): array
+    {
+        try {
+            $youtubeId = trim($params['youtubeId'] ?? $params['youtube_id'] ?? $params['videoId'] ?? '');
+
+            if (empty($youtubeId)) {
+                return $this->errorResponse('youtubeId is required', 400);
+            }
+
+            $video = $this->youTubeService->getVideoDetails($youtubeId);
+
+            if ($video === null) {
+                return $this->errorResponse('Video not found', 404);
+            }
+
+            return $this->successResponse('Video details retrieved', ['video' => $video]);
+        } catch (\Exception $e) {
+            return $this->externalServiceError('YouTube');
+        }
+    }
+
     // =========================================================================
     // Tags
     // =========================================================================

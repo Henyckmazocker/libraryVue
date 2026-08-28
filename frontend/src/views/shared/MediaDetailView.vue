@@ -1,12 +1,28 @@
 <template>
   <div :class="`${media}-detail-view`">
-    <button
-      class="back-button"
-      @click="goBack"
-    >
-      <i class="fas fa-arrow-left" />
-      <span>{{ d.backText }}</span>
-    </button>
+    <div class="detail-actions">
+      <button
+        class="back-button"
+        @click="goBack"
+      >
+        <i class="fas fa-arrow-left" />
+        <span>{{ d.backText }}</span>
+      </button>
+
+      <!-- Recomendar. Solo con sesión: `send_recommendation` exige amistad, y sin
+           sesión el diálogo no tendría ni a quién ofrecer. -->
+      <button
+        v-if="isAuthenticated && item"
+        class="recommend-button"
+        @click="showRecommendDialog = true"
+      >
+        <i
+          class="fas fa-share"
+          aria-hidden="true"
+        />
+        <span>Recomendar</span>
+      </button>
+    </div>
 
     <MediaSkeleton
       v-if="isLoading"
@@ -140,6 +156,22 @@
         />
       </div>
 
+      <!-- El medio que viaja es `coverMedia`, no `media`: una serie se guarda con
+           `AddMovieUseCase`, así que se recomienda como `movie`. Y la clave es
+           `routeId`, la misma con la que la bandeja pedirá su portada.
+
+           Con `v-if` y no solo con `v-model`: el diálogo usa dos stores de Pinia
+           en su `setup`, y sin esto toda ficha visitada los instanciaría para un
+           diálogo que casi nunca se abre. -->
+      <RecommendDialog
+        v-if="showRecommendDialog"
+        v-model="showRecommendDialog"
+        :entity-type="coverMedia"
+        :entity-id="routeId"
+        :entity-title="title"
+        :entity-cover="remoteCoverUrl"
+      />
+
       <!-- Atribución del proveedor. La exigen las condiciones de uso de TMDB
            en cualquier pantalla que muestre datos suyos, así que no se quita. -->
       <footer
@@ -198,6 +230,7 @@ import LibraryMediaItem from '@/components/shared/LibraryMediaItem.vue'
 import MediaNotes from '@/components/shared/MediaNotes.vue'
 import MediaSkeleton from '@/components/shared/MediaSkeleton.vue'
 import EditItemModal from '@/components/EditItemModal.vue'
+import RecommendDialog from '@/components/Social/RecommendDialog.vue'
 import { getMediaConfig, mediaKeys } from '@/config/mediaRegistry'
 import CoverService from '@/services/CoverService'
 import { useAuthStore } from '@/store/auth'
@@ -256,6 +289,7 @@ const allowedStatuses = ref([])
 const context = ref({})
 const libraryItemRef = ref(null)
 const editModal = ref({ isVisible: false, item: null })
+const showRecommendDialog = ref(false)
 // Una portada que no carga pinta el placeholder del medio en vez de dejar el
 // icono de imagen rota del navegador.
 const imageError = ref(false)
@@ -528,6 +562,44 @@ defineExpose({ item, context, existing, reload: loadData, setItem })
 .game-detail-view   { @include detail-view-page('game'); }
 .album-detail-view  { @include detail-view-page('album'); }
 .video-detail-view  { @include detail-view-page('video'); }
+
+// ── La fila de acciones de la cabecera ────────────────────────────────────
+// `.back-button` lo estiliza el mixin compartido y arrastra su propio
+// `margin-bottom`, así que el botón de recomendar lleva el mismo para que los
+// dos alineen por arriba sin tocar el mixin, que usan las seis fichas.
+.detail-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: spacing(sm);
+}
+
+.recommend-button {
+  @include button-reset;
+
+  display: inline-flex;
+  align-items: center;
+  gap: spacing(xs);
+  padding: spacing(xs) spacing(md);
+  margin-bottom: spacing(lg);
+  background-color: var(--color-background-mute);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: radius(md);
+  font-size: 0.95rem;
+  transition: all transition(fast);
+
+  &:hover {
+    background-color: var(--color-background-soft);
+    border-color: var(--color-border-hover);
+  }
+
+  i { font-size: 1rem; }
+
+  @include responsive-below(md) {
+    font-size: 0.9rem;
+    padding: spacing(2xs) spacing(sm);
+  }
+}
 
 // Las secciones que pinta este componente, no el wrapper.
 .library-section,

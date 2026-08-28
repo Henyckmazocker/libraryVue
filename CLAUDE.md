@@ -70,12 +70,12 @@ docker compose up --build   # equivalente crudo: NO migra ni arranca el mirror
 
 # Tests backend (PHPUnit 11, dentro del contenedor backend)
 docker compose --profile test up -d mysql-test   # lo necesita la suite de integración
-docker compose exec backend composer test        # las DOS suites: 1229 tests
-docker compose exec backend composer test:unit   # la rápida: 1193, sin necesitar mysql-test
-docker compose exec backend composer test:integration   # 36, contra una BD desechable
+docker compose exec backend composer test        # las DOS suites: 1245 tests
+docker compose exec backend composer test:unit   # la rápida: 1201, sin necesitar mysql-test
+docker compose exec backend composer test:integration   # 44, contra una BD desechable
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
-docker compose exec frontend npm test            # 296 tests
+docker compose exec frontend npm test            # 314 tests
 docker compose exec frontend npm run test:watch
 docker compose exec frontend npx vue-cli-service lint --no-fix   # lo corre también ./dev-setup.sh
 docker compose exec frontend npm run lint:styles                 # stylelint; también en ./dev-setup.sh
@@ -298,6 +298,13 @@ se cachean en `mb_track` (ver abajo).
   usan `CoverService.localCoverUrl()` para lo **guardado**; los dos carruseles de búsqueda
   (`AlbumCarouselItem`, `MovieCarouselItem`) usan `catalogCoverUrl()` para lo que **no** lo está.
   Todos llevan `@error` con el escalón doble local → remota → placeholder.
+- **La bandeja de recomendaciones es el séptimo consumidor de portada**, y su tarjeta
+  (`components/Inbox/RecommendationCard.vue`) necesita los mismos **dos** indicadores que la del feed,
+  por el mismo motivo. `InboxView` despacha por un `kind` contra un mapa `CARDS`: las invitaciones de
+  los planes de listas y clubs entran como un `kind` más, sin rehacer la pantalla. Y el
+  `RecommendDialog` de las fichas se monta con **`v-if`**, no solo con `v-model`: usa dos stores de
+  Pinia en su `setup`, así que instanciarlo siempre haría que toda ficha visitada los levantara —lo
+  destaparon 28 tests cayéndose a la vez, porque montan sin Pinia activo—.
 - **La tarjeta del feed necesita DOS indicadores de fallo, no uno.** Los otros consumidores tienen
   siempre una URL remota que pintar, así que les basta un `localFailed`. En el feed no: sin
   distinguir «estoy pintando la local» (`usingLocal`), un evento sin copia local gasta su primer
@@ -386,6 +393,8 @@ se cachean en `mb_track` (ver abajo).
   a la delegación de tres líneas que genera el núcleo. Invertir ese orden borraría la máquina sin que
   nada fallara ruidosamente; hay un test que lo fija. Y el mapa de `useXStore` vive en la factoría, no
   en el registry: el registry es lo que importa `createMediaStore`, y meterlo ahí cerraría el ciclo.
+  Desde el 2026-08-27 ese mapa se **exporta** como `mediaStores`, para que `store/inbox.js` dé de alta
+  un ítem recomendado sin duplicarlo; importarlo desde ahí no reintroduce el ciclo.
 - **`createMediaComposable('series')` lanza a propósito**, como `createMediaStore('series')`. Iterar
   sobre `mediaKeys` (los seis) en vez de `storeMediaKeys` (los cinco) es el error fácil.
 - **El destino de una ficha se compone, no se declara otra vez.** `detailRouteFor(media, entityId)`
@@ -453,6 +462,13 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 ## Buenos comportamientos en este repo
 
 - **Endpoint = tres sitios coherentes** (routes, match/getController, controller).
+- **Ningún parámetro puede llamarse `action`.** El payload viaja plano en la raíz junto a la clave
+  `action` del protocolo (`Application.php:117-122`), así que un parámetro con ese nombre **pisa al
+  enrutado** y la petición muere con «No valid action specified», nombrando una acción que nadie
+  pidió. Y **los tests de integración no pueden verlo**: entran por `dispatch($accion, $datos)`, con
+  las dos cosas ya separadas. Pasó con `resolve_recommendation` el 2026-08-27 —siete tests en verde,
+  y lo cazó un `curl`—; hoy lo impide `tests/Integration/PipelineTest.php` →
+  `no_route_may_require_a_field_called_action`.
 - **Depende de interfaces de repositorio**; registra los nuevos en `config/container.php`.
 - **PHPUnit dentro del contenedor**; warnings hacen fallar la suite.
 - **Un `Add*NoteUseCase` emite al feed solo si la nota es pública**, y esa guarda va **en el use
@@ -483,6 +499,13 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
   bootstrap tiene una lista blanca de hosts y aborta si `DB_TEST_HOST` no está en ella; no la quites.
 - **El aislamiento entre tests de integración es truncando, no por transacción**: 16 ficheros de
   `src/` abren la suya y PDO no las anida.
+- **Una migración nueva llega sola a la base de test, pero no siempre fue así.** Hasta el 2026-08-27,
+  `tests/Integration/bootstrap.php` se saltaba el sembrado entero si la base ya tenía tablas, así que
+  una migración recién escrita **nunca** llegaba a `mysql-test` y sus tests fallaban con «Table …
+  doesn't exist» teniendo el SQL bien. Ahora lleva el mismo `schema_migrations` que
+  `run_migrations.sh` y aplica solo las que falten; una base de la era anterior —sin ese registro— se
+  **recrea entera**, porque sus migraciones están aplicadas sin registrar y no todas son
+  idempotentes.
 - **Vitest también dentro del contenedor**, y una devDependency nueva pide rebuild de la imagen.
 - **Un medio nuevo se declara en `mediaRegistry`**, no se copia el componente del medio de al lado.
 - **Ni un hex ni un `px` de breakpoint fuera de su sitio**: el color va a `tokens/_colors.scss` /
@@ -494,9 +517,9 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 
 1. `docker compose up --build`; `POST http://localhost:8888/index.php` con `{"action":"ping"}`.
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
-3. `docker compose exec backend composer test` → verde (1229 tests: 1193 unitarios + 36 de
+3. `docker compose exec backend composer test` → verde (1245 tests: 1201 unitarios + 44 de
    integración; estos necesitan `docker compose --profile test up -d mysql-test`).
-4. `docker compose exec frontend npm test` → verde (296 tests) y
+4. `docker compose exec frontend npm test` → verde (314 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
 5. **`docker compose exec frontend npm run build` → `Build complete`.** No es redundante con el paso
    anterior: **ninguno de los tres comandos de arriba compila SCSS**. Los helpers de

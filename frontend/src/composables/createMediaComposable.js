@@ -12,7 +12,11 @@ import Logger from '@/utils/logger'
 // Los `useXStore` por medio. Mapa explícito aquí y no una entrada del registry:
 // `mediaRegistry` es lo que importa `createMediaStore`, así que declarar ahí el
 // store cerraría el ciclo de imports.
-const STORES = {
+//
+// Exportado desde el 2026-08-27 para `store/inbox.js`, que da de alta un ítem
+// recomendado y necesita el store de su medio. Importarlo desde aquí no
+// reintroduce el ciclo: quien lo consume no lo consume el registry.
+export const mediaStores = {
   book: useBooksStore,
   movie: useMoviesStore,
   game: useGamesStore,
@@ -53,7 +57,7 @@ export function createMediaComposable (media, extras = () => ({})) {
   const ratingField = cfg.ratingField || 'user_rating'
   const log = `[use${Many}]`
 
-  const store = STORES[media]()
+  const store = mediaStores[media]()
   const authStore = useAuthStore()
 
   // Estado reactivo. `storeToRefs` necesita el store ya invocado —al revés que

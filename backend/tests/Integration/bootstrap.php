@@ -158,13 +158,6 @@ function seedIntegrationDatabase(): void
     $pdo = integrationPdo(false);
 
     $db = getenv('DB_TEST_DATABASE') ?: 'library_db';
-    $ya = $pdo->query(
-        "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = " . $pdo->quote($db)
-    )->fetchColumn();
-
-    if ((int) $ya > 0) {
-        return;
-    }
 
     // `docker/database/` vive FUERA de ./backend, que es lo único que el
     // contenedor monta como /var/www/html. Llega por un bind aparte, en /opt
@@ -181,23 +174,84 @@ function seedIntegrationDatabase(): void
         exit(1);
     }
 
-    $pdo->exec(file_get_contents($esquema . '/init.sql'));
+    $existentes = (int) $pdo->query(
+        "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = " . $pdo->quote($db)
+    )->fetchColumn();
+
+    // Hasta el 2026-08-27 esto era `if ($existentes > 0) return;`, y esa línea
+    // significaba que **una migración nueva no llegaba nunca a la base de
+    // test**: quien añadía una la veía aplicada en dev y sus tests fallaban con
+    // «Table … doesn't exist» teniendo el SQL bien. Ahora se aplican las que
+    // falten, con el mismo registro que usa `run_migrations.sh` en dev y prod.
+    $registradas = [];
+
+    if ($existentes > 0) {
+        $pdo->exec('USE ' . $db);
+
+        $tieneRegistro = (int) $pdo->query(
+            "SELECT COUNT(*) FROM information_schema.TABLES"
+            . " WHERE TABLE_SCHEMA = " . $pdo->quote($db) . " AND TABLE_NAME = 'schema_migrations'"
+        )->fetchColumn();
+
+        if ($tieneRegistro === 0) {
+            // Base sembrada por la versión vieja de esta función: sus
+            // migraciones están aplicadas pero no registradas, y no todas son
+            // idempotentes, así que re-aplicarlas a ciegas rompería. Es una
+            // base desechable y sembrarla cuesta segundos: se recrea entera.
+            fwrite(STDOUT, "[integración] Base de test sin registro de migraciones: se recrea desde cero.\n");
+            $pdo->exec('DROP DATABASE IF EXISTS ' . $db);
+            $existentes = 0;
+        } else {
+            $registradas = $pdo->query('SELECT filename FROM schema_migrations')->fetchAll(PDO::FETCH_COLUMN);
+        }
+    }
+
+    if ($existentes === 0) {
+        $pdo->exec(file_get_contents($esquema . '/init.sql'));
+    }
+
+    $pdo->exec('USE ' . $db);
+
+    // El mismo DDL que `run_migrations.sh:127-134`, para que el registro
+    // signifique lo mismo en test que en dev y en producción.
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS schema_migrations ('
+        . ' id INT AUTO_INCREMENT PRIMARY KEY,'
+        . ' filename VARCHAR(255) NOT NULL UNIQUE,'
+        . ' applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,'
+        . ' checksum VARCHAR(64) NOT NULL,'
+        . ' INDEX idx_filename (filename)'
+        . ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+    );
 
     // Las migraciones, en orden de fecha. El nombre del fichero ES el orden:
     // `20260513_120000_…` antes que `20260818_163500_…`.
     $migraciones = glob($esquema . '/migrations/*.sql') ?: [];
     sort($migraciones);
 
-    $pdo->exec('USE ' . $db);
+    $registrar = $pdo->prepare(
+        'INSERT INTO schema_migrations (filename, checksum) VALUES (:filename, :checksum)'
+    );
+    $aplicadas = 0;
 
     foreach ($migraciones as $migracion) {
+        $nombre = basename($migracion);
+
+        if (in_array($nombre, $registradas, true)) {
+            continue;
+        }
+
         $pdo->exec(file_get_contents($migracion));
+        // sha256 del fichero, como `run_migrations.sh:219`.
+        $registrar->execute([':filename' => $nombre, ':checksum' => hash_file('sha256', $migracion)]);
+        $aplicadas++;
     }
 
-    fwrite(STDOUT, sprintf(
-        "[integración] Base sembrada: init.sql + %d migraciones.\n",
-        count($migraciones)
-    ));
+    if ($existentes === 0) {
+        fwrite(STDOUT, sprintf("[integración] Base sembrada: init.sql + %d migraciones.\n", $aplicadas));
+    } elseif ($aplicadas > 0) {
+        fwrite(STDOUT, sprintf("[integración] %d migración(es) nueva(s) aplicada(s) a la base de test.\n", $aplicadas));
+    }
 }
 
 // NO se siembra al cargar el fichero, y es deliberado: desde que la suite

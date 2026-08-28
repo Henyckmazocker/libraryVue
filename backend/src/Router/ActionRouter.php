@@ -63,11 +63,15 @@ use App\Domain\DTO\Queries\GetLastFmStatsQuery;
 use App\Domain\DTO\Commands\AcceptFriendRequestCommand;
 use App\Domain\DTO\Commands\RejectFriendRequestCommand;
 use App\Domain\DTO\Commands\RemoveFriendCommand;
+use App\Domain\DTO\Commands\ResolveRecommendationCommand;
 use App\Domain\DTO\Commands\SendFriendRequestCommand;
+use App\Domain\DTO\Commands\SendRecommendationCommand;
 use App\Domain\DTO\Commands\UpdatePrivacySettingsCommand;
 use App\Domain\DTO\Queries\GetFeedQuery;
 use App\Domain\DTO\Queries\GetFriendRequestsQuery;
 use App\Domain\DTO\Queries\GetFriendsQuery;
+use App\Domain\DTO\Queries\GetInboxCountQuery;
+use App\Domain\DTO\Queries\GetInboxQuery;
 use App\Domain\DTO\Queries\GetPublicProfileQuery;
 use App\Domain\DTO\Queries\SearchUsersQuery;
 use App\Domain\DTO\Commands\AddVideoCommand;
@@ -593,6 +597,7 @@ class ActionRouter
             'update_video_note'      => $controller->updateVideoNote($data['noteId'] ?? 0, $userId, $data['noteText'] ?? '', $data['noteType'] ?? 'note'),
             'delete_video_note'      => $controller->deleteVideoNote($data['noteId'] ?? 0, $userId),
             'search_youtube_videos'  => $controller->searchVideos($data),
+            'get_youtube_video_details' => $controller->getVideoDetails($data),
 
             // SOCIAL - Friends
             'send_friend_request' => $controller->sendFriendRequest(
@@ -627,6 +632,20 @@ class ActionRouter
             'get_privacy_settings' => $controller->getPrivacySettings($userId),
             'update_privacy_settings' => $controller->updatePrivacySettings(
                 UpdatePrivacySettingsCommand::fromArray($data, $userId)
+            ),
+
+            // SOCIAL - Recommendations
+            'send_recommendation' => $controller->sendRecommendation(
+                SendRecommendationCommand::fromArray($data, $userId)
+            ),
+            'get_inbox' => $controller->getInbox(
+                GetInboxQuery::fromArray($data, $userId)
+            ),
+            'get_inbox_count' => $controller->getInboxCount(
+                new GetInboxCountQuery($userId)
+            ),
+            'resolve_recommendation' => $controller->resolveRecommendation(
+                ResolveRecommendationCommand::fromArray($data, $userId)
             ),
             
             default => [

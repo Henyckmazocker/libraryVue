@@ -129,6 +129,14 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/inbox',
+    name: 'Inbox',
+    component: () => import('../views/InboxView.vue'),
+    // Sin `requiresAuth` la vista es accesible sin sesión y `get_inbox`
+    // devuelve un 401 que no espera.
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/user/:username',
     name: 'PublicProfile',
     component: () => import('../views/PublicProfileView.vue'),

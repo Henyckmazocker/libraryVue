@@ -109,9 +109,11 @@ return function (): ContainerInterface {
         \App\Domain\Repository\Social\FriendshipRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Social\MySqlFriendshipRepository::class),
         \App\Domain\Repository\Social\FeedEventRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Social\MySqlFeedEventRepository::class),
         \App\Domain\Repository\Social\PrivacySettingsRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Social\MySqlPrivacySettingsRepository::class),
+        \App\Domain\Repository\Social\RecommendationRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Social\MySqlRecommendationRepository::class),
         \App\Infrastructure\Persistence\Social\MySqlFriendshipRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Social\MySqlFeedEventRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Social\MySqlPrivacySettingsRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Social\MySqlRecommendationRepository::class => DI\autowire(),
         
         // Note: Most repositories use 'db' as the constructor parameter name for PDO
         \App\Infrastructure\Persistence\Game\MySqlGameRepository::class => DI\autowire(),
@@ -386,6 +388,10 @@ return function (): ContainerInterface {
         \App\Domain\UseCases\Social\GetPrivacySettingsUseCase::class => DI\autowire(),
         \App\Domain\UseCases\Social\UpdatePrivacySettingsUseCase::class => DI\autowire(),
         \App\Domain\UseCases\Social\CreateFeedEventUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Social\SendRecommendationUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Social\GetInboxUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Social\GetInboxCountUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Social\ResolveRecommendationUseCase::class => DI\autowire(),
         \App\Domain\Services\FeedEventService::class => DI\autowire(),
         
         // ===========================

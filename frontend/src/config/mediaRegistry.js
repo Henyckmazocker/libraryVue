@@ -1309,8 +1309,7 @@ export const mediaRegistry = {
     idType: String,
     routeName: 'VideoDetail',
     accentVar: '--color-card-video-accent',
-    // Ficha de detalle (MediaDetailView). Los vídeos son el único medio sin
-    // enriquecimiento externo: lo que se enseña sale del propio store.
+    // Ficha de detalle (MediaDetailView).
     detail: {
       // Dimensiones intrínsecas de la portada en esta familia, en px: el navegador las usa
       // para reservar la caja antes de que cargue la imagen. Salen de los mixins SCSS de la
@@ -1334,7 +1333,15 @@ export const mediaRegistry = {
       // El selector de estados de los vídeos trabaja con nombres, no con los
       // objetos que devuelve el backend.
       statusesAsNames: true,
-      enrich: null,
+      // Hasta el 2026-08-27 esto era `null` y la ficha salía solo del store, así
+      // que un vídeo que no tuvieras guardado daba `notFoundText`
+      // (MediaDetailView.vue:362-372) y no había dónde guardarlo. La acción
+      // expone un método que ya existía y cachea 24 h.
+      enrich: async (routeId, apiCall) => {
+        const response = await apiCall('get_youtube_video_details', { youtubeId: routeId })
+        if (response.data?.status !== 'success' || !response.data?.data) return null
+        return { item: response.data.data.video || response.data.data }
+      },
       existingOf: (store, item, routeId) => store.getVideoByYouTubeId(
         routeId || item.youtube_id || item.youtubeId
       ),

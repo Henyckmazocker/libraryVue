@@ -14,6 +14,7 @@ import ToastService from 'primevue/toastservice';
 import MultiSelect from 'primevue/multiselect';
 import Tooltip from 'primevue/tooltip';
 import { CustomPreset } from '@/config/primevue-preset';
+import { useInboxStore } from '@/store/inbox';
 
 const app = createApp(App);
 app.use(createPinia());
@@ -41,6 +42,12 @@ app.directive('tooltip', Tooltip);
 
 if (router) {
   app.use(router);
+
+  // El contador de la bandeja, sin polling: se refresca en cada navegación (y
+  // el propio Header lo pide al montar). Cero peticiones con la pestaña quieta.
+  // La suscripción vive en el store para que no se enganche dos veces si el
+  // header se remonta.
+  useInboxStore().subscribeToRouter(router);
 }
 
 app.mount('#app');

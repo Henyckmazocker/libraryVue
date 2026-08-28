@@ -1441,6 +1441,15 @@ return [
         'validation' => ['query']
     ],
 
+    // La ficha de un vídeo por su id, para poder pintarla sin haberlo buscado
+    // antes: es lo que rehidrata la ficha de un vídeo que no está en tu
+    // biblioteca (recomendado, o llegado por un enlace).
+    'get_youtube_video_details' => [
+        'controller' => ['VideoController', 'getVideoDetails'],
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => ['youtubeId']
+    ],
+
     // ============================================================================
     // SOCIAL ROUTES - Friends + Feed
     // ============================================================================
@@ -1543,6 +1552,53 @@ return [
         'controller' => ['FeedController', 'getPrivacySettings'],
         'middleware' => [LoggingMiddleware::class, AuthenticationMiddleware::class],
         'validation' => []
+    ],
+
+    // ============================================================================
+    // RECOMMENDATIONS - The inbox behind the header bell
+    // ============================================================================
+
+    'send_recommendation' => [
+        'controller' => ['SocialController', 'sendRecommendation'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['recipientId', 'entityType', 'entityId']]]
+        ],
+        'validation' => ['recipientId', 'entityType', 'entityId']
+    ],
+
+    'get_inbox' => [
+        'controller' => ['SocialController', 'getInbox'],
+        'middleware' => [LoggingMiddleware::class, AuthenticationMiddleware::class],
+        'validation' => []
+    ],
+
+    // La pide la campanita en CADA navegación, así que es la acción más llamada
+    // de la app. Lleva su propio rate limit porque el genérico que
+    // `ActionRouter.php:149-150` inyecta a toda ruta sin uno propio está pensado
+    // para acciones que se llaman de vez en cuando, y aquí cortaría una sesión
+    // normal de navegación.
+    'get_inbox_count' => [
+        'controller' => ['SocialController', 'getInboxCount'],
+        'middleware' => [
+            [RateLimitMiddleware::class, ['limit' => 120, 'window' => 60, 'by' => 'user']],
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class
+        ],
+        'validation' => []
+    ],
+
+    'resolve_recommendation' => [
+        'controller' => ['SocialController', 'resolveRecommendation'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['recommendationId', 'resolution']]]
+        ],
+        'validation' => ['recommendationId', 'resolution']
     ],
 ];
 

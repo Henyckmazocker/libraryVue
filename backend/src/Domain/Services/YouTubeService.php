@@ -184,6 +184,7 @@ class YouTubeService
         $statistics     = $item['statistics']     ?? [];
         $thumbnails     = $snippet['thumbnails']  ?? [];
         $duration       = $contentDetails['duration'] ?? null;
+        $seconds        = $duration ? $this->isoDurationToSeconds($duration) : null;
 
         return [
             'youtube_id'       => $item['id'] ?? '',
@@ -191,8 +192,10 @@ class YouTubeService
             'channel_name'     => $snippet['channelTitle'] ?? '',
             'channel_id'       => $snippet['channelId']   ?? '',
             'cover_url'        => $this->getBestThumbnail($thumbnails),
-            'duration'         => $duration,
-            'duration_seconds' => $duration ? $this->isoDurationToSeconds($duration) : null,
+            // Legible, no el ISO 8601 que manda YouTube: esto se pinta en la
+            // ficha y se guarda tal cual en `videos.duration` al dar de alta.
+            'duration'         => $seconds !== null ? $this->formatDuration($seconds) : null,
+            'duration_seconds' => $seconds,
             'view_count'       => isset($statistics['viewCount'])  ? (int)$statistics['viewCount']  : null,
             'like_count'       => isset($statistics['likeCount'])  ? (int)$statistics['likeCount']  : null,
             'published_at'     => $snippet['publishedAt'] ?? null,
@@ -212,6 +215,21 @@ class YouTubeService
             }
         }
         return '';
+    }
+
+    /**
+     * Format a duration in seconds the way YouTube shows it: m:ss, or h:mm:ss
+     * once it reaches an hour.
+     */
+    private function formatDuration(int $seconds): string
+    {
+        $hours   = intdiv($seconds, 3600);
+        $minutes = intdiv($seconds % 3600, 60);
+        $rest    = $seconds % 60;
+
+        return $hours > 0
+            ? sprintf('%d:%02d:%02d', $hours, $minutes, $rest)
+            : sprintf('%d:%02d', $minutes, $rest);
     }
 
     /**

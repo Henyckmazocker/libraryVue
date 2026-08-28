@@ -76,4 +76,33 @@ class PipelineTest extends IntegrationTestCase
         $this->assertSame('error', $r['status']);
         $this->assertSame(403, $r['http_code'] ?? null, 'Sin csrf_token el pipeline corta con 403');
     }
+
+    #[Test]
+    public function no_route_may_require_a_field_called_action(): void
+    {
+        // `action` es la clave del protocolo, y el payload viaja **plano en la
+        // raíz** (`Application.php:117-122`): un parámetro con ese nombre pisa
+        // al enrutado y la petición muere con «No valid action specified»,
+        // hablando de una acción que nadie pidió.
+        //
+        // Ningún otro test puede verlo. Los de integración entran por
+        // `dispatch($accion, $datos)`, con las dos cosas ya separadas, así que
+        // la colisión es imposible ahí: `resolve_recommendation` nació con un
+        // parámetro `action`, pasó siete tests de integración en verde y solo
+        // falló al probarlo con `curl` (2026-08-27). Esto es esa lección puesta
+        // donde se ve sola.
+        $rutas = require dirname(__DIR__, 2) . '/config/routes.php';
+
+        $culpables = [];
+        foreach ($rutas as $accion => $config) {
+            foreach ($config['validation'] ?? [] as $campo) {
+                if ($campo === 'action') {
+                    $culpables[] = $accion;
+                }
+            }
+        }
+
+        $this->assertSame([], $culpables, 'Estas acciones declaran un parámetro `action`, que colisiona '
+            . 'con la clave del protocolo: ' . implode(', ', $culpables));
+    }
 }

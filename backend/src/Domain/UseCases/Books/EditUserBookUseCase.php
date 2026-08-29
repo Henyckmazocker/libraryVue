@@ -7,7 +7,6 @@ namespace App\Domain\UseCases\Books;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Book\UserBookRepositoryInterface;
 use App\Domain\Repository\Book\BookTagRepositoryInterface;
-use App\Domain\Repository\Book\BookNoteRepositoryInterface;
 use App\Domain\Repository\Book\EditionRepositoryInterface;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\EditUserBookCommand;
@@ -20,7 +19,6 @@ class EditUserBookUseCase extends AbstractUseCase
         private readonly UserRepositoryInterface $userRepository,
         private readonly UserBookRepositoryInterface $userBookRepository,
         private readonly BookTagRepositoryInterface $bookTagRepository,
-        private readonly BookNoteRepositoryInterface $bookNoteRepository,
         private readonly EditionRepositoryInterface $editionRepository,
         LoggerInterface $logger
     ) {

@@ -166,6 +166,13 @@ $RECYCLE.BIN/
 # Secretos Android (contienen OAuth client IDs)
 frontend/android/app/src/main/res/values/secrets.xml
 
+# ----------------------------------------------------------------------------
+# Graphify (grafo de conocimiento)
+# ----------------------------------------------------------------------------
+# Salida de `graphify extract`: grafo, caché SHA256 y manifiesto. Se regenera
+# en segundos desde el código, y son ~23 MB que cambian en cada commit.
+graphify-out/
+
 # ============================================================================
 # SECURITY REMINDER
 # ============================================================================

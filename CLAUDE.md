@@ -70,8 +70,8 @@ docker compose up --build   # equivalente crudo: NO migra ni arranca el mirror
 
 # Tests backend (PHPUnit 11, dentro del contenedor backend)
 docker compose --profile test up -d mysql-test   # lo necesita la suite de integración
-docker compose exec backend composer test        # las DOS suites: 1434 tests
-docker compose exec backend composer test:unit   # la rápida: 1284, sin necesitar mysql-test
+docker compose exec backend composer test        # las DOS suites: 1422 tests
+docker compose exec backend composer test:unit   # la rápida: 1272, sin necesitar mysql-test
 docker compose exec backend composer test:integration   # 150, contra una BD desechable
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
@@ -470,7 +470,11 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 
 ## Buenos comportamientos en este repo
 
-- **Endpoint = tres sitios coherentes** (routes, match/getController, controller).
+- **Endpoint = tres sitios coherentes** (routes, match/getController, controller) — **cuatro cuando
+  el controller tiene contrato** en `Controllers/Contracts/`, que son **nueve de los trece**. Quitar
+  un método del controller sin quitarlo de su interfaz no da un test en rojo: da un *fatal* de PHP
+  al cargar la clase («contains 1 abstract method»), que revienta la suite entera antes del primer
+  test. Pasó el 2026-08-29 borrando `getAllBooks`.
 - **Ningún parámetro puede llamarse `action`.** El payload viaja plano en la raíz junto a la clave
   `action` del protocolo (`Application.php:117-122`), así que un parámetro con ese nombre **pisa al
   enrutado** y la petición muere con «No valid action specified», nombrando una acción que nadie
@@ -500,9 +504,25 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
   `false`, así que contestaba «Book not found» con el libro delante—. `get_user_active_reading_sessions`
   estaba igual: llamaba a `getActiveSessions()` y el repositorio lo tiene como
   `getUserActiveSessions()`. **Las dos suites en verde durante meses**, porque los tres fallos viven
-  en la costura que un mock sustituye. Antes de conectar una acción que no usaba nadie, pruébala con
-  `curl` contra el backend de dev; y `MySqlUserBookRepository` sigue a medio migrar al modelo
-  Work/Edition en otros siete puntos.
+  en la costura que un mock sustituye. El **tercer** caso apareció el 2026-08-29: `get_books`,
+  declarada en los tres sitios y **sin un solo consumidor** en `frontend/src`, respondía 500 porque
+  `MySqlBookRepository::findAll()` leía `books`, tabla del modelo anterior a Work/Edition que el
+  esquema dejó de crear. Aquí la excepción **no** se tragaba —el repositorio la reenvía como
+  `RuntimeException`—, así que era un 500 limpio y no un «no encontrado» mentiroso; el `get_library`
+  que sí llama `HomePage.vue` va por `GetBooksUseCase`, otro camino, y por eso nunca falló nada a la
+  vista. Antes de conectar una acción que no usaba nadie, pruébala con `curl` contra el backend de
+  dev.
+- **El barrido que caza esta clase de fallo de golpe es cruzar el esquema con el SQL del código**:
+  los `CREATE TABLE` de `docker/database/*.sql` contra lo que consulta `backend/src`. Dos avisos de
+  quien lo hizo: las palabras clave hay que exigirlas **en MAYÚSCULAS** —en minúsculas el regex caza
+  la prosa inglesa de los comentarios y da 146 falsos positivos— y los importadores **crean tablas
+  al vuelo** (`mb_stage_*`, `imdb_*_new`), así que hay que recogerlas también del PHP. El barrido del
+  2026-08-29 dio cuatro tablas fantasma —`books`, `user_books`, `user_book_notes`,
+  `book_has_statuses`— en 18 métodos de tres repositorios de libros, de los que solo `get_books` era
+  alcanzable; se borraron esos métodos, `UserLibraryStatisticsService` (cero referencias en el repo),
+  `GetLibraryUseCase` (inyectado en `LibraryController`, nunca invocado) y el par
+  `BookNoteRepositoryInterface`/`MySqlBookNoteRepository`. De `BookRepositoryInterface` sobrevive
+  **un** método, `fetchAllowedStatuses()`, que lee `book_statuses` y sí existe.
 - **Nunca apuntes el sembrado de test al MySQL de dev.** `docker/database/init.sql` empieza con
   `DROP DATABASE IF EXISTS library_db` y **el nombre de la base es el mismo** en dev y en test. El
   bootstrap tiene una lista blanca de hosts y aborta si `DB_TEST_HOST` no está en ella; no la quites.
@@ -517,8 +537,11 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
   idempotentes.
 - **Vitest también dentro del contenedor**, y una devDependency nueva pide rebuild de la imagen.
 - **La visibilidad de una lista se pregunta a `Domain/Services/ListAccess.php`, y a nada más.** Es la
-  única copia de la regla —once use cases la consultan— y su tabla de verdad de 24 casos vive en su
-  docblock, fijada por 29 tests. Tres lecturas que se hacen mal: la **amistad no entra** (amigo y
+  única copia de la regla y su tabla de verdad de 24 casos vive en su docblock, fijada por 29 tests.
+  Lo **inyectan cuatro** use cases (`GetList`, `AddListItem`, `RemoveListItem`, `UpdateList`); las
+  **once** operaciones que enumera su docblock son las que *necesitarían* la regla si no existiera
+  —las otras siete la resuelven por otra vía, con `MediaList::isOwnedBy` o con el `WHERE` de la
+  consulta—, no las que la llaman. Tres lecturas que se hacen mal: la **amistad no entra** (amigo y
   desconocido tienen permisos idénticos, y hay un test que lo afirma); `collaborative` **no es
   pública** y la tabla de colaboradores se consulta en las tres visibilidades; y **«editar» es el
   CONTENIDO** —`canEdit` gobierna añadir y quitar ítems, mientras que renombrar, cambiar visibilidad,
@@ -592,7 +615,7 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 
 1. `docker compose up --build`; `POST http://localhost:8888/index.php` con `{"action":"ping"}`.
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
-3. `docker compose exec backend composer test` → verde (1434 tests: 1284 unitarios + 150 de
+3. `docker compose exec backend composer test` → verde (1422 tests: 1272 unitarios + 150 de
    integración; estos necesitan `docker compose --profile test up -d mysql-test`).
 4. `docker compose exec frontend npm test` → verde (381 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
@@ -620,7 +643,7 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
    > puede dar `Permission denied` aun siendo el mismo usuario: entonces no se puede desde aquí y hay
    > que decírselo a David.
 
-> ℹ️ **Desde el 2026-08-25 hay dos suites de verdad.** `composer test` corre las dos (1224);
+> ℹ️ **Desde el 2026-08-25 hay dos suites de verdad.** `composer test` corre las dos;
 > `composer test:unit` es la rápida y **no necesita** `mysql-test`. La suite `Integration` estuvo
 > declarada sobre un directorio inexistente hasta el 2026-08-24, haciendo abortar a PHPUnit con
 > `error code 2`; se retiró entonces y se repuso ahora sobre un directorio con contenido.

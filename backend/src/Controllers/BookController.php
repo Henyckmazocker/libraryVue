@@ -9,7 +9,6 @@ use App\Domain\UseCases\Books\DeleteBookUseCase;
 use App\Domain\UseCases\Books\UpdateBookRatingUseCase;
 use App\Domain\UseCases\Books\UpdateBookUserStatusesUseCase;
 use App\Domain\UseCases\Books\GetBooksUseCase;
-use App\Domain\UseCases\Books\GetAllBooksUseCase;
 use App\Domain\UseCases\Books\GetBookAllowedStatusesUseCase;
 use App\Domain\UseCases\Books\EditUserBookUseCase;
 use App\Domain\UseCases\Books\GetTrendingBooksUseCase;
@@ -54,7 +53,6 @@ class BookController extends BaseController implements Contracts\BookControllerI
     private UpdateBookRatingUseCase $updateBookRatingUseCase;
     private UpdateBookUserStatusesUseCase $updateBookUserStatusesUseCase;
     private GetBooksUseCase $getBooksUseCase;
-    private GetAllBooksUseCase $getAllBooksUseCase;
     private GetBookAllowedStatusesUseCase $getBookAllowedStatusesUseCase;
     private BookRepositoryInterface $bookRepository;
     private BookTagRepositoryInterface $bookTagRepository;
@@ -79,7 +77,6 @@ class BookController extends BaseController implements Contracts\BookControllerI
         UpdateBookRatingUseCase $updateBookRatingUseCase,
         UpdateBookUserStatusesUseCase $updateBookUserStatusesUseCase,
         GetBooksUseCase $getBooksUseCase,
-        GetAllBooksUseCase $getAllBooksUseCase,
         GetBookAllowedStatusesUseCase $getBookAllowedStatusesUseCase,
         BookRepositoryInterface $bookRepository,
         BookTagRepositoryInterface $bookTagRepository,
@@ -103,7 +100,6 @@ class BookController extends BaseController implements Contracts\BookControllerI
         $this->updateBookRatingUseCase = $updateBookRatingUseCase;
         $this->updateBookUserStatusesUseCase = $updateBookUserStatusesUseCase;
         $this->getBooksUseCase = $getBooksUseCase;
-        $this->getAllBooksUseCase = $getAllBooksUseCase;
         $this->getBookAllowedStatusesUseCase = $getBookAllowedStatusesUseCase;
         $this->bookRepository = $bookRepository;
         $this->bookTagRepository = $bookTagRepository;
@@ -189,13 +185,6 @@ class BookController extends BaseController implements Contracts\BookControllerI
     {
         $books = $this->getBooksUseCase->execute($query);
         return $this->successResponse('Library data retrieved.', $books);
-    }
-
-    public function getAllBooks(): array
-    {
-        $query = \App\Domain\DTO\Queries\GetAllBooksQuery::create();
-        $books = $this->getAllBooksUseCase->execute($query);
-        return $this->successResponse('All books retrieved.', $books);
     }
 
     /**

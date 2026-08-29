@@ -72,7 +72,6 @@ use App\Domain\DTO\Commands\ManageReadingSessionCommand;
 use App\Domain\DTO\Queries\GetBooksByUserQuery;
 use App\Domain\DTO\Queries\GetMoviesByUserQuery;
 use App\Domain\DTO\Queries\GetAllowedStatusesQuery;
-use App\Domain\DTO\Queries\GetAllBooksQuery;
 use App\Domain\DTO\Queries\GetReadingSessionQuery;
 use App\Domain\DTO\Queries\GetUserReadingStatsQuery;
 use App\Domain\DTO\Queries\GetTrendingBooksQuery;
@@ -301,7 +300,6 @@ class ActionRouter
                 EditUserBookCommand::fromArray($data, $userId)
             ),
             'get_book_allowed_statuses' => $controller->getBookAllowedStatuses(),
-            'get_books' => $controller->getAllBooks(),
             'get_library' => $controller->getBooks(
                 new GetBooksByUserQuery($userId)
             ),

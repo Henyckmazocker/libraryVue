@@ -16,6 +16,5 @@ interface BookControllerInterface
     public function updateBookUserStatuses(UpdateBookStatusesCommand $command): array;
     public function getBookAllowedStatuses(): array;
     public function getBooks(GetBooksByUserQuery $query): array;
-    public function getAllBooks(): array;
     public function editUserBook(EditUserBookCommand $command): array;
 }

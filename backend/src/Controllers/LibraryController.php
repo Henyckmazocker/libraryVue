@@ -1,7 +1,6 @@
 <?php
 namespace App\Controllers;
 
-use App\Domain\UseCases\GetLibraryUseCase;
 use App\Domain\UseCases\GetOwnershipFormatsUseCase;
 use App\Domain\DTO\Queries\GetOwnershipFormatsQuery;
 use App\Domain\UseCases\Books\GetBooksUseCase;
@@ -20,7 +19,6 @@ use App\Domain\Services\OpenLibraryService;
 
 class LibraryController extends BaseController implements Contracts\LibraryControllerInterface
 {
-    private GetLibraryUseCase $getLibraryUseCase;
     private GetBooksUseCase $getBooksUseCase;
     private GetMoviesUseCase $getMoviesUseCase;
     private AddBookUseCase $addBookUseCase;
@@ -35,7 +33,6 @@ class LibraryController extends BaseController implements Contracts\LibraryContr
     private GetOwnershipFormatsUseCase $getOwnershipFormatsUseCase;
 
     public function __construct(
-        GetLibraryUseCase $getLibraryUseCase,
         GetBooksUseCase $getBooksUseCase,
         GetMoviesUseCase $getMoviesUseCase,
         AddBookUseCase $addBookUseCase,
@@ -49,7 +46,6 @@ class LibraryController extends BaseController implements Contracts\LibraryContr
         AuthMiddleware $authMiddleware,
         GetOwnershipFormatsUseCase $getOwnershipFormatsUseCase
     ) {
-        $this->getLibraryUseCase = $getLibraryUseCase;
         $this->getBooksUseCase = $getBooksUseCase;
         $this->getMoviesUseCase = $getMoviesUseCase;
         $this->addBookUseCase = $addBookUseCase;

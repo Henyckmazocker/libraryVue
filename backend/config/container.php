@@ -97,7 +97,6 @@ return function (): ContainerInterface {
         \App\Domain\Repository\Book\UserBookRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Book\MySqlUserBookRepository::class),
         \App\Domain\Repository\Movie\UserMovieRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Movie\MySqlUserMovieRepository::class),
         \App\Domain\Repository\Book\BookTagRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Book\MySqlBookTagRepository::class),
-        \App\Domain\Repository\Book\BookNoteRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Book\MySqlBookNoteRepository::class),
         \App\Domain\Repository\Book\ReadingSessionRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Book\MySqlReadingSessionRepository::class),
         \App\Domain\Repository\Book\ReadingProgressRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Book\MySqlReadingProgressRepository::class),
         \App\Domain\Repository\Movie\MovieTagRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Movie\MySqlMovieTagRepository::class),
@@ -170,7 +169,6 @@ return function (): ContainerInterface {
         \App\Infrastructure\Persistence\Book\MySqlUserBookRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Movie\MySqlUserMovieRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Book\MySqlBookTagRepository::class => DI\autowire(),
-        \App\Infrastructure\Persistence\Book\MySqlBookNoteRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Book\MySqlReadingSessionRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Book\MySqlReadingProgressRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Movie\MySqlMovieTagRepository::class => DI\autowire(),
@@ -334,7 +332,6 @@ return function (): ContainerInterface {
         
         \App\Domain\UseCases\Books\AddBookUseCase::class => DI\autowire(),
         \App\Domain\UseCases\Books\GetBooksUseCase::class => DI\autowire(),
-        \App\Domain\UseCases\Books\GetAllBooksUseCase::class => DI\autowire(),
         \App\Domain\UseCases\Books\DeleteBookUseCase::class => DI\autowire(),
         \App\Domain\UseCases\Books\UpdateBookRatingUseCase::class => DI\autowire(),
         \App\Domain\UseCases\Books\UpdateBookUserStatusesUseCase::class => DI\autowire(),
@@ -402,7 +399,6 @@ return function (): ContainerInterface {
         // USE CASES - Library
         // ===========================
         
-        \App\Domain\UseCases\GetLibraryUseCase::class => DI\autowire(),
         \App\Domain\UseCases\GetLibraryItemsUseCase::class => DI\autowire(),
         \App\Domain\UseCases\GetOwnershipFormatsUseCase::class => DI\autowire(),
 

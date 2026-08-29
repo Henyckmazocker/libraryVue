@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Domain\DTO\Queries;
 
-use App\Domain\DTO\Queries\GetAllBooksQuery;
 use App\Domain\DTO\Queries\GetBooksByUserQuery;
 use App\Domain\DTO\Queries\GetTrendingBooksQuery;
 use PHPUnit\Framework\Attributes\Test;
@@ -12,24 +11,6 @@ use PHPUnit\Framework\TestCase;
 
 class BookQueriesTest extends TestCase
 {
-    // ═══════════════════════════════════════
-    // GetAllBooksQuery
-    // ═══════════════════════════════════════
-
-    #[Test]
-    public function get_all_books_create(): void
-    {
-        $q = GetAllBooksQuery::create();
-        $this->assertInstanceOf(GetAllBooksQuery::class, $q);
-    }
-
-    #[Test]
-    public function get_all_books_from_array(): void
-    {
-        $q = GetAllBooksQuery::fromArray([]);
-        $this->assertInstanceOf(GetAllBooksQuery::class, $q);
-    }
-
     // ═══════════════════════════════════════
     // GetBooksByUserQuery
     // ═══════════════════════════════════════

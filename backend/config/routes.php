@@ -151,15 +151,6 @@ return [
         'validation' => []
     ],
     
-    'get_books' => [
-        'controller' => ['BookController', 'getAllBooks'],
-        'middleware' => [
-            LoggingMiddleware::class,
-            AuthenticationMiddleware::class
-        ],
-        'validation' => []
-    ],
-    
     'get_library' => [
         'controller' => ['BookController', 'getBooks'],
         'middleware' => [

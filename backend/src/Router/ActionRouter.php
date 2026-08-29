@@ -13,6 +13,7 @@ use App\Controllers\MovieController;
 use App\Controllers\GameController;
 use App\Controllers\LibraryController;
 use App\Controllers\LibraryXController;
+use App\Controllers\ClubController;
 use App\Controllers\ListController;
 use App\Controllers\StatsController;
 use App\Controllers\VideoController;
@@ -24,7 +25,17 @@ use App\Domain\DTO\Commands\UpdateListCommand;
 use App\Domain\DTO\Commands\DeleteListCommand;
 use App\Domain\DTO\Commands\AddListItemCommand;
 use App\Domain\DTO\Commands\InviteCollaboratorCommand;
+use App\Domain\DTO\Commands\AcceptClubInvitationCommand;
 use App\Domain\DTO\Commands\AcceptCollaborationCommand;
+use App\Domain\DTO\Commands\CreateClubCommand;
+use App\Domain\DTO\Commands\FinishClubPickCommand;
+use App\Domain\DTO\Commands\InviteToClubCommand;
+use App\Domain\DTO\Commands\LeaveClubCommand;
+use App\Domain\DTO\Commands\SetClubPickCommand;
+use App\Domain\DTO\Queries\GetClubNotesQuery;
+use App\Domain\DTO\Queries\GetClubProgressQuery;
+use App\Domain\DTO\Queries\GetClubQuery;
+use App\Domain\DTO\Queries\GetMyClubsQuery;
 use App\Domain\DTO\Commands\RemoveCollaboratorCommand;
 use App\Domain\DTO\Commands\RemoveListItemCommand;
 use App\Domain\DTO\Queries\GetMyListsQuery;
@@ -124,6 +135,7 @@ class ActionRouter
     private ?SocialController $socialController = null;
     private ?FeedController $feedController = null;
     private ?ListController $listController = null;
+    private ?ClubController $clubController = null;
 
     public function __construct(
         array $routes,
@@ -682,6 +694,38 @@ class ActionRouter
                 RemoveListItemCommand::fromArray($data, $userId)
             ),
 
+            // CLUBS
+            'create_club' => $controller->createClub(
+                CreateClubCommand::fromArray($data, $userId)
+            ),
+            'get_my_clubs' => $controller->getMyClubs(
+                new GetMyClubsQuery($userId)
+            ),
+            'get_club' => $controller->getClub(
+                GetClubQuery::fromArray($data, $userId)
+            ),
+            'invite_to_club' => $controller->inviteToClub(
+                InviteToClubCommand::fromArray($data, $userId)
+            ),
+            'accept_club_invitation' => $controller->acceptClubInvitation(
+                AcceptClubInvitationCommand::fromArray($data, $userId)
+            ),
+            'leave_club' => $controller->leaveClub(
+                LeaveClubCommand::fromArray($data, $userId)
+            ),
+            'set_club_pick' => $controller->setClubPick(
+                SetClubPickCommand::fromArray($data, $userId)
+            ),
+            'finish_club_pick' => $controller->finishClubPick(
+                FinishClubPickCommand::fromArray($data, $userId)
+            ),
+            'get_club_progress' => $controller->getClubProgress(
+                GetClubProgressQuery::fromArray($data, $userId)
+            ),
+            'get_club_notes' => $controller->getClubNotes(
+                GetClubNotesQuery::fromArray($data, $userId)
+            ),
+
             // SOCIAL - Recommendations
             'send_recommendation' => $controller->sendRecommendation(
                 SendRecommendationCommand::fromArray($data, $userId)
@@ -722,6 +766,7 @@ class ActionRouter
             'SocialController' => $this->socialController ??= $this->container->get(SocialController::class),
             'FeedController' => $this->feedController ??= $this->container->get(FeedController::class),
             'ListController' => $this->listController ??= $this->container->get(ListController::class),
+            'ClubController' => $this->clubController ??= $this->container->get(ClubController::class),
             default => throw new \RuntimeException("Unknown controller: {$controllerName}")
         };
     }

@@ -70,12 +70,12 @@ docker compose up --build   # equivalente crudo: NO migra ni arranca el mirror
 
 # Tests backend (PHPUnit 11, dentro del contenedor backend)
 docker compose --profile test up -d mysql-test   # lo necesita la suite de integración
-docker compose exec backend composer test        # las DOS suites: 1303 tests
-docker compose exec backend composer test:unit   # la rápida: 1230, sin necesitar mysql-test
-docker compose exec backend composer test:integration   # 73, contra una BD desechable
+docker compose exec backend composer test        # las DOS suites: 1363 tests
+docker compose exec backend composer test:unit   # la rápida: 1241, sin necesitar mysql-test
+docker compose exec backend composer test:integration   # 122, contra una BD desechable
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
-docker compose exec frontend npm test            # 351 tests
+docker compose exec frontend npm test            # 367 tests
 docker compose exec frontend npm run test:watch
 docker compose exec frontend npx vue-cli-service lint --no-fix   # lo corre también ./dev-setup.sh
 docker compose exec frontend npm run lint:styles                 # stylelint; también en ./dev-setup.sh
@@ -104,7 +104,8 @@ cd frontend && npm run cap:sync && npm run build:mobile
   `ActionRouter`, y el método del controller.**
 - Controllers en `backend/src/Controllers`: `Book`, `Movie`, `Game`, `Album`, `Video` (cada medio),
   `Library` / `LibraryX` (colección del usuario), `Feed` + `Social` (feed social), `List` (listas de
-  medios), `Stats`, `Auth`. Extienden `BaseController` (`successResponse`/`errorResponse`).
+  medios), `Club` (clubs), `Stats`, `Auth`. Extienden `BaseController`
+  (`successResponse`/`errorResponse`).
 - Dominio: `src/Domain/**` con interfaces de repositorio (modelo Work/Edition) + ~40 use cases;
   persistencia `MySql*Repository` con PDO. Registro en `config/container.php` (interfaz → impl.).
 
@@ -526,11 +527,30 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
   traerse las listas privadas de otro.
 - **`Recommendation` tiene DOS constantes de tipo y confundirlas abre un agujero.**
   `MEDIA_ENTITY_TYPES` son los cinco medios y es contra lo que valida `send_recommendation`;
-  `VALID_ENTITY_TYPES` añade `'list'` y es lo que la **columna** acepta, porque la invitación a
-  colaborar viaja por el mismo buzón. Si `send_recommendation` validara contra la segunda, se podría
-  «recomendar» una lista como si fuera un ítem y la bandeja intentaría darla de alta con el `enrich`
-  de un medio inexistente. Van juntas por `get_inbox_count`, que es la acción más llamada de la app y
+  `VALID_ENTITY_TYPES` añade `'list'` **y `'club'`** y es lo que la **columna** acepta, porque las
+  invitaciones a colaborar y a entrar en un club viajan por el mismo buzón. Si `send_recommendation`
+  validara contra la segunda, se podría «recomendar» una lista o un club como si fueran un ítem y la
+  bandeja intentaría darlos de alta con el `enrich` de un medio inexistente. Van juntas por `get_inbox_count`, que es la acción más llamada de la app y
   tiene que seguir siendo un `COUNT(*)` que sale entero de `idx_inbox`.
+- **Los clubs tienen DOS reglas con copia única, y ninguna vive en la plantilla.**
+  `Domain/Services/ClubCompletion.php` decide cuándo se cierra solo el ítem —solo si **todos** los
+  miembros lo completaron, con «todos» literal: quien no lo tiene en su biblioteca congela el cierre,
+  y por eso `finish_club_pick` es la vía habitual y no la excepción—. Y
+  `Domain/Services/SpoilerRule.php` decide si una nota te destriparía; lo importante no es la tabla
+  de verdad sino que **con `isSpoiler: true` el `text` viaja como `null`**: difuminar con CSS un
+  texto que está en el DOM es enseñarlo, y ninguna prueba visual lo detecta. `atPoint` sí viaja.
+- **`get_club` ESCRIBE, y es a propósito.** El proyecto no tiene cron ni workers
+  (`Infrastructure/Http/PostResponse.php:12`), así que el cierre automático del ítem se evalúa al
+  leer el club. Engancharlo en los cinco `Update<Medio>UserStatusesUseCase` serían cinco copias de la
+  regla. Su `UPDATE` lleva `AND finished_at IS NULL` para que dos lecturas simultáneas no cierren dos
+  veces, y **un fallo suyo no puede tumbar la lectura**: un club que no se pinta es peor que uno que
+  se cierra en la siguiente visita.
+- **Las cinco tablas `user_*_notes` NO comparten forma.** `user_edition_notes` cuelga de
+  `user_edition_id` (indirecto, vía `user_book_editions`) y es la única con `page_number` real;
+  `user_movie_notes` lo tiene pero es `NULL` y **no significa nada**; `user_game_notes`,
+  `user_album_notes` y `user_video_notes` **no tienen la columna**. Un `SELECT … page_number`
+  genérico sobre las cinco revienta en tres. Y por eso **solo los libros** tienen la regla de spoiler
+  fina: las series tienen eje pero sus notas no tienen punto.
 - **Un medio nuevo se declara en `mediaRegistry`**, no se copia el componente del medio de al lado.
 - **Ni un hex ni un `px` de breakpoint fuera de su sitio**: el color va a `tokens/_colors.scss` /
   `themes/_dark.scss` y los umbrales a `abstracts/_breakpoints.scss`. `stylelint` lo comprueba.
@@ -541,9 +561,9 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 
 1. `docker compose up --build`; `POST http://localhost:8888/index.php` con `{"action":"ping"}`.
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
-3. `docker compose exec backend composer test` → verde (1303 tests: 1230 unitarios + 73 de
+3. `docker compose exec backend composer test` → verde (1363 tests: 1241 unitarios + 122 de
    integración; estos necesitan `docker compose --profile test up -d mysql-test`).
-4. `docker compose exec frontend npm test` → verde (351 tests) y
+4. `docker compose exec frontend npm test` → verde (367 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
 5. **`docker compose exec frontend npm run build` → `Build complete`.** No es redundante con el paso
    anterior: **ninguno de los tres comandos de arriba compila SCSS**. Los helpers de

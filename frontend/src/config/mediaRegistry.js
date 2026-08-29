@@ -257,6 +257,22 @@ export const mediaRegistry = {
     idType: Number,
     routeName: 'BookDetail',
     accentVar: '--color-card-book-accent',
+    /**
+     * El eje de progreso dentro de un club. `axis` dice CÓMO se mide el avance
+     * y `completedStatuses` cuándo se da por acabado; los dos los usa la
+     * pantalla del club y, en el M4, la regla de spoiler.
+     *
+     * El eje viene **resuelto del servidor** en `get_club_progress` —solo él
+     * sabe que un `entity_type: 'movie'` es en realidad una serie, mirando
+     * `movie.media_type`— y esto es la parte de presentación: la etiqueta y la
+     * unidad con las que se pinta.
+     */
+    progress: {
+      axis: 'page',
+      label: 'Página',
+      unit: 'pág.',
+      completedStatuses: ['read']
+    },
     detail: {
       // Dimensiones intrínsecas de la portada en esta familia, en px: el navegador las usa
       // para reservar la caja antes de que cargue la imagen. Salen de los mixins SCSS de la
@@ -581,6 +597,14 @@ export const mediaRegistry = {
     idType: String,
     routeName: 'MovieDetail',
     accentVar: '--color-card-movie-accent',
+    // Sin eje: `hours_played`, minuto o porcentaje no existen como columna, y
+    // añadirlos era «Fuera» del plan. Aquí el progreso es binario.
+    progress: {
+      axis: null,
+      label: 'Vista',
+      unit: null,
+      completedStatuses: ['viewed']
+    },
     detail: {
       // Dimensiones intrínsecas de la portada en esta familia, en px: el navegador las usa
       // para reservar la caja antes de que cargue la imagen. Salen de los mixins SCSS de la
@@ -795,6 +819,12 @@ export const mediaRegistry = {
     idType: Number,
     routeName: 'GameDetail',
     accentVar: '--color-card-game-accent',
+    progress: {
+      axis: null,
+      label: 'Completado',
+      unit: null,
+      completedStatuses: ['completed']
+    },
     detail: {
       // Dimensiones intrínsecas de la portada en esta familia, en px: el navegador las usa
       // para reservar la caja antes de que cargue la imagen. Salen de los mixins SCSS de la
@@ -1043,6 +1073,12 @@ export const mediaRegistry = {
     idType: Number,
     routeName: 'AlbumDetail',
     accentVar: '--color-card-album-accent',
+    progress: {
+      axis: null,
+      label: 'Escuchado',
+      unit: null,
+      completedStatuses: ['listened']
+    },
     detail: {
       // Dimensiones intrínsecas de la portada en esta familia, en px: el navegador las usa
       // para reservar la caja antes de que cargue la imagen. Salen de los mixins SCSS de la
@@ -1309,6 +1345,12 @@ export const mediaRegistry = {
     idType: String,
     routeName: 'VideoDetail',
     accentVar: '--color-card-video-accent',
+    progress: {
+      axis: null,
+      label: 'Visto',
+      unit: null,
+      completedStatuses: ['watched']
+    },
     // Ficha de detalle (MediaDetailView).
     detail: {
       // Dimensiones intrínsecas de la portada en esta familia, en px: el navegador las usa
@@ -1508,6 +1550,22 @@ export const mediaRegistry = {
     routeName: 'SeriesDetail',
     // Comparte identidad visual con películas.
     accentVar: '--color-card-movie-accent',
+    /**
+     * `series` es la sexta entrada y necesita su bloque aunque no tenga store:
+     * al declarar esto hay que iterar `mediaKeys` (los seis) y NO
+     * `storeMediaKeys` (los cinco), que es el error fácil.
+     *
+     * `completedStatuses` es `viewed` y no algo derivado de las temporadas: es
+     * la misma fuente que usa `ClubCompletion` en el backend
+     * (`user_movie_statuses`). Contar temporadas aquí haría que la pantalla
+     * contradijera al cierre automático.
+     */
+    progress: {
+      axis: 'season',
+      label: 'Temporada',
+      unit: 'T',
+      completedStatuses: ['viewed']
+    },
     detail: {
       // Dimensiones intrínsecas de la portada en esta familia, en px: el navegador las usa
       // para reservar la caja antes de que cargue la imagen. Salen de los mixins SCSS de la

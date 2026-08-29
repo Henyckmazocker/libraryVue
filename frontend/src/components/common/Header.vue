@@ -65,6 +65,20 @@
           <span class="u-sr-only">Mis listas</span>
         </router-link>
 
+        <!-- Los clubs. Sin contador, como las listas: no hay nada que avisar. -->
+        <router-link
+          to="/clubs"
+          class="app-header__inbox"
+        >
+          <i
+            class="fas fa-users"
+            aria-hidden="true"
+          />
+          <!-- El texto va en .u-sr-only y no en un aria-label: es la convención
+               del proyecto para lo que solo existe como icono. -->
+          <span class="u-sr-only">Mis clubs</span>
+        </router-link>
+
         <!-- La bandeja. El icono se pinta SIEMPRE y solo el contador aparece y
              desaparece: si se ocultara el icono entero, la cabecera daría un
              salto cada vez que llega o se resuelve una recomendación. -->

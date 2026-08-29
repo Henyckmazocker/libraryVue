@@ -1727,4 +1727,132 @@ return [
         ],
         'validation' => ['listId', 'itemId']
     ],
+
+    // ============================================================================
+    // CLUBS - Un grupo de amigos con un ítem activo y un historial
+    // ============================================================================
+    //
+    // No hay visibilidad que consultar, y por eso no existe un `ClubAccess`
+    // equivalente a `ListAccess`: un club no es público, colaborativo ni privado
+    // — o eres miembro o no lo eres, y eso lo contesta un `isMember` que sale
+    // entero de la PK de `club_member`. La comprobación va en el use case.
+
+    'create_club' => [
+        'controller' => ['ClubController', 'createClub'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['name']]]
+        ],
+        'validation' => ['name']
+    ],
+
+    'get_my_clubs' => [
+        'controller' => ['ClubController', 'getMyClubs'],
+        'middleware' => [LoggingMiddleware::class, AuthenticationMiddleware::class],
+        'validation' => []
+    ],
+
+    'get_club' => [
+        'controller' => ['ClubController', 'getClub'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['clubId']]]
+        ],
+        'validation' => ['clubId']
+    ],
+
+    // `userId` es a QUIÉN se invita, no quién invita: eso sale de la sesión.
+    // Invitar es del DUEÑO y no de cualquier miembro, porque decide ante quién
+    // se expone el progreso de todos los demás.
+    'invite_to_club' => [
+        'controller' => ['ClubController', 'inviteToClub'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['clubId', 'userId']]]
+        ],
+        'validation' => ['clubId', 'userId']
+    ],
+
+    // Por `recommendationId` y no por `clubId`, igual que `accept_collaboration`:
+    // es lo que garantiza que solo se entra en un club al que te invitaron.
+    'accept_club_invitation' => [
+        'controller' => ['ClubController', 'acceptClubInvitation'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['recommendationId']]]
+        ],
+        'validation' => ['recommendationId']
+    ],
+
+    // Salir es el ÚNICO control de privacidad del club: entrar es consentir que
+    // sus miembros vean tu progreso y tus notas públicas sobre el ítem activo.
+    // Va separada de `get_club` a propósito: es la que cambia mientras la
+    // página está abierta y la única que conviene refrescar sola. Sin CSRF,
+    // como `get_club`: es lectura.
+    'get_club_progress' => [
+        'controller' => ['ClubController', 'getClubProgress'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['clubId']]]
+        ],
+        'validation' => ['clubId']
+    ],
+
+    // La otra que cambia con la pantalla abierta. Sin CSRF: es lectura. Y el
+    // marcado de spoiler lo hace el SERVIDOR — el texto de una nota oculta no
+    // viaja en la respuesta.
+    'get_club_notes' => [
+        'controller' => ['ClubController', 'getClubNotes'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['clubId']]]
+        ],
+        'validation' => ['clubId']
+    ],
+
+    // Elegir y cerrar son del DUEÑO, como invitar: son las decisiones que toma
+    // por todos los demás. `set_club_pick` devuelve 409 si ya hay uno activo.
+    'set_club_pick' => [
+        'controller' => ['ClubController', 'setClubPick'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['clubId', 'entityType', 'entityId']]]
+        ],
+        'validation' => ['clubId', 'entityType', 'entityId']
+    ],
+
+    // Por `clubId` y no por `pickId`: el activo es uno solo, y pedirlo por su id
+    // dejaría cerrar uno del historial por error.
+    'finish_club_pick' => [
+        'controller' => ['ClubController', 'finishClubPick'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['clubId']]]
+        ],
+        'validation' => ['clubId']
+    ],
+
+    'leave_club' => [
+        'controller' => ['ClubController', 'leaveClub'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['clubId']]]
+        ],
+        'validation' => ['clubId']
+    ],
 ];

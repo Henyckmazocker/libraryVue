@@ -145,6 +145,22 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/clubs',
+    name: 'Clubs',
+    component: () => import('../views/ClubsView.vue'),
+    // Como las listas: las siete acciones de club llevan `Auth`, incluidas las
+    // de lectura, así que sin esto `get_my_clubs` devuelve un 401 que la vista
+    // no espera.
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/clubs/:clubId',
+    name: 'ClubDetail',
+    component: () => import('../views/ClubDetailView.vue'),
+    props: true,
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/inbox',
     name: 'Inbox',
     component: () => import('../views/InboxView.vue'),

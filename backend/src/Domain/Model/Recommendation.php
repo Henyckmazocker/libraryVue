@@ -31,6 +31,9 @@ class Recommendation
     /** Una invitación a colaborar en una lista, que entra por el mismo buzón. */
     public const ENTITY_LIST = 'list';
 
+    /** Una invitación a entrar en un club, que entra por ese mismo buzón. */
+    public const ENTITY_CLUB = 'club';
+
     /**
      * Lo que la COLUMNA acepta, que es más que lo que se puede recomendar.
      *
@@ -39,7 +42,7 @@ class Recommendation
      * la bandeja intentaría darla de alta en la biblioteca con el `enrich` de un
      * medio que no existe.
      */
-    public const VALID_ENTITY_TYPES = [...self::MEDIA_ENTITY_TYPES, self::ENTITY_LIST];
+    public const VALID_ENTITY_TYPES = [...self::MEDIA_ENTITY_TYPES, self::ENTITY_LIST, self::ENTITY_CLUB];
 
     public function __construct(
         private ?int    $id,
@@ -84,6 +87,7 @@ class Recommendation
 
     /** Una invitación a colaborar no es una recomendación de un ítem. */
     public function isListInvitation(): bool { return $this->entityType === self::ENTITY_LIST; }
+    public function isClubInvitation(): bool { return $this->entityType === self::ENTITY_CLUB; }
 
     /**
      * Marca la recomendación como atendida. Solo desde `pending`: resolver dos

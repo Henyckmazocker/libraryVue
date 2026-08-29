@@ -36,6 +36,21 @@
         />
         <span>Añadir a lista</span>
       </button>
+
+      <!-- Ponerlo como ítem de un club. Solo con sesión, como los otros dos, y
+           el diálogo se encarga de ofrecer solo los clubs donde de verdad se
+           puede: los que organizo y no tienen ya uno activo. -->
+      <button
+        v-if="isAuthenticated && item"
+        class="recommend-button"
+        @click="showAddToClubDialog = true"
+      >
+        <i
+          class="fas fa-users"
+          aria-hidden="true"
+        />
+        <span>Ponerlo en un club</span>
+      </button>
     </div>
 
     <MediaSkeleton
@@ -203,6 +218,18 @@
         :entity-cover="remoteCoverUrl"
       />
 
+      <!-- Con `v-if` y no solo con `v-model`, como los otros dos: usa el store
+           de clubs en su `setup`, así que instanciarlo siempre haría que toda
+           ficha visitada lo levantara. -->
+      <AddToClubDialog
+        v-if="showAddToClubDialog"
+        v-model="showAddToClubDialog"
+        :entity-type="coverMedia"
+        :entity-id="routeId"
+        :entity-title="title"
+        :entity-cover="remoteCoverUrl"
+      />
+
       <!-- Atribución del proveedor. La exigen las condiciones de uso de TMDB
            en cualquier pantalla que muestre datos suyos, así que no se quita. -->
       <footer
@@ -263,6 +290,7 @@ import MediaSkeleton from '@/components/shared/MediaSkeleton.vue'
 import EditItemModal from '@/components/EditItemModal.vue'
 import RecommendDialog from '@/components/Social/RecommendDialog.vue'
 import AddToListDialog from '@/components/Lists/AddToListDialog.vue'
+import AddToClubDialog from '@/components/Clubs/AddToClubDialog.vue'
 import { getMediaConfig, mediaKeys } from '@/config/mediaRegistry'
 import CoverService from '@/services/CoverService'
 import { useAuthStore } from '@/store/auth'
@@ -323,6 +351,7 @@ const libraryItemRef = ref(null)
 const editModal = ref({ isVisible: false, item: null })
 const showRecommendDialog = ref(false)
 const showAddToListDialog = ref(false)
+const showAddToClubDialog = ref(false)
 // Una portada que no carga pinta el placeholder del medio en vez de dejar el
 // icono de imagen rota del navegador.
 const imageError = ref(false)

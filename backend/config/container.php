@@ -122,6 +122,22 @@ return function (): ContainerInterface {
         \App\Infrastructure\Persistence\MediaList\MySqlMediaListRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\MediaList\MySqlMediaListItemRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\MediaList\MySqlMediaListCollaboratorRepository::class => DI\autowire(),
+
+        // CLUBS
+        // No hay `ClubAccess` que registrar: el permiso del club entero es el
+        // `isMember` del repositorio de miembros, no una tabla de verdad.
+        \App\Domain\Repository\Club\ClubRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Club\MySqlClubRepository::class),
+        \App\Domain\Repository\Club\ClubMemberRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Club\MySqlClubMemberRepository::class),
+        \App\Infrastructure\Persistence\Club\MySqlClubRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Club\MySqlClubMemberRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Club\Mappers\ClubDataMapper::class => DI\autowire(),
+        \App\Domain\Repository\Club\ClubPickRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Club\MySqlClubPickRepository::class),
+        \App\Domain\Repository\Club\ClubProgressRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Club\MySqlClubProgressRepository::class),
+        \App\Infrastructure\Persistence\Club\MySqlClubPickRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Club\MySqlClubProgressRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Club\Mappers\ClubPickDataMapper::class => DI\autowire(),
+        \App\Domain\Repository\Club\ClubNoteRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Club\MySqlClubNoteRepository::class),
+        \App\Infrastructure\Persistence\Club\MySqlClubNoteRepository::class => DI\autowire(),
         
         // Note: Most repositories use 'db' as the constructor parameter name for PDO
         \App\Infrastructure\Persistence\Game\MySqlGameRepository::class => DI\autowire(),
@@ -418,6 +434,23 @@ return function (): ContainerInterface {
         \App\Domain\UseCases\Lists\InviteCollaboratorUseCase::class => DI\autowire(),
         \App\Domain\UseCases\Lists\AcceptCollaborationUseCase::class => DI\autowire(),
         \App\Domain\UseCases\Lists\RemoveCollaboratorUseCase::class => DI\autowire(),
+
+        // CLUBS
+        \App\Domain\UseCases\Clubs\CreateClubUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Clubs\GetMyClubsUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Clubs\GetClubUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Clubs\InviteToClubUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Clubs\AcceptClubInvitationUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Clubs\LeaveClubUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Clubs\SetClubPickUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Clubs\FinishClubPickUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Clubs\GetClubProgressUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Clubs\GetClubNotesUseCase::class => DI\autowire(),
+        // La regla de spoiler, en una sola copia y sin dependencias: es lógica
+        // pura, y por eso se puede fijar entera con unitarios.
+        \App\Domain\Services\SpoilerRule::class => DI\autowire(),
+        // La regla de «han acabado todos» en una sola copia, como `ListAccess`.
+        \App\Domain\Services\ClubCompletion::class => DI\autowire(),
         
         // ===========================
         // MIDDLEWARE
@@ -445,6 +478,7 @@ return function (): ContainerInterface {
         \App\Controllers\SocialController::class => DI\autowire(),
         \App\Controllers\FeedController::class => DI\autowire(),
         \App\Controllers\ListController::class => DI\autowire(),
+        \App\Controllers\ClubController::class => DI\autowire(),
         
         // ===========================
         // ROUTER

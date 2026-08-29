@@ -113,6 +113,21 @@ abstract class IntegrationTestCase extends TestCase
      * (`*_statuses`, `item_owned_formats`, `versions`) las rellena `init.sql`
      * con INSERTs y vaciarlas dejaría la app sin estados válidos, que es un
      * fallo que no tiene nada que ver con lo que cada test viene a probar.
+     *
+     * **Pero `user_*_statuses` NO son de referencia, son datos**, y hasta el
+     * 2026-08-29 la exclusión por sufijo se las llevaba por delante: un
+     * `str_ends_with('_statuses')` caza igual a `movie_statuses` (referencia,
+     * cinco filas del seed) que a `user_movie_statuses` (lo que cada test
+     * escribe). Las cinco no se truncaban **nunca**: `mysql-test` acumulaba
+     * 124 filas con fechas de dos días atrás.
+     *
+     * Y no era una fuga inocua, porque `TRUNCATE` **reinicia el
+     * `AUTO_INCREMENT`**: los usuarios de cada test vuelven a ser el id 1, 2,
+     * 3 y **heredan los estados del test anterior**. Lo destapó el cierre
+     * automático de los clubs, que es el primer código que depende de que esas
+     * tablas estén limpias: un club de dos se auto-cerraba con un `viewed` que
+     * ese test nunca escribió. Ningún test anterior lo notó porque ninguno
+     * leía lo que otro había dejado ahí.
      */
     private function truncateDataTables(): void
     {
@@ -128,7 +143,12 @@ abstract class IntegrationTestCase extends TestCase
         self::$pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
 
         foreach ($tablas as $tabla) {
-            if (in_array($tabla, $excluidas, true) || str_ends_with($tabla, '_statuses')) {
+            // Las de referencia terminan en `_statuses` (`movie_statuses`,
+            // `movie_has_statuses`…); las de datos empiezan además por
+            // `user_`, y esas SÍ se truncan.
+            $esReferencia = str_ends_with($tabla, '_statuses') && !str_starts_with($tabla, 'user_');
+
+            if (in_array($tabla, $excluidas, true) || $esReferencia) {
                 continue;
             }
 

@@ -6,6 +6,8 @@ namespace App\Domain\UseCases\Clubs;
 
 use App\Domain\DTO\Commands\LeaveClubCommand;
 use App\Domain\Repository\Club\ClubMemberRepositoryInterface;
+use App\Domain\Repository\Club\ClubProposalRepositoryInterface;
+use App\Domain\Repository\Club\ClubVoteRepositoryInterface;
 use App\Domain\Repository\Club\ClubRepositoryInterface;
 use App\Domain\UseCases\AbstractUseCase;
 use DomainException;
@@ -24,12 +26,22 @@ use RuntimeException;
  * El dueño no puede salir: dejaría un club sin nadie que pueda invitar ni
  * elegir ítem. Borra el club, que es otra acción y se lleva `club_member` y
  * `club_pick` por CASCADE.
+ *
+ * **Lo que sí hay que borrar a mano son la propuesta y el voto de la ronda en
+ * curso.** `club_member` no es clave ajena ni de `club_proposal` ni de
+ * `club_vote`, así que salir no los arrastra por CASCADE, y sin esto «han
+ * propuesto todos» y «han votado todos» comparan miembros actuales contra
+ * participaciones de gente que ya no está: las fases no cerrarían nunca. Solo
+ * las de rondas **abiertas** — las cerradas son historia y de ellas sale el
+ * ganador anterior de la rotación.
  */
 class LeaveClubUseCase extends AbstractUseCase
 {
     public function __construct(
         private readonly ClubRepositoryInterface       $clubRepository,
         private readonly ClubMemberRepositoryInterface $memberRepository,
+        private readonly ClubProposalRepositoryInterface $proposalRepository,
+        private readonly ClubVoteRepositoryInterface   $voteRepository,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -57,6 +69,8 @@ class LeaveClubUseCase extends AbstractUseCase
         }
 
         $this->memberRepository->remove($command->clubId, $command->userId);
+        $this->proposalRepository->deleteByUser($command->clubId, $command->userId);
+        $this->voteRepository->deleteByUser($command->clubId, $command->userId);
 
         return ['clubId' => $command->clubId];
     }

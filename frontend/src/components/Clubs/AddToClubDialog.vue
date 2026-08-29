@@ -11,7 +11,7 @@
   >
     <div class="add-to-club-dialog__body">
       <p class="add-to-club-dialog__item">
-        El club empezará con <strong>{{ entityTitle }}</strong>
+        <strong>{{ entityTitle }}</strong>
       </p>
 
       <div
@@ -25,8 +25,9 @@
         v-else-if="elegibles.length === 0"
         class="add-to-club-dialog__state"
       >
-        No hay ningún club tuyo libre ahora mismo. Solo puedes elegir ítem en los
-        clubs que organizas y que no tengan uno activo.
+        No hay ningún club donde puedas poner esto ahora mismo. Se puede proponer
+        en los clubs que estén eligiendo, y elegir directamente solo en los que
+        organizas y no tengan ítem activo.
       </p>
 
       <fieldset
@@ -48,8 +49,10 @@
           @click="clubId = club.id"
         >
           <span class="add-to-club-dialog__club-name">{{ club.name }}</span>
+          <!-- Qué va a pasar con ESTE club, dicho antes de pulsar: proponer y
+               elegir no son lo mismo y el usuario tiene que saber cuál hace. -->
           <span class="add-to-club-dialog__club-count">
-            {{ club.member_count }} {{ club.member_count === 1 ? 'miembro' : 'miembros' }}
+            {{ acciones.get(club.id) === 'propose' ? 'Se propone y se vota' : 'Empieza directamente' }}
           </span>
         </button>
       </fieldset>
@@ -82,7 +85,7 @@
           v-if="isSaving"
           class="pi pi-spin pi-spinner"
         />
-        Empezar
+        {{ acciones.get(clubId) === 'propose' ? 'Proponerlo' : 'Empezar' }}
       </button>
     </template>
   </Dialog>
@@ -114,63 +117,87 @@ const { clubs: allClubs, isLoading, isSaving, error } = storeToRefs(clubs)
 const notifications = inject('notifications', null)
 
 const clubId = ref(null)
-const conActivo = ref(new Set())
+
+/**
+ * Qué acción admite cada club: `'propose'` o `'pick'`. Los que no aparecen no
+ * admiten ninguna y no se ofrecen.
+ *
+ * Es un mapa y no dos listas porque el botón tiene que decir cuál de las dos
+ * hace, y el texto se lee de aquí.
+ */
+const acciones = ref(new Map())
 
 const visible = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value)
 })
 
-/**
- * Solo los que organizo **y** no tienen ítem activo.
- *
- * Lo primero porque elegir es del dueño; lo segundo porque `set_club_pick`
- * devuelve 409 con uno activo, y ofrecer un botón que va a fallar es peor que
- * no ofrecerlo. `get_my_clubs` no dice si hay activo, así que se pregunta club
- * a club al abrir — son pocos y solo los propios.
- */
+/** Los que admiten algo. El orden es el de `get_my_clubs`. */
 const elegibles = computed(
-  () => allClubs.value.filter((c) => c.is_owner && !conActivo.value.has(c.id))
+  () => allClubs.value.filter((c) => acciones.value.has(c.id))
 )
 
+/**
+ * Con la votación, un club sin ítem activo **siempre** tiene ronda abierta, así
+ * que ya no basta con «lo organizo y está libre»: hay que mirar la ronda.
+ *
+ * Se pide el club entero y no el progreso, como se hacía antes. `get_club` es
+ * la única respuesta que trae el bloque `round` con su `canPropose` y su
+ * `reasonBlocked` **ya resueltos** por el servidor, y con la rotación en juego
+ * no hay forma de deducir aquí si te toca proponer sin copiar la regla.
+ *
+ * Ojo: `get_club` ESCRIBE —abre la ronda, y puede cerrarla—, así que abrir este
+ * diálogo hace avanzar los clubs que estuvieran listos. Es el mismo efecto que
+ * tiene mirar la pantalla del club, que es la semántica del proyecto entero.
+ */
 onMounted(async () => {
   await clubs.fetchMyClubs()
 
-  const propios = allClubs.value.filter((c) => c.is_owner)
-  const ocupados = new Set()
+  const mios = [...allClubs.value]
+  const mapa = new Map()
 
-  await Promise.all(propios.map(async (club) => {
-    // Se mira el progreso y no el club entero: es la respuesta más pequeña que
-    // distingue «tiene activo» de «no lo tiene» — sin ítem devuelve
-    // `axis: null` y lista vacía, que es un contrato estable y no un error.
-    //
-    // Se lee del RESULTADO y no de `clubs.progressMembers`: estas llamadas van
-    // en paralelo sobre el mismo store, y el estado compartido lo deja la
-    // última que termine, no la de este club.
-    const resultado = await clubs.fetchProgress(club.id)
-    if (resultado.success && resultado.members.length > 0) ocupados.add(club.id)
+  await Promise.all(mios.map(async (club) => {
+    // Se lee del RESULTADO y no del store: estas llamadas van en paralelo sobre
+    // el mismo estado compartido, y lo deja la última que termine.
+    const resultado = await clubs.fetchClubSnapshot(club.id)
+    if (!resultado.success) return
+
+    if (resultado.round?.phase === 'proposing' && resultado.round.canPropose) {
+      mapa.set(club.id, 'propose')
+      return
+    }
+
+    // La vía de escape del dueño: sigue existiendo, pero ya no es lo normal.
+    if (club.is_owner && !resultado.pick) mapa.set(club.id, 'pick')
   }))
 
-  conActivo.value = ocupados
+  acciones.value = mapa
 })
 
 const submit = async () => {
-  const result = await clubs.setPick(clubId.value, {
+  const datos = {
     entityType: props.entityType,
     entityId: props.entityId,
     entityTitle: props.entityTitle,
     entityCover: props.entityCover
-  })
+  }
+
+  const proponer = acciones.value.get(clubId.value) === 'propose'
+  const result = proponer
+    ? await clubs.proposeItem(clubId.value, datos)
+    : await clubs.setPick(clubId.value, datos)
 
   if (!result.success) {
-    // El 409 del club que ya tiene ítem viene traducido por código desde el
-    // store: el backend responde en inglés y no se lee su texto.
-    notifications?.showError?.(result.message || 'No se pudo elegir el ítem')
+    // Traducido por código desde el store: el backend responde en inglés y no
+    // se lee su texto.
+    notifications?.showError?.(result.message || 'No se pudo añadir al club')
     return
   }
 
   visible.value = false
-  notifications?.showSuccess?.('El club ya tiene su siguiente ítem')
+  notifications?.showSuccess?.(
+    proponer ? 'Propuesta enviada al club' : 'El club ya tiene su siguiente ítem'
+  )
 }
 </script>
 

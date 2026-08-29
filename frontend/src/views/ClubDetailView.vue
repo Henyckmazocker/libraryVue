@@ -36,8 +36,13 @@
         </p>
       </header>
 
-      <!-- El ítem activo -->
-      <section class="club-detail__section">
+      <!-- El ítem activo. La sección entera desaparece cuando hay ronda: ítem y
+           ronda son estados EXCLUYENTES, y dejar el título con nada debajo es
+           lo que se ve en la pantalla de un club que está eligiendo. -->
+      <section
+        v-if="currentPick || !currentRound"
+        class="club-detail__section"
+      >
         <h2 class="club-detail__section-title">
           Lo que estamos viendo
         </h2>
@@ -86,12 +91,33 @@
         </div>
 
         <p
-          v-else
+          v-else-if="!currentRound"
           class="club-detail__empty"
         >
           Ahora mismo el club no tiene nada activo.
           <span v-if="isCurrentOwner">Elige el siguiente desde la ficha de cualquier medio.</span>
         </p>
+      </section>
+
+      <!-- La ronda: solo hay una cuando NO hay ítem activo. Son estados
+           excluyentes y el servidor manda uno u otro, nunca los dos. -->
+      <section
+        v-if="currentRound"
+        class="club-detail__section"
+      >
+        <h2 class="club-detail__section-title">
+          Qué leemos ahora
+        </h2>
+
+        <ClubRound
+          :round="currentRound"
+          :members="currentMembers"
+          :is-owner="isCurrentOwner"
+          :is-saving="isSaving"
+          @vote="handleVote"
+          @open-vote="handleOpenVote"
+          @close-vote="handleCloseVote"
+        />
       </section>
 
       <!-- El progreso de cada uno -->
@@ -241,6 +267,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useClubsStore } from '@/store/clubs'
 import ClubMemberProgress from '@/components/Clubs/ClubMemberProgress.vue'
+import ClubRound from '@/components/Clubs/ClubRound.vue'
 import InviteToClubDialog from '@/components/Clubs/InviteToClubDialog.vue'
 import ClubNotes from '@/components/Clubs/ClubNotes.vue'
 import { detailRouteFor } from '@/config/mediaRegistry'
@@ -252,7 +279,7 @@ const props = defineProps({
 
 const clubsStore = useClubsStore()
 const {
-  current, currentMembers, currentPick, currentHistory,
+  current, currentMembers, currentPick, currentRound, currentHistory,
   progressAxis, progressMembers,
   notes, notesAxis,
   isLoading, isLoadingProgress, isLoadingNotes, isSaving, error
@@ -334,6 +361,50 @@ const handleFinish = async () => {
   }
 
   notifications?.showSuccess?.('Ítem terminado')
+}
+
+/**
+ * Votar, y las dos válvulas del dueño. Las tres releen el club desde el store,
+ * porque **el estado siguiente lo decide el servidor al leer**: votar el último
+ * que faltaba cierra la ronda y crea el ítem, y proponer el último abre el
+ * voto. Aquí no se adivina nada.
+ */
+const handleVote = async (proposalId) => {
+  const result = await clubsStore.voteProposal(numericId.value, proposalId)
+
+  if (!result.success) {
+    notifications?.showError?.(result.message || 'No se pudo votar')
+    return
+  }
+
+  notifications?.showSuccess?.('Voto registrado')
+}
+
+const handleOpenVote = async () => {
+  const result = await clubsStore.openVote(numericId.value)
+
+  if (!result.success) {
+    notifications?.showError?.(result.message || 'No se pudo abrir el voto')
+    return
+  }
+
+  notifications?.showSuccess?.('Voto abierto')
+}
+
+const handleCloseVote = async () => {
+  const result = await clubsStore.closeVote(numericId.value)
+
+  if (!result.success) {
+    notifications?.showError?.(result.message || 'No se pudo cerrar la votación')
+    return
+  }
+
+  // Cerrar NO garantiza ítem: si los votos empataban en el primer recuento, la
+  // ronda pasa al desempate y sigue votándose. La válvula destraba la espera,
+  // no la regla.
+  notifications?.showSuccess?.(
+    result.pickId ? 'Ya tenéis siguiente ítem' : 'Empate: toca desempatar'
+  )
 }
 
 const handleLeave = async () => {

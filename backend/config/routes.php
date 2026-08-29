@@ -1845,6 +1845,61 @@ return [
         'validation' => ['clubId']
     ],
 
+    // Proponer es de cualquier MIEMBRO: es lo que deja de convertir al dueño en
+    // quien decide qué lee el resto. La rotación y la fase las comprueba el use
+    // case contra `ClubRoundResolver`, no este pipeline.
+    'propose_club_item' => [
+        'controller' => ['ClubController', 'proposeClubItem'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['clubId', 'entityType', 'entityId']]]
+        ],
+        'validation' => ['clubId', 'entityType', 'entityId']
+    ],
+
+    // Votar es de cualquier MIEMBRO, y se puede votar la propia propuesta: en un
+    // club de dos, prohibirlo convierte cada ronda en un empate garantizado.
+    // Cambiar el voto es esta misma acción otra vez.
+    'vote_club_proposal' => [
+        'controller' => ['ClubController', 'voteClubProposal'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['clubId', 'proposalId']]]
+        ],
+        'validation' => ['clubId', 'proposalId']
+    ],
+
+    // Las dos válvulas del DUEÑO. No son un atajo sino lo que impide que una
+    // ronda se muera: sin cron, si alguien no propone o no vota nunca, la fase
+    // no avanzaría jamás por sí sola. Ninguna de las dos salta las guardas —no
+    // se abre un voto sin propuestas ni se cierra uno sin votos— ni el
+    // desempate, que sigue su curso.
+    'open_club_vote' => [
+        'controller' => ['ClubController', 'openClubVote'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['clubId']]]
+        ],
+        'validation' => ['clubId']
+    ],
+
+    'close_club_vote' => [
+        'controller' => ['ClubController', 'closeClubVote'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['clubId']]]
+        ],
+        'validation' => ['clubId']
+    ],
+
     'leave_club' => [
         'controller' => ['ClubController', 'leaveClub'],
         'middleware' => [

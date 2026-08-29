@@ -27,6 +27,13 @@ export const useClubsStore = defineStore('clubs', {
     currentMembers: [],
     // El ítem activo, o `null` entre un ítem y el siguiente.
     currentPick: null,
+    // La ronda de votación, o `null` cuando hay ítem activo: son estados
+    // EXCLUYENTES y el servidor manda uno u otro, nunca los dos. Dentro vienen
+    // `canPropose` y `reasonBlocked` ya resueltos —la rotación es una regla de
+    // dominio y no se recalcula aquí—, el recuento de cada propuesta y el voto
+    // propio. Los votos AJENOS no vienen, y no es un olvido: quién votó a quién
+    // no es asunto de nadie.
+    currentRound: null,
     currentHistory: [],
     // `axis` es 'page' | 'season' | null, y lo manda RESUELTO el servidor:
     // solo él sabe que un `entity_type: 'movie'` es una serie, mirando
@@ -49,6 +56,11 @@ export const useClubsStore = defineStore('clubs', {
     hasClubs: (state) => state.clubs.length > 0,
     isCurrentOwner: (state) => Boolean(state.current?.is_owner),
     hasActivePick: (state) => state.currentPick !== null,
+    isVoting: (state) => state.currentRound?.phase === 'voting',
+    isProposing: (state) => state.currentRound?.phase === 'proposing',
+    /** Cuántos votos hay en el recuento en curso, para el resumen de la fase. */
+    castVotes: (state) => (state.currentRound?.proposals ?? [])
+      .reduce((total, propuesta) => total + (propuesta.votes ?? 0), 0),
     /**
      * Cuántos han acabado, para el resumen de la cabecera. Sale de lo que ya
      * está en memoria: no hay una acción del backend para esto porque el
@@ -87,6 +99,12 @@ export const useClubsStore = defineStore('clubs', {
      * Si todos los miembros han completado el ítem, el servidor lo cierra en
      * esta misma llamada —no hay cron en el proyecto—, así que `pick` puede
      * volver `null` y `history` con una entrada más de la que había.
+     *
+     * Y desde la votación escribe más cosas: **abre la ronda, abre el voto
+     * cuando han propuesto todos, y la cierra creando el ítem ganador**. Por eso
+     * la respuesta puede traer un `pick` que no existía antes de esta llamada, y
+     * por eso hay que releer el club después de proponer o votar: el estado
+     * siguiente lo decide el servidor al leer, no el cliente.
      */
     async fetchClub (clubId) {
       const authStore = useAuthStore()
@@ -95,6 +113,7 @@ export const useClubsStore = defineStore('clubs', {
       this.current = null
       this.currentMembers = []
       this.currentPick = null
+      this.currentRound = null
       this.currentHistory = []
       this.notes = []
 
@@ -105,6 +124,7 @@ export const useClubsStore = defineStore('clubs', {
           this.current = response.data.data?.club ?? null
           this.currentMembers = response.data.data?.members ?? []
           this.currentPick = response.data.data?.pick ?? null
+          this.currentRound = response.data.data?.round ?? null
           this.currentHistory = response.data.data?.history ?? []
           return { success: true }
         }
@@ -118,6 +138,40 @@ export const useClubsStore = defineStore('clubs', {
         return { success: false, code }
       } finally {
         this.isLoading = false
+      }
+    },
+
+    /**
+     * `get_club` **sin tocar el estado compartido**: devuelve el ítem activo y
+     * la ronda, y nada más.
+     *
+     * Existe para `AddToClubDialog`, que pregunta por VARIOS clubs a la vez
+     * para saber qué ofrece en cada uno. Si escribiera en `current`, el estado
+     * lo dejaría la última llamada que terminase y las demás respuestas se
+     * perderían — es el mismo motivo por el que `fetchProgress` devuelve sus
+     * datos además de guardarlos.
+     *
+     * Y hereda el efecto de `get_club`: **escribe en el servidor**. Preguntar
+     * por un club puede abrirle la ronda o cerrarla, igual que mirarlo.
+     */
+    async fetchClubSnapshot (clubId) {
+      const authStore = useAuthStore()
+
+      try {
+        const response = await authStore.authenticatedApiCall('get_club', { clubId })
+
+        if (response.data.status !== 'success') {
+          return { success: false, code: response.data.http_code ?? null }
+        }
+
+        return {
+          success: true,
+          pick: response.data.data?.pick ?? null,
+          round: response.data.data?.round ?? null
+        }
+      } catch (err) {
+        Logger.error('[ClubsStore] fetchClubSnapshot error:', err)
+        return { success: false, code: err.response?.status ?? null }
       }
     },
 
@@ -252,6 +306,63 @@ export const useClubsStore = defineStore('clubs', {
     },
 
     /**
+     * Proponer un ítem para la ronda en curso. Es de cualquier MIEMBRO, no del
+     * dueño: es el sentido de la votación entera.
+     *
+     * El 403 son dos cosas —no eres miembro, o te toca rotar— y el 400 es «ya
+     * propusiste». Se traducen por código, como el resto.
+     */
+    async proposeItem (clubId, { entityType, entityId, entityTitle, entityCover }) {
+      return this._write(
+        'propose_club_item',
+        { clubId, entityType, entityId, entityTitle, entityCover },
+        () => {
+          // Se relee: proponer el último que faltaba ABRE el voto, y eso lo
+          // decide el servidor en la lectura siguiente, no esta respuesta.
+          this.fetchClub(clubId)
+          return {}
+        }
+      )
+    },
+
+    /**
+     * Votar, o cambiar el voto: es la misma acción otra vez mientras la ronda
+     * siga abierta.
+     */
+    async voteProposal (clubId, proposalId) {
+      return this._write('vote_club_proposal', { clubId, proposalId }, () => {
+        // Votar el último que faltaba CIERRA la ronda y crea el ítem, y también
+        // eso lo resuelve el servidor al leer.
+        this.fetchClub(clubId)
+        this.fetchProgress(clubId)
+        return {}
+      })
+    },
+
+    /**
+     * Las dos válvulas del dueño. No son un atajo: sin cron, si alguien no
+     * propone o no vota nunca, la fase no avanzaría jamás por sí sola.
+     *
+     * **Forzar el cierre no salta el desempate**: si los votos empatan y es el
+     * primer recuento, la ronda pasa a `ballot = 2` y sigue votándose. Por eso
+     * después se relee en vez de dar por hecho que hay ítem.
+     */
+    async openVote (clubId) {
+      return this._write('open_club_vote', { clubId }, () => {
+        this.fetchClub(clubId)
+        return {}
+      })
+    },
+
+    async closeVote (clubId) {
+      return this._write('close_club_vote', { clubId }, (data) => {
+        this.fetchClub(clubId)
+        this.fetchProgress(clubId)
+        return { pickId: data?.pickId ?? null, phase: data?.phase ?? null }
+      })
+    },
+
+    /**
      * El paso común de las escrituras: llamar, distinguir el fallo del cliente
      * del sobre de error del backend, y devolver siempre `{ success }` con el
      * código HTTP intacto. Quien lo pinta traduce por **código**, no por texto:
@@ -285,9 +396,14 @@ export const useClubsStore = defineStore('clubs', {
     /** Traducción por código. El backend responde en inglés y no se lee su texto. */
     _messageFor (code, fallback = null) {
       const messages = {
+        400: 'No se pudo completar: revisa la pantalla, puede estar desfasada',
         403: 'No tienes permiso sobre este club',
         404: 'Este club ya no existe',
-        409: 'Este club ya tiene un ítem activo; termínalo antes de elegir otro'
+        // El 409 lo devuelven dos cosas: «ya hay un ítem activo» y «la ronda no
+        // está en esa fase». Las dos se arreglan igual —recargar—, así que
+        // comparten texto en vez de leer el mensaje del backend, que va en
+        // inglés.
+        409: 'La ronda ha cambiado de fase; recarga la pantalla'
       }
 
       return messages[code] ?? fallback ?? 'No se pudo completar la operación'

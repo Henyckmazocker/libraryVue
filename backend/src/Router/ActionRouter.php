@@ -31,6 +31,9 @@ use App\Domain\DTO\Commands\CreateClubCommand;
 use App\Domain\DTO\Commands\FinishClubPickCommand;
 use App\Domain\DTO\Commands\InviteToClubCommand;
 use App\Domain\DTO\Commands\LeaveClubCommand;
+use App\Domain\DTO\Commands\AdvanceClubRoundCommand;
+use App\Domain\DTO\Commands\ProposeClubItemCommand;
+use App\Domain\DTO\Commands\VoteClubProposalCommand;
 use App\Domain\DTO\Commands\SetClubPickCommand;
 use App\Domain\DTO\Queries\GetClubNotesQuery;
 use App\Domain\DTO\Queries\GetClubProgressQuery;
@@ -724,6 +727,18 @@ class ActionRouter
             ),
             'get_club_notes' => $controller->getClubNotes(
                 GetClubNotesQuery::fromArray($data, $userId)
+            ),
+            'propose_club_item' => $controller->proposeClubItem(
+                ProposeClubItemCommand::fromArray($data, $userId)
+            ),
+            'vote_club_proposal' => $controller->voteClubProposal(
+                VoteClubProposalCommand::fromArray($data, $userId)
+            ),
+            'open_club_vote' => $controller->openClubVote(
+                AdvanceClubRoundCommand::fromArray($data, $userId)
+            ),
+            'close_club_vote' => $controller->closeClubVote(
+                AdvanceClubRoundCommand::fromArray($data, $userId)
             ),
 
             // SOCIAL - Recommendations

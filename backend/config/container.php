@@ -138,6 +138,16 @@ return function (): ContainerInterface {
         \App\Infrastructure\Persistence\Club\Mappers\ClubPickDataMapper::class => DI\autowire(),
         \App\Domain\Repository\Club\ClubNoteRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Club\MySqlClubNoteRepository::class),
         \App\Infrastructure\Persistence\Club\MySqlClubNoteRepository::class => DI\autowire(),
+        // La ronda de votación. `ClubRoundResolver` NO se registra aquí: es
+        // lógica pura sin dependencias y PHP-DI lo construye solo.
+        \App\Domain\Repository\Club\ClubRoundRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Club\MySqlClubRoundRepository::class),
+        \App\Domain\Repository\Club\ClubProposalRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Club\MySqlClubProposalRepository::class),
+        \App\Domain\Repository\Club\ClubVoteRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Club\MySqlClubVoteRepository::class),
+        \App\Infrastructure\Persistence\Club\MySqlClubVoteRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Club\MySqlClubRoundRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Club\MySqlClubProposalRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Club\Mappers\ClubRoundDataMapper::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Club\Mappers\ClubProposalDataMapper::class => DI\autowire(),
         
         // Note: Most repositories use 'db' as the constructor parameter name for PDO
         \App\Infrastructure\Persistence\Game\MySqlGameRepository::class => DI\autowire(),
@@ -446,11 +456,17 @@ return function (): ContainerInterface {
         \App\Domain\UseCases\Clubs\FinishClubPickUseCase::class => DI\autowire(),
         \App\Domain\UseCases\Clubs\GetClubProgressUseCase::class => DI\autowire(),
         \App\Domain\UseCases\Clubs\GetClubNotesUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Clubs\ProposeClubItemUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Clubs\VoteClubProposalUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Clubs\OpenClubVoteUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Clubs\CloseClubVoteUseCase::class => DI\autowire(),
         // La regla de spoiler, en una sola copia y sin dependencias: es lógica
         // pura, y por eso se puede fijar entera con unitarios.
         \App\Domain\Services\SpoilerRule::class => DI\autowire(),
         // La regla de «han acabado todos» en una sola copia, como `ListAccess`.
         \App\Domain\Services\ClubCompletion::class => DI\autowire(),
+        \App\Domain\Services\ClubRoundResolver::class => DI\autowire(),
+        \App\Domain\Services\ClubRoundProgress::class => DI\autowire(),
         
         // ===========================
         // MIDDLEWARE

@@ -70,12 +70,12 @@ docker compose up --build   # equivalente crudo: NO migra ni arranca el mirror
 
 # Tests backend (PHPUnit 11, dentro del contenedor backend)
 docker compose --profile test up -d mysql-test   # lo necesita la suite de integración
-docker compose exec backend composer test        # las DOS suites: 1363 tests
-docker compose exec backend composer test:unit   # la rápida: 1241, sin necesitar mysql-test
-docker compose exec backend composer test:integration   # 122, contra una BD desechable
+docker compose exec backend composer test        # las DOS suites: 1434 tests
+docker compose exec backend composer test:unit   # la rápida: 1284, sin necesitar mysql-test
+docker compose exec backend composer test:integration   # 150, contra una BD desechable
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
-docker compose exec frontend npm test            # 367 tests
+docker compose exec frontend npm test            # 381 tests
 docker compose exec frontend npm run test:watch
 docker compose exec frontend npx vue-cli-service lint --no-fix   # lo corre también ./dev-setup.sh
 docker compose exec frontend npm run lint:styles                 # stylelint; también en ./dev-setup.sh
@@ -532,19 +532,50 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
   validara contra la segunda, se podría «recomendar» una lista o un club como si fueran un ítem y la
   bandeja intentaría darlos de alta con el `enrich` de un medio inexistente. Van juntas por `get_inbox_count`, que es la acción más llamada de la app y
   tiene que seguir siendo un `COUNT(*)` que sale entero de `idx_inbox`.
-- **Los clubs tienen DOS reglas con copia única, y ninguna vive en la plantilla.**
+- **Los clubs tienen CUATRO reglas con copia única, y ninguna vive en la plantilla.**
   `Domain/Services/ClubCompletion.php` decide cuándo se cierra solo el ítem —solo si **todos** los
   miembros lo completaron, con «todos» literal: quien no lo tiene en su biblioteca congela el cierre,
   y por eso `finish_club_pick` es la vía habitual y no la excepción—. Y
   `Domain/Services/SpoilerRule.php` decide si una nota te destriparía; lo importante no es la tabla
   de verdad sino que **con `isSpoiler: true` el `text` viaja como `null`**: difuminar con CSS un
   texto que está en el DOM es enseñarlo, y ninguna prueba visual lo detecta. `atPoint` sí viaja.
-- **`get_club` ESCRIBE, y es a propósito.** El proyecto no tiene cron ni workers
-  (`Infrastructure/Http/PostResponse.php:12`), así que el cierre automático del ítem se evalúa al
-  leer el club. Engancharlo en los cinco `Update<Medio>UserStatusesUseCase` serían cinco copias de la
-  regla. Su `UPDATE` lleva `AND finished_at IS NULL` para que dos lecturas simultáneas no cierren dos
-  veces, y **un fallo suyo no puede tumbar la lectura**: un club que no se pinta es peor que uno que
-  se cierra en la siguiente visita.
+  Las otras dos son de la votación, y están abajo.
+- **La votación son DOS servicios y no uno, y separarlos es lo que la hace comprobable.**
+  `Domain/Services/ClubRoundResolver.php` es **lógica pura sin PDO** —rotación, cierre de fase y
+  desempate—, y por eso su tabla de verdad (clubs de **1, 2, 3 y 8** miembros × los cuatro atascos
+  posibles, en `tests/Unit/Domain/Services/ClubRoundResolverTest.php`) se validó **antes** de escribir
+  el esquema. `Domain/Services/ClubRoundProgress.php` es lo que **escribe** con esa respuesta, y vive
+  aparte porque lo consultan **dos** llamantes: `GetClubUseCase` y las dos válvulas del dueño. Tres
+  reglas que se leen mal: la rotación «quien ganó no propone» **se salta si dejaría menos de dos
+  proponentes** —sin eso, un club de dos muere en su segunda ronda y uno de uno no propone nunca
+  más—; **ninguna fase avanza sin al menos un elemento**, ni forzándola por el dueño, porque abrir un
+  voto vacío deja la ronda clavada un escalón más allá; y el `ballot` **nunca pasa de 2**, porque en
+  el 2 siempre se cierra, por sorteo si hace falta.
+- **El ganador del sorteo se ESCRIBE en `club_round.winning_proposal_id`, no se deduce.** La ronda se
+  resuelve al leer el club, así que un ganador recalculado en cada `get_club` haría que dos miembros
+  mirando a la vez vieran libros distintos. Las propuestas **eliminadas**, en cambio, sí se
+  recalculan y no necesitan columna: el empate es el máximo de un recuento, que es determinista.
+- **De la votación solo viajan el recuento y el voto propio.** Los pares usuario→propuesta ajenos no
+  salen del servidor. Es el error gemelo del texto de la nota con spoiler: lo que está en el DOM está
+  enseñado, por mucho que la plantilla no lo pinte.
+- **`get_club` ESCRIBE, y es a propósito, y desde la votación escribe MUCHO más.** El proyecto no
+  tiene cron ni workers (`Infrastructure/Http/PostResponse.php:12`), así que al leer el club se
+  evalúan el cierre automático del ítem **y** todo el avance de la ronda: abrirla, abrir el voto
+  cuando han propuesto todos, subir el `ballot` del desempate, y cerrarla creando el `club_pick`
+  ganador. Engancharlo en los cinco `Update<Medio>UserStatusesUseCase` serían cinco copias de la
+  regla. Todas las escrituras van condicionadas en el `WHERE` —`AND finished_at IS NULL`,
+  `AND phase = 'proposing'`, `AND phase <> 'closed'`— para que dos lecturas simultáneas no lo hagan
+  dos veces, y **ningún fallo suyo puede tumbar la lectura**: un club que no se pinta es peor que uno
+  que avanza en la siguiente visita.
+- **Abrir la ronda es idempotente o se abren N, y «comprobar antes de insertar» NO basta**: entre el
+  `SELECT` y el `INSERT` cabe la petición de la otra pestaña. `MySqlClubRoundRepository::openIfNone()`
+  lo hace con `INSERT … SELECT … WHERE NOT EXISTS` en una sola sentencia **y relee siempre**, para que
+  quien pierda la carrera use la ronda del otro; `lastInsertId()` daría 0 en ese caso. MySQL no tiene
+  índices parciales, así que un `UNIQUE` sobre «abierta» no se puede escribir.
+- **`propose_club_item` NO abre la ronda**, la abre `get_club`. Proponer sin haber leído el club da
+  **409**, y es correcto: abrirla también ahí significaría copiar la regla de cuándo toca —«no hay
+  ítem activo»— a un segundo sitio. Los tests de integración entran como el cliente real, leyendo
+  antes de proponer.
 - **Las cinco tablas `user_*_notes` NO comparten forma.** `user_edition_notes` cuelga de
   `user_edition_id` (indirecto, vía `user_book_editions`) y es la única con `page_number` real;
   `user_movie_notes` lo tiene pero es `NULL` y **no significa nada**; `user_game_notes`,
@@ -561,9 +592,9 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 
 1. `docker compose up --build`; `POST http://localhost:8888/index.php` con `{"action":"ping"}`.
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
-3. `docker compose exec backend composer test` → verde (1363 tests: 1241 unitarios + 122 de
+3. `docker compose exec backend composer test` → verde (1434 tests: 1284 unitarios + 150 de
    integración; estos necesitan `docker compose --profile test up -d mysql-test`).
-4. `docker compose exec frontend npm test` → verde (367 tests) y
+4. `docker compose exec frontend npm test` → verde (381 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
 5. **`docker compose exec frontend npm run build` → `Build complete`.** No es redundante con el paso
    anterior: **ninguno de los tres comandos de arriba compila SCSS**. Los helpers de

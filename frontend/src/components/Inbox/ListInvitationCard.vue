@@ -27,7 +27,7 @@
       <div class="list-invitation-card__actions">
         <button
           type="button"
-          class="list-invitation-card__action list-invitation-card__action--accept"
+          class="btn btn--primary btn--sm"
           :disabled="busy"
           @click="$emit('accept', invitation)"
         >
@@ -36,7 +36,7 @@
         </button>
         <button
           type="button"
-          class="list-invitation-card__action"
+          class="btn btn--ghost btn--sm"
           :disabled="busy"
           @click="$emit('dismiss', invitation)"
         >
@@ -103,15 +103,12 @@ const relativeTime = computed(() => {
 
 <style scoped lang="scss">
 @use '@/assets/styles/abstracts' as *;
+@use '@/assets/styles/components/cards' as *;
 
 .list-invitation-card {
   display: flex;
   gap: spacing(md);
-  padding: spacing(md);
-  border-radius: radius(md);
-  background: var(--color-background-mute);
-  // Hairline suave de tarjeta decorativa, no el borde de inputs y botones.
-  border: 1px solid var(--color-border-light);
+  @include card-base($padding: md, $radius-key: md);
 
   &__icon {
     display: flex;
@@ -158,29 +155,5 @@ const relativeTime = computed(() => {
     margin-top: spacing(xs);
   }
 
-  &__action {
-    @include button-reset;
-
-    display: inline-flex;
-    align-items: center;
-    gap: spacing(2xs);
-    padding: spacing(2xs) spacing(sm);
-    border-radius: radius(sm);
-    border: 1px solid var(--color-border);
-    color: var(--color-text-secondary);
-    font-size: 0.875rem;
-
-    &:hover:not(:disabled) {
-      color: var(--color-text);
-      border-color: var(--color-text-secondary);
-    }
-
-    &:disabled { opacity: 0.6; }
-
-    &--accept {
-      color: var(--color-primary);
-      border-color: var(--color-primary);
-    }
-  }
 }
 </style>

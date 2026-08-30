@@ -1,5 +1,5 @@
 <template>
-  <div class="club-detail">
+  <div class="club-detail u-content-width">
     <RouterLink
       class="club-detail__back"
       :to="{ name: 'Clubs' }"
@@ -41,7 +41,7 @@
            lo que se ve en la pantalla de un club que está eligiendo. -->
       <section
         v-if="currentPick || !currentRound"
-        class="club-detail__section"
+        class="club-detail__section club-detail__section--principal"
       >
         <h2 class="club-detail__section-title">
           Lo que estamos viendo
@@ -80,7 +80,7 @@
             <button
               v-if="isCurrentOwner"
               type="button"
-              class="club-detail__action"
+              class="btn btn--ghost btn--sm"
               :disabled="isSaving"
               @click="handleFinish"
             >
@@ -90,20 +90,18 @@
           </div>
         </div>
 
-        <p
+        <EmptyState
           v-else-if="!currentRound"
-          class="club-detail__empty"
-        >
-          Ahora mismo el club no tiene nada activo.
-          <span v-if="isCurrentOwner">Elige el siguiente desde la ficha de cualquier medio.</span>
-        </p>
+          title="Ahora mismo el club no tiene nada activo."
+          :message="isCurrentOwner ? 'Elige el siguiente desde la ficha de cualquier medio.' : ''"
+        />
       </section>
 
       <!-- La ronda: solo hay una cuando NO hay ítem activo. Son estados
            excluyentes y el servidor manda uno u otro, nunca los dos. -->
       <section
         v-if="currentRound"
-        class="club-detail__section"
+        class="club-detail__section club-detail__section--principal"
       >
         <h2 class="club-detail__section-title">
           Qué leemos ahora
@@ -205,7 +203,7 @@
         <button
           v-if="isCurrentOwner"
           type="button"
-          class="club-detail__action"
+          class="btn btn--ghost btn--sm"
           @click="showInvite = true"
         >
           <i class="pi pi-user-plus" />
@@ -218,7 +216,7 @@
         <button
           v-if="!isCurrentOwner"
           type="button"
-          class="club-detail__action club-detail__action--danger"
+          class="btn btn--danger btn--sm u-mt-md"
           :disabled="isSaving"
           @click="handleLeave"
         >
@@ -270,6 +268,7 @@ import ClubMemberProgress from '@/components/Clubs/ClubMemberProgress.vue'
 import ClubRound from '@/components/Clubs/ClubRound.vue'
 import InviteToClubDialog from '@/components/Clubs/InviteToClubDialog.vue'
 import ClubNotes from '@/components/Clubs/ClubNotes.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 import { detailRouteFor } from '@/config/mediaRegistry'
 import CoverService from '@/services/CoverService'
 
@@ -422,10 +421,9 @@ const handleLeave = async () => {
 
 <style scoped lang="scss">
 @use '@/assets/styles/abstracts' as *;
+@use '@/assets/styles/components/cards' as *;
 
 .club-detail {
-  max-width: 860px;
-  margin: 0 auto;
   padding: spacing(lg);
 
   &__back {
@@ -458,6 +456,25 @@ const handleLeave = async () => {
 
   &__section {
     margin-bottom: spacing(xl);
+
+    // Solo el bloque activo va en tarjeta. El ítem y la ronda son estados
+    // EXCLUYENTES —lo dicen los dos comentarios del marcado y lo impone el
+    // servidor—, así que `--principal` marca siempre una sección y solo una.
+    // Meterlas todas en tarjeta daría la lista de cajas donde nada destaca, que es
+    // el problema que esta pantalla ya tiene por otra vía.
+    &--principal {
+      @include card-section;
+    }
+
+    // Las secciones de apoyo se separan con el mismo gradiente que usan las seis
+    // fichas de detalle (`_detail-view.scss:274-283`), en vez de con otra tarjeta.
+    & + &::before {
+      content: '';
+      display: block;
+      height: 2px;
+      margin-bottom: spacing(xl);
+      background: linear-gradient(90deg, transparent, var(--color-border), transparent);
+    }
   }
 
   &__section-title {
@@ -470,10 +487,6 @@ const handleLeave = async () => {
   &__pick {
     display: flex;
     gap: spacing(md);
-    padding: spacing(md);
-    border-radius: radius(md);
-    background: var(--color-background-mute);
-    border: 1px solid var(--color-border-light);
   }
 
   &__pick-cover {
@@ -502,28 +515,6 @@ const handleLeave = async () => {
   &__pick-meta {
     font-size: 0.8125rem;
     color: var(--color-text-secondary);
-  }
-
-  &__action {
-    @include button-reset;
-
-    display: inline-flex;
-    align-items: center;
-    gap: spacing(2xs);
-    padding: spacing(2xs) spacing(sm);
-    border-radius: radius(sm);
-    border: 1px solid var(--color-primary);
-    color: var(--color-primary);
-    font-size: 0.875rem;
-
-    &:hover { background: var(--color-background); }
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    &--danger {
-      margin-top: spacing(md);
-      border-color: var(--color-error);
-      color: var(--color-error);
-    }
   }
 
   &__members,
@@ -559,15 +550,14 @@ const handleLeave = async () => {
     margin-bottom: spacing(sm);
     padding: spacing(sm);
     border-radius: radius(sm);
-    background: var(--color-background-mute);
+    background: var(--color-info-bg);
     font-size: 0.8125rem;
-    color: var(--color-text-secondary);
+    color: var(--color-text);
 
     i { color: var(--color-primary); }
   }
 
-  &__loading,
-  &__empty {
+  &__loading {
     padding: spacing(lg);
     text-align: center;
     color: var(--color-text-secondary);

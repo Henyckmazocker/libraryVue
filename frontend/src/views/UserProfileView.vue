@@ -67,7 +67,7 @@
             @keyup.enter="saveLastFmUsername"
           >
           <button
-            class="btn-save"
+            class="btn btn--primary btn-save"
             :disabled="isSaving || !lastfmUsernameChanged"
             @click="saveLastFmUsername"
           >
@@ -109,6 +109,14 @@
         </p>
       </div>
     </div>
+
+    <!-- La privacidad vive aquí y en ningún otro sitio. Estuvo en la quinta
+         pestaña de `/friends`, donde nadie la buscaba: son ajustes de tu cuenta,
+         no de la pantalla de amigos. NO se duplica — dos sitios para guardar los
+         mismos seis ajustes ya dieron un fallo una vez. -->
+    <div class="settings-section">
+      <PrivacySettingsPanel />
+    </div>
   </div>
 </template>
 
@@ -116,9 +124,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/store/auth'
 import { storeToRefs } from 'pinia'
+import PrivacySettingsPanel from '@/components/Social/PrivacySettingsPanel.vue'
 
 export default {
   name: 'UserProfileView',
+
+  components: { PrivacySettingsPanel },
 
   setup() {
     const authStore = useAuthStore()
@@ -178,6 +189,7 @@ export default {
 
 <style scoped lang="scss">
 @use '@/assets/styles/abstracts' as *;
+@use '@/assets/styles/components/cards' as *;
 
 
 .profile-container {
@@ -197,14 +209,14 @@ export default {
 
 /* ─── Profile card ─── */
 .profile-card {
-  background: var(--surface-card, var(--color-background-mute));
-  border-radius: 12px;
-  padding: 1.75rem;
+  @include card-section;
+
   display: flex;
   align-items: center;
-  gap: 1.5rem;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
-  margin-bottom: 1.5rem;
+  gap: spacing(lg);
+  /* El ritmo de `card-section()` va por `& + &`, que no salta entre dos clases
+     distintas: la separación hasta la primera sección de ajustes se dice aquí. */
+  margin-bottom: spacing(lg);
 }
 
 .profile-avatar {
@@ -254,11 +266,7 @@ export default {
 
 /* ─── Settings sections ─── */
 .settings-section {
-  background: var(--surface-card, var(--color-background-mute));
-  border-radius: 12px;
-  padding: 1.75rem;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
-  margin-bottom: 1.5rem;
+  @include card-section;
 }
 
 .section-title {
@@ -321,31 +329,6 @@ export default {
   background: rgba(255, 255, 255, 0.04);
   color: var(--color-text-muted);
   cursor: not-allowed;
-}
-
-.btn-save {
-  padding: 0.6rem 1.2rem;
-  background: var(--primary-color, var(--color-primary));
-  color: var(--color-text-light);
-  border: none;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: opacity 0.2s;
-  white-space: nowrap;
-}
-
-.btn-save:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-save:not(:disabled):hover {
-  opacity: 0.85;
 }
 
 .form-hint {

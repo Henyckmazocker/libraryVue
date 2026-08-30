@@ -61,7 +61,7 @@ describe('ListInvitationCard', () => {
 
   it('emite aceptar y rechazar', async () => {
     const w = montar()
-    const botones = w.findAll('.list-invitation-card__action')
+    const botones = w.findAll('.list-invitation-card__actions button')
 
     await botones[0].trigger('click')
     await botones[1].trigger('click')
@@ -73,7 +73,7 @@ describe('ListInvitationCard', () => {
   it('desactiva los dos botones mientras se resuelve', () => {
     const w = montar({ busy: true })
 
-    w.findAll('.list-invitation-card__action').forEach((b) => {
+    w.findAll('.list-invitation-card__actions button').forEach((b) => {
       expect(b.attributes('disabled')).toBeDefined()
     })
   })

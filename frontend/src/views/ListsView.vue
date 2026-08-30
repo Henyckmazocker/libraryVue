@@ -1,5 +1,5 @@
 <template>
-  <div class="lists-view">
+  <div class="lists-view u-content-width">
     <div class="lists-view__header">
       <h1 class="lists-view__title">
         <i class="pi pi-list" />
@@ -8,7 +8,7 @@
 
       <button
         type="button"
-        class="lists-view__create"
+        class="btn btn--primary btn--sm"
         @click="openCreate"
       >
         <i class="pi pi-plus" />
@@ -24,16 +24,12 @@
     </div>
 
     <!-- El vacío se dice con texto, no con un spinner eterno. -->
-    <div
+    <EmptyState
       v-else-if="!hasLists"
-      class="lists-view__empty"
-    >
-      <i class="pi pi-list" />
-      <p>Todavía no tienes ninguna lista</p>
-      <p class="lists-view__empty-hint">
-        Una lista mezcla libros, películas, juegos, álbumes y vídeos.
-      </p>
-    </div>
+      icon="pi pi-list"
+      title="Todavía no tienes ninguna lista"
+      message="Una lista mezcla libros, películas, juegos, álbumes y vídeos."
+    />
 
     <div
       v-else
@@ -98,6 +94,7 @@ import { storeToRefs } from 'pinia'
 import { useListsStore } from '@/store/lists'
 import ListFormDialog from '@/components/Lists/ListFormDialog.vue'
 import { VISIBILITY } from '@/components/Lists/visibility'
+import EmptyState from '@/components/common/EmptyState.vue'
 
 const listsStore = useListsStore()
 const { lists, isLoading, error } = storeToRefs(listsStore)
@@ -129,10 +126,9 @@ const handleCreate = async (form) => {
 
 <style scoped lang="scss">
 @use '@/assets/styles/abstracts' as *;
+@use '@/assets/styles/components/cards' as *;
 
 .lists-view {
-  max-width: 860px;
-  margin: 0 auto;
   padding: spacing(lg);
 
   &__header {
@@ -154,21 +150,6 @@ const handleCreate = async (form) => {
     i { color: var(--color-primary); }
   }
 
-  &__create {
-    @include button-reset;
-
-    display: inline-flex;
-    align-items: center;
-    gap: spacing(2xs);
-    padding: spacing(2xs) spacing(sm);
-    border-radius: radius(sm);
-    border: 1px solid var(--color-primary);
-    color: var(--color-primary);
-    font-size: 0.875rem;
-
-    &:hover { background: var(--color-background-mute); }
-  }
-
   &__grid {
     display: flex;
     flex-direction: column;
@@ -176,16 +157,13 @@ const handleCreate = async (form) => {
   }
 
   &__card {
+    @include card-base($padding: md, $radius-key: md);
+    @include card-interactive;
+
     display: flex;
     flex-direction: column;
     gap: spacing(2xs);
-    padding: spacing(md);
-    border-radius: radius(md);
-    background: var(--color-background-mute);
-    border: 1px solid var(--color-border-light);
     text-decoration: none;
-
-    &:hover { border-color: var(--color-primary); }
   }
 
   &__card-name {
@@ -219,17 +197,12 @@ const handleCreate = async (form) => {
     gap: spacing(3xs);
   }
 
-  &__loading,
-  &__empty {
+  &__loading {
     text-align: center;
     padding: spacing(2xl);
     color: var(--color-text-secondary);
 
     i { font-size: 3rem; display: block; margin-bottom: spacing(md); }
-  }
-
-  &__empty-hint {
-    font-size: 0.875rem;
   }
 
   &__error {

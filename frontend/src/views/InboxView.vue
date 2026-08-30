@@ -1,5 +1,5 @@
 <template>
-  <div class="inbox-view">
+  <div class="inbox-view u-content-width">
     <div class="inbox-view__header">
       <h1 class="inbox-view__title">
         <i class="pi pi-inbox" />
@@ -15,13 +15,11 @@
     </div>
 
     <!-- El vacío se dice con texto, no con un spinner eterno. -->
-    <div
+    <EmptyState
       v-else-if="!hasItems"
-      class="inbox-view__empty"
-    >
-      <i class="pi pi-inbox" />
-      <p>No tienes recomendaciones pendientes</p>
-    </div>
+      icon="pi pi-inbox"
+      title="No tienes recomendaciones pendientes"
+    />
 
     <div
       v-else
@@ -59,6 +57,7 @@ import { storeToRefs } from 'pinia'
 import { useInboxStore } from '@/store/inbox'
 import RecommendationCard from '@/components/Inbox/RecommendationCard.vue'
 import ListInvitationCard from '@/components/Inbox/ListInvitationCard.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 import { useRouter } from 'vue-router'
 
 const inbox = useInboxStore()
@@ -123,8 +122,6 @@ const handleDismiss = async (recommendation) => {
 @use '@/assets/styles/abstracts' as *;
 
 .inbox-view {
-  max-width: 860px;
-  margin: 0 auto;
   padding: spacing(lg);
 
   &__header {
@@ -148,8 +145,7 @@ const handleDismiss = async (recommendation) => {
     gap: spacing(sm);
   }
 
-  &__loading,
-  &__empty {
+  &__loading {
     text-align: center;
     padding: spacing(2xl);
     color: var(--color-text-secondary);

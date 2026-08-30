@@ -54,3 +54,19 @@
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: var(--spacing-md);
 }
+
+// Anchura de las vistas de CONTENIDO (listas, tarjetas, formularios), frente a las de
+// rejilla, que sí quieren todo el ancho — `MyLibrary.vue:489` limita esas a 1600px.
+//
+// Los 860px no son un valor nuevo: es el que ya tenían copiado a mano las cinco
+// pantallas sociales (clubs, su detalle, listas, su detalle y la bandeja). Aquí vive
+// una vez.
+.u-reading-width {   // texto y formularios
+  max-width: 72ch;
+  margin-inline: auto;
+}
+
+.u-content-width {   // listas y tarjetas
+  max-width: 860px;
+  margin-inline: auto;
+}

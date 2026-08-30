@@ -66,13 +66,6 @@
           </p>
         </div>
       </TabPanel>
-
-      <!-- Privacidad -->
-      <TabPanel header="Privacidad">
-        <div class="friends-view__tab-content">
-          <PrivacySettingsPanel />
-        </div>
-      </TabPanel>
     </TabView>
   </div>
 </template>
@@ -91,7 +84,6 @@ import FriendsList from '@/components/Social/FriendsList.vue'
 import FriendRequests from '@/components/Social/FriendRequests.vue'
 import UserSearchInput from '@/components/Social/UserSearchInput.vue'
 import UserSearchResult from '@/components/Social/UserSearchResult.vue'
-import PrivacySettingsPanel from '@/components/Social/PrivacySettingsPanel.vue'
 
 const toast = useToast()
 const { friends, pendingRequests, pendingRequestsCount, fetchFriends, fetchPendingRequests, acceptFriendRequest, rejectFriendRequest, removeFriend, sendFriendRequest } = useFriends()

@@ -1,5 +1,5 @@
 <template>
-  <div class="list-detail">
+  <div class="list-detail u-content-width">
     <div class="list-detail__nav">
       <button
         type="button"
@@ -58,7 +58,7 @@
         >
           <button
             type="button"
-            class="list-detail__action"
+            class="btn btn--ghost btn--sm"
             @click="showEdit = true"
           >
             <i class="pi pi-pencil" />
@@ -66,7 +66,7 @@
           </button>
           <button
             type="button"
-            class="list-detail__action list-detail__action--danger"
+            class="btn btn--danger btn--sm"
             @click="confirmDelete"
           >
             <i class="pi pi-trash" />
@@ -75,16 +75,12 @@
         </div>
       </header>
 
-      <div
+      <EmptyState
         v-if="items.length === 0"
-        class="list-detail__empty"
-      >
-        <i class="pi pi-inbox" />
-        <p>Esta lista todavía está vacía</p>
-        <p class="list-detail__empty-hint">
-          Añade ítems desde la ficha de un libro, película, juego, álbum o vídeo.
-        </p>
-      </div>
+        icon="pi pi-inbox"
+        title="Esta lista todavía está vacía"
+        message="Añade ítems desde la ficha de un libro, película, juego, álbum o vídeo."
+      />
 
       <div
         v-else
@@ -112,7 +108,7 @@
           <button
             v-if="isOwner"
             type="button"
-            class="list-detail__invite"
+            class="btn btn--ghost btn--sm list-detail__invite"
             @click="showInvite = true"
           >
             <i class="pi pi-user-plus" />
@@ -193,6 +189,7 @@ import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useListsStore } from '@/store/lists'
 import ListItemCard from '@/components/Lists/ListItemCard.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 import ListFormDialog from '@/components/Lists/ListFormDialog.vue'
 import InviteCollaboratorDialog from '@/components/Lists/InviteCollaboratorDialog.vue'
 import { useAuthStore } from '@/store/auth'
@@ -287,8 +284,6 @@ const confirmDelete = async () => {
 @use '@/assets/styles/abstracts' as *;
 
 .list-detail {
-  max-width: 860px;
-  margin: 0 auto;
   padding: spacing(lg);
 
   &__nav {
@@ -351,19 +346,6 @@ const confirmDelete = async () => {
     gap: spacing(2xs);
   }
 
-  &__action {
-    @include button-reset;
-
-    padding: spacing(2xs) spacing(sm);
-    border-radius: radius(sm);
-    border: 1px solid var(--color-border);
-    color: var(--color-text-secondary);
-
-    &:hover { color: var(--color-text); }
-
-    &--danger:hover { color: var(--color-error); }
-  }
-
   &__items {
     display: flex;
     flex-direction: column;
@@ -386,21 +368,10 @@ const confirmDelete = async () => {
     i { color: var(--color-primary); }
   }
 
+  // De la escala `.btn` sale todo el acabado; aquí solo queda dónde se coloca.
   &__invite {
-    @include button-reset;
-
-    display: inline-flex;
-    align-items: center;
-    gap: spacing(2xs);
     margin-left: auto;
-    padding: spacing(2xs) spacing(sm);
-    border-radius: radius(sm);
-    border: 1px solid var(--color-primary);
-    color: var(--color-primary);
-    font-size: 0.875rem;
     font-weight: 400;
-
-    &:hover { background: var(--color-background-mute); }
   }
 
   &__collaborators-empty {
@@ -421,9 +392,11 @@ const confirmDelete = async () => {
     align-items: center;
     gap: spacing(sm);
     padding: spacing(sm);
-    border-radius: radius(sm);
-    background: var(--color-background-mute);
     color: var(--color-text-secondary);
+
+    & + & {
+      border-top: 1px solid var(--color-border-light);
+    }
   }
 
   &__collaborator-avatar {

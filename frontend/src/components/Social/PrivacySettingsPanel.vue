@@ -126,12 +126,19 @@ const save = async () => {
 
 <style scoped lang="scss">
 @use '@/assets/styles/abstracts' as *;
+@use '@/assets/styles/components/forms' as *;
 
 .privacy-settings-panel {
   &__intro {
     margin: 0 0 var(--spacing-md);
     color: var(--color-text-secondary);
     font-size: var(--font-size-sm);
+  }
+
+  // Hasta aquí `__row` no tenía ninguna regla, así que la fila era un bloque y el
+  // interruptor caía DEBAJO de su etiqueta en los seis ajustes.
+  &__row {
+    @include setting-row;
   }
 
   &__row-label {

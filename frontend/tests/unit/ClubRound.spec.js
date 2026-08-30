@@ -102,8 +102,10 @@ describe('ClubRound', () => {
     const wrapper = montar({ canPropose: false, reasonBlocked: 'rotation' })
 
     expect(wrapper.text()).toContain('Ganaste la ronda anterior')
-    // Y sin botón de proponer: te toca rotar.
-    expect(wrapper.find('.club-round__action').exists()).toBe(false)
+    // Y sin botón de proponer: te toca rotar. Se afirma por el rótulo y no por la
+    // clase: el acabado salió a la escala `.btn` y una clase propia que ya no existe
+    // habría dado un verde vacío.
+    expect(wrapper.text()).not.toContain('Buscar algo que proponer')
   })
 
   it('avisa de que ya propusiste, que es una por persona', () => {
@@ -142,7 +144,7 @@ describe('ClubRound', () => {
     // backend responde 409 y aquí ni se ofrece.
     const wrapper = montar({ proposals: [] }, { isOwner: true })
 
-    expect(wrapper.find('.club-round__action--valve').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('.club-round__valves button').attributes('disabled')).toBeDefined()
   })
 
   it('el dueño no puede cerrar una votación sin votos', () => {
@@ -151,7 +153,7 @@ describe('ClubRound', () => {
       { isOwner: true }
     )
 
-    const valvula = wrapper.find('.club-round__action--valve')
+    const valvula = wrapper.find('.club-round__valves button')
     expect(valvula.text()).toContain('Cerrar la votación')
     expect(valvula.attributes('disabled')).toBeDefined()
   })

@@ -161,18 +161,20 @@ watch(localCover, () => {
 
 <style scoped lang="scss">
 @use '@/assets/styles/abstracts' as *;
+@use '@/assets/styles/components/cards' as *;
 
 .list-card {
   display: flex;
   align-items: center;
   gap: spacing(md);
-  padding: spacing(sm) spacing(md);
-  border-radius: radius(md);
-  background: var(--color-background-mute);
-  // Hairline suave de tarjeta decorativa, no el borde de inputs y botones.
-  border: 1px solid var(--color-border-light);
+  // El acabado sale del sistema; el `padding-inline` se repone porque `card-base()`
+  // toma un solo valor y esta fila lo quiere asimétrico.
+  @include card-base($padding: sm, $radius-key: md);
+
+  padding-inline: spacing(md);
   // La franja de acento es lo que distingue un medio de otro de un vistazo,
-  // que es justo lo que una lista mezclada necesita.
+  // que es justo lo que una lista mezclada necesita. Sustituye al hairline: con
+  // la sombra de la tarjeta, el borde completo sobraba.
   border-left: 3px solid var(--color-border-light);
 
   &__cover {

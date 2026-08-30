@@ -93,7 +93,7 @@ describe('InboxView', () => {
     const w = montar()
     await flushPromises()
 
-    await w.findAll('.recommendation-card__action')[1].trigger('click')
+    await w.findAll('.recommendation-card__actions button')[1].trigger('click')
 
     expect(store.dismiss).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }))
   })
@@ -109,7 +109,7 @@ describe('InboxView', () => {
     const w = montar(notifications)
     await flushPromises()
 
-    await w.find('.recommendation-card__action--add').trigger('click')
+    await w.findAll('.recommendation-card__actions button')[0].trigger('click')
     await flushPromises()
 
     expect(store.addToLibrary).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }))
@@ -127,7 +127,7 @@ describe('InboxView', () => {
     const w = montar(notifications)
     await flushPromises()
 
-    await w.find('.recommendation-card__action--add').trigger('click')
+    await w.findAll('.recommendation-card__actions button')[0].trigger('click')
     await flushPromises()
 
     expect(notifications.calls.some((c) => c.type === 'error')).toBe(true)

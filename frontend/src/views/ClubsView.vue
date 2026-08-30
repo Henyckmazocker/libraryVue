@@ -1,5 +1,5 @@
 <template>
-  <div class="clubs-view">
+  <div class="clubs-view u-content-width">
     <div class="clubs-view__header">
       <h1 class="clubs-view__title">
         <i class="pi pi-users" />
@@ -8,7 +8,7 @@
 
       <button
         type="button"
-        class="clubs-view__create"
+        class="btn btn--primary btn--sm"
         @click="openCreate"
       >
         <i class="pi pi-plus" />
@@ -24,17 +24,12 @@
     </div>
 
     <!-- El vacío se dice con texto, no con un spinner eterno. -->
-    <div
+    <EmptyState
       v-else-if="!hasClubs"
-      class="clubs-view__empty"
-    >
-      <i class="pi pi-users" />
-      <p>Todavía no estás en ningún club</p>
-      <p class="clubs-view__empty-hint">
-        Un club es un grupo de amigos con un mismo libro, película, juego, álbum
-        o vídeo a la vez.
-      </p>
-    </div>
+      icon="pi pi-users"
+      title="Todavía no estás en ningún club"
+      message="Un club es un grupo de amigos con un mismo libro, película, juego, álbum o vídeo a la vez."
+    />
 
     <div
       v-else
@@ -91,6 +86,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useClubsStore } from '@/store/clubs'
 import ClubFormDialog from '@/components/Clubs/ClubFormDialog.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 
 const clubsStore = useClubsStore()
 const { clubs, isLoading, error } = storeToRefs(clubsStore)
@@ -122,10 +118,9 @@ const handleCreate = async (form) => {
 
 <style scoped lang="scss">
 @use '@/assets/styles/abstracts' as *;
+@use '@/assets/styles/components/cards' as *;
 
 .clubs-view {
-  max-width: 860px;
-  margin: 0 auto;
   padding: spacing(lg);
 
   &__header {
@@ -147,21 +142,6 @@ const handleCreate = async (form) => {
     i { color: var(--color-primary); }
   }
 
-  &__create {
-    @include button-reset;
-
-    display: inline-flex;
-    align-items: center;
-    gap: spacing(2xs);
-    padding: spacing(2xs) spacing(sm);
-    border-radius: radius(sm);
-    border: 1px solid var(--color-primary);
-    color: var(--color-primary);
-    font-size: 0.875rem;
-
-    &:hover { background: var(--color-background-mute); }
-  }
-
   &__grid {
     display: flex;
     flex-direction: column;
@@ -169,16 +149,13 @@ const handleCreate = async (form) => {
   }
 
   &__card {
+    @include card-base($padding: md, $radius-key: md);
+    @include card-interactive;
+
     display: flex;
     flex-direction: column;
     gap: spacing(2xs);
-    padding: spacing(md);
-    border-radius: radius(md);
-    background: var(--color-background-mute);
-    border: 1px solid var(--color-border-light);
     text-decoration: none;
-
-    &:hover { border-color: var(--color-primary); }
   }
 
   &__card-name {
@@ -206,17 +183,12 @@ const handleCreate = async (form) => {
     gap: spacing(3xs);
   }
 
-  &__loading,
-  &__empty {
+  &__loading {
     text-align: center;
     padding: spacing(2xl);
     color: var(--color-text-secondary);
 
     i { font-size: 3rem; display: block; margin-bottom: spacing(md); }
-  }
-
-  &__empty-hint {
-    font-size: 0.875rem;
   }
 
   &__error {

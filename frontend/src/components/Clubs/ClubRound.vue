@@ -105,7 +105,7 @@
          va a la home, que es el hub de búsqueda; no hay una ruta `Search`. -->
     <RouterLink
       v-if="isProposing && round.canPropose"
-      class="club-round__action"
+      class="btn btn--primary btn--sm"
       :to="{ name: 'Home' }"
     >
       <i class="pi pi-search" />
@@ -126,7 +126,7 @@
       <button
         v-if="isProposing"
         type="button"
-        class="club-round__action club-round__action--valve"
+        class="btn btn--ghost btn--sm"
         :disabled="isSaving || round.proposals.length === 0"
         @click="$emit('open-vote')"
       >
@@ -137,7 +137,7 @@
       <button
         v-else
         type="button"
-        class="club-round__action club-round__action--valve"
+        class="btn btn--ghost btn--sm"
         :disabled="isSaving || castVotes === 0"
         @click="$emit('close-vote')"
       >
@@ -333,31 +333,15 @@ const onCoverError = (proposalId) => {
     &:hover { border-color: var(--color-primary); }
     &:disabled { opacity: 0.5; cursor: not-allowed; }
 
+    // El voto propio se marca con el par relleno del botón primario, no con
+    // `--color-primary` sobre el fondo: desde que la ronda vive en una tarjeta,
+    // ese teal cae sobre `--color-background-card`, que en oscuro es el MISMO
+    // teal (#2a5e5a sobre #1D4E4A ≈ 1.3:1). El par relleno es legible en los dos
+    // temas por construcción, que es para lo que existe.
     &--mine {
-      border-color: var(--color-primary);
-      color: var(--color-primary);
-    }
-  }
-
-  &__action {
-    @include button-reset;
-
-    display: inline-flex;
-    align-items: center;
-    gap: spacing(2xs);
-    padding: spacing(2xs) spacing(sm);
-    border-radius: radius(sm);
-    border: 1px solid var(--color-primary);
-    color: var(--color-primary);
-    font-size: 0.875rem;
-    text-decoration: none;
-
-    &:hover { background: var(--color-background); }
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    &--valve {
-      border-color: var(--color-border);
-      color: var(--color-text-secondary);
+      border-color: transparent;
+      background: var(--btn-primary-bg);
+      color: var(--btn-primary-text);
     }
   }
 

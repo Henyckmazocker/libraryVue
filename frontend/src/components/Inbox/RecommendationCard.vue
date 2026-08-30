@@ -54,7 +54,7 @@
       <div class="recommendation-card__actions">
         <button
           type="button"
-          class="recommendation-card__action recommendation-card__action--add"
+          class="btn btn--primary btn--sm"
           :disabled="busy"
           @click="$emit('add', recommendation)"
         >
@@ -63,7 +63,7 @@
         </button>
         <button
           type="button"
-          class="recommendation-card__action"
+          class="btn btn--ghost btn--sm"
           :disabled="busy"
           @click="$emit('dismiss', recommendation)"
         >
@@ -194,16 +194,12 @@ const relativeTime = computed(() => {
 
 <style scoped lang="scss">
 @use '@/assets/styles/abstracts' as *;
+@use '@/assets/styles/components/cards' as *;
 
 .recommendation-card {
   display: flex;
   gap: spacing(md);
-  padding: spacing(md);
-  border-radius: radius(md);
-  background: var(--color-background-mute);
-  // El hairline suave de una tarjeta decorativa es -light, no --color-border,
-  // que es el de inputs y botones (`tokens/_colors.scss:40-44`).
-  border: 1px solid var(--color-border-light);
+  @include card-base($padding: md, $radius-key: md);
 
   &__cover {
     flex-shrink: 0;
@@ -262,31 +258,5 @@ const relativeTime = computed(() => {
     margin-top: spacing(xs);
   }
 
-  &__action {
-    @include button-reset;
-
-    display: inline-flex;
-    align-items: center;
-    gap: spacing(2xs);
-    padding: spacing(2xs) spacing(sm);
-    border-radius: radius(sm);
-    border: 1px solid var(--color-border);
-    color: var(--color-text-secondary);
-    font-size: 0.875rem;
-
-    &:hover:not(:disabled) {
-      color: var(--color-text);
-      border-color: var(--color-text-secondary);
-    }
-
-    &:disabled {
-      opacity: 0.6;
-    }
-
-    &--add {
-      color: var(--color-primary);
-      border-color: var(--color-primary);
-    }
-  }
 }
 </style>

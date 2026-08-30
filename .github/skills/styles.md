@@ -9,7 +9,7 @@ This skill covers the **frontend SCSS architecture**: tokens, the two themes, mo
 - **Sass**: 1.99 (modern module system: only `@use` / `@forward`, **no** `@import`)
 - **Loader**: `sass-loader` 16 (Vue CLI 5)
 - **Theming**: CSS Variables in `:root` (light) and `.app-dark` (dark) — runtime switch, no recompile
-- **Linting**: `stylelint` 16 (four rules, no preset) alongside ESLint — `npm run lint:styles`
+- **Linting**: `stylelint` 16 (seven rules, no preset) alongside ESLint — `npm run lint:styles`
 - **PrimeVue**: 4.5 with Lara preset (`darkModeSelector: '.app-dark'`, `cssLayer: false`) — palette in JS via `definePreset(Lara, ...)` from `config/design-tokens.js`
 - **Methodology**: BEM relaxed + atomic utilities (`.u-*`) + states (`is-`/`has-`)
 - **Approach**: Mobile-first; opt-in shared mixins (no zero-cost CSS leak)
@@ -55,7 +55,7 @@ frontend/src/assets/styles/
 │   └── _typography.scss     # Element base styles (the global `a` rule → --color-link)
 ├── components/              # Shared patterns (opt-in mixins)
 │   ├── _buttons.scss        # .btn (global class)
-│   ├── _cards.scss          # @mixin card-base, card-interactive
+│   ├── _cards.scss          # @mixin card-base, card-interactive, card-section
 │   ├── _library-item.scss   # @mixin library-item($variant, $cover-aspect, $cover-size, $entity)
 │   ├── _list-item.scss      # @mixin list-item($variant, $cover-aspect, $cover-size)
 │   ├── _carousel-item.scss  # @mixin carousel-item-base, carousel-cover
@@ -63,11 +63,11 @@ frontend/src/assets/styles/
 │   ├── _dashboard.scss      # @mixin dashboard-grid, dashboard-card
 │   ├── _detail-view.scss    # @mixin detail-view-page($entity, $selector?) + detail-section-card
 │   ├── _modal.scss          # @mixin modal-overlay-base, -content + @keyframes
-│   ├── _forms.scss          # @mixin form-group, form-control
+│   ├── _forms.scss          # @mixin form-group, form-control, setting-row
 │   ├── _search.scss         # @mixin search-page
 │   └── _primevue-overrides.scss  # Global PrimeVue overrides (no :deep)
 └── utilities/               # Atomic classes (.u-*)
-    ├── _layout.scss         # .u-flex*, .u-grid*, .u-stack
+    ├── _layout.scss         # .u-flex*, .u-grid*, .u-stack, .u-reading-width, .u-content-width
     ├── _text.scss           # .u-text-*, .u-truncate*
     ├── _spacing.scss        # .u-mt-*, .u-mb-*, .u-gap-*, .u-p-*
     └── _visibility.scss     # .u-sr-only, .u-hidden-*

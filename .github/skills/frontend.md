@@ -28,7 +28,7 @@ frontend/src/
 │   ├── Albums/                # 6 components (AlbumSearch, AlbumNotes, LibraryAlbumItem, ListeningStats, etc.)
 │   ├── Videos/                # 6 components (VideoSearch, VideoNotes, LibraryVideoItem, VideoCarouselItem, VideoListItem, etc.)
 │   ├── Dashboard/             # 11+ components (UnifiedDashboard, *DashboardContent, charts)
-│   ├── common/                # 9 shared components (Header, Sidebar, StatusSelector, TagSelector, MobileNavBar, etc.)
+│   ├── common/                # 12 shared components (Header, Sidebar, BaseModal, EmptyState, StatusSelector, MobileNavBar, etc.)
 │   ├── shared/                # GenericSearch, HorizontalCarousel, TrendingCarousel
 │   ├── import/                # Import workflow components
 │   ├── EditItemModal.vue      # Shared edit modal for all entity types

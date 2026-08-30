@@ -48,19 +48,19 @@ describe('ListFormDialog — el selector de visibilidad', () => {
 
   it('no deja crear una lista sin nombre', async () => {
     const w = montar()
-    const crear = w.findAll('.list-form-dialog__action').at(-1)
-
-    expect(crear.attributes('disabled')).toBeDefined()
+    expect(w.find('.btn--primary').attributes('disabled')).toBeDefined()
 
     await w.find('input').setValue('Para el verano')
-    expect(crear.attributes('disabled')).toBeUndefined()
+    // Se vuelve a buscar en vez de reusar la referencia: el pie vive en un slot
+    // de `BaseModal` y Vue puede recrear el nodo al re-renderizarlo.
+    expect(w.find('.btn--primary').attributes('disabled')).toBeUndefined()
   })
 
   it('emite el formulario con el nombre recortado', async () => {
     const w = montar()
     await w.find('input').setValue('  Para el verano  ')
     await w.findAll('.list-form-dialog__option').at(1).trigger('click')
-    await w.findAll('.list-form-dialog__action').at(-1).trigger('click')
+    await w.find('.btn--primary').trigger('click')
 
     expect(w.emitted('submit')[0][0]).toEqual({
       name: 'Para el verano',

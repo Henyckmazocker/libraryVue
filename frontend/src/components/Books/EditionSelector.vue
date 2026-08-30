@@ -10,7 +10,7 @@
     <!-- Filtros -->
     <div class="filters-section">
       <button 
-        class="filters-toggle-btn" 
+        class="btn btn--ghost filters-toggle-btn" 
         :class="{ active: showFilters }"
         @click="toggleFilters"
       >
@@ -145,7 +145,7 @@
           <!-- Botón limpiar filtros -->
           <div class="filter-actions">
             <button
-              class="clear-filters-btn"
+              class="btn btn--ghost btn--sm clear-filters-btn"
               @click="clearFilters"
             >
               <i class="fas fa-times-circle" />
@@ -173,7 +173,7 @@
       <i class="fas fa-exclamation-circle" />
       <p>{{ error }}</p>
       <button
-        class="retry-btn"
+        class="btn btn--primary retry-btn"
         @click="loadEditions"
       >
         <i class="fas fa-redo" />
@@ -182,20 +182,19 @@
     </div>
 
     <!-- Sin resultados -->
-    <div
+    <EmptyState
       v-else-if="filteredEditions.length === 0"
-      class="empty-state"
+      icon="fas fa-inbox"
+      title="No se encontraron ediciones con los filtros seleccionados"
     >
-      <i class="fas fa-inbox" />
-      <p>No se encontraron ediciones con los filtros seleccionados</p>
       <button
         v-if="hasActiveFilters"
-        class="clear-filters-btn"
+        class="btn btn--ghost btn--sm clear-filters-btn"
         @click="clearFilters"
       >
         Limpiar filtros
       </button>
-    </div>
+    </EmptyState>
 
     <!-- Carrusel de ediciones -->
     <div
@@ -246,6 +245,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import EmptyState from '@/components/common/EmptyState.vue'
 import EditionCarouselItem from './EditionCarouselItem.vue';
 import { useWorkSearch } from '@/composables/useWorkSearch';
 import { getLanguageName } from '@/utils/languageConstants';
@@ -560,33 +560,6 @@ watch(() => props.workKey, () => {
   margin-bottom: 24px;
 }
 
-.filters-toggle-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  background: var(--color-background-card);
-  border: 2px solid var(--color-border);
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--color-text-dark);
-  cursor: pointer;
-  transition: all var(--transition-medium);
-}
-
-.filters-toggle-btn:hover {
-  border-color: var(--color-primary);
-  background: var(--color-primary-light);
-  color: var(--color-text-light);
-}
-
-.filters-toggle-btn.active {
-  background: var(--color-primary);
-  color: var(--color-text-light);
-  border-color: var(--color-primary);
-}
-
 .filters-container {
   margin-top: 16px;
   padding: 20px;
@@ -656,67 +629,27 @@ watch(() => props.workKey, () => {
 }
 
 .clear-filters-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: transparent;
-  border: 1px solid var(--color-warning);
-  border-radius: 6px;
+  // El único ghost que no usa el borde neutro: limpiar filtros avisa de que
+  // hay filtros puestos, y ese aviso es lo que dice `--color-warning`.
+  border-color: var(--color-warning);
   color: var(--color-warning);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--transition-medium);
-}
 
-.clear-filters-btn:hover {
-  background: var(--color-warning);
-  color: var(--color-on-status);
+  &:hover {
+    background: var(--color-warning);
+    color: var(--color-on-status);
+  }
 }
 
 /* Estados */
 .loading-state,
 .error-state,
-.empty-state {
-  text-align: center;
-  padding: 48px 24px;
-}
-
 .loading-state i,
 .error-state i,
-.empty-state i {
-  font-size: 48px;
-  color: var(--color-primary);
-  margin-bottom: 16px;
-}
-
 .error-state i {
   color: var(--color-error);
 }
-
-.empty-state i {
-  color: var(--color-text-muted);
-}
-
 .retry-btn {
   margin-top: 16px;
-  padding: 10px 20px;
-  background: var(--btn-primary-bg);
-  color: var(--btn-primary-text);
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: background var(--transition-medium);
-}
-
-.retry-btn:hover {
-  background: var(--btn-primary-bg-hover);
 }
 
 /* Carrusel */

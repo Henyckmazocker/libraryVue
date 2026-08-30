@@ -1,13 +1,10 @@
 <template>
-  <!-- El `<Dialog>` de PrimeVue trae su propio atrapador de foco: no se envuelve
-       en `useFocusTrap`, que es para los cuatro modales propios del proyecto. -->
-  <Dialog
-    v-model:visible="visible"
-    :header="isEdit ? 'Editar lista' : 'Nueva lista'"
-    :modal="true"
-    :dismissable-mask="true"
+  <!-- El chasis lo pone `BaseModal`: overlay, trampa de foco, Escape, cabecera
+       y pie ordenado, igual que en los cuatro modales propios. -->
+  <BaseModal
+    v-model="visible"
+    :title="isEdit ? 'Editar lista' : 'Nueva lista'"
     class="list-form-dialog"
-    :pt="{ mask: { style: 'z-index: 2500' } }"
   >
     <div class="list-form-dialog__body">
       <div class="list-form-dialog__field">
@@ -67,26 +64,26 @@
     <template #footer>
       <button
         type="button"
-        class="list-form-dialog__action"
+        class="btn btn--ghost"
         @click="visible = false"
       >
         Cancelar
       </button>
       <button
         type="button"
-        class="list-form-dialog__action list-form-dialog__action--primary"
+        class="btn btn--primary"
         :disabled="!canSubmit"
         @click="submit"
       >
         {{ isEdit ? 'Guardar' : 'Crear' }}
       </button>
     </template>
-  </Dialog>
+  </BaseModal>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
-import Dialog from 'primevue/dialog'
+import BaseModal from '@/components/common/BaseModal.vue'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
 import { VISIBILITY_OPTIONS } from './visibility'
@@ -197,21 +194,5 @@ const submit = () => {
     color: var(--color-warning);
   }
 
-  &__action {
-    @include button-reset;
-
-    padding: spacing(2xs) spacing(sm);
-    border-radius: radius(sm);
-    border: 1px solid var(--color-border);
-    color: var(--color-text-secondary);
-
-    &:hover:not(:disabled) { color: var(--color-text); }
-    &:disabled { opacity: 0.6; }
-
-    &--primary {
-      color: var(--color-primary);
-      border-color: var(--color-primary);
-    }
-  }
 }
 </style>

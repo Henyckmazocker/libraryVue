@@ -80,7 +80,7 @@
         <button
           v-if="noteIsLong"
           type="button"
-          class="feed-event-card__note-more"
+          class="btn btn--ghost btn--sm feed-event-card__note-more"
           :aria-expanded="noteOpen"
           @click="noteOpen = !noteOpen"
         >

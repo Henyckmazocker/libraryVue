@@ -82,7 +82,9 @@ describe('MediaNotes — configuración por medio', () => {
     await flush()
 
     expect(wrapper.find('h3').text()).toBe(mediaRegistry.movie.notes.title)
-    expect(wrapper.find('.empty-hint').text()).toBe(mediaRegistry.movie.notes.emptyHint)
+    // Desde el M5 del plan de componentes (2026-08-30) la ayuda del vacío la
+    // pinta `EmptyState` en su `message`, no un `.empty-hint` propio.
+    expect(wrapper.find('.empty-state__message').text()).toBe(mediaRegistry.movie.notes.emptyHint)
   })
 
   it('solo las ediciones muestran el campo de página', async () => {

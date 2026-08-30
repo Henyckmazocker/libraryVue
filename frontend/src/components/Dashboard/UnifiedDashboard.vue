@@ -10,9 +10,13 @@
       </p>
     </div>
 
+    <!-- `scrollable` es lo que da a la fila de tabs sus flechas de navegación: sin
+         ella, `p-tablist` recorta con `overflow-x: hidden` y a 360px tres de los
+         cinco destinos quedan inalcanzables (los cinco suman 717px sobre 254). -->
     <Tabs
       :value="activeTab"
       class="dashboard-tabs"
+      scrollable
       @update:value="activeTab = $event"
     >
       <TabList>
@@ -146,5 +150,29 @@ watch(activeTab, (newTab) => {
 
 .dashboard-tabs :deep(.p-tabpanel) {
   padding: spacing(lg) 0 0 0;
+}
+
+// Por debajo de `sm` los cinco tabs con rótulo suman 717px sobre los 254 disponibles,
+// y `scrollable` no basta: su flecha de navegación existe en el DOM pero no llega a
+// verse, así que los tres últimos destinos quedaban inalcanzables. Aquí el rótulo pasa
+// a lectores de pantalla y quedan los cinco iconos, que caben de una vez y no piden
+// scroll. Es la misma convención que `MyLibrary` usa en sus filtros por medio y que
+// documenta `Header.vue`: lo que solo existe como icono lleva su texto en `u-sr-only`.
+@include responsive-below(sm) {
+  .dashboard-tabs :deep(.p-tab) {
+    padding: spacing(sm);
+
+    span {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  }
 }
 </style>

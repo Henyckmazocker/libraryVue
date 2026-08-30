@@ -202,26 +202,25 @@
         </div>
       </div>
 
-      <div
+      <EmptyState
         v-else-if="stats && !isLoading"
-        class="stats-empty"
-      >
-        <i class="fas fa-music" />
-        <p>No hay datos disponibles para esta selección.</p>
-      </div>
+        icon="fas fa-music"
+        title="No hay datos disponibles para esta selección"
+      />
     </template>
   </div>
 </template>
 
 <script>
 import { ref, computed, onMounted } from 'vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 import { useListeningStats } from '@/composables/useListeningStats'
 import StaleNotice from '@/components/shared/StaleNotice.vue'
 
 export default {
   name: 'ListeningStats',
 
-  components: { StaleNotice },
+  components: { StaleNotice, EmptyState },
 
   setup() {
     const { stats, isLoading, error, stale, cachedAt, hasLastFmUsername, fetchStats } = useListeningStats()
@@ -332,14 +331,6 @@ export default {
 /* ─── Loading / error / empty ─── */
 .stats-loading,
 .stats-error,
-.stats-empty {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 1.5rem 0;
-  color: var(--text-color-secondary, var(--color-text-muted));
-}
-
 .stats-error {
   color: var(--color-error, var(--color-error));
 }
@@ -411,7 +402,7 @@ export default {
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-color-secondary, var(--color-text-muted));
-  min-width: 2rem;
+  min-width: min(2rem, 100%);
   text-align: right;
 }
 

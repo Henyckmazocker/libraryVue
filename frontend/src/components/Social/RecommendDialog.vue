@@ -1,13 +1,10 @@
 <template>
-  <!-- El `<Dialog>` de PrimeVue trae su propio atrapador de foco: no se envuelve
-       en `useFocusTrap`, que es para los cuatro modales propios del proyecto. -->
-  <Dialog
-    v-model:visible="visible"
-    header="Recomendar a un amigo"
-    :modal="true"
-    :dismissable-mask="true"
+  <!-- El chasis lo pone `BaseModal`: overlay, trampa de foco, Escape, cabecera
+       y pie ordenado, igual que en los cuatro modales propios. -->
+  <BaseModal
+    v-model="visible"
+    title="Recomendar a un amigo"
     class="recommend-dialog"
-    :pt="{ mask: { style: 'z-index: 2500' } }"
   >
     <div class="recommend-dialog__body">
       <p class="recommend-dialog__item">
@@ -85,7 +82,7 @@
     <template #footer>
       <button
         type="button"
-        class="recommend-dialog__action"
+        class="btn btn--ghost"
         :disabled="isSending"
         @click="visible = false"
       >
@@ -93,7 +90,7 @@
       </button>
       <button
         type="button"
-        class="recommend-dialog__action recommend-dialog__action--primary"
+        class="btn btn--primary"
         :disabled="!recipientId || isSending"
         @click="send"
       >
@@ -104,12 +101,12 @@
         Enviar
       </button>
     </template>
-  </Dialog>
+  </BaseModal>
 </template>
 
 <script setup>
 import { computed, inject, onMounted, ref } from 'vue'
-import Dialog from 'primevue/dialog'
+import BaseModal from '@/components/common/BaseModal.vue'
 import Textarea from 'primevue/textarea'
 import { storeToRefs } from 'pinia'
 import { useSocialStore } from '@/store/social'
@@ -300,23 +297,5 @@ function mensajeDeError (result) {
     color: var(--color-error);
   }
 
-  &__action {
-    @include button-reset;
-
-    padding: spacing(2xs) spacing(md);
-    border-radius: radius(sm);
-    border: 1px solid var(--color-border);
-    color: var(--color-text-secondary);
-
-    &:disabled {
-      opacity: 0.6;
-    }
-
-    &--primary {
-      color: var(--color-on-status);
-      background: var(--color-primary);
-      border-color: var(--color-primary);
-    }
-  }
 }
 </style>

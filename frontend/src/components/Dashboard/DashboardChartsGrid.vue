@@ -42,11 +42,16 @@ defineProps({
 
 .charts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  // `min(400px, 100%)` en vez de `400px` a secas: una pista fija desborda en cuanto
+  // el contenedor mide menos que ella, que es lo que pasaba a 360px.
+  grid-template-columns: repeat(auto-fit, minmax(min(400px, 100%), 1fr));
   gap: spacing(lg);
 
   @include responsive-below(md) {
-    grid-template-columns: 1fr;
+    // `minmax(0, 1fr)` y no `1fr`: `1fr` es `minmax(auto, 1fr)`, y ese `auto` respeta
+    // el min-content de la tarjeta —350px por el canvas de la gráfica—, así que la
+    // pista se estiraba a 350px dentro de un contenedor de 218px.
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 </style>

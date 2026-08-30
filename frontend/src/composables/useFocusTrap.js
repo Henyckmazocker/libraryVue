@@ -11,6 +11,16 @@ const FOCUSABLE = [
   '[tabindex]:not([tabindex="-1"])'
 ].map(s => `${s}:not([disabled]):not([aria-hidden="true"])`).join(', ')
 
+// Los paneles que PrimeVue teletransporta al `body`. Con uno abierto, el Escape es
+// suyo: lo que el usuario está cerrando es el desplegable, no el modal entero.
+const PRIMEVUE_OVERLAYS = [
+  '.p-multiselect-overlay', '.p-multiselect-panel',
+  '.p-dropdown-overlay', '.p-dropdown-panel',
+  '.p-select-overlay',
+  '.p-autocomplete-overlay', '.p-autocomplete-panel',
+  '.p-datepicker-panel'
+].join(', ')
+
 /**
  * Atrapa el foco dentro de un contenedor mientras está abierto.
  *
@@ -46,6 +56,12 @@ export function useFocusTrap (containerRef, { isOpen, onEscape } = {}) {
     if (!root) return
 
     if (event.key === 'Escape') {
+      // Este listener va en fase de CAPTURA sobre `document`, así que llega antes
+      // que el de PrimeVue: sin esta guarda, un Escape con el desplegable abierto
+      // cerraba el panel y el modal a la vez y se perdía el formulario entero.
+      // Medido el 2026-08-29 en `EditItemModal` con el `MultiSelect` de
+      // `StatusSelector`. El segundo Escape, ya sin panel, sí cierra el modal.
+      if (document.querySelector(PRIMEVUE_OVERLAYS)) return
       onEscape?.()
       return
     }

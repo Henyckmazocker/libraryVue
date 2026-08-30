@@ -74,7 +74,7 @@ describe('RecommendDialog', () => {
 
     await w.findAll('.recommend-dialog__friend')[1].trigger('click')
     await w.find('textarea').setValue('Te va a gustar')
-    await w.find('.recommend-dialog__action--primary').trigger('click')
+    await w.find('.btn--primary').trigger('click')
     await flushPromises()
 
     expect(inbox.sendRecommendation).toHaveBeenCalledWith({
@@ -95,7 +95,7 @@ describe('RecommendDialog', () => {
     const w = montar()
     await flushPromises()
 
-    expect(w.find('.recommend-dialog__action--primary').attributes('disabled')).toBeDefined()
+    expect(w.find('.btn--primary').attributes('disabled')).toBeDefined()
   })
 
   it('el error se queda a la vista dentro del diálogo, y traducido por su código', async () => {
@@ -114,7 +114,7 @@ describe('RecommendDialog', () => {
     await flushPromises()
 
     await w.find('.recommend-dialog__friend').trigger('click')
-    await w.find('.recommend-dialog__action--primary').trigger('click')
+    await w.find('.btn--primary').trigger('click')
     await flushPromises()
 
     expect(w.find('.recommend-dialog__error').text()).toBe('Ya le recomendaste esto a esta persona.')
@@ -138,7 +138,7 @@ describe('RecommendDialog', () => {
     await flushPromises()
 
     await w.find('.recommend-dialog__friend').trigger('click')
-    await w.find('.recommend-dialog__action--primary').trigger('click')
+    await w.find('.btn--primary').trigger('click')
     await flushPromises()
 
     // Peor que un mensaje en inglés es uno inventado que no describe qué pasó.
@@ -158,7 +158,7 @@ describe('RecommendDialog', () => {
     await flushPromises()
 
     await w.find('.recommend-dialog__friend').trigger('click')
-    await w.find('.recommend-dialog__action--primary').trigger('click')
+    await w.find('.btn--primary').trigger('click')
     await flushPromises()
 
     expect(notifications.calls.some((c) => c.type === 'success')).toBe(true)

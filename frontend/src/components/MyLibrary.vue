@@ -42,7 +42,7 @@
           aria-hidden="true"
         /><span class="u-sr-only">Vídeos</span></label>
         <button
-          class="import-button"
+          class="btn btn--primary import-button"
           title="Importar datos"
           aria-label="Importar datos desde un fichero"
           @click="openImportModal"
@@ -121,12 +121,12 @@
       {{ fetchError }}
     </div>
 
-    <div
+    <EmptyState
       v-if="!isLoading && !fetchError && displayedItems.length === 0"
-      class="empty-library-message"
-    >
-      Tu biblioteca está vacía. Añade algo desde los buscadores.
-    </div>
+      icon="fas fa-book-open"
+      title="Tu biblioteca está vacía"
+      message="Añade algo desde los buscadores."
+    />
 
     <div
       v-if="displayedItems.length > 0"
@@ -154,6 +154,7 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
+import EmptyState from '@/components/common/EmptyState.vue'
 import { useRouter } from 'vue-router';
 import { useBooks } from '@/composables/useBooks';
 import { useMovies } from '@/composables/useMovies';
@@ -499,7 +500,6 @@ const searchQuery = searchSystem.query;
 }
 
 .loading-message,
-.empty-library-message,
 .error-message,
 .status-message {
   font-size: 1.2rem;
@@ -534,35 +534,14 @@ const searchQuery = searchSystem.query;
 }
 
 .book-list {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  gap: 12px; /* Reducido de 20px */
+  display: grid;
+  // `min(240px, 100%)` es la pieza clave: sin ella una pista de 240px desborda en
+  // cuanto el contenedor mide menos, que es el bug de móvil con otro disfraz.
+  // `auto-fill` y no `auto-fit`: con pocos ítems, `auto-fit` los estira a todo el ancho.
+  grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
+  gap: spacing(sm);
   width: 100%;
   padding: 0;
-}
-
-/* Optimizar para mostrar más items por fila */
-:deep(.book-item) { 
-  flex-basis: calc(20% - 12px); /* 5 items por fila en pantallas grandes */
-  max-width: calc(20% - 12px);
-  min-width: 180px; /* Mínimo para que se vea bien */
-  box-sizing: border-box; 
-}
-
-/* Responsive adjustments para optimizar espacio */
-@include responsive-below(2xl) {
-  :deep(.book-item) {
-    flex-basis: calc(25% - 12px); /* 4 items por fila */
-    max-width: calc(25% - 12px);
-  }
-}
-
-@include responsive-below(xl) {
-  :deep(.book-item) {
-    flex-basis: calc(33.333% - 12px); /* 3 items por fila */
-    max-width: calc(33.333% - 12px);
-  }
 }
 
 @include responsive-below(md) {
@@ -570,30 +549,18 @@ const searchQuery = searchSystem.query;
     padding: 5px 8px; /* Reducido padding lateral también en móvil */
     padding-top: 15px;
   }
-  
+
   .controls-container {
     justify-content: center;
     margin-bottom: 12px;
   }
-  
-  :deep(.book-item) {
-    flex-basis: calc(50% - 10px); /* 2 items por fila */
-    max-width: calc(50% - 10px);
-  }
-  
-  .book-list {
-    gap: 10px;
-  }
 }
 
+// Los seis controles de filtro no caben en una fila por debajo de `sm`, así que
+// envuelven; con el hueco de 18px se irían a tres filas en vez de dos.
 @include responsive-below(sm) {
-  :deep(.book-item) {
-    flex-basis: 100%; /* 1 item por fila */
-    max-width: 100%;
-  }
-  
-  .book-list {
-    gap: 8px;
+  .filter-checkboxes {
+    gap: spacing(xs);
   }
 }
 
@@ -607,6 +574,7 @@ const searchQuery = searchSystem.query;
 
 .search-sort-row {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 15px;
@@ -620,7 +588,9 @@ const searchQuery = searchSystem.query;
   background-color: var(--color-background-mute);
   color: var(--color-text);
   flex-grow: 1;
-  min-width: 200px;
+  // Acotado al contenedor, como los seis diálogos de Listas y Clubs: un `min-width`
+  // fijo empuja la fila fuera del viewport en cuanto la pantalla baja de 360px.
+  min-width: min(200px, 100%);
 }
 
 .search-input::placeholder {
@@ -629,6 +599,7 @@ const searchQuery = searchSystem.query;
 
 .sort-buttons {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -671,12 +642,13 @@ const searchQuery = searchSystem.query;
   background-color: var(--color-background-mute);
   color: var(--color-text);
   cursor: pointer;
-  min-width: 200px;
+  min-width: min(200px, 100%);
 }
 
 /* Checkboxes para filtro de tipo */
 .filter-checkboxes {
   display: flex;
+  flex-wrap: wrap;
   gap: 18px;
   align-items: center;
   margin-bottom: 5px;
@@ -725,21 +697,11 @@ const searchQuery = searchSystem.query;
 
 /* Import button */
 .import-button {
-  background: linear-gradient(135deg, var(--color-success), var(--color-primary-light));
-  color: var(--color-text-light);
-  border: none;
+  // Píldora: es el único control redondo de la fila de filtros.
   border-radius: 999px;
-  padding: 8px 20px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: var(--transition-fast);
-  box-shadow: var(--shadow-medium);
+  box-shadow: shadow(medium);
+
+  &:hover { transform: translateY(-1px); }
 }
 
-.import-button:hover {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-heavy);
-}
 </style> 

@@ -3,7 +3,7 @@
     <!-- Icono de ayuda flotante -->
     <button
       type="button"
-      class="help-icon"
+      class="btn btn--primary btn--icon help-icon"
       title="Ayuda y documentación"
       aria-label="Abrir la ayuda y documentación"
       @click="openHelpPage"
@@ -75,7 +75,7 @@
     <!-- Sync Button -->
     <div class="sync-section">
       <button
-        class="sync-button"
+        class="btn btn--primary btn--lg sync-button"
         @click="saveBooksToBackend"
       >
         <i class="fas fa-sync-alt" />
@@ -132,29 +132,17 @@ const openHelpPage = () => {
 
 /* Icono de ayuda flotante */
 .help-icon {
-  @include button-reset;
   position: fixed;
   bottom: 20px;
   right: 20px;
   width: 50px;
   height: 50px;
-  background: var(--color-info);
-  color: var(--color-on-status);
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
   font-size: 1.4rem;
-  box-shadow: 0 4px 12px rgba(0, 121, 211, 0.3);
-  transition: all 0.3s ease;
-  z-index: 1000;
-}
+  box-shadow: shadow(medium);
+  z-index: z(sticky);
 
-.help-icon:hover {
-  background: var(--color-info);
-  transform: scale(1.1);
-  box-shadow: 0 6px 16px rgba(0, 121, 211, 0.4);
+  &:hover { transform: scale(1.1); }
 }
 
 /* Hero Section */
@@ -216,7 +204,7 @@ const openHelpPage = () => {
   background: var(--color-background-mute);
   border-color: var(--color-info);
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 121, 211, 0.15);
+  box-shadow: shadow(heavy);
 }
 
 .action-card i {
@@ -262,26 +250,9 @@ const openHelpPage = () => {
 }
 
 .sync-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 16px 32px;
-  background: var(--color-info);
-  color: var(--color-on-status);
-  border: none;
-  border-radius: 8px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 121, 211, 0.2);
-}
+  box-shadow: shadow(light);
 
-.sync-button:hover {
-  background: var(--color-info);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 121, 211, 0.3);
+  &:hover { transform: translateY(-1px); }
 }
 
 .sync-button i {

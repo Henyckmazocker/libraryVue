@@ -365,6 +365,9 @@ watch(() => props.allowedStatuses, (newValue) => {
   box-shadow: none;
 }
 
+// No usa `EmptyState` a propósito: es un texto EN LÍNEA que sustituye a los
+// badges dentro de su misma fila, no un estado vacío de pantalla. `EmptyState`
+// es un bloque centrado con padding y aquí rompería la línea.
 .no-status-text {
   color: var(--color-text-muted);
   font-style: italic;

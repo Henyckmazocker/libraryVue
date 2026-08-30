@@ -1,322 +1,297 @@
 <template>
-  <Teleport to="body">
-    <!-- El overlay cierra al pulsar fuera, pero no es un control: envuelve al propio
-         diálogo. El cierre por teclado es Escape, en useFocusTrap. -->
-    <!-- eslint-disable-next-line vuejs-accessibility/click-events-have-key-events, vuejs-accessibility/no-static-element-interactions -->
-    <div
-      v-if="isVisible"
-      class="edit-modal"
-      :class="`edit-modal--${itemType}`"
-      @click="onBackgroundClick"
-    >
+  <!-- El chasis —overlay, Teleport, trampa de foco, Escape, cabecera y pie— lo
+       pone `BaseModal`. El filete de color del medio va por su prop `accent`. -->
+  <BaseModal
+    :model-value="isVisible"
+    :title="item?.title || 'Sin título'"
+    :accent="`var(--color-card-${itemType}-accent)`"
+    size="lg"
+    :dismissible="!isSaving"
+    :close-on-overlay="!isSaving"
+    :class="`edit-modal--${itemType}`"
+    @close="$emit('close')"
+  >
+    <!-- Sección: valoración y progreso -->
+    <section class="edit-modal__section">
+      <RatingComponent
+        v-model:rating="localRating"
+        :editable="true"
+      />
+
+      <ReadingProgressBar
+        v-if="itemType === 'book'"
+        ref="progressBarRef"
+        :current-page="item?.currentPage || 0"
+        :total-pages="localTotalPages"
+        :editable="true"
+        theme="blue"
+      />
+
       <div
-        ref="dialogRef"
-        class="edit-modal__dialog"
-        role="dialog"
-        aria-modal="true"
+        v-if="itemType === 'book'"
+        class="edit-modal__field"
       >
-        <header class="edit-modal__header">
-          <h2
-            class="edit-modal__title"
-            :title="item?.title || 'Sin título'"
+        <label for="total-pages-input">Total de páginas</label>
+        <input
+          id="total-pages-input"
+          v-model.number="localTotalPages"
+          type="number"
+          min="1"
+          placeholder="Nº total de páginas del libro"
+          class="edit-modal__input"
+        >
+      </div>
+    </section>
+
+    <!-- Sección: estado, tags y propiedad -->
+    <section class="edit-modal__section">
+      <StatusSelector
+        v-model="localStatuses"
+        :allowed-statuses="allowedStatuses"
+        :multiple="true"
+        label="Estado"
+        subtitle="(selecciona uno o más)"
+      />
+
+      <TagSelector
+        v-model="localTags"
+        :tags="userTags"
+        :readonly="false"
+        @add-tag="handleAddTag"
+      />
+
+      <div
+        v-if="ownershipFormats.length > 0"
+        class="edit-modal__field"
+      >
+        <label for="ownership-format">Formato de Propiedad</label>
+        <select
+          id="ownership-format"
+          v-model="localOwnershipFormatId"
+          class="edit-modal__input"
+        >
+          <option :value="null">
+            — Sin especificar —
+          </option>
+          <option
+            v-for="fmt in ownershipFormats"
+            :key="fmt.id"
+            :value="fmt.id"
           >
-            {{ item?.title || 'Sin título' }}
-          </h2>
-          <button
-            class="edit-modal__close"
-            type="button"
-            aria-label="Cerrar"
-            @click="$emit('close')"
+            {{ fmt.label }}
+          </option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Sección: detalles específicos del juego -->
+    <section
+      v-if="itemType === 'game'"
+      class="edit-modal__section edit-modal__section--card"
+    >
+      <h3 class="edit-modal__section-title">
+        Detalles del juego
+      </h3>
+
+      <div class="edit-modal__grid">
+        <div class="edit-modal__field">
+          <label for="hours-played">Horas jugadas</label>
+          <input
+            id="hours-played"
+            v-model.number="localHoursPlayed"
+            type="number"
+            min="0"
+            step="0.5"
+            placeholder="Horas jugadas"
+            class="edit-modal__input"
           >
-            &times;
-          </button>
-        </header>
-
-        <div class="edit-modal__body">
-          <!-- Sección: valoración y progreso -->
-          <section class="edit-modal__section">
-            <RatingComponent
-              v-model:rating="localRating"
-              :editable="true"
-            />
-
-            <ReadingProgressBar
-              v-if="itemType === 'book'"
-              ref="progressBarRef"
-              :current-page="item?.currentPage || 0"
-              :total-pages="localTotalPages"
-              :editable="true"
-              theme="blue"
-            />
-
-            <div
-              v-if="itemType === 'book'"
-              class="edit-modal__field"
-            >
-              <label for="total-pages-input">Total de páginas</label>
-              <input
-                id="total-pages-input"
-                v-model.number="localTotalPages"
-                type="number"
-                min="1"
-                placeholder="Nº total de páginas del libro"
-                class="edit-modal__input"
-              >
-            </div>
-          </section>
-
-          <!-- Sección: estado, tags y propiedad -->
-          <section class="edit-modal__section">
-            <StatusSelector
-              v-model="localStatuses"
-              :allowed-statuses="allowedStatuses"
-              :multiple="true"
-              label="Estado"
-              subtitle="(selecciona uno o más)"
-            />
-
-            <TagSelector
-              v-model="localTags"
-              :tags="userTags"
-              :readonly="false"
-              @add-tag="handleAddTag"
-            />
-
-            <div
-              v-if="ownershipFormats.length > 0"
-              class="edit-modal__field"
-            >
-              <label for="ownership-format">Formato de Propiedad</label>
-              <select
-                id="ownership-format"
-                v-model="localOwnershipFormatId"
-                class="edit-modal__input"
-              >
-                <option :value="null">
-                  — Sin especificar —
-                </option>
-                <option
-                  v-for="fmt in ownershipFormats"
-                  :key="fmt.id"
-                  :value="fmt.id"
-                >
-                  {{ fmt.label }}
-                </option>
-              </select>
-            </div>
-          </section>
-
-          <!-- Sección: detalles específicos del juego -->
-          <section
-            v-if="itemType === 'game'"
-            class="edit-modal__section edit-modal__section--card"
-          >
-            <h3 class="edit-modal__section-title">
-              Detalles del juego
-            </h3>
-
-            <div class="edit-modal__grid">
-              <div class="edit-modal__field">
-                <label for="hours-played">Horas jugadas</label>
-                <input
-                  id="hours-played"
-                  v-model.number="localHoursPlayed"
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  placeholder="Horas jugadas"
-                  class="edit-modal__input"
-                >
-              </div>
-
-              <div class="edit-modal__field">
-                <label for="platform-played">Plataforma</label>
-                <input
-                  id="platform-played"
-                  v-model="localPlatformPlayed"
-                  type="text"
-                  placeholder="PC, PS5, Xbox, etc."
-                  class="edit-modal__input"
-                >
-              </div>
-
-              <div class="edit-modal__field">
-                <label for="date-started">Fecha de inicio</label>
-                <input
-                  id="date-started"
-                  v-model="localDateStarted"
-                  type="date"
-                  class="edit-modal__input"
-                >
-              </div>
-
-              <div class="edit-modal__field">
-                <label for="date-finished">Fecha de finalización</label>
-                <input
-                  id="date-finished"
-                  v-model="localDateFinished"
-                  type="date"
-                  class="edit-modal__input"
-                >
-              </div>
-            </div>
-
-            <div class="edit-modal__field">
-              <label for="personal-notes">Notas personales</label>
-              <textarea
-                id="personal-notes"
-                v-model="localPersonalNotes"
-                rows="3"
-                placeholder="Tus notas sobre este juego..."
-                class="edit-modal__textarea"
-              />
-            </div>
-          </section>
-
-          <!-- Sección: detalles específicos del vídeo -->
-          <section
-            v-if="itemType === 'video'"
-            class="edit-modal__section edit-modal__section--card"
-          >
-            <h3 class="edit-modal__section-title">
-              Detalles del vídeo
-            </h3>
-
-            <div class="edit-modal__field">
-              <label for="video-personal-notes">Notas personales</label>
-              <textarea
-                id="video-personal-notes"
-                v-model="localPersonalNotes"
-                rows="3"
-                placeholder="Tus notas sobre este vídeo..."
-                class="edit-modal__textarea"
-              />
-            </div>
-          </section>
-
-          <!-- Sección: detalles específicos del álbum -->
-          <section
-            v-if="itemType === 'album'"
-            class="edit-modal__section edit-modal__section--card"
-          >
-            <h3 class="edit-modal__section-title">
-              Detalles del álbum
-            </h3>
-
-            <div class="edit-modal__field">
-              <label for="favorite-track">Canción favorita</label>
-              <select
-                v-if="albumTracks && albumTracks.length > 0"
-                id="favorite-track"
-                v-model="localFavoriteTrack"
-                class="edit-modal__input"
-              >
-                <option value="">
-                  — Ninguna —
-                </option>
-                <option
-                  v-for="track in albumTracks"
-                  :key="track.id || track.track_number"
-                  :value="track.name"
-                >
-                  {{ track.track_number }}. {{ track.name }}
-                </option>
-              </select>
-              <input
-                v-else
-                id="favorite-track"
-                v-model="localFavoriteTrack"
-                type="text"
-                placeholder="Tu canción favorita del álbum"
-                class="edit-modal__input"
-              >
-            </div>
-
-            <div class="edit-modal__field">
-              <label for="album-date-started">Primera escucha</label>
-              <input
-                id="album-date-started"
-                v-model="localDateStarted"
-                type="date"
-                class="edit-modal__input"
-              >
-            </div>
-
-            <div class="edit-modal__field">
-              <label for="album-personal-notes">Notas personales</label>
-              <textarea
-                id="album-personal-notes"
-                v-model="localPersonalNotes"
-                rows="3"
-                placeholder="Tus notas sobre este álbum..."
-                class="edit-modal__textarea"
-              />
-            </div>
-          </section>
-
-          <!-- Sección: widgets/notas asociadas -->
-          <section
-            v-if="hasNotesSection"
-            class="edit-modal__section"
-          >
-            <ReadingStatusWidget
-              v-if="itemType === 'book' && item?.isbn && !isNewItem"
-              :book="item"
-            />
-
-            <EditionNotes
-              v-if="itemType === 'book' && userEditionId"
-              :user-edition-id="userEditionId"
-            />
-
-            <MovieNotes
-              v-if="itemType === 'movie' && item?.isbn"
-              :imdb-id="item.isbn"
-            />
-
-            <GameNotes
-              v-if="itemType === 'game' && item?.id"
-              :game-id="item.id"
-            />
-
-            <AlbumNotes
-              v-if="itemType === 'album' && item?.id"
-              :album-id="item.id"
-            />
-
-            <VideoNotes
-              v-if="itemType === 'video' && (item?.youtube_id || item?.youtubeId)"
-              :youtube-id="item.youtube_id || item.youtubeId"
-            />
-          </section>
         </div>
 
-        <footer class="edit-modal__footer">
-          <button
-            type="button"
-            class="btn btn--secondary"
-            :disabled="isSaving"
-            @click="$emit('close')"
+        <div class="edit-modal__field">
+          <label for="platform-played">Plataforma</label>
+          <input
+            id="platform-played"
+            v-model="localPlatformPlayed"
+            type="text"
+            placeholder="PC, PS5, Xbox, etc."
+            class="edit-modal__input"
           >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            class="btn btn--primary"
-            :disabled="isSaving"
-            @click="handleSave"
+        </div>
+
+        <div class="edit-modal__field">
+          <label for="date-started">Fecha de inicio</label>
+          <input
+            id="date-started"
+            v-model="localDateStarted"
+            type="date"
+            class="edit-modal__input"
           >
-            {{ isSaving ? 'Guardando...' : 'Guardar' }}
-          </button>
-        </footer>
+        </div>
+
+        <div class="edit-modal__field">
+          <label for="date-finished">Fecha de finalización</label>
+          <input
+            id="date-finished"
+            v-model="localDateFinished"
+            type="date"
+            class="edit-modal__input"
+          >
+        </div>
       </div>
-    </div>
-  </Teleport>
+
+      <div class="edit-modal__field">
+        <label for="personal-notes">Notas personales</label>
+        <textarea
+          id="personal-notes"
+          v-model="localPersonalNotes"
+          rows="3"
+          placeholder="Tus notas sobre este juego..."
+          class="edit-modal__textarea"
+        />
+      </div>
+    </section>
+
+    <!-- Sección: detalles específicos del vídeo -->
+    <section
+      v-if="itemType === 'video'"
+      class="edit-modal__section edit-modal__section--card"
+    >
+      <h3 class="edit-modal__section-title">
+        Detalles del vídeo
+      </h3>
+
+      <div class="edit-modal__field">
+        <label for="video-personal-notes">Notas personales</label>
+        <textarea
+          id="video-personal-notes"
+          v-model="localPersonalNotes"
+          rows="3"
+          placeholder="Tus notas sobre este vídeo..."
+          class="edit-modal__textarea"
+        />
+      </div>
+    </section>
+
+    <!-- Sección: detalles específicos del álbum -->
+    <section
+      v-if="itemType === 'album'"
+      class="edit-modal__section edit-modal__section--card"
+    >
+      <h3 class="edit-modal__section-title">
+        Detalles del álbum
+      </h3>
+
+      <div class="edit-modal__field">
+        <label for="favorite-track">Canción favorita</label>
+        <select
+          v-if="albumTracks && albumTracks.length > 0"
+          id="favorite-track"
+          v-model="localFavoriteTrack"
+          class="edit-modal__input"
+        >
+          <option value="">
+            — Ninguna —
+          </option>
+          <option
+            v-for="track in albumTracks"
+            :key="track.id || track.track_number"
+            :value="track.name"
+          >
+            {{ track.track_number }}. {{ track.name }}
+          </option>
+        </select>
+        <input
+          v-else
+          id="favorite-track"
+          v-model="localFavoriteTrack"
+          type="text"
+          placeholder="Tu canción favorita del álbum"
+          class="edit-modal__input"
+        >
+      </div>
+
+      <div class="edit-modal__field">
+        <label for="album-date-started">Primera escucha</label>
+        <input
+          id="album-date-started"
+          v-model="localDateStarted"
+          type="date"
+          class="edit-modal__input"
+        >
+      </div>
+
+      <div class="edit-modal__field">
+        <label for="album-personal-notes">Notas personales</label>
+        <textarea
+          id="album-personal-notes"
+          v-model="localPersonalNotes"
+          rows="3"
+          placeholder="Tus notas sobre este álbum..."
+          class="edit-modal__textarea"
+        />
+      </div>
+    </section>
+
+    <!-- Sección: widgets/notas asociadas -->
+    <section
+      v-if="hasNotesSection"
+      class="edit-modal__section"
+    >
+      <ReadingStatusWidget
+        v-if="itemType === 'book' && item?.isbn && !isNewItem"
+        :book="item"
+      />
+
+      <EditionNotes
+        v-if="itemType === 'book' && userEditionId"
+        :user-edition-id="userEditionId"
+      />
+
+      <MovieNotes
+        v-if="itemType === 'movie' && item?.isbn"
+        :imdb-id="item.isbn"
+      />
+
+      <GameNotes
+        v-if="itemType === 'game' && item?.id"
+        :game-id="item.id"
+      />
+
+      <AlbumNotes
+        v-if="itemType === 'album' && item?.id"
+        :album-id="item.id"
+      />
+
+      <VideoNotes
+        v-if="itemType === 'video' && (item?.youtube_id || item?.youtubeId)"
+        :youtube-id="item.youtube_id || item.youtubeId"
+      />
+    </section>
+
+    <template #footer>
+      <button
+        type="button"
+        class="btn btn--ghost"
+        :disabled="isSaving"
+        @click="$emit('close')"
+      >
+        Cancelar
+      </button>
+      <button
+        type="button"
+        class="btn btn--primary"
+        :disabled="isSaving"
+        @click="handleSave"
+      >
+        {{ isSaving ? 'Guardando...' : 'Guardar' }}
+      </button>
+    </template>
+  </BaseModal>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted, inject, defineProps, defineEmits } from 'vue'
-import { useFocusTrap } from '@/composables/useFocusTrap'
+import BaseModal from '@/components/common/BaseModal.vue'
 import RatingComponent from '@/components/common/RatingComponent.vue'
 import ReadingProgressBar from '@/components/common/ReadingProgressBar.vue'
 import StatusSelector from '@/components/common/StatusSelector.vue'
@@ -740,16 +715,6 @@ const handleSave = async () => {
   }
 }
 
-const dialogRef = ref(null)
-useFocusTrap(dialogRef, { isOpen: () => props.isVisible, onEscape: () => emit('close') })
-
-// Handle background click
-const onBackgroundClick = (e) => {
-  if (e.target.classList.contains('edit-modal')) {
-    emit('close')
-  }
-}
-
 // Whether the bottom "notes / widgets" section should render
 const hasNotesSection = computed(() => {
   if (props.itemType === 'book') {
@@ -770,66 +735,8 @@ const hasNotesSection = computed(() => {
 // Overrides PrimeVue (z-index, overlays) → centralizados en
 // assets/styles/components/_primevue-overrides.scss
 
+// El chasis lo pone `BaseModal`; aquí solo lo que va DENTRO del slot.
 .edit-modal {
-  @include modal-overlay-base(modal);
-  @include modal-overlay-blur;
-  padding: spacing(md);
-
-  &__dialog {
-    @include modal-content-base(720px);
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    animation: modalSlideIn transition(medium) ease-out;
-    border-top: 3px solid var(--color-primary);
-  }
-
-  // Acento por entidad en el borde superior del modal
-  &--book &__dialog   { border-top-color: var(--color-card-book-accent); }
-  &--movie &__dialog  { border-top-color: var(--color-card-movie-accent); }
-  &--game &__dialog   { border-top-color: var(--color-card-game-accent); }
-  &--album &__dialog  { border-top-color: var(--color-card-album-accent); }
-
-  &__header {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    display: flex;
-    align-items: center;
-    gap: spacing(md);
-    padding: spacing(lg) spacing(xl);
-    background: var(--color-background-soft);
-    border-bottom: 1px solid var(--color-border);
-    border-top-left-radius: radius(xl);
-    border-top-right-radius: radius(xl);
-  }
-
-  &__title {
-    flex: 1 1 auto;
-    margin: 0;
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-semibold);
-    color: var(--color-text);
-    @include truncate(2);
-  }
-
-  &__close {
-    @include modal-close-button;
-    position: static;
-    flex: 0 0 auto;
-    width: 36px;
-    height: 36px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: radius(full);
-
-    &:hover {
-      background: var(--color-background-mute);
-    }
-  }
-
   &__body {
     flex: 1 1 auto;
     overflow-y: auto;
@@ -897,29 +804,6 @@ const hasNotesSection = computed(() => {
   &__textarea {
     resize: vertical;
     min-height: 72px;
-  }
-
-  &__footer {
-    position: sticky;
-    bottom: 0;
-    z-index: 2;
-    display: flex;
-    justify-content: flex-end;
-    gap: spacing(sm);
-    padding: spacing(md) spacing(xl);
-    background: var(--color-background-soft);
-    border-top: 1px solid var(--color-border);
-    border-bottom-left-radius: radius(xl);
-    border-bottom-right-radius: radius(xl);
-
-    .btn {
-      min-width: 110px;
-
-      &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
-    }
   }
 
   // Mobile: ocupa toda la pantalla y elimina bordes redondeados

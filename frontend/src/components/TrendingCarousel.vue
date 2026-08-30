@@ -16,12 +16,11 @@
     />
 
     <!-- Empty State -->
-    <div
+    <EmptyState
       v-else-if="items.length === 0"
-      class="trending-empty"
-    >
-      <span>No hay contenido trending disponible</span>
-    </div>
+      icon="fas fa-fire"
+      title="No hay contenido trending disponible"
+    />
 
     <!-- Carousel -->
     <div
@@ -50,6 +49,7 @@
 
 <script setup>
 import { defineProps, defineEmits } from 'vue';
+import EmptyState from '@/components/common/EmptyState.vue'
 import HorizontalCarousel from '@/components/shared/HorizontalCarousel.vue';
 import MediaSkeleton from '@/components/shared/MediaSkeleton.vue';
 
@@ -157,23 +157,6 @@ const handleItemClick = (item) => {
 }
 
 /* Empty State */
-.trending-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 40px;
-  background: var(--color-background-mute);
-  border-radius: 20px;
-  color: var(--color-text-secondary);
-  font-style: italic;
-  border: 1px solid var(--color-border);
-}
-
-.trending-empty i {
-  font-size: 1.3rem;
-}
-
 /* Carousel Container */
 .trending-carousel {
   position: relative;
@@ -185,11 +168,6 @@ const handleItemClick = (item) => {
   }
   
   .trending-subtitle {
-    font-size: 0.9rem;
-  }
-  
-  .trending-empty {
-    padding: 30px 20px;
     font-size: 0.9rem;
   }
 }

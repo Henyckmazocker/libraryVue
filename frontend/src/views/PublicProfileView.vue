@@ -263,7 +263,7 @@ const handleSendRequest = async () => {
 
   &__stat {
     flex: 1;
-    min-width: 80px;
+    min-width: min(80px, 100%);
     display: flex;
     flex-direction: column;
     align-items: center;

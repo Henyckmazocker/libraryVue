@@ -107,7 +107,7 @@
         </p>
         <button
           v-if="item.description.length > 300"
-          class="toggle-desc-btn"
+          class="btn btn--ghost btn--sm toggle-desc-btn"
           @click="showFullDesc = !showFullDesc"
         >
           {{ showFullDesc ? 'Mostrar menos' : 'Mostrar más' }}
@@ -293,15 +293,12 @@ function truncateDescription(text, maxLen) {
   }
 
   .toggle-desc-btn {
-    background: none;
-    border: none;
+    // Un «ver más» es un enlace disfrazado: sin borde y con el acento del medio.
+    border-color: transparent;
     color: var(--color-card-video-accent);
-    cursor: pointer;
-    font-size: 0.85rem;
-    padding: spacing(xs) 0;
-    font-weight: 600;
 
     &:hover { text-decoration: underline; }
   }
+
 }
 </style>

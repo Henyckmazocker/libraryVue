@@ -82,21 +82,18 @@
     </div>
 
     <!-- Estado vacío -->
-    <div
+    <EmptyState
       v-else
-      class="empty-state"
-    >
-      <i class="fas fa-book" />
-      <p>No hay historial de progreso aún</p>
-      <p class="empty-subtitle">
-        El historial se creará automáticamente cuando actualices tu progreso de lectura
-      </p>
-    </div>
+      icon="fas fa-book"
+      title="No hay historial de progreso aún"
+      message="El historial se creará automáticamente cuando actualices tu progreso de lectura."
+    />
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, defineProps, defineExpose } from 'vue';
+import EmptyState from '@/components/common/EmptyState.vue'
 import { useReadingProgress } from '@/composables/useReadingProgress';
 import Logger from '@/utils/logger';
 
@@ -213,20 +210,8 @@ defineExpose({
 
 .loading-state,
 .error-state,
-.empty-state {
-  text-align: center;
-  padding: 30px 20px;
-  color: var(--text-secondary, var(--color-text-muted));
-}
-
 .loading-state i,
 .error-state i,
-.empty-state i {
-  font-size: 2rem;
-  margin-bottom: 10px;
-  display: block;
-}
-
 .loading-state i {
   color: var(--color-success);
 }
@@ -234,20 +219,6 @@ defineExpose({
 .error-state i {
   color: var(--color-error);
 }
-
-.empty-state i {
-  color: var(--text-secondary, var(--color-text-secondary));
-}
-
-.empty-state p {
-  margin: 8px 0;
-}
-
-.empty-subtitle {
-  font-size: 0.9rem;
-  opacity: 0.8;
-}
-
 .history-list {
   max-height: 300px;
   overflow-y: auto;

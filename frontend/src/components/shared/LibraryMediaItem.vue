@@ -98,7 +98,10 @@
         <div :class="`${media}-actions`">
           <button
             v-if="isNew"
-            :class="['action-button', 'save-button', `save-button--${saveButtonState}`]"
+            :class="['btn', 'btn--primary', 'action-button', {
+              'is-success': saveButtonState === 'success',
+              'is-error': saveButtonState === 'error'
+            }]"
             :disabled="!canSave"
             :title="`Guardar ${config.label.toLowerCase()}`"
             @click="onSave"
@@ -122,7 +125,7 @@
           <button
             v-for="action in visibleExtraActions"
             :key="action.event"
-            :class="['action-button', action.cls]"
+            :class="['btn', 'action-button', action.cls]"
             :title="action.title"
             @click="emit(action.event, item)"
           >
@@ -132,7 +135,10 @@
 
           <button
             v-if="!isNew"
-            :class="['action-button', 'edit-button', `edit-button--${editButtonState}`]"
+            :class="['btn', 'btn--primary', 'action-button', {
+              'is-success': editButtonState === 'success',
+              'is-error': editButtonState === 'error'
+            }]"
             :disabled="editButtonState !== 'idle'"
             :title="`Editar ${config.label.toLowerCase()}`"
             @click="onEdit"
@@ -154,7 +160,7 @@
 
           <button
             v-if="!isNew && canDelete"
-            class="action-button delete-button"
+            class="btn btn--danger action-button"
             :title="`Eliminar ${config.label.toLowerCase()}`"
             @click="onDelete"
           >

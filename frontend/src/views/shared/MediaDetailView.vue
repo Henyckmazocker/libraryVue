@@ -2,7 +2,7 @@
   <div :class="`${media}-detail-view`">
     <div class="detail-actions">
       <button
-        class="back-button"
+        class="btn btn--ghost back-button"
         @click="goBack"
       >
         <i class="fas fa-arrow-left" />
@@ -13,7 +13,7 @@
            sesión el diálogo no tendría ni a quién ofrecer. -->
       <button
         v-if="isAuthenticated && item"
-        class="recommend-button"
+        class="btn btn--ghost recommend-button"
         @click="showRecommendDialog = true"
       >
         <i
@@ -27,7 +27,7 @@
            llevan `Auth`, y sin sesión no habría lista que ofrecer. -->
       <button
         v-if="isAuthenticated && item"
-        class="recommend-button"
+        class="btn btn--ghost recommend-button"
         @click="showAddToListDialog = true"
       >
         <i
@@ -42,7 +42,7 @@
            puede: los que organizo y no tienen ya uno activo. -->
       <button
         v-if="isAuthenticated && item"
-        class="recommend-button"
+        class="btn btn--ghost recommend-button"
         @click="showAddToClubDialog = true"
       >
         <i
@@ -66,7 +66,7 @@
       <i class="fas fa-exclamation-circle" />
       <p>{{ error }}</p>
       <button
-        class="action-button"
+        class="btn btn--ghost"
         @click="goBack"
       >
         {{ d.backText }}
@@ -254,19 +254,18 @@
       </footer>
     </div>
 
-    <div
+    <EmptyState
       v-else
-      class="empty-state"
+      :icon="d.placeholderIcon"
+      :title="d.emptyText"
     >
-      <i :class="d.placeholderIcon" />
-      <p>{{ d.emptyText }}</p>
       <button
-        class="action-button"
+        class="btn btn--ghost"
         @click="goBack"
       >
         {{ d.backText }}
       </button>
-    </div>
+    </EmptyState>
 
     <EditItemModal
       v-if="editModal.isVisible"
@@ -283,6 +282,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch, toRaw } from 'vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 import { useRoute, useRouter } from 'vue-router'
 import LibraryMediaItem from '@/components/shared/LibraryMediaItem.vue'
 import MediaNotes from '@/components/shared/MediaNotes.vue'
@@ -295,6 +295,7 @@ import { getMediaConfig, mediaKeys } from '@/config/mediaRegistry'
 import CoverService from '@/services/CoverService'
 import { useAuthStore } from '@/store/auth'
 import { useUIStore } from '@/store/ui'
+import { useConfirmationModal } from '@/composables/useConfirmationModal'
 import Logger from '@/utils/logger'
 
 /**
@@ -557,7 +558,26 @@ async function handleModalSaved (updatedItem) {
 }
 
 async function handleDelete (payload) {
-  if (d.value.deleteConfirm && !confirm(d.value.deleteConfirm)) return
+  // Antes esto era el `confirm()` NATIVO del navegador: el único modal del
+  // proyecto que no era un componente. No seguía el sistema visual, no conmutaba
+  // con el tema y bloqueaba cualquier prueba de navegador (se descubrió el
+  // 2026-08-29, al intentar verificar `BaseModal`, porque WebDriver se atasca en
+  // un diálogo nativo).
+  //
+  // Se usa `showConfirmation` y no `confirmDelete` a propósito: aquel exige
+  // escribir «ELIMINAR», que es la fricción que pide el borrado desde
+  // `/library` (`createMediaComposable.js:122`), y esta ficha llevaba un sí/no.
+  // Cambiar las dos a lo mismo es una decisión de producto, no de este plan.
+  if (d.value.deleteConfirm) {
+    const { showConfirmation } = useConfirmationModal()
+    const confirmado = await showConfirmation({
+      title: 'Eliminar de tu biblioteca',
+      message: d.value.deleteConfirm,
+      type: 'danger',
+      confirmText: 'Eliminar'
+    })
+    if (!confirmado) return
+  }
 
   try {
     const result = await props.store.remove(d.value.unwrapDelete(payload))
@@ -631,36 +651,17 @@ defineExpose({ item, context, existing, reload: loadData, setItem })
 // dos alineen por arriba sin tocar el mixin, que usan las seis fichas.
 .detail-actions {
   display: flex;
+  // Cuatro botones —volver, recomendar, añadir a lista y ponerlo en un club— no caben
+  // en una fila a 360px: sin envolver, los dos últimos se salían del viewport.
+  flex-wrap: wrap;
   align-items: flex-start;
   gap: spacing(sm);
 }
 
 .recommend-button {
-  @include button-reset;
-
-  display: inline-flex;
-  align-items: center;
-  gap: spacing(xs);
-  padding: spacing(xs) spacing(md);
+  // `.back-button` arrastra su propio `margin-bottom` desde el mixin compartido,
+  // así que este lleva el mismo para que los cuatro alineen por arriba.
   margin-bottom: spacing(lg);
-  background-color: var(--color-background-mute);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-  border-radius: radius(md);
-  font-size: 0.95rem;
-  transition: all transition(fast);
-
-  &:hover {
-    background-color: var(--color-background-soft);
-    border-color: var(--color-border-hover);
-  }
-
-  i { font-size: 1rem; }
-
-  @include responsive-below(md) {
-    font-size: 0.9rem;
-    padding: spacing(2xs) spacing(sm);
-  }
 }
 
 // Las secciones que pinta este componente, no el wrapper.

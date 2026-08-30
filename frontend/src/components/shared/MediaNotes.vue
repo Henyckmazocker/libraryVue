@@ -6,7 +6,7 @@
     <div class="notes-header">
       <h3>{{ config.notes.title }}</h3>
       <button
-        class="add-note-btn"
+        class="btn btn--primary btn--sm add-note-btn"
         :disabled="!itemId"
         @click="showAddNoteDialog = true"
       >
@@ -51,7 +51,7 @@
           </div>
           <div class="note-actions">
             <button
-              class="note-action-btn"
+              class="btn btn--ghost btn--icon btn--sm note-action-btn"
               title="Editar"
               aria-label="Editar nota"
               @click="editNote(note)"
@@ -62,7 +62,7 @@
               />
             </button>
             <button
-              class="note-action-btn delete"
+              class="btn btn--ghost btn--icon btn--sm note-action-btn delete"
               title="Eliminar"
               aria-label="Eliminar nota"
               @click="confirmDeleteNote(note)"
@@ -95,27 +95,22 @@
     </div>
 
     <!-- Empty state -->
-    <div
+    <EmptyState
       v-else
-      class="empty-state"
+      :icon="config.notes.emptyIcon"
+      title="No hay notas todavía"
+      :message="config.notes.emptyHint"
     >
-      <slot name="empty">
-        <i :class="config.notes.emptyIcon" />
-        <p>No hay notas todavía</p>
-        <p class="empty-hint">
-          {{ config.notes.emptyHint }}
-        </p>
-      </slot>
-    </div>
+      <!-- El slot `empty` se conserva: los cinco paneles de notas pueden
+           sustituir el vacío entero, y alguno podría querer ofrecer una acción. -->
+      <slot name="empty" />
+    </EmptyState>
 
     <!-- Add/Edit Note Dialog -->
-    <Dialog
-      v-model:visible="showNoteDialog"
-      :header="editingNote ? 'Editar Nota' : 'Nueva Nota'"
-      :modal="true"
-      :dismissable-mask="true"
+    <BaseModal
+      v-model="showNoteDialog"
+      :title="editingNote ? 'Editar Nota' : 'Nueva Nota'"
       class="note-dialog"
-      :pt="{ mask: { style: 'z-index: 2500' } }"
     >
       <div class="note-form">
         <div
@@ -177,15 +172,16 @@
           />
         </div>
       </div>
-    </Dialog>
+    </BaseModal>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted, inject } from 'vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 import { useMediaNotes } from '@/composables/useMediaNotes'
 import { getMediaConfig, mediaKeys } from '@/config/mediaRegistry'
-import Dialog from 'primevue/dialog'
+import BaseModal from '@/components/common/BaseModal.vue'
 import Button from 'primevue/button'
 import Dropdown from 'primevue/dropdown'
 import Textarea from 'primevue/textarea'

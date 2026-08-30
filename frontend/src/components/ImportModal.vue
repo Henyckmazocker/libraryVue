@@ -1,82 +1,77 @@
 <template>
-  <!-- Import Modal -->
-  <!-- El overlay cierra al pulsar fuera, pero no es un control: envuelve al propio
-       diálogo. El cierre por teclado es Escape, en useFocusTrap. -->
-  <!-- eslint-disable-next-line vuejs-accessibility/click-events-have-key-events, vuejs-accessibility/no-static-element-interactions -->
-  <div
-    v-if="show"
-    class="modal-overlay"
-    @click="handleClose"
+  <!-- El overlay, la trampa de foco, el Escape y el pie los pone `BaseModal`.
+       `dismissible` se apaga mientras se importa: cerrar a medias dejaría la
+       importación en marcha sin nada que la enseñe. -->
+  <BaseModal
+    :model-value="show"
+    title="Importar datos"
+    icon="fas fa-upload"
+    size="lg"
+    :dismissible="!isImporting"
+    :close-on-overlay="!isImporting"
+    @close="handleClose"
   >
-    <div
-      ref="dialogRef"
-      class="modal-content"
-      @click.stop
-    >
-      <div class="modal-header">
-        <h2><i class="fas fa-upload" /> Importar datos</h2>
-        <button
-          class="close-button"
-          @click="handleClose"
-        >
-          <i class="fas fa-times" />
-        </button>
-      </div>
-      
-      <div class="modal-body">
-        <!-- Service Selector Component -->
-        <ServiceSelector 
-          v-model="selectedService"
-          @service-changed="handleServiceChange"
-        />
+    <!-- Service Selector Component -->
+    <ServiceSelector 
+      v-model="selectedService"
+      @service-changed="handleServiceChange"
+    />
 
-        <!-- File Uploader Component -->
-        <FileUploader 
-          ref="fileUploader"
-          v-model="selectedFile"
-          @file-selected="handleFileSelect"
-        />
+    <!-- File Uploader Component -->
+    <FileUploader 
+      ref="fileUploader"
+      v-model="selectedFile"
+      @file-selected="handleFileSelect"
+    />
 
-        <!-- Import Status Component -->
-        <ImportStatus 
-          :status="importStatus"
-          :progress="importProgress"
-        />
-      </div>
+    <!-- Import Status Component -->
+    <ImportStatus 
+      :status="importStatus"
+      :progress="importProgress"
+    />
 
-      <div class="modal-footer">
-        <button
-          class="cancel-button"
-          @click="handleClose"
-        >
-          <i class="fas fa-times" />
-        </button>
-        <button 
-          :disabled="!canImport" 
-          class="import-submit-button"
-          @click="handleImport"
-        >
-          <i
-            v-if="isImporting"
-            class="fas fa-spinner fa-spin"
-          />
-          <i
-            v-else
-            class="fas fa-upload"
-          />
-        </button>
-      </div>
-    </div>
-  </div>
+    <template #footer>
+      <button
+        class="btn btn--ghost btn--icon"
+        @click="handleClose"
+      >
+        <i
+          class="fas fa-times"
+          aria-hidden="true"
+        />
+        <!-- `.btn--icon` exige nombre accesible, y este pie no tenía ninguno.
+             La etiqueta VISIBLE («Cancelar» / «Importar») la pone el M4 del
+             plan de componentes, junto con el resto del pie. -->
+        <span class="u-sr-only">Cancelar</span>
+      </button>
+      <button 
+        :disabled="!canImport" 
+        class="btn btn--primary btn--icon"
+        @click="handleImport"
+      >
+        <i
+          v-if="isImporting"
+          class="fas fa-spinner fa-spin"
+          aria-hidden="true"
+        />
+        <i
+          v-else
+          class="fas fa-upload"
+          aria-hidden="true"
+        />
+        <span class="u-sr-only">Importar</span>
+      </button>
+    </template>
+  </BaseModal>
 </template>
 
 <script setup>
 import { ref, watch, defineProps, defineEmits } from 'vue';
+import BaseModal from './common/BaseModal.vue';
 import ServiceSelector from './import/ServiceSelector.vue';
 import FileUploader from './import/FileUploader.vue';
 import ImportStatus from './import/ImportStatus.vue';
 import { useFileImport } from '@/composables/useFileImport';
-import { useFocusTrap } from '@/composables/useFocusTrap';
 
 // Props
 const props = defineProps({
@@ -115,8 +110,7 @@ const handleClose = () => {
   emit('close');
 };
 
-const dialogRef = ref(null);
-useFocusTrap(dialogRef, { isOpen: () => props.show, onEscape: handleClose });
+
 
 const handleServiceChange = (service) => {
   setService(service);
@@ -153,113 +147,8 @@ watch(() => props.show, (newValue) => {
 
 <style scoped lang="scss">
 /* Modal styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: var(--color-background-mute);
-  border-radius: 20px;
-  width: 90%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 25px 30px 15px;
-  border-bottom: 1px solid var(--color-background-mute);
-}
-
-.modal-header h2 {
-  color: var(--color-text);
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin: 0;
-}
-
-.close-button {
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  font-size: 2rem;
-  cursor: pointer;
-  padding: 0;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-}
-
-.close-button:hover {
-  color: var(--color-text);
-  background: rgba(255, 255, 255, 0.1);
-}
-
 .modal-body {
   padding: 25px 30px;
 }
 
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 15px;
-  padding: 20px 30px 25px;
-  border-top: 1px solid var(--color-background-mute);
-}
-
-.cancel-button {
-  padding: 10px 20px;
-  font-size: 1rem;
-  background: transparent;
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-background-mute);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.cancel-button:hover {
-  color: var(--color-text);
-  border-color: var(--color-border);
-}
-
-.import-submit-button {
-  padding: 10px 20px;
-  font-size: 1rem;
-  background: linear-gradient(135deg, var(--color-info), var(--color-info));
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-weight: 500;
-}
-
-.import-submit-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--color-info), var(--color-info));
-  transform: translateY(-1px);
-}
-
-.import-submit-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
 </style>

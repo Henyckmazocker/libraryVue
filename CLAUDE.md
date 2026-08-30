@@ -81,6 +81,11 @@ docker compose exec frontend npx vue-cli-service lint --no-fix   # lo corre tamb
 docker compose exec frontend npm run lint:styles                 # stylelint; también en ./dev-setup.sh
 docker compose exec frontend npm run build   # OBLIGATORIO si tocas SCSS: es lo ÚNICO que lo compila
 
+# Barrera de desbordamiento horizontal — EN EL HOST, no en el contenedor (necesita Firefox +
+# geckodriver, que no están en la imagen). Cero dependencias npm. Sale 1 si algo desborda O si
+# una ruta no se pudo medir. El token por variable de entorno: en --jwt= quedaría en el historial.
+cd frontend && LIBRARYVUE_JWT=<token> npm run test:responsive -- --width=360,390
+
 # Frontend / móvil (Capacitor)
 cd frontend && npm run cap:sync && npm run build:mobile
 ```
@@ -361,7 +366,9 @@ se cachean en `mb_track` (ver abajo).
   oscuro; `themes/_light.scss` sigue sin generar CSS a propósito. Cada valor lleva anotado su ratio
   de contraste contra la superficie más exigente de su tema. Fuera de esos dos ficheros **no hay un
   solo hex** salvo colores de marca, y lo impide `stylelint` desde `./dev-setup.sh`: prohíbe el hex
-  suelto, el `px` dentro de un `@media`, `prefers-color-scheme` y `@import`. Dos matices que se olvidan: las
+  suelto, el `px` dentro de un `@media`, `prefers-color-scheme`, `@import`, el **`min-width` fijo**
+  en `px` o `rem` (2026-08-29) y, desde el 2026-08-30, el **`z-index` de tres cifras o más** —para
+  eso está `z()`— y el **`box-shadow` literal**, salvo el anillo de foco `0 0 0 Npx`. Dos matices que se olvidan: las
   superposiciones sobre carátula (`--color-overlay-strong`, `--color-on-overlay`,
   `--color-rating-star`, `--color-media-letterbox`) **no** conmutan con el tema —van sobre una
   portada arbitraria—, y `--color-on-status` **sí**, porque es la tinta que acompaña a un relleno
@@ -370,6 +377,34 @@ se cachean en `mb_track` (ver abajo).
   `--color-card-<medio>-accent` pasan las cinco comprobaciones del validador de la skill `dataviz`
   **en modo `--pairs all`** —no adyacente: en `/library` los cinco medios conviven mezclados, así que
   cualquier par puede ser vecino—. Si tocas uno, revalida los cinco contra las dos superficies.
+- **Un botón, un modal y un estado vacío se escriben de UNA manera.** `assets/styles/components/_buttons.scss`
+  es la única forma de escribir un botón —`.btn` con `--primary|--secondary|--accent|--danger|--ghost`,
+  `--icon`, `--sm|--lg` y `is-loading|is-success|is-error`—, y sus tres reglas de uso van en la
+  cabecera del fichero: **un** botón por pantalla es `--primary`, `--danger` **solo** si destruye
+  datos, y `--color-info` **no es un color de botón** (es el hermano de `--color-error` y
+  `--color-warning`; su sitio son avisos y badges). `components/common/BaseModal.vue` es el chasis de
+  **todos** los modales: `primevue/dialog` no aparece en el repo y no debe volver. Y
+  `components/common/EmptyState.vue` **no tiene `tone: 'error'`** a propósito — buscar algo que no
+  existe es una respuesta, no un fallo, y mezclarlos era el bug de `GenericSearch`.
+  **No todo `<button>` es un botón de la escala:** las tarjetas clicables, los selectores tipo radio
+  con `aria-pressed` y los conmutadores (`sort-button`, `tag-pill`, `star-button`) quedan fuera a
+  propósito, y así está escrito en cada uno.
+- **A través de un `<Teleport>` no viaja ni la `class` heredada ni el `data-v-` del padre.** Vue no
+  hereda atributos en un Teleport, y el scope id tampoco cruza, así que un `:deep()` desde fuera no
+  engancha nada. Lo que un componente teletransportado necesite del consumidor va por **props**: es
+  lo que son `icon-tone` y `accent` de `BaseModal`. Se descubrió porque el icono de
+  `ConfirmationModal` salía teal en vez de rojo **con los 382 tests, el lint y el build en verde**.
+  Y en los tests, el Teleport saca el marcado del wrapper de Vue Test Utils: el helper
+  `tests/unit/helpers/mount.js` lo neutraliza con `stubs: { teleport: true }`.
+- **Ningún `min-width` en píxeles, y `:deep()` solo dentro de un bloque `scoped`.** Un `min-width`
+  fijo no encoge: empuja su fila fuera del viewport en cuanto la pantalla baja de esa medida. Se
+  escribe `min(200px, 100%)` dentro de un contenedor que ya limite, o `min(380px, 80vw)` en overlays
+  y modales, que no lo tienen; lo vigila la quinta regla de `.stylelintrc.json`. Y **`:deep()` en un
+  `<style>` sin `scoped` tira la regla entera en silencio**: Vue solo lo traduce en bloques scoped,
+  fuera de ellos el navegador lo lee como pseudo-clase desconocida y descarta el selector.
+  `MyLibrary.vue` tuvo cinco reglas así desde que se escribieron —la rejilla de `/library` nunca
+  respondió al ancho— y no lo vio nadie hasta el 2026-08-29. Lo que comprueba las dos cosas en la
+  app de verdad es `npm run test:responsive`, no Vitest: jsdom no evalúa CSS.
 - **El umbral de móvil está en `composables/useBreakpoint.js`**, con un único listener de `resize`
   compartido, y su `isMobile` es `< 768` porque `responsive-below(md)` compila a `max-width: 767px`.
   En SCSS no se escriben píxeles en un `@media`: se usan `responsive()` / `responsive-below()` de
@@ -626,7 +661,12 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
    3xl`—, pero eso solo ocurre al construir: stylelint no resuelve funciones de Sass, ESLint no mira
    los `<style>` y Vitest corre en jsdom, que no evalúa CSS. Pasó el 2026-08-25: plan cerrado con las
    tres verdes y el build roto.
-6. **Si el cambio se ve en pantalla, ábrelo en el navegador**, y no solo por las capturas: hay una
+6. **Si el cambio toca layout, `cd frontend && LIBRARYVUE_JWT=<token> npm run test:responsive`**
+   (en el host). Recorre las rutas a 360 px y falla si algún elemento se sale del viewport o si una
+   ruta no se pudo medir. No mide `scrollWidth`: `base/_reset.scss:15` pone
+   `html, body { overflow-x: hidden }`, así que el documento nunca genera scroll horizontal y ese
+   criterio daba verde con `/library` dejando 24 elementos fuera.
+7. **Si el cambio se ve en pantalla, ábrelo en el navegador**, y no solo por las capturas: hay una
    clase entera de fallos que **solo aparece en la consola**. `v-tooltip` estuvo sin registrar en
    `main.js` desde el 2026-05-13 y nadie lo vio en tres meses, porque un
    `Failed to resolve directive` no rompe nada — Vue avisa y sigue. Procedimiento con Firefox y

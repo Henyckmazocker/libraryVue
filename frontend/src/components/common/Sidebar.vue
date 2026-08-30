@@ -132,7 +132,7 @@ onMounted(async () => {
   background: var(--color-background-soft);
   border-right: 1px solid var(--color-border);
   transition: width var(--transition-medium);
-  z-index: 200;
+  z-index: z(dropdown);
   overflow: hidden;
 }
 
@@ -154,7 +154,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1500;
+  z-index: z(overlay);
   transition: all var(--transition-medium);
   box-shadow: var(--shadow-medium);
 }
@@ -290,7 +290,7 @@ onMounted(async () => {
 @include responsive-below(md) {
   .app-sidebar {
     width: 60px;
-    z-index: 250;
+    z-index: z(dropdown);
   }
   
   .app-sidebar--collapsed {
@@ -301,7 +301,7 @@ onMounted(async () => {
     left: 45px !important; /* En móvil siempre en posición colapsada */
     width: 45px;
     height: 45px;
-    z-index: 1503;
+    z-index: z(overlay);
   }
   
   .app-sidebar__toggle--collapsed {

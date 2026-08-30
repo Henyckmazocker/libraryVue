@@ -200,7 +200,7 @@ function handleClick() {
 
 .album-carousel-item:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: shadow(heavy);
 }
 
 .album-cover-wrapper {

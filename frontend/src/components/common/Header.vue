@@ -283,7 +283,7 @@ const handleLogout = async () => {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
+  z-index: z(sticky);
   box-shadow: var(--shadow-medium);
 }
 
@@ -379,7 +379,7 @@ const handleLogout = async () => {
   position: absolute;
   top: -4px;
   right: -4px;
-  min-width: 18px;
+  min-width: min(18px, 100%);
   height: 18px;
   padding: 0 5px;
   border-radius: 9px;
@@ -474,6 +474,25 @@ const handleLogout = async () => {
   
   .app-header__user-name {
     display: none;
+  }
+}
+
+// Por debajo de `sm` la cabecera no cabe: a 360px se salía 23px del viewport y el
+// botón de cerrar sesión quedaba fuera de la pantalla. Aquí no se quita ningún
+// destino —se llega a todos—, solo se aprieta lo que no es contenido: el padding
+// de la barra, los huecos entre iconos y el acolchado de la píldora de usuario.
+@include responsive-below(sm) {
+  .app-header {
+    padding: 0 spacing(xs);
+  }
+
+  .app-header__right {
+    gap: spacing(xs);
+  }
+
+  .app-header__user-menu {
+    gap: spacing(2xs);
+    padding: spacing(2xs) spacing(xs);
   }
 }
 

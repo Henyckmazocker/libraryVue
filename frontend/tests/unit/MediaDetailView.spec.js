@@ -151,7 +151,7 @@ describe('MediaDetailView — formulario de biblioteca', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.text()).toContain('Añadir a tu Biblioteca')
-    expect(wrapper.find('.save-button').exists()).toBe(true)
+    expect(wrapper.find('.btn--primary').exists()).toBe(true)
     expect(wrapper.find('.notes-section').exists()).toBe(false)
   })
 
@@ -163,7 +163,7 @@ describe('MediaDetailView — formulario de biblioteca', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.text()).toContain('Detalles en tu Biblioteca')
-    expect(wrapper.find('.delete-button').exists()).toBe(true)
+    expect(wrapper.find('.btn--danger').exists()).toBe(true)
     expect(wrapper.find('.notes-section').exists()).toBe(true)
   })
 
@@ -191,7 +191,7 @@ describe('MediaDetailView — guardar y borrar pasan por el store', () => {
     // y de ellos depende que `owned` quede preseleccionado.
     await flushPromises()
 
-    await wrapper.find('.save-button').trigger('click')
+    await wrapper.find('.btn--primary').trigger('click')
 
     // El juego emite `{ game, statuses }`; el store recibe los dos por separado.
     expect(store.add).toHaveBeenCalledWith(
@@ -200,17 +200,19 @@ describe('MediaDetailView — guardar y borrar pasan por el store', () => {
     )
   })
 
+  // Desde el 2026-08-29 la confirmación ya no es el `confirm()` del navegador
+  // sino `ConfirmationModal`, así que no se espía `window`: se comprueba que el
+  // borrado NO llega al store mientras nadie confirma —que es lo que el test
+  // afirmaba de verdad— y que el medio sin `deleteConfirm` pasa de largo.
   it('borrar un juego no pide confirmación y borrar un álbum sí', async () => {
-    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false)
 
     route.params = { gameId: '7' }
     conEstado('game', { name: 'Hollow Knight', id: 7 })
     const gameStore = crearStore([{ name: 'Hollow Knight', id: 7 }])
     const game = montar('game', gameStore)
     await game.vm.$nextTick()
-    await game.find('.delete-button').trigger('click')
+    await game.find('.btn--danger').trigger('click')
 
-    expect(confirmar).not.toHaveBeenCalled()
     expect(gameStore.remove).toHaveBeenCalledWith(7)
 
     route.params = { albumId: '9' }
@@ -218,12 +220,10 @@ describe('MediaDetailView — guardar y borrar pasan por el store', () => {
     const albumStore = crearStore([{ name: 'Kid A', id: 9, spotify_id: 'sp' }])
     const album = montar('album', albumStore)
     await album.vm.$nextTick()
-    await album.find('.delete-button').trigger('click')
+    await album.find('.btn--danger').trigger('click')
 
-    expect(confirmar).toHaveBeenCalled()
+    // El álbum sí declara `deleteConfirm`, así que se queda esperando al modal.
     expect(albumStore.remove).not.toHaveBeenCalled()
-
-    confirmar.mockRestore()
   })
 })
 

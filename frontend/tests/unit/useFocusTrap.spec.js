@@ -73,6 +73,26 @@ describe('useFocusTrap', () => {
     wrapper.unmount()
   })
 
+  // Lo que este test fija es un fallo real, no una hipótesis: con el panel del
+  // `MultiSelect` abierto dentro de `EditItemModal`, un solo Escape cerraba el
+  // desplegable Y el modal, y el formulario se perdía entero.
+  it('con un overlay de PrimeVue abierto, Escape no cierra el modal', async () => {
+    const wrapper = mountHost()
+    await wrapper.setProps({ open: true })
+
+    const panel = document.createElement('div')
+    panel.className = 'p-multiselect-overlay'
+    document.body.appendChild(panel)
+
+    key('Escape')
+    expect(wrapper.emitted('escape')).toBeUndefined()
+
+    // Cerrado el panel, el siguiente Escape sí es para el modal.
+    panel.remove()
+    key('Escape')
+    expect(wrapper.emitted('escape')).toHaveLength(1)
+  })
+
   it('no responde a Escape una vez cerrado', async () => {
     const wrapper = mountHost()
     await wrapper.setProps({ open: true })

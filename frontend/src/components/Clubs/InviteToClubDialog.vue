@@ -1,13 +1,10 @@
 <template>
-  <!-- El `<Dialog>` de PrimeVue trae su propio atrapador de foco: no se envuelve
-       en `useFocusTrap`, que es para los cuatro modales propios del proyecto. -->
-  <Dialog
-    v-model:visible="visible"
-    header="Invitar al club"
-    :modal="true"
-    :dismissable-mask="true"
+  <!-- El chasis lo pone `BaseModal`: overlay, trampa de foco, Escape, cabecera
+       y pie ordenado, igual que en los cuatro modales propios. -->
+  <BaseModal
+    v-model="visible"
+    title="Invitar al club"
     class="invite-to-club-dialog"
-    :pt="{ mask: { style: 'z-index: 2500' } }"
   >
     <div class="invite-to-club-dialog__body">
       <!-- Se dice ANTES de invitar: entrar en el club ES el consentimiento de
@@ -79,7 +76,7 @@
     <template #footer>
       <button
         type="button"
-        class="invite-to-club-dialog__action"
+        class="btn btn--ghost"
         :disabled="isSaving"
         @click="visible = false"
       >
@@ -87,7 +84,7 @@
       </button>
       <button
         type="button"
-        class="invite-to-club-dialog__action invite-to-club-dialog__action--primary"
+        class="btn btn--primary"
         :disabled="!inviteeId || isSaving"
         @click="submit"
       >
@@ -98,12 +95,12 @@
         Invitar
       </button>
     </template>
-  </Dialog>
+  </BaseModal>
 </template>
 
 <script setup>
 import { computed, inject, onMounted, ref } from 'vue'
-import Dialog from 'primevue/dialog'
+import BaseModal from '@/components/common/BaseModal.vue'
 import { storeToRefs } from 'pinia'
 import { useSocialStore } from '@/store/social'
 import { useClubsStore } from '@/store/clubs'
@@ -236,23 +233,5 @@ const submit = async () => {
     font-size: 0.875rem;
   }
 
-  &__action {
-    @include button-reset;
-
-    padding: spacing(2xs) spacing(md);
-    border-radius: radius(sm);
-    border: 1px solid var(--color-border-light);
-    color: var(--color-text-secondary);
-    font-size: 0.875rem;
-
-    &:hover { background: var(--color-background-mute); }
-
-    &--primary {
-      border-color: var(--color-primary);
-      color: var(--color-primary);
-    }
-
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
-  }
 }
 </style>

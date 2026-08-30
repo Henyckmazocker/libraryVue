@@ -172,7 +172,7 @@ const truncateText = (text, maxLength) => {
 
 .movie-carousel-item:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: shadow(heavy);
 }
 
 .movie-poster-wrapper {
@@ -219,7 +219,7 @@ const truncateText = (text, maxLength) => {
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 600;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: shadow(light);
 }
 
 .rating-badge {
@@ -235,7 +235,7 @@ const truncateText = (text, maxLength) => {
   display: flex;
   align-items: center;
   gap: 3px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: shadow(light);
 }
 
 .rating-badge i {
@@ -254,7 +254,7 @@ const truncateText = (text, maxLength) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: shadow(light);
 }
 
 .library-badge {

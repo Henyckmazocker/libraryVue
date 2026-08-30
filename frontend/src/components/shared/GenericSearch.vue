@@ -19,7 +19,7 @@
         @keyup.enter="() => handleSearch(input, index)"
       >
       <button
-        class="search-button"
+        class="btn btn--primary search-button"
         @click="() => handleSearch(input, index)"
       >
         <i class="fas fa-search" />
@@ -30,12 +30,22 @@
       </button>
     </div>
     
+    <!-- Un error de verdad: la API no respondió, o no se escribió qué buscar. -->
     <div
       v-if="errorMessage"
       class="error-message"
+      role="alert"
     >
       {{ errorMessage }}
     </div>
+
+    <!-- Y el vacío, que NO es un error: la búsqueda funcionó y no hay nada. -->
+    <EmptyState
+      v-if="sinResultados"
+      :icon="config.emptyIcon || 'fas fa-magnifying-glass'"
+      title="No se encontraron resultados"
+      message="Prueba con otras palabras, o con menos."
+    />
 
     <StaleNotice
       :stale="isStale"
@@ -69,6 +79,7 @@ import { computed, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import HorizontalCarousel from '@/components/shared/HorizontalCarousel.vue';
 import StaleNotice from '@/components/shared/StaleNotice.vue';
+import EmptyState from '@/components/common/EmptyState.vue';
 import { getMediaConfig, mediaKeys } from '@/config/mediaRegistry';
 import Logger from '@/utils/logger';
 
@@ -104,6 +115,10 @@ const router = useRouter();
 const inputValues = ref(props.config.inputs.map(() => ''));
 const results = ref([]);
 const errorMessage = ref('');
+// Separado de `errorMessage` a propósito. Antes el vacío viajaba dentro del
+// error y salía en rojo: buscar algo que no existe no es un fallo, y esa
+// confusión es la que este componente y `EmptyState` deshacen.
+const sinResultados = ref(false);
 const allowedStatuses = ref([]);
 
 // Degradación visible. `supportsStale` sale del `api` del registry —la única
@@ -125,6 +140,7 @@ const isStale = computed(() => supportsStale.value && staleFlag.value);
 // Métodos
 const handleSearch = async (input, index) => {
   errorMessage.value = '';
+  sinResultados.value = false;
   const query = inputValues.value[index].trim();
   
   if (!query) {
@@ -167,7 +183,7 @@ const handleSearch = async (input, index) => {
     cachedAt.value = Array.isArray(respuesta) ? null : (respuesta?.cached_at ?? null);
 
     if (!searchResults || searchResults.length === 0) {
-      errorMessage.value = 'No se encontraron resultados.';
+      sinResultados.value = true;
       results.value = [];
       // Sin nada que enseñar, la franja no describe nada: el proveedor caído y
       // sin caché tiene que dar el error de siempre, no un aviso sobre el vacío.
@@ -256,23 +272,7 @@ onMounted(async () => {
 }
 
 .search-button {
-  padding: 12px 24px;
-  font-size: 1rem;
-  color: var(--color-text-light);
-  background-color: var(--color-primary);
-  border: 1px solid var(--color-primary);
   border-radius: 0 30px 30px 0;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: all 0.2s ease;
-}
-
-.search-button:hover {
-  background-color: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
 }
 
 .button-text {

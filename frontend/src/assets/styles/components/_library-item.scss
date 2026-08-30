@@ -188,81 +188,21 @@
     }
   }
 
-  // ─── Botón base ───────────────────────────────────────────────────
+  // ─── Botón de acción ──────────────────────────────────────────────
+  // El aspecto lo pone la escala `.btn` de `components/_buttons.scss`: color,
+  // tamaño, foco, `[disabled]` y los estados `is-success` / `is-error` —que
+  // vivían aquí y necesitaban `!important` para pisar a su propia variante—.
+  // Queda solo lo que es de la tarjeta y no del botón: el ancho completo en la
+  // columna estrecha (arriba) y el relieve al pasar por encima.
   .action-button {
-    display: flex;
-    align-items: center;
-    gap: spacing(xs);
-    padding: spacing(xs) spacing(sm);
-    font-size: var(--font-size-sm);
-    color: var(--color-on-status);
-    border: none;
-    border-radius: radius(md);
-    cursor: pointer;
-    transition: all transition(fast);
-    font-weight: var(--font-weight-medium);
-    justify-content: center;
-
     &:hover:not(:disabled) {
       transform: translateY(-1px);
       box-shadow: shadow(light);
     }
 
-    &:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
+    &:disabled { transform: none; }
   }
 
-  // ─── Variantes de botón ───────────────────────────────────────────
-  // Cada variante era un degradado de dos hex a mano, con la parada oscura y la
-  // clara escritas aparte y sin relación con ningún token. Ahora el color lo pone
-  // un token y el relieve lo pone un brillo neutro encima, que funciona igual en
-  // los dos temas y deja una sola fuente de verdad por variante.
-  .save-button {
-    background: var(--color-success);
-    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.18));
-
-    &:hover:not(:disabled) { filter: brightness(1.12); }
-  }
-
-  .edit-button {
-    background: var(--color-info);
-    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.18));
-
-    &:hover:not(:disabled) { filter: brightness(1.12); }
-  }
-
-  .history-button {
-    background: var(--btn-secondary-bg);
-    color: var(--btn-secondary-text);
-    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.18));
-
-    &:hover:not(:disabled) { filter: brightness(1.12); }
-  }
-
-  .delete-button {
-    background: var(--color-error);
-    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.18));
-
-    &:hover:not(:disabled) { filter: brightness(1.12); }
-  }
-
-  // Estados de feedback (success / error) — sirven para save y edit
-  .save-button--success,
-  .edit-button--success {
-    background: var(--color-success) !important;
-    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.18)) !important;
-    animation: pulse-success 0.5s ease;
-  }
-
-  .save-button--error,
-  .edit-button--error {
-    background: var(--color-error) !important;
-    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.18)) !important;
-    animation: shake 0.5s ease;
-  }
 }
 
 // ─────────────────────────────────────────────────────────────────────

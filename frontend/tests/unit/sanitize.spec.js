@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { sanitizePlain, sanitizeRich } from '@/utils/sanitize'
 import ConfirmationModal from '@/components/common/ConfirmationModal.vue'
 import { mountComponent } from './helpers/mount'
@@ -54,33 +54,40 @@ describe('ConfirmationModal — el XSS que antes funcionaba', () => {
    */
   const PAYLOAD = '¿Borrar «Test<img src=x onerror="document.title=\'XSS\'">»?'
 
+  // Desde que `ConfirmationModal` envuelve a `BaseModal` (2026-08-29), su
+  // marcado va dentro de un `<Teleport to="body">`, así que no cuelga del
+  // wrapper: se consulta el documento, que es donde el navegador lo pinta.
+  const enElDoc = (sel) => document.querySelector(sel)
+
+  afterEach(() => { document.body.innerHTML = '' })
+
   it('no deja el atributo onerror en el DOM', () => {
-    const wrapper = mountComponent(ConfirmationModal, {
+    mountComponent(ConfirmationModal, {
       props: { isVisible: true, message: PAYLOAD },
       attachTo: document.body,
     })
 
-    const html = wrapper.find('.modal-message').html()
+    const html = enElDoc('.modal-message').innerHTML
     expect(html).not.toContain('onerror')
     expect(html).not.toContain('<img')
-    expect(wrapper.find('.modal-message img').exists()).toBe(false)
+    expect(enElDoc('.modal-message img')).toBeNull()
   })
 
   it('conserva el texto legible del mensaje', () => {
-    const wrapper = mountComponent(ConfirmationModal, {
+    mountComponent(ConfirmationModal, {
       props: { isVisible: true, message: PAYLOAD },
       attachTo: document.body,
     })
 
-    expect(wrapper.find('.modal-message').text()).toContain('¿Borrar «Test')
+    expect(enElDoc('.modal-message').textContent).toContain('¿Borrar «Test')
   })
 
   it('conserva el <br> que algunos mensajes usan para separar líneas', () => {
-    const wrapper = mountComponent(ConfirmationModal, {
+    mountComponent(ConfirmationModal, {
       props: { isVisible: true, message: 'Primera línea.<br>Segunda línea.' },
       attachTo: document.body,
     })
 
-    expect(wrapper.find('.modal-message br').exists()).toBe(true)
+    expect(enElDoc('.modal-message br')).not.toBeNull()
   })
 })

@@ -39,7 +39,7 @@
     <!-- Enlace al historial de sesiones -->
     <button 
       v-if="book.total_sessions_completed > 0 || hasActiveSession"
-      class="history-link"
+      class="btn btn--ghost btn--sm history-link"
       @click="showHistoryModal = true"
     >
       <i class="fas fa-history" />

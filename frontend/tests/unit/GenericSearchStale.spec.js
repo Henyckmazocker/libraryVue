@@ -108,9 +108,13 @@ describe('GenericSearch — la franja de degradación', () => {
     expect(w.find('.stale-notice').exists()).toBe(false)
   })
 
-  it('con cero resultados da el error de siempre y NO una franja sobre el vacío', async () => {
-    // La verificación nº2 del plan: proveedor caído y sin caché tiene que seguir
-    // dando el error de siempre.
+  it('con cero resultados no pinta franja, y el vacío NO es un error', async () => {
+    // Lo que este test protege es que un proveedor caído y sin caché no ponga un
+    // aviso de caché encima de una lista vacía.
+    //
+    // Desde el M5 del plan de componentes (2026-08-30) el vacío sale por
+    // `EmptyState` y no por `.error-message`: buscar algo que no existe es una
+    // respuesta, no un fallo, y pintarlo en rojo era el bug.
     const w = await buscar(config({
       media: 'game',
       staleProvider: 'IGDB',
@@ -118,7 +122,8 @@ describe('GenericSearch — la franja de degradación', () => {
     }))
 
     expect(w.find('.stale-notice').exists()).toBe(false)
-    expect(w.find('.error-message').text()).toContain('No se encontraron resultados')
+    expect(w.find('.error-message').exists()).toBe(false)
+    expect(w.find('.empty-state').text()).toContain('No se encontraron resultados')
   })
 
   it('una búsqueda que falla retira la franja de la búsqueda anterior', async () => {

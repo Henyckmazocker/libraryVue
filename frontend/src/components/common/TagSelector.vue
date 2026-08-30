@@ -39,7 +39,7 @@
         @keyup.enter="addTag"
       >
       <button
-        class="add-tag-btn"
+        class="btn btn--primary btn--sm add-tag-btn"
         @click="addTag"
       >
         Añadir
@@ -118,6 +118,9 @@ function addTag() {
   transition: background 0.2s;
   user-select: none;
 }
+// Toggle, no acción: `<button aria-pressed>` que marca selección. Por eso NO usa
+// la escala `.btn` y por eso su fondo sigue siendo `--color-info` — aquí el color
+// de estado está en su sitio, porque lo que comunica ES un estado.
 .tag-pill.selected {
   background: var(--color-info);
   color: var(--color-on-status);
@@ -138,18 +141,5 @@ function addTag() {
   border-radius: 8px;
   border: 1px solid var(--color-border);
   font-size: 0.95rem;
-}
-.add-tag-btn {
-  background: var(--color-info);
-  color: var(--color-on-status);
-  border: none;
-  border-radius: 8px;
-  padding: 4px 12px;
-  cursor: pointer;
-  font-size: 0.95rem;
-  transition: background 0.2s;
-}
-.add-tag-btn:hover {
-  background: var(--color-info);
 }
 </style>

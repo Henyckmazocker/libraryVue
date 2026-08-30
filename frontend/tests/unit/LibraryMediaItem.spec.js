@@ -131,8 +131,8 @@ describe('LibraryMediaItem — estado por defecto al añadir', () => {
 })
 
 describe('LibraryMediaItem — payloads de los eventos', () => {
-  const guardar = (wrapper) => wrapper.find('.save-button').trigger('click')
-  const borrar = (wrapper) => wrapper.find('.delete-button').trigger('click')
+  const guardar = (wrapper) => wrapper.find('.btn--primary').trigger('click')
+  const borrar = (wrapper) => wrapper.find('.btn--danger').trigger('click')
 
   it.each([
     ['book', { title: 'X', isbn: '1' }, 'book'],
@@ -189,10 +189,13 @@ describe('LibraryMediaItem — payloads de los eventos', () => {
 describe('LibraryMediaItem — el feedback lo confirma el padre', () => {
   it('el botón de guardar no se pone en verde solo', async () => {
     const wrapper = mount('video', { title: 'X' }, { isNew: true })
-    await wrapper.find('.save-button').trigger('click')
+    await wrapper.find('.btn--primary').trigger('click')
 
     // Antes, álbumes y vídeos pasaban a `success` en el acto (1500 ms).
-    expect(wrapper.find('.save-button').classes()).toContain('save-button--idle')
+    // En reposo el botón no lleva ninguna clase de estado: `is-idle` no existe.
+    const clases = wrapper.find('.btn--primary').classes()
+    expect(clases).not.toContain('is-success')
+    expect(clases).not.toContain('is-error')
   })
 
   it('setSaveSuccess y setSaveError los llama el padre', async () => {
@@ -200,11 +203,11 @@ describe('LibraryMediaItem — el feedback lo confirma el padre', () => {
 
     wrapper.vm.setSaveSuccess()
     await wrapper.vm.$nextTick()
-    expect(wrapper.find('.save-button').classes()).toContain('save-button--success')
+    expect(wrapper.find('.btn--primary').classes()).toContain('is-success')
 
     wrapper.vm.setSaveError()
     await wrapper.vm.$nextTick()
-    expect(wrapper.find('.save-button').classes()).toContain('save-button--error')
+    expect(wrapper.find('.btn--primary').classes()).toContain('is-error')
   })
 
   it('los cinco medios exponen los cuatro métodos', () => {
@@ -220,21 +223,21 @@ describe('LibraryMediaItem — el feedback lo confirma el padre', () => {
 
 describe('LibraryMediaItem — acciones propias de un medio', () => {
   it('solo el libro trae el botón de historial, y solo si ya está en la biblioteca', () => {
-    expect(mount('book', { title: 'X' }).find('.history-button').exists()).toBe(true)
-    expect(mount('book', { title: 'X' }, { isNew: true }).find('.history-button').exists()).toBe(false)
-    expect(mount('movie', { title: 'X', isbn: 't1' }).find('.history-button').exists()).toBe(false)
+    expect(mount('book', { title: 'X' }).find('.btn--secondary').exists()).toBe(true)
+    expect(mount('book', { title: 'X' }, { isNew: true }).find('.btn--secondary').exists()).toBe(false)
+    expect(mount('movie', { title: 'X', isbn: 't1' }).find('.btn--secondary').exists()).toBe(false)
   })
 
   it('el historial emite `show-history` con el ítem', async () => {
     const wrapper = mount('book', { title: 'X', isbn: '1' })
-    await wrapper.find('.history-button').trigger('click')
+    await wrapper.find('.btn--secondary').trigger('click')
 
     expect(wrapper.emitted('show-history')[0][0].isbn).toBe('1')
   })
 
   it('sin `canDelete` no hay botón de borrar, y estando nuevo tampoco', () => {
-    expect(mount('album', { name: 'A' }, { canDelete: false }).find('.delete-button').exists()).toBe(false)
-    expect(mount('album', { name: 'A' }, { isNew: true }).find('.delete-button').exists()).toBe(false)
+    expect(mount('album', { name: 'A' }, { canDelete: false }).find('.btn--danger').exists()).toBe(false)
+    expect(mount('album', { name: 'A' }, { isNew: true }).find('.btn--danger').exists()).toBe(false)
   })
 })
 

@@ -1,227 +1,203 @@
 <template>
-  <!-- Modal Overlay -->
-  <!-- El overlay cierra al pulsar fuera, pero no es un control: envuelve al propio
-       diálogo. El cierre por teclado es Escape, en useFocusTrap. -->
-  <!-- eslint-disable-next-line vuejs-accessibility/click-events-have-key-events, vuejs-accessibility/no-static-element-interactions -->
-  <div
-    v-if="dialogVisible"
-    class="modal-overlay"
-    @click="handleClose"
+  <!-- El chasis lo pone `BaseModal`; aquí solo el historial y su pie. -->
+  <BaseModal
+    :model-value="dialogVisible"
+    :title="`Historial de lectura - ${book.title}`"
+    icon="fas fa-history"
+    size="lg"
+    @close="handleClose"
   >
+    <!-- Estadísticas generales -->
     <div
-      ref="dialogRef"
-      class="modal-content"
-      @click.stop
+      v-if="statistics"
+      class="statistics-section"
     >
-      <!-- Header -->
-      <div class="modal-header">
-        <h2><i class="fas fa-history" /> Historial de lectura - {{ book.title }}</h2>
-        <button
-          class="close-button"
-          @click="handleClose"
-        >
-          <i class="fas fa-times" />
-        </button>
+      <div class="stat-item">
+        <span class="stat-label">Sesiones completadas:</span>
+        <span class="stat-value">{{ statistics.totalCompleted }}</span>
       </div>
+      <div class="stat-item">
+        <span class="stat-label">Duración promedio:</span>
+        <span class="stat-value">{{ statistics.averageDuration }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Páginas totales leídas:</span>
+        <span class="stat-value">{{ statistics.totalPagesRead }}</span>
+      </div>
+    </div>
 
-      <div class="modal-body">
-        <!-- Estadísticas generales -->
-        <div
-          v-if="statistics"
-          class="statistics-section"
+    <!-- Acordeón de sesiones -->
+    <div
+      v-if="sessions && sessions.length > 0"
+      class="sessions-container"
+    >
+      <Accordion :multiple="false">
+        <AccordionTab
+          v-for="item in timelineEvents"
+          :key="item.sessionId"
         >
-          <div class="stat-item">
-            <span class="stat-label">Sesiones completadas:</span>
-            <span class="stat-value">{{ statistics.totalCompleted }}</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Duración promedio:</span>
-            <span class="stat-value">{{ statistics.averageDuration }}</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Páginas totales leídas:</span>
-            <span class="stat-value">{{ statistics.totalPagesRead }}</span>
-          </div>
-        </div>
+          <template #header>
+            <div class="session-accordion-header">
+              <div class="session-title-group">
+                <i
+                  :class="getMarkerIcon(item.status)"
+                  class="session-icon"
+                  :style="{ color: getStatusColor(item.status) }"
+                />
+                <span class="session-number">Sesión #{{ item.sessionNumber }}</span>
+              </div>
+              <span
+                class="session-badge"
+                :class="getBadgeClass(item.status)"
+              >
+                {{ getStatusLabel(item.status) }}
+              </span>
+            </div>
+          </template>
 
-        <!-- Acordeón de sesiones -->
-        <div
-          v-if="sessions && sessions.length > 0"
-          class="sessions-container"
-        >
-          <Accordion :multiple="false">
-            <AccordionTab
-              v-for="item in timelineEvents"
-              :key="item.sessionId"
+          <!-- Contenido de la sesión -->
+          <div class="session-content">
+            <!-- Información principal en líneas -->
+            <div class="info-line">
+              <i class="fas fa-calendar-alt info-icon" />
+              <span class="info-label">Inicio:</span>
+              <span class="info-value">{{ formatDate(item.startedAt) }}</span>
+            </div>
+
+            <div
+              v-if="item.completedAt"
+              class="info-line"
             >
-              <template #header>
-                <div class="session-accordion-header">
-                  <div class="session-title-group">
-                    <i
-                      :class="getMarkerIcon(item.status)"
-                      class="session-icon"
-                      :style="{ color: getStatusColor(item.status) }"
-                    />
-                    <span class="session-number">Sesión #{{ item.sessionNumber }}</span>
-                  </div>
-                  <span
-                    class="session-badge"
-                    :class="getBadgeClass(item.status)"
-                  >
-                    {{ getStatusLabel(item.status) }}
-                  </span>
-                </div>
-              </template>
+              <i class="fas fa-calendar-check info-icon" />
+              <span class="info-label">Fin:</span>
+              <span class="info-value">{{ formatDate(item.completedAt) }}</span>
+            </div>
 
-              <!-- Contenido de la sesión -->
-              <div class="session-content">
-                <!-- Información principal en líneas -->
-                <div class="info-line">
-                  <i class="fas fa-calendar-alt info-icon" />
-                  <span class="info-label">Inicio:</span>
-                  <span class="info-value">{{ formatDate(item.startedAt) }}</span>
-                </div>
+            <div
+              v-if="item.duration"
+              class="info-line"
+            >
+              <i class="fas fa-clock info-icon" />
+              <span class="info-label">Duración:</span>
+              <span class="info-value">{{ item.duration }}</span>
+            </div>
 
+            <div
+              v-if="item.finalPage"
+              class="info-line"
+            >
+              <i class="fas fa-bookmark info-icon" />
+              <span class="info-label">Progreso:</span>
+              <span class="info-value">{{ item.finalPage }} / {{ book.total_pages }} páginas ({{ item.progressPercentage }}%)</span>
+            </div>
+
+            <!-- Barra de progreso -->
+            <div
+              v-if="item.progressPercentage"
+              class="progress-bar-wrapper"
+            >
+              <div class="progress-bar-bg">
                 <div
-                  v-if="item.completedAt"
-                  class="info-line"
-                >
-                  <i class="fas fa-calendar-check info-icon" />
-                  <span class="info-label">Fin:</span>
-                  <span class="info-value">{{ formatDate(item.completedAt) }}</span>
-                </div>
+                  class="progress-bar-fill"
+                  :class="getProgressBarClass(item.status)"
+                  :style="{ width: item.progressPercentage + '%' }"
+                />
+              </div>
+            </div>
 
-                <div
-                  v-if="item.duration"
-                  class="info-line"
-                >
-                  <i class="fas fa-clock info-icon" />
-                  <span class="info-label">Duración:</span>
-                  <span class="info-value">{{ item.duration }}</span>
-                </div>
+            <!-- Notas de sesión -->
+            <div
+              v-if="item.sessionNotes"
+              class="session-notes-section"
+            >
+              <div class="notes-header">
+                <i class="fas fa-comment-alt" />
+                <span>Notas</span>
+              </div>
+              <p class="notes-content">
+                {{ item.sessionNotes }}
+              </p>
+            </div>
 
+            <!-- Actualizaciones de progreso -->
+            <div
+              v-if="item.progressUpdates && item.progressUpdates.length > 0"
+              class="progress-updates-section"
+            >
+              <div class="updates-header">
+                <i class="fas fa-list-ul" />
+                <span>Actualizaciones de progreso ({{ item.progressUpdates.length }})</span>
+              </div>
+              <div class="updates-list">
                 <div
-                  v-if="item.finalPage"
-                  class="info-line"
+                  v-for="(update, index) in item.progressUpdates"
+                  :key="index"
+                  class="update-item"
                 >
-                  <i class="fas fa-bookmark info-icon" />
-                  <span class="info-label">Progreso:</span>
-                  <span class="info-value">{{ item.finalPage }} / {{ book.total_pages }} páginas ({{ item.progressPercentage }}%)</span>
-                </div>
-
-                <!-- Barra de progreso -->
-                <div
-                  v-if="item.progressPercentage"
-                  class="progress-bar-wrapper"
-                >
-                  <div class="progress-bar-bg">
-                    <div
-                      class="progress-bar-fill"
-                      :class="getProgressBarClass(item.status)"
-                      :style="{ width: item.progressPercentage + '%' }"
-                    />
-                  </div>
-                </div>
-
-                <!-- Notas de sesión -->
-                <div
-                  v-if="item.sessionNotes"
-                  class="session-notes-section"
-                >
-                  <div class="notes-header">
-                    <i class="fas fa-comment-alt" />
-                    <span>Notas</span>
-                  </div>
-                  <p class="notes-content">
-                    {{ item.sessionNotes }}
-                  </p>
-                </div>
-
-                <!-- Actualizaciones de progreso -->
-                <div
-                  v-if="item.progressUpdates && item.progressUpdates.length > 0"
-                  class="progress-updates-section"
-                >
-                  <div class="updates-header">
-                    <i class="fas fa-list-ul" />
-                    <span>Actualizaciones de progreso ({{ item.progressUpdates.length }})</span>
-                  </div>
-                  <div class="updates-list">
-                    <div
-                      v-for="(update, index) in item.progressUpdates"
-                      :key="index"
-                      class="update-item"
+                  <div class="update-line">
+                    <i class="fas fa-clock update-icon" />
+                    <span class="update-date">{{ formatDate(update.logged_at) }}</span>
+                    <span
+                      class="update-badge"
+                      :class="getProgressTypeBadgeClass(update.progress_type)"
                     >
-                      <div class="update-line">
-                        <i class="fas fa-clock update-icon" />
-                        <span class="update-date">{{ formatDate(update.logged_at) }}</span>
-                        <span
-                          class="update-badge"
-                          :class="getProgressTypeBadgeClass(update.progress_type)"
-                        >
-                          {{ getProgressTypeLabel(update.progress_type) }}
-                        </span>
-                      </div>
-                      <div class="update-pages-line">
-                        <span class="page-info">
-                          <span class="page-label">Pág. anterior:</span>
-                          <span class="page-number">{{ update.previous_page }}</span>
-                        </span>
-                        <i class="fas fa-arrow-right arrow-icon" />
-                        <span class="page-info">
-                          <span class="page-label">Pág. actual:</span>
-                          <span class="page-number highlight">{{ update.current_page }}</span>
-                        </span>
-                        <span
-                          v-if="update.progress_type === 'advance'"
-                          class="pages-diff advance"
-                        >
-                          +{{ update.current_page - update.previous_page }}
-                        </span>
-                        <span
-                          v-else
-                          class="pages-diff other"
-                        >
-                          {{ update.current_page - update.previous_page }}
-                        </span>
-                      </div>
-                    </div>
+                      {{ getProgressTypeLabel(update.progress_type) }}
+                    </span>
+                  </div>
+                  <div class="update-pages-line">
+                    <span class="page-info">
+                      <span class="page-label">Pág. anterior:</span>
+                      <span class="page-number">{{ update.previous_page }}</span>
+                    </span>
+                    <i class="fas fa-arrow-right arrow-icon" />
+                    <span class="page-info">
+                      <span class="page-label">Pág. actual:</span>
+                      <span class="page-number highlight">{{ update.current_page }}</span>
+                    </span>
+                    <span
+                      v-if="update.progress_type === 'advance'"
+                      class="pages-diff advance"
+                    >
+                      +{{ update.current_page - update.previous_page }}
+                    </span>
+                    <span
+                      v-else
+                      class="pages-diff other"
+                    >
+                      {{ update.current_page - update.previous_page }}
+                    </span>
                   </div>
                 </div>
               </div>
-            </AccordionTab>
-          </Accordion>
-        </div>
-
-        <!-- Estado vacío -->
-        <div
-          v-else
-          class="empty-state"
-        >
-          <i class="fas fa-book empty-icon" />
-          <p class="empty-message">
-            No hay sesiones de lectura registradas para este libro
-          </p>
-        </div>
-      </div>
-
-      <!-- Footer -->
-      <div class="modal-footer">
-        <button
-          class="cancel-button"
-          @click="handleClose"
-        >
-          <i class="fas fa-times" /> Cerrar
-        </button>
-      </div>
+            </div>
+          </div>
+        </AccordionTab>
+      </Accordion>
     </div>
-  </div>
+
+    <!-- Estado vacío -->
+    <EmptyState
+      v-else
+      icon="fas fa-book"
+      title="No hay sesiones de lectura registradas para este libro"
+    />
+
+    <template #footer>
+      <button
+        class="btn btn--ghost"
+        @click="handleClose"
+      >
+        <i class="fas fa-times" /> Cerrar
+      </button>
+    </template>
+  </BaseModal>
 </template>
 
 <script setup>
 import { ref, computed, watch, defineProps, defineEmits, onMounted } from 'vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 import { useReadingSessions } from '@/composables/useReadingSessions'
-import { useFocusTrap } from '@/composables/useFocusTrap'
+import BaseModal from '@/components/common/BaseModal.vue'
 import Logger from '@/utils/logger'
 import Accordion from 'primevue/accordion'
 import AccordionTab from 'primevue/accordiontab'
@@ -525,8 +501,7 @@ const handleClose = () => {
   emit('close')
 }
 
-const dialogRef = ref(null)
-useFocusTrap(dialogRef, { isOpen: dialogVisible, onEscape: handleClose })
+
 
 onMounted(() => {
   if (props.visible) {
@@ -539,74 +514,7 @@ onMounted(() => {
 @use '@/assets/styles/abstracts' as *;
 
 /* Modal Overlay */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  backdrop-filter: blur(2px);
-}
-
-.modal-content {
-  background: var(--color-background-mute);
-  border-radius: 20px;
-  width: 90%;
-  max-width: 900px;
-  max-height: 90vh;
-  overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  display: flex;
-  flex-direction: column;
-}
-
-/* Modal Header */
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 25px 30px;
-  border-bottom: 1px solid var(--color-background-mute);
-  background: var(--color-background-mute);
-}
-
-.modal-header h2 {
-  color: var(--color-text);
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.close-button {
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 5px;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-}
-
-.close-button:hover {
-  color: var(--color-text);
-  background: rgba(255, 255, 255, 0.1);
-}
-
-/* Modal Body */
+// El chasis lo pone `BaseModal`; aquí solo lo que va dentro del slot.
 .modal-body {
   padding: 25px 30px;
   overflow-y: auto;
@@ -692,6 +600,9 @@ onMounted(() => {
   color: var(--color-on-status);
 }
 
+// `--color-info` en su sitio: esto es un INDICADOR, no un botón. La regla 3 de
+// `components/_buttons.scss` excluye los colores de estado del fondo de una
+// acción; aquí lo que se pinta es precisamente un estado.
 .badge-info {
   background: var(--color-info);
   color: var(--color-on-status);
@@ -735,14 +646,14 @@ onMounted(() => {
 .info-icon {
   color: var(--color-info);
   font-size: 1rem;
-  min-width: 20px;
+  min-width: min(20px, 100%);
 }
 
 .info-label {
   color: var(--color-text-muted);
   font-size: 0.9rem;
   font-weight: 600;
-  min-width: 80px;
+  min-width: min(80px, 100%);
 }
 
 .info-value {
@@ -776,6 +687,9 @@ onMounted(() => {
   background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.18), rgba(255, 255, 255, 0.10));
 }
 
+// `--color-info` en su sitio: esto es un INDICADOR, no un botón. La regla 3 de
+// `components/_buttons.scss` excluye los colores de estado del fondo de una
+// acción; aquí lo que se pinta es precisamente un estado.
 .progress-bar-fill.progress-active {
   background: var(--color-info);
   background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.18), rgba(255, 255, 255, 0.10));
@@ -931,48 +845,7 @@ onMounted(() => {
   background: var(--color-background-mute);
 }
 
-.cancel-button {
-  padding: 10px 20px;
-  font-size: 1rem;
-  background: transparent;
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-background-mute);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.cancel-button:hover {
-  color: var(--color-text);
-  border-color: var(--color-border);
-  background: rgba(255, 255, 255, 0.05);
-}
-
 /* Empty State */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  text-align: center;
-}
-
-.empty-icon {
-  font-size: 4rem;
-  color: var(--color-text-secondary);
-  margin-bottom: 20px;
-}
-
-.empty-message {
-  font-size: 1.1rem;
-  color: var(--color-text-muted);
-  margin: 0;
-}
-
 /* Responsive */
 @include responsive-below(md) {
   .modal-content {

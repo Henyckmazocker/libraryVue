@@ -39,7 +39,7 @@
   color: var(--color-text);
   padding: spacing(xl) spacing(xl) spacing(xl) spacing(lg);
   border-radius: radius(xl);
-  min-width: 320px;
+  min-width: min(320px, 90vw);
   width: $width;
   min-height: 180px;
   max-width: 90vw;
@@ -74,7 +74,7 @@
   :deep(.p-component-overlay),
   :deep(.p-multiselect-overlay),
   :deep(.p-dropdown-overlay) {
-    z-index: 3100 !important;
+    z-index: z(popover) !important;
     position: fixed !important;
   }
 }

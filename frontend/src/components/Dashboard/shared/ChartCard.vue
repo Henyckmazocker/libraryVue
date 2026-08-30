@@ -65,6 +65,8 @@ const chartComponent = computed(() => {
   @include dashboard-card;
   border: 1px solid var(--color-border-light);
   padding: spacing(lg);
+  // Sin esto la tarjeta no baja del min-content de su gráfica y se sale de la pista.
+  min-width: 0;
 
   &:hover {
     border-color: var(--color-border-hover);
@@ -86,5 +88,8 @@ const chartComponent = computed(() => {
 .chart-container {
   position: relative;
   height: 300px;
+  // La gráfica no se comprime —por debajo de cierto ancho deja de leerse—, así que
+  // se le da scroll propio, la misma regla que el proyecto aplica a las tablas anchas.
+  overflow-x: auto;
 }
 </style>

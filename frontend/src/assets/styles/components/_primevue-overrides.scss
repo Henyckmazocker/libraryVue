@@ -1,51 +1,30 @@
 // components/_primevue-overrides.scss
 // Overrides centralizados de PrimeVue.
 //
-// Nota: PrimeVue teletransporta overlays (panels/dropdowns/dialogs) al `body`,
-// fuera del DOM `<style scoped>`. Por eso estos overrides son globales
-// (sin `:deep()`) y se aplican una sola vez desde aquí.
+// PrimeVue teletransporta sus overlays al `body`, fuera del alcance de cualquier
+// `<style scoped>`. Por eso lo que quede aquí es global y se aplica una sola vez.
+//
+// Desde el 2026-08-29 queda **un solo bloque**: los doce `<Dialog>` del proyecto
+// pasaron a `BaseModal` y con ellos se fueron los tres bloques que existían solo
+// para apilarlos —el `z-index: 3100 !important`, el `2500` de los diálogos de
+// notas y el ancla de los inputs dentro de `.modal-content`—.
 
 @use '../abstracts' as *;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Z-index: dropdowns/multiselects/overlays sobre modales
+// Lo único que sigue teletransportándose: los paneles de `MultiSelect` y
+// `Dropdown` de `StatusSelector`, que se abren DENTRO de un modal
+// (`EditItemModal`). Tienen que ganarle al overlay, que va en `z(modal)`.
+//
+// `z(popover)` está justo por encima de `z(modal)` en `tokens/_z-index.scss`,
+// que es exactamente para lo que existe esa escala. El `!important` se queda
+// porque PrimeVue escribe su propio `z-index` inline al abrir el panel, y contra
+// un estilo inline no hay especificidad que valga.
 // ─────────────────────────────────────────────────────────────────────────────
-.p-multiselect-panel,
-.p-dropdown-panel,
-.p-overlay-mask .p-multiselect-panel,
-.p-overlay-mask .p-dropdown-panel,
-.p-component-overlay,
 .p-multiselect-overlay,
+.p-multiselect-panel,
 .p-dropdown-overlay,
-.p-connected-overlay,
-[data-pc-section="root"] {
-  z-index: 3100 !important;
-}
-
-// Mantener inputs base con z-index bajo (anclas).
-.modal-content .p-multiselect,
-.modal-content .p-dropdown {
-  z-index: 1;
-  position: relative;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Z-index: nuestros propios modales
-// ─────────────────────────────────────────────────────────────────────────────
-.modal-overlay {
-  z-index: z(modal);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Diálogos de notas (Books/Movies/Games/Albums *Notes.vue)
-// ─────────────────────────────────────────────────────────────────────────────
-.note-dialog .p-dialog {
-  max-width: 600px;
-  width: 90vw;
-}
-
-// Forzar Dialog de notas por encima de EditItemModal (z-index: 2000)
-.note-dialog.p-dialog-mask,
-.p-dialog-mask:has(.note-dialog) {
-  z-index: 2500 !important;
+.p-dropdown-panel,
+.p-select-overlay {
+  z-index: z(popover) !important;
 }

@@ -254,9 +254,36 @@ Each entity type follows the same component structure:
 **`extractMockStats(rawStats, itemType)` in `composables/useDashboardCharts.js`**:
 Normalizes raw API stats into display-ready objects. Supported `itemType` values: `'books'`, `'games'`, `'albums'`, `'videos'`, and default (`'movies'`/series). When adding a new entity, add its case here alongside the null-fallback and the populated-stats branches.
 
+### The three UI primitives (since 2026-08-30)
+
+Before writing a button, a modal or an empty state, use these — they exist and the whole app already
+speaks them:
+
+| Primitive | Where | Notes |
+|---|---|---|
+| **Button** | `assets/styles/components/_buttons.scss` | `.btn` + `--primary\|--secondary\|--accent\|--danger\|--ghost`, `--icon`, `--sm\|--lg`, `is-loading\|is-success\|is-error`. Three usage rules in the file header. |
+| **Modal** | `components/common/BaseModal.vue` | The chassis for **all twelve** modals. `primevue/dialog` is gone from the repo and must not come back. |
+| **Empty state** | `components/common/EmptyState.vue` | No `tone: 'error'` and no `role="alert"` — an empty result is an answer, not a failure. |
+
+> [!warning] A `<Teleport>` blocks attribute inheritance **and** the parent's `data-v-`
+> `BaseModal` teleports to `body`. That means a `class` passed by the consumer never reaches the DOM
+> unless the component opts in (`inheritAttrs: false` + `$attrs.class`), and a `:deep()` from the
+> outside hooks nothing at all — the scope id does not cross either. Anything a teleported component
+> needs travels as a **prop**: that is what `icon-tone` and `accent` are on `BaseModal`.
+>
+> This was found because `ConfirmationModal`'s icon rendered teal instead of red **with 382 tests,
+> the lint and the build all green**. Only the screenshot caught it. Same family as the `v-tooltip`
+> bug: see *Visual Verification* below.
+>
+> In tests, the teleport also lifts markup out of the Vue Test Utils wrapper. The mount helper
+> (`tests/unit/helpers/mount.js`) neutralises it with `stubs: { teleport: true }` — do not work
+> around it per-spec.
+
 ### Shared Edit Modal
 
-`EditItemModal.vue` handles editing for ALL entity types. It detects the type and adapts fields:
+`EditItemModal.vue` handles editing for ALL entity types. It detects the type and adapts fields.
+Since 2026-08-30 it renders inside `BaseModal` and passes its entity accent through the `accent`
+prop:
 
 ```vue
 <!-- Props pattern -->
@@ -391,6 +418,10 @@ CSS reaches a child component's **root** and its **slot content**, but not the m
 renders itself, so a generic view can render completely unstyled while every test stays green.
 Screenshots catch that; tests never will.
 
+> For **horizontal overflow specifically**, do not hand-roll this loop: it is already automated in
+> `npm run test:responsive` — see *Automated: the overflow barrier* below. Use the manual procedure
+> for everything else (unstyled markup, theme checks, console warnings, one-off screenshots).
+
 **Requirements** (already on the dev machine): `firefox` and `geckodriver` (both from snap), plus the
 app running (`docker compose up -d`). No npm package is needed — geckodriver speaks the W3C WebDriver
 protocol over HTTP, so plain `curl` drives it.
@@ -483,6 +514,53 @@ Two things that bite in step 3:
 Starting the driver with `geckodriver --port 4444 &` inside a `Bash` call makes it outlive the call,
 so **prefer reusing a driver that is already listening** (`pgrep -a geckodriver`) over spawning a
 second one.
+
+## Automated: the overflow barrier (since 2026-08-29)
+
+One class of layout bug no longer needs the manual loop above. `frontend/tests/visual/overflow.mjs`
+walks the SPA's routes in a narrow viewport and fails if anything is left outside it:
+
+```bash
+# On the HOST, not in the container: Firefox and geckodriver are not in the image.
+cd frontend && LIBRARYVUE_JWT=<token> npm run test:responsive -- --width=360,390
+```
+
+It needs **no npm dependency** (Node's `fetch` plus `child_process`), starts its own geckodriver if
+the port is free and kills it on exit, and reuses one that is already listening — leaving that one
+alive, as the section above asks. Pass the token through the environment, not `--jwt=`: the flag
+would sit in your shell history.
+
+Five decisions inside it that are load-bearing. Do not "simplify" them away:
+
+- **It does not look at `scrollWidth`.** `assets/styles/base/_reset.scss:15` declares
+  `html, body { overflow-x: hidden }`, so the document **never** scrolls horizontally. Measured on
+  `/library` at 360px: `scrollWidth === innerWidth` with **24 elements outside the viewport** and
+  the controls unreachable. A `scrollWidth`-based check is green on a broken page. It compares
+  `getBoundingClientRect().right` against `clientWidth`, element by element.
+- **It discounts what an `overflow-x` of `auto` or `scroll` contains — but not `hidden`.** A
+  carousel overflows on purpose and you can reach its items; a `hidden` clips without letting you
+  get there, which is the bug. That single distinction separates `EditionSelector`'s 371 false
+  positives from the dashboard's `p-tablist`, which really was hiding three of five destinations.
+- **Detail routes are discovered through the API** with the token (`get_library_items`, `get_games`,
+  `get_albums`, `get_videos`, `get_my_lists`, `get_my_clubs`, `check_auth`) instead of hard-coding
+  dev ids. Routes it cannot build are announced as *not measured* — never silently counted as green.
+- **It waits out the rate limiter.** A 46-page walk burns the 60 req/min per IP that
+  `ActionRouter.php:183` applies to every route without its own limit; `check_auth` then returns 429,
+  the front end reads that as a dropped session and the router guard redirects to Home. Without the
+  wait, **9 routes came back as false negatives**. It re-checks with the backend's own `Retry-After`,
+  and only after a redirect is detected, so the normal path pays nothing.
+- **Exit 1 covers both failures**: something overflowed, *or* a route could not be measured. Not
+  measured is not green — that is the same trap as the `scrollWidth` check.
+
+Below 500px the page is loaded in an `<iframe>` of the requested width, because Firefox refuses
+smaller windows (`POST /window/rect` with `width: 360` returns 200 and leaves it at 500;
+`MOZ_HEADLESS_WIDTH` does not help either). The wrapper is written with `document.write` **over the
+app's own origin** — with a `data:` URL the parent origin is opaque, Firefox partitions the child's
+`localStorage`, and every `requiresAuth` route silently redirects to Home.
+
+**What it cannot see**: anything behind an interaction. It does not open modals, so
+`components/_modal.scss` is covered by the stylelint rule but not by a measurement; and four detail
+routes go unmeasured when the dev database has no series, videos, lists or a `username`.
 
 ## Docker Development
 

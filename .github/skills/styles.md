@@ -477,6 +477,29 @@ Coupling them silently kills ALL prefixed selector styles in the inheriting enti
 12. **A colour that must not follow the theme** (over cover art) versus **an ink that must**
     (on a semantic fill) — see the table in *The two themes*.
 13. **Chart colour read outside a `computed`** — it will not repaint on theme change.
+14. **`:deep()` in a `<style>` without `scoped` silently throws the whole rule away.** Vue only
+    translates `:deep()` inside scoped blocks; outside one it reaches the browser as an unknown
+    pseudo-class and the selector is discarded. `MyLibrary.vue` carried five such rules from the day
+    they were written — `/library`'s grid never responded to width and nobody noticed until
+    2026-08-29. If the block is not scoped, write the selector plain.
+15. **A `z-index` of three digits belongs to the scale; one or two digits does not.** `z()` in
+    `abstracts/_z-index.scss` is the global stacking order (dropdown 1000 → tooltip 1600). A
+    `z-index: 2` inside a component is a local stack and the rule leaves it alone — prohibiting it
+    would be noise. The rule bites at 100 and above, which is where numbers start competing.
+16. **The focus ring `0 0 0 Npx` is not a shadow, and the rule exempts it.** `shadow()` projects
+    downwards; a focus ring surrounds. Converting the four rings in the repo to `shadow()` would
+    have silently broken visible focus. A semantic glow (`.progress-completed`) carries a
+    per-line `stylelint-disable-next-line` with its reason, the same convention brand colours use.
+17. **A `<Teleport>` blocks BOTH attribute inheritance and the parent's `data-v-`.** So `:deep()`
+    from outside a teleported component hooks nothing, and a class passed by the consumer never
+    reaches the DOM. Whatever it needs travels as **props** — that is what `icon-tone` and `accent`
+    are on `BaseModal`. It surfaced because `ConfirmationModal`'s icon rendered teal instead of red
+    with 382 tests, the lint and the build all green.
+18. **`1fr` is `minmax(auto, 1fr)`, and that `auto` respects the item's min-content.** A grid track
+    declared `1fr` will still stretch past its container if a child cannot shrink — the dashboard's
+    chart cards stretched a 218px container to 350px. Use `minmax(0, 1fr)` when the track must be
+    allowed to shrink, and `minmax(min(240px, 100%), 1fr)` for auto-fill tracks, where the bare
+    `240px` overflows the moment the container is narrower than one track.
 
 ## The barrier: `stylelint`
 
@@ -489,10 +512,28 @@ The rules above are enforced, not merely documented. `frontend/.stylelintrc.json
 | `media-feature-name-value-allowed-list` | a raw pixel inside a `@media` |
 | `media-feature-name-disallowed-list` | `prefers-color-scheme` — theming goes through `.app-dark` |
 | `at-rule-disallowed-list: ["import"]` | `@import` |
+| `declaration-property-value-disallowed-list` | a fixed `min-width` in `px` or `rem`; a `z-index` of three digits or more; a literal `box-shadow` (2026-08-29 / 2026-08-30) |
 
 ```bash
 docker compose exec frontend npm run lint:styles
 ```
+
+**The button scale is the single way to write a button** (since 2026-08-30).
+`components/_buttons.scss` carries `.btn` with `--primary|--secondary|--accent|--danger|--ghost`,
+the `--icon` modifier, `--sm|--lg` and the `is-loading|is-success|is-error` states, plus one
+`:focus-visible` declared once for the whole scale. Its three usage rules live in the file's header,
+which is where they get read. Two things that are easy to get wrong: the base border is
+`1px solid transparent`, not `none` — otherwise a `--secondary` sits 2px taller than the `--primary`
+next to it — and `--icon` is squared with `aspect-ratio`, never a fixed `min-width`, which the rule
+above rejects anyway.
+
+**Why the `min-width` rule exists.** A fixed `min-width` does not shrink, so it pushes its row past
+the viewport as soon as the screen is narrower than that value — and because Vitest runs on jsdom
+with `css: false`, all 381 tests stay green while the page is broken on a phone. Write
+`min(200px, 100%)` inside a container that already constrains the element, or `min(380px, 80vw)` in
+overlays and modals, which have none. The idiom was already in the six Lists/Clubs dialogs; nobody
+had generalised it. `min-width: 0` is untouched by the rule and is exactly what you want on a grid
+or flex child that must be allowed to shrink below its content.
 
 > ⚠️ **It extends no preset, and that is deliberate.** Adopting `stylelint-config-standard-scss`
 > produced **180 errors**, of which ~175 were noise: it reads `spacing(2xs)` as an unknown unit,

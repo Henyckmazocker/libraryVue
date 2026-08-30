@@ -445,7 +445,7 @@ export const mediaRegistry = {
       ],
       // El botón de historial solo existe en libros.
       extraActions: [
-        { cls: 'history-button', icon: 'fas fa-history', label: 'Historial', title: 'Ver historial de lectura', event: 'show-history', onlyExisting: true }
+        { cls: 'btn--secondary', icon: 'fas fa-history', label: 'Historial', title: 'Ver historial de lectura', event: 'show-history', onlyExisting: true }
       ],
       savePayload: (item, statuses) => ({ book: item, statuses, itemType: 'book' }),
       deletePayload: (item) => ({ isbn: item.isbn, itemType: 'book' }),

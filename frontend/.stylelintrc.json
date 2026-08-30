@@ -1,5 +1,5 @@
 {
-  "//": "Tres reglas, no una guía de estilo. Extender stylelint-config-standard-scss daba 180 errores de los que ~175 eran ruido: lee `spacing(2xs)` como una unidad desconocida, no conoce `:deep()` de Vue y opina sobre líneas en blanco. Lo que aquí se defiende es lo que el sistema de color y de breakpoints puede perder por descuido.",
+  "//": "Siete reglas, no una guía de estilo. Extender stylelint-config-standard-scss daba 180 errores de los que ~175 eran ruido: lee `spacing(2xs)` como una unidad desconocida, no conoce `:deep()` de Vue y opina sobre líneas en blanco. Lo que aquí se defiende es lo que el sistema de color y de breakpoints puede perder por descuido.",
   "overrides": [
     {
       "files": [
@@ -44,6 +44,22 @@
     },
     "media-feature-name-disallowed-list": [
       "prefers-color-scheme"
+    ],
+    "declaration-property-value-disallowed-list": [
+      {
+        "min-width": [
+          "/^[0-9]+(px|rem)$/"
+        ],
+        "z-index": [
+          "/^-?[0-9]{3,}$/"
+        ],
+        "box-shadow": [
+          "/^(?!var\\(|shadow\\(|none|inherit|0 0 0 )/"
+        ]
+      },
+      {
+        "message": "min-width: usa min(200px, 100%) o min(380px, 80vw). z-index de tres cifras o más: usa z() de abstracts/_z-index.scss, que es la escala. box-shadow: usa shadow() — salvo el anillo de foco '0 0 0 Npx', que no es profundidad."
+      }
     ]
   }
 }

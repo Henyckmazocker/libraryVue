@@ -251,7 +251,7 @@ defineExpose({
   background: var(--color-background-card);
   border: 2px solid var(--color-info);
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: shadow(light);
   transition: all 0.2s ease;
 }
 
@@ -259,7 +259,7 @@ defineExpose({
   background: var(--color-border-light);
   border-color: var(--color-info);
   transform: scale(1.1);
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: shadow(medium);
 }
 
 .progress-slider::-webkit-slider-thumb:active {
@@ -275,7 +275,7 @@ defineExpose({
   background: var(--color-background-card);
   border: 2px solid var(--color-info);
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: shadow(light);
   transition: all 0.2s ease;
 }
 
@@ -283,7 +283,7 @@ defineExpose({
   background: var(--color-border-light);
   border-color: var(--color-info);
   transform: scale(1.1);
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: shadow(medium);
 }
 
 .progress-slider::-moz-range-track {
@@ -347,6 +347,9 @@ defineExpose({
 }
 
 /* Temas de color */
+// `--color-info` en su sitio: esto es un INDICADOR, no un botón. La regla 3 de
+// `components/_buttons.scss` excluye los colores de estado del fondo de una
+// acción; aquí lo que se pinta es precisamente un estado.
 .progress-blue {
   background: linear-gradient(90deg, var(--color-info), var(--color-info));
 }
@@ -381,6 +384,9 @@ defineExpose({
   background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.18), rgba(255, 255, 255, 0.10)) !important;
 }
 
+// `--color-info` en su sitio: esto es un INDICADOR, no un botón. La regla 3 de
+// `components/_buttons.scss` excluye los colores de estado del fondo de una
+// acción; aquí lo que se pinta es precisamente un estado.
 .progress-in-progress {
   background: var(--color-info) !important;
   background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.18), rgba(255, 255, 255, 0.10)) !important;
@@ -393,6 +399,9 @@ defineExpose({
 
 .progress-completed {
   background: linear-gradient(90deg, var(--color-success), var(--color-success)) !important;
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- resplandor
+     semántico de «completado», no profundidad: la escala shadow() proyecta hacia abajo
+     y aquí lo que se quiere es un halo alrededor de la barra terminada. */
   box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
 }
 

@@ -1,13 +1,10 @@
 <template>
-  <!-- El `<Dialog>` de PrimeVue trae su propio atrapador de foco: no se envuelve
-       en `useFocusTrap`, que es para los cuatro modales propios del proyecto. -->
-  <Dialog
-    v-model:visible="visible"
-    header="Invitar a colaborar"
-    :modal="true"
-    :dismissable-mask="true"
+  <!-- El chasis lo pone `BaseModal`: overlay, trampa de foco, Escape, cabecera
+       y pie ordenado, igual que en los cuatro modales propios. -->
+  <BaseModal
+    v-model="visible"
+    title="Invitar a colaborar"
     class="invite-collaborator-dialog"
-    :pt="{ mask: { style: 'z-index: 2500' } }"
   >
     <div class="invite-collaborator-dialog__body">
       <p class="invite-collaborator-dialog__hint">
@@ -76,7 +73,7 @@
     <template #footer>
       <button
         type="button"
-        class="invite-collaborator-dialog__action"
+        class="btn btn--ghost"
         :disabled="isSaving"
         @click="visible = false"
       >
@@ -84,7 +81,7 @@
       </button>
       <button
         type="button"
-        class="invite-collaborator-dialog__action invite-collaborator-dialog__action--primary"
+        class="btn btn--primary"
         :disabled="!inviteeId || isSaving"
         @click="submit"
       >
@@ -95,12 +92,12 @@
         Invitar
       </button>
     </template>
-  </Dialog>
+  </BaseModal>
 </template>
 
 <script setup>
 import { computed, inject, onMounted, ref } from 'vue'
-import Dialog from 'primevue/dialog'
+import BaseModal from '@/components/common/BaseModal.vue'
 import { storeToRefs } from 'pinia'
 import { useSocialStore } from '@/store/social'
 import { useListsStore } from '@/store/lists'
@@ -225,21 +222,5 @@ const submit = async () => {
     color: var(--color-error);
   }
 
-  &__action {
-    @include button-reset;
-
-    padding: spacing(2xs) spacing(sm);
-    border-radius: radius(sm);
-    border: 1px solid var(--color-border);
-    color: var(--color-text-secondary);
-
-    &:hover:not(:disabled) { color: var(--color-text); }
-    &:disabled { opacity: 0.6; }
-
-    &--primary {
-      color: var(--color-primary);
-      border-color: var(--color-primary);
-    }
-  }
 }
 </style>

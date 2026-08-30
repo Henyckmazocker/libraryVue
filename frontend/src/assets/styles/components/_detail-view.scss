@@ -29,32 +29,13 @@
   }
 
   // ─── Botón "Volver" ──────────────────────────────────────────────────────
+  // El aspecto lo pone `.btn.btn--ghost`; aquí queda lo propio de «volver»: el
+  // hueco bajo la fila y el desplazamiento a la izquierda al pasar por encima,
+  // que es lo que hace que el botón se lea como una vuelta atrás.
   .back-button {
-    display: inline-flex;
-    align-items: center;
-    gap: spacing(xs);
-    padding: spacing(xs) spacing(md);
-    background-color: var(--color-background-mute);
-    color: var(--color-text);
-    border: 1px solid var(--color-border);
-    border-radius: radius(md);
-    cursor: pointer;
-    font-size: 0.95rem;
-    transition: all transition(fast);
     margin-bottom: spacing(lg);
 
-    &:hover {
-      background-color: var(--color-background-soft);
-      border-color: var(--color-border-hover, var(--color-border));
-      transform: translateX(-4px);
-    }
-
-    i { font-size: 1rem; }
-
-    @include responsive-below(md) {
-      font-size: 0.9rem;
-      padding: spacing(2xs) spacing(sm);
-    }
+    &:hover { transform: translateX(-4px); }
   }
 
   // ─── Estados loading / error / empty (incluye variantes legacy) ──────────

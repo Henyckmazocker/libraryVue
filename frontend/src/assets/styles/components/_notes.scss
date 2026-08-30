@@ -34,30 +34,6 @@
     }
   }
 
-  .add-note-btn {
-    display: flex;
-    align-items: center;
-    gap: spacing(2xs);
-    padding: spacing(2xs) spacing(sm);
-    background: var(--color-primary);
-    color: var(--color-text-light);
-    border: none;
-    border-radius: radius(md);
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: background transition(fast);
-
-    &:hover:not(:disabled) {
-      background: var(--color-primary-hover);
-    }
-
-    &:disabled {
-      background: var(--color-text-muted, var(--color-background-mute));
-      cursor: not-allowed;
-      opacity: 0.6;
-    }
-  }
-
   // ─── Estados loading / empty ──────────────────────────────────────────────
   .loading-state,
   .empty-state {
@@ -77,12 +53,6 @@
       margin: spacing(2xs) 0;
     }
   }
-
-  .empty-hint {
-    font-size: 0.9rem;
-    color: var(--color-text-muted);
-  }
-
   // ─── Lista de notas ───────────────────────────────────────────────────────
   .notes-list {
     display: flex;
@@ -149,23 +119,13 @@
     gap: spacing(2xs);
   }
 
+  // El aspecto lo pone `.btn.btn--ghost.btn--icon.btn--sm` de `_buttons.scss`.
+  // Lo único propio es que el de borrar se tiña de rojo al pasar por encima: no
+  // es `--danger` en reposo porque un icono rojo permanente en cada nota grita
+  // más que la acción que representa (regla 2 de la escala).
   .note-action-btn {
-    padding: spacing(3xs) spacing(2xs);
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: radius(sm);
-    color: var(--color-text);
-    cursor: pointer;
-    font-size: 0.85rem;
-    transition: all transition(fast);
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.3);
-    }
-
     &.delete:hover {
-      background: rgba(244, 67, 54, 0.2);
+      background: var(--color-error-bg);
       border-color: var(--color-error);
       color: var(--color-error);
     }

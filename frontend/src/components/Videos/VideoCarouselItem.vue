@@ -121,7 +121,7 @@ function handleClick() {
 
   &:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    box-shadow: shadow(heavy);
     background: var(--color-card-video-bg-hover);
 
     .play-overlay {

@@ -1,13 +1,10 @@
 <template>
-  <!-- El `<Dialog>` de PrimeVue trae su propio atrapador de foco: no se envuelve
-       en `useFocusTrap`, que es para los cuatro modales propios del proyecto. -->
-  <Dialog
-    v-model:visible="visible"
-    header="Nuevo club"
-    :modal="true"
-    :dismissable-mask="true"
+  <!-- El chasis lo pone `BaseModal`: overlay, trampa de foco, Escape, cabecera
+       y pie ordenado, igual que en los cuatro modales propios. -->
+  <BaseModal
+    v-model="visible"
+    title="Nuevo club"
     class="club-form-dialog"
-    :pt="{ mask: { style: 'z-index: 2500' } }"
   >
     <div class="club-form-dialog__body">
       <div class="club-form-dialog__field">
@@ -43,26 +40,26 @@
     <template #footer>
       <button
         type="button"
-        class="club-form-dialog__action"
+        class="btn btn--ghost"
         @click="visible = false"
       >
         Cancelar
       </button>
       <button
         type="button"
-        class="club-form-dialog__action club-form-dialog__action--primary"
+        class="btn btn--primary"
         :disabled="!canSubmit"
         @click="submit"
       >
         Crear
       </button>
     </template>
-  </Dialog>
+  </BaseModal>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
-import Dialog from 'primevue/dialog'
+import BaseModal from '@/components/common/BaseModal.vue'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
 
@@ -129,23 +126,5 @@ const submit = () => {
     i { color: var(--color-primary); }
   }
 
-  &__action {
-    @include button-reset;
-
-    padding: spacing(2xs) spacing(md);
-    border-radius: radius(sm);
-    border: 1px solid var(--color-border-light);
-    color: var(--color-text-secondary);
-    font-size: 0.875rem;
-
-    &:hover { background: var(--color-background-mute); }
-
-    &--primary {
-      border-color: var(--color-primary);
-      color: var(--color-primary);
-    }
-
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
-  }
 }
 </style>

@@ -11,7 +11,7 @@
         </span>
         <button
           v-if="watchedCount < totalSeasons"
-          class="mark-all-btn"
+          class="btn btn--secondary btn--sm mark-all-btn"
           :disabled="isSaving"
           title="Marcar todas como vistas"
           @click="markAllViewed"
@@ -63,7 +63,7 @@
         <div class="editor-header">
           <span><i class="fas fa-edit" /> Temporada {{ editing }}</span>
           <button
-            class="close-btn"
+            class="btn btn--ghost btn--icon btn--sm close-btn"
             @click="closeEditor"
           >
             <i class="fas fa-times" />
@@ -132,14 +132,14 @@
           <!-- Acciones -->
           <div class="editor-actions">
             <button
-              class="save-btn"
+              class="btn btn--primary save-btn"
               :disabled="isSaving"
               @click="saveSeason"
             >
               <i class="fas fa-save" /> {{ isSaving ? 'Guardando...' : 'Guardar' }}
             </button>
             <button
-              class="cancel-btn"
+              class="btn btn--ghost cancel-btn"
               @click="closeEditor"
             >
               Cancelar
@@ -170,7 +170,7 @@
         </div>
         <button
           v-else-if="imdbId && editing !== null"
-          class="load-episodes-btn"
+          class="btn btn--ghost btn--sm load-episodes-btn"
           :disabled="loadingEpisodes"
           @click="loadEpisodes(editing)"
         >
@@ -366,22 +366,6 @@ async function loadEpisodes(seasonNumber) {
 
 .progress-text { font-size: 0.9rem; color: var(--text-color-secondary, var(--color-border)); }
 
-.mark-all-btn {
-  background: rgba(139, 92, 246, 0.15);
-  color: var(--color-card-movie-accent);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  border-radius: 6px;
-  padding: 0.3rem 0.75rem;
-  cursor: pointer;
-  font-size: 0.82rem;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  transition: background 0.2s;
-}
-.mark-all-btn:hover:not(:disabled) { background: rgba(139, 92, 246, 0.3); }
-.mark-all-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
 .progress-bar-wrapper {
   height: 6px;
   background: rgba(255,255,255,0.1);
@@ -448,14 +432,6 @@ async function loadEpisodes(seasonNumber) {
   color: var(--color-card-movie-accent);
   margin-bottom: 1rem;
 }
-.close-btn {
-  background: none;
-  border: none;
-  color: var(--text-color-secondary, var(--color-text-muted));
-  cursor: pointer;
-  font-size: 1rem;
-}
-
 .field-group { margin-bottom: 0.875rem; }
 // `.field-label` es un <span>: los dos grupos que no etiquetan un control único
 // (el de botones de estado y la valoración) no pueden usar <label>.
@@ -512,47 +488,8 @@ async function loadEpisodes(seasonNumber) {
 }
 
 .editor-actions { display: flex; gap: 0.75rem; margin-top: 0.5rem; }
-.save-btn {
-  background: rgba(139, 92, 246, 0.2);
-  border: 1px solid rgba(139, 92, 246, 0.5);
-  border-radius: 6px;
-  color: var(--color-card-movie-accent);
-  padding: 0.45rem 1rem;
-  cursor: pointer;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  transition: background 0.2s;
-}
-.save-btn:hover:not(:disabled) { background: rgba(139, 92, 246, 0.35); }
-.save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.cancel-btn {
-  background: none;
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 6px;
-  color: var(--text-color-secondary, var(--color-text-muted));
-  padding: 0.45rem 0.85rem;
-  cursor: pointer;
-}
-.cancel-btn:hover { border-color: rgba(255,255,255,0.25); }
-
 /* Episodios */
-.load-episodes-btn {
-  margin-top: 0.75rem;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 6px;
-  color: var(--text-color-secondary, var(--color-text-muted));
-  padding: 0.4rem 0.85rem;
-  cursor: pointer;
-  font-size: 0.85rem;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  transition: border-color 0.2s;
-}
-.load-episodes-btn:hover:not(:disabled) { border-color: rgba(139,92,246,0.4); }
+.load-episodes-btn { margin-top: 0.75rem; }
 
 .episodes-list { margin-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.75rem; }
 .episodes-list h4 { font-size: 0.9rem; color: var(--color-card-movie-accent); margin-bottom: 0.5rem; }
@@ -565,7 +502,7 @@ async function loadEpisodes(seasonNumber) {
   color: var(--text-color, var(--color-text-light));
   border-bottom: 1px solid rgba(255,255,255,0.04);
 }
-.ep-number { color: var(--text-color-secondary, var(--color-border)); min-width: 28px; }
+.ep-number { color: var(--text-color-secondary, var(--color-border)); min-width: min(28px, 100%); }
 .ep-rating { margin-left: auto; color: var(--color-warning); font-size: 0.8rem; }
 
 /* Transición */

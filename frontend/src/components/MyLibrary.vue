@@ -483,8 +483,8 @@ const searchQuery = searchSystem.query;
 .library-container {
   display: flex;
   flex-direction: column;
-  padding: spacing(2xs) spacing(md); /* Reducido padding lateral de 10px a 15px */
-  padding-top: spacing(md); /* Reducido de 100px a 20px para estar más pegado arriba */
+  padding: spacing(2xs) spacing(md);
+  padding-top: spacing(md); /* Pegado arriba a propósito, no centrado */
   width: 100%;
   max-width: 1600px; /* Aumentado de 1400px a 1600px para aprovechar más espacio */
   margin: auto;
@@ -568,8 +568,8 @@ const searchQuery = searchSystem.query;
   display: flex;
   flex-direction: column;
   width: 100%;
-  margin-bottom: spacing(md); /* Reducido de 25px */
-  gap: spacing(xs); /* Reducido de 10px */
+  margin-bottom: spacing(md);
+  gap: spacing(xs);
 }
 
 .search-sort-row {

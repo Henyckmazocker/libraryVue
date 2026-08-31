@@ -373,6 +373,15 @@ se cachean en `mb_track` (ver abajo).
   `--color-rating-star`, `--color-media-letterbox`) **no** conmutan con el tema —van sobre una
   portada arbitraria—, y `--color-on-status` **sí**, porque es la tinta que acompaña a un relleno
   semántico y en oscuro esos rellenos son claros.
+- **Un `margin` que vale lo que MIDE otra cosa no es espaciado, y la escala se lo come.**
+  `Layout.vue` tiene `margin-left: 280px /* Ancho del sidebar */`, `margin-top: 70px` (el header),
+  el `margin-left: 60px` del sidebar plegado y el `padding-bottom: 60px` de `MobileNavBar`: los
+  cuatro **miden** otra cosa, y el `min-height: calc(100dvh - 70px)` de al lado depende del segundo.
+  Pasarlos a `spacing()` **hunde el contenido debajo del sidebar**, y pasó al barrer los 92 SFCs el
+  2026-08-31 — con los 382 tests, el lint y el build en verde; solo lo vio la captura. La regla, que
+  vale para cualquier barrido futuro: si el valor cambiaría al cambiar la densidad de la interfaz es
+  **espacio**; si define el tamaño de una cosa concreta, es **medida** y se queda literal. De los 453
+  literales `px`/`rem` que quedan en los SFCs, esa es la razón de casi todos.
 - **Los acentos de entidad se validan con un script, no se eligen a ojo.** Los cinco
   `--color-card-<medio>-accent` pasan las cinco comprobaciones del validador de la skill `dataviz`
   **en modo `--pairs all`** —no adyacente: en `/library` los cinco medios conviven mezclados, así que

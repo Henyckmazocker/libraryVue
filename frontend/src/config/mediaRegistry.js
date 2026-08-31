@@ -793,7 +793,7 @@ export const mediaRegistry = {
       // Único medio con badge: distingue serie de película (MovieListItem.vue:16-22).
       badgeOf: (i) => ({
         icon: isSeries(i) ? 'fas fa-tv' : 'fas fa-film',
-        text: isSeries(i) ? 'Serie' : 'Película',
+        text: isSeries(i) ? t('media.series.label') : t('media.movie.label'),
         modifier: isSeries(i) ? 'is-series' : 'is-movie'
       })
     },

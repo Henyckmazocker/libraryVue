@@ -1,71 +1,71 @@
 {
   "menu": [
     {
-      "title": "Principal",
+      "titleKey": "menu.sections.main",
       "items": [
         {
-          "name": "Biblioteca",
+          "nameKey": "menu.library.name",
           "path": "/library",
           "icon": "fas fa-bookmark",
-          "description": "Tu biblioteca personal"
+          "descriptionKey": "menu.library.hint"
         },
         {
-          "name": "Estadísticas",
+          "nameKey": "menu.stats.name",
           "path": "/dashboard",
           "icon": "fas fa-chart-bar",
-          "description": "Estadísticas de tu biblioteca"
+          "descriptionKey": "menu.stats.hint"
         },
         {
-          "name": "Mi Perfil",
+          "nameKey": "menu.profile.name",
           "path": "/profile",
           "icon": "fas fa-user-cog",
-          "description": "Configuración de tu perfil"
+          "descriptionKey": "menu.profile.hint"
         }
       ]
     },
     {
-      "title": "Buscar",
+      "titleKey": "menu.sections.search",
       "items": [
         {
-          "name": "Buscar Libros",
+          "nameKey": "menu.searchBooks.name",
           "path": "/books",
           "icon": "fas fa-book",
-          "description": "Buscar nuevos libros"
+          "descriptionKey": "menu.searchBooks.hint"
         },
         {
-          "name": "Buscar Películas/Series",
+          "nameKey": "menu.searchMovies.name",
           "path": "/movies",
           "icon": "fas fa-film",
-          "description": "Buscar nuevas películas"
+          "descriptionKey": "menu.searchMovies.hint"
         },
         {
-          "name": "Buscar Videojuegos",
+          "nameKey": "menu.searchGames.name",
           "path": "/games",
           "icon": "fas fa-gamepad",
-          "description": "Buscar nuevos videojuegos"
+          "descriptionKey": "menu.searchGames.hint"
         },
         {
-          "name": "Buscar Álbumes",
+          "nameKey": "menu.searchAlbums.name",
           "path": "/albums",
           "icon": "fas fa-music",
-          "description": "Buscar álbumes en Spotify"
+          "descriptionKey": "menu.searchAlbums.hint"
         },
         {
-          "name": "Buscar Vídeos",
+          "nameKey": "menu.searchVideos.name",
           "path": "/videos",
           "icon": "fab fa-youtube",
-          "description": "Buscar vídeos en YouTube"
+          "descriptionKey": "menu.searchVideos.hint"
         }
       ]
     },
     {
-      "title": "Social",
+      "titleKey": "menu.sections.social",
       "items": [
         {
-          "name": "Amigos y Feed",
+          "nameKey": "menu.friends.name",
           "path": "/friends",
           "icon": "fas fa-users",
-          "description": "Feed de actividad y amigos"
+          "descriptionKey": "menu.friends.hint"
         }
       ]
     }

@@ -15,7 +15,7 @@
           {{ senderName }}
         </component>
         {{ t('inbox.invitesYou') }}
-        <strong>{{ invitation.entity_title || 'una lista' }}</strong>
+        <strong>{{ invitation.entity_title || t('inbox.aList') }}</strong>
         <span class="list-invitation-card__time">{{ relativeTime }}</span>
       </p>
 

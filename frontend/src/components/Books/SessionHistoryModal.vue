@@ -2,7 +2,7 @@
   <!-- El chasis lo pone `BaseModal`; aquí solo el historial y su pie. -->
   <BaseModal
     :model-value="dialogVisible"
-    :title="`Historial de lectura - ${book.title}`"
+    :title="t('history.modalTitle', { title: book.title })"
     icon="fas fa-history"
     size="lg"
     @close="handleClose"

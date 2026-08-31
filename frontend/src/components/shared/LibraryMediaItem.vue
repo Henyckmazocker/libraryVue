@@ -50,8 +50,8 @@
           :allowed-statuses="allowedStatuses"
           :multiple="true"
           :readonly="!isNew"
-          :label="isNew ? 'Añadir con estado' : cfg.statusLabel"
-          :subtitle="isNew ? '' : '(solo lectura - usa el modal para editar)'"
+          :label="isNew ? t('edit.addWithStatus') : cfg.statusLabel"
+          :subtitle="isNew ? '' : t('edit.readOnlyHint')"
         />
 
         <!-- Libros meten aquí su widget de estado de lectura. -->
@@ -103,7 +103,7 @@
               'is-error': saveButtonState === 'error'
             }]"
             :disabled="!canSave"
-            :title="`Guardar ${config.label.toLowerCase()}`"
+            :title="t('edit.saveMedia', { media: config.label.toLowerCase() })"
             @click="onSave"
           >
             <i
@@ -140,7 +140,7 @@
               'is-error': editButtonState === 'error'
             }]"
             :disabled="editButtonState !== 'idle'"
-            :title="`Editar ${config.label.toLowerCase()}`"
+            :title="t('edit.editMedia', { media: config.label.toLowerCase() })"
             @click="onEdit"
           >
             <i
@@ -161,7 +161,7 @@
           <button
             v-if="!isNew && canDelete"
             class="btn btn--danger action-button"
-            :title="`Eliminar ${config.label.toLowerCase()}`"
+            :title="t('edit.deleteMedia', { media: config.label.toLowerCase() })"
             @click="onDelete"
           >
             <i class="fas fa-trash" />

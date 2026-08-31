@@ -10,7 +10,7 @@
       type="movies"
       :item-component="MovieCarouselItem"
       :title="t('search.popularMovies')"
-      subtitle="Las películas más populares en nuestra comunidad"
+      :subtitle="t('search.popularMoviesHint')"
       @item-click="handleTrendingClick"
     />
     <!-- Trending Series (solo si hay datos o está cargando) -->
@@ -22,7 +22,7 @@
       type="movies"
       :item-component="MovieCarouselItem"
       :title="t('search.popularSeries')"
-      subtitle="Las series más populares en nuestra comunidad"
+      :subtitle="t('search.popularSeriesHint')"
       @item-click="handleTrendingClick"
     />
   </div>
@@ -224,15 +224,15 @@ const fetchAllowedStatuses = async () => {
 
 // Configuración del componente genérico
 const searchConfig = computed(() => ({
-  title: 'Buscador de Películas/Series (OMDb)',
+  title: t('searchPage.movies.title'),
   inputs: [
     {
       type: 'auto',
-      placeholder: 'Buscar por título o IMDb ID (ej: tt1234567)...',
+      placeholder: t('searchPage.movies.placeholder'),
       buttonText: '',
       idField: 'imdbID',
-      emptyMessage: 'Introduce un título o IMDb ID para buscar.',
-      errorMessage: 'Error al buscar la película.'
+      emptyMessage: t('searchPage.movies.empty'),
+      errorMessage: t('searchPage.movies.error')
     }
   ],
   carouselItemComponent: MovieCarouselItem,

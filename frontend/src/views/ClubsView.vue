@@ -28,7 +28,7 @@
       v-else-if="!hasClubs"
       icon="pi pi-users"
       :title="t('clubs.emptyAll')"
-      message="Un club es un grupo de amigos con un mismo libro, película, juego, álbum o vídeo a la vez."
+      :message="t('clubs.emptyHint')"
     />
 
     <div
@@ -49,7 +49,7 @@
         >{{ club.description }}</span>
 
         <span class="clubs-view__card-meta">
-          <span>{{ club.member_count }} {{ club.member_count === 1 ? 'miembro' : 'miembros' }}</span>
+          <span>{{ t('clubs.memberCount', { n: club.member_count }) }}</span>
           <!-- Un club en el que solo participo no es mío, y se dice. -->
           <span
             v-if="!club.is_owner"

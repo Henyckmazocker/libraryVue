@@ -79,7 +79,7 @@
               v-else
               class="fas fa-save"
             />
-            {{ isSaving ? 'Guardando...' : 'Guardar' }}
+            {{ isSaving ? t('common.saving') : t('common.save') }}
           </button>
         </div>
 

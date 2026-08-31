@@ -58,7 +58,7 @@
         {{ truncateText(book.title, 40) }}
       </h3>
       <p class="book-author">
-        {{ truncateText(book.author || 'Autor desconocido', 30) }}
+        {{ truncateText(book.author || t('book.unknownAuthor'), 30) }}
       </p>
     </div>
   </button>

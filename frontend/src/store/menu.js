@@ -107,95 +107,97 @@ export const useMenuStore = defineStore('menu', {
      * @private
      */
     _getFallbackMenu() {
+      // Por clave y no por texto, igual que el JSON servido: si el `fetch` falla
+      // con la app en inglés, el menú de reserva no puede salir en español.
       return {
         menu: [
           {
-            title: "Principal",
+            titleKey: "menu.sections.main",
             items: [
               {
-                name: "Biblioteca",
+                nameKey: "menu.library.name",
                 path: "/library",
                 icon: "fas fa-bookmark",
-                description: "Tu biblioteca personal"
+                descriptionKey: "menu.library.hint"
               }
             ]
           },
           {
-            title: "Libros",
+            titleKey: "menu.sections.books",
             items: [
               {
-                name: "Buscar Libros",
+                nameKey: "menu.searchBooks.name",
                 path: "/books",
                 icon: "fas fa-search",
-                description: "Buscar nuevos libros"
+                descriptionKey: "menu.searchBooks.hint"
               },
               {
-                name: "Mis Libros",
+                nameKey: "menu.myBooks.name",
                 path: "/dashboard/books",
                 icon: "fas fa-book",
-                description: "Dashboard de tus libros"
+                descriptionKey: "menu.myBooks.hint"
               }
             ]
           },
           {
-            title: "Películas",
+            titleKey: "menu.sections.movies",
             items: [
               {
-                name: "Buscar Películas",
+                nameKey: "menu.searchMovies.name",
                 path: "/movies",
                 icon: "fas fa-search",
-                description: "Buscar nuevas películas"
+                descriptionKey: "menu.searchMovies.hint"
               },
               {
-                name: "Mis Películas",
+                nameKey: "menu.myMovies.name",
                 path: "/dashboard/movies",
                 icon: "fas fa-film",
-                description: "Dashboard de tus películas"
+                descriptionKey: "menu.myMovies.hint"
               }
             ]
           },
           {
-            title: "Videojuegos",
+            titleKey: "menu.sections.games",
             items: [
               {
-                name: "Buscar Videojuegos",
+                nameKey: "menu.searchGames.name",
                 path: "/games",
                 icon: "fas fa-gamepad",
-                description: "Buscar nuevos videojuegos"
+                descriptionKey: "menu.searchGames.hint"
               },
               {
-                name: "Mis Videojuegos",
+                nameKey: "menu.myGames.name",
                 path: "/dashboard/games",
                 icon: "fas fa-trophy",
-                description: "Dashboard de tus videojuegos"
+                descriptionKey: "menu.myGames.hint"
               }
             ]
           },
           {
-            title: "Vídeos",
+            titleKey: "menu.sections.videos",
             items: [
               {
-                name: "Buscar Vídeos",
+                nameKey: "menu.searchVideos.name",
                 path: "/videos",
                 icon: "fab fa-youtube",
-                description: "Buscar vídeos en YouTube"
+                descriptionKey: "menu.searchVideos.hint"
               },
               {
-                name: "Mis Vídeos",
+                nameKey: "menu.myVideos.name",
                 path: "/dashboard/videos",
                 icon: "fas fa-film",
-                description: "Dashboard de tus vídeos"
+                descriptionKey: "menu.myVideos.hint"
               }
             ]
           },
           {
-            title: "Próximamente",
+            titleKey: "menu.sections.soon",
             items: [
               {
-                name: "Música",
+                nameKey: "menu.music.name",
                 path: "#",
                 icon: "fas fa-music",
-                description: "Próximamente disponible",
+                descriptionKey: "menu.music.hint",
                 disabled: true
               }
             ]

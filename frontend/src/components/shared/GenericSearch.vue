@@ -44,7 +44,7 @@
       v-if="sinResultados"
       :icon="config.emptyIcon || 'fas fa-magnifying-glass'"
       :title="t('search.noResults')"
-      message="Prueba con otras palabras, o con menos."
+      :message="t('search.noResultsHint')"
     />
 
     <StaleNotice

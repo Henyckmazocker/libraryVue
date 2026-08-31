@@ -31,7 +31,7 @@
       </div>
 
       <Button
-        label="Guardar"
+        :label="t('common.save')"
         icon="pi pi-save"
         :loading="saving"
         @click="save"
@@ -48,7 +48,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import ToggleSwitch from 'primevue/toggleswitch'
 import Button from 'primevue/button'
 import { usePrivacySettings } from '@/composables/usePrivacySettings'
@@ -69,21 +69,23 @@ const { t } = useI18n();
  * seis reales con un `?? true` de respaldo, así que al no llegar ninguno **cada
  * «Guardar» los reseteaba todos a su valor por defecto**.
  */
-const AJUSTES = [
-  { key: 'show_additions', label: 'Cuando añado algo a mi biblioteca' },
-  { key: 'show_status_changes', label: 'Cuando cambio el estado de algo' },
-  { key: 'show_ratings', label: 'Cuando valoro algo' },
+// `computed` y no una constante: los rótulos salen del catálogo y tienen que
+// repintarse al cambiar de idioma sin recargar.
+const AJUSTES = computed(() => [
+  { key: 'show_additions', label: t('privacy.additions') },
+  { key: 'show_status_changes', label: t('privacy.statusChanges') },
+  { key: 'show_ratings', label: t('privacy.ratings') },
   {
     key: 'show_notes',
-    label: 'Cuando escribo una nota',
+    label: t('privacy.notes'),
     // Los dos interruptores son independientes y se confunden con facilidad:
     // este decide si el evento se VE, y el `is_private` de cada nota decide si
     // llega a emitirse. Una nota privada no genera evento ni con esto encendido.
-    hint: 'Solo las notas que marques como públicas. Las privadas no se publican nunca.'
+    hint: t('privacy.notesHint')
   },
-  { key: 'show_reading_sessions', label: 'Cuando registro una sesión de lectura' },
-  { key: 'show_achievements', label: 'Cuando consigo un logro' }
-]
+  { key: 'show_reading_sessions', label: t('privacy.readingSessions') },
+  { key: 'show_achievements', label: t('privacy.achievements') }
+])
 
 const { privacySettings, fetchPrivacySettings, updatePrivacySettings } = usePrivacySettings()
 const toast = useToast()
@@ -105,7 +107,7 @@ watch(privacySettings, (val) => {
   // `??` y no `||`: un `false` guardado es un valor legítimo y con `||` se
   // perdería en cada carga.
   localSettings.value = Object.fromEntries(
-    AJUSTES.map(({ key }) => [key, val[key] ?? localSettings.value[key]])
+    AJUSTES.value.map(({ key }) => [key, val[key] ?? localSettings.value[key]])
   )
 }, { immediate: true })
 

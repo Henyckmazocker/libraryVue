@@ -4,7 +4,7 @@
       <InputIcon class="pi pi-search" />
       <InputText
         v-model="query"
-        placeholder="Buscar usuarios..."
+        :placeholder="t('social.searchUsersPlaceholder')"
         class="user-search-input__field"
         :loading="isSearching"
         @keydown.esc="clear"
@@ -23,6 +23,9 @@ import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import InputText from 'primevue/inputtext'
 import { useUserSearch } from '@/composables/useUserSearch'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const { query, isSearching, clear } = useUserSearch()
 </script>

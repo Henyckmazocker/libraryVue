@@ -36,7 +36,7 @@
     />
     <Tag
       v-else-if="user.request_sent"
-      value="Solicitud enviada"
+      :value="t('social.requestSent')"
       severity="secondary"
     />
     <Tag
@@ -50,6 +50,9 @@
 <script setup>
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 defineProps({
   user: { type: Object, required: true }

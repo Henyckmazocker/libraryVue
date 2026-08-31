@@ -28,7 +28,7 @@
       v-else-if="!hasLists"
       icon="pi pi-list"
       :title="t('lists.emptyAll')"
-      message="Una lista mezcla libros, películas, juegos, álbumes y vídeos."
+      :message="t('lists.emptyHint')"
     />
 
     <div

@@ -61,22 +61,6 @@
             class="isbn-secondary"
           >{{ t('book.isbn10', { n: item.isbn10 }) }}</span>
         </div>
-
-        <div
-          v-if="item.genres && item.genres.length > 0"
-          class="book-categories"
-        >
-          <i class="fas fa-tags" />
-          <div class="category-tags">
-            <span
-              v-for="(genre, index) in item.genres"
-              :key="index"
-              class="category-tag"
-            >
-              {{ genre }}
-            </span>
-          </div>
-        </div>
       </template>
 
       <template #extra="{ item, existing }">
@@ -113,17 +97,29 @@
             <i class="fas fa-bookmark" />
             {{ t('book.subjects') }}
           </h2>
-          <div class="subject-tags">
-            <a
-              v-for="(subject, index) in item.subjects.slice(0, 15)"
-              :key="index"
-              :href="subject.url"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="subject-tag"
+          <div
+            v-for="grupo in materiasAgrupadas(item.subjects)"
+            :key="grupo.clave"
+            class="subject-group"
+          >
+            <h3
+              v-if="grupo.rotulo"
+              class="subject-group__label"
             >
-              {{ subject.name }}
-            </a>
+              {{ grupo.rotulo }}
+            </h3>
+            <div class="subject-tags">
+              <a
+                v-for="materia in grupo.materias"
+                :key="materia.name"
+                :href="materia.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="subject-tag"
+              >
+                {{ materia.texto }}
+              </a>
+            </div>
           </div>
         </div>
 
@@ -249,6 +245,37 @@ const historial = ref({ isVisible: false, book: {} });
 const abrirHistorial = (book) => {
   Logger.debug('[BookDetailView] Showing session history for book:', book?.title);
   historial.value = { isVisible: true, book };
+};
+
+/**
+ * Las materias de OpenLibrary vienen de un vocabulario controlado y la clave
+ * viaja sin partir: `form:novel`, `series:The Mistborn Saga`, `genre:high
+ * fantasy`. Se enseña solo lo de la derecha, y lo de la izquierda agrupa.
+ *
+ * Las que no llevan `:` —que son la mayoría— caen en un grupo sin rótulo, y ese
+ * va **el último**: es el cajón de sastre, no el encabezamiento de la sección.
+ */
+const materiasAgrupadas = (materias) => {
+  const grupos = new Map();
+
+  for (const materia of (materias ?? []).slice(0, 15)) {
+    const corte = materia.name.indexOf(':');
+    const clave = corte > 0 ? materia.name.slice(0, corte) : '';
+    const texto = corte > 0 ? materia.name.slice(corte + 1).trim() : materia.name;
+
+    if (!grupos.has(clave)) grupos.set(clave, []);
+    grupos.get(clave).push({ ...materia, texto });
+  }
+
+  return [...grupos]
+    .sort(([a], [b]) => (a === '' ? 1 : b === '' ? -1 : 0))
+    .map(([clave, materias]) => ({
+      clave,
+      // Cae al propio vocabulario si el catálogo no lo conoce, como `statusLabel`
+      // con un estado nuevo del backend: OpenLibrary puede inventarse uno.
+      rotulo: clave ? (t(`book.subjectGroups.${clave}`) === `book.subjectGroups.${clave}` ? clave : t(`book.subjectGroups.${clave}`)) : '',
+      materias
+    }));
 };
 
 const cerrarHistorial = () => {
@@ -379,24 +406,23 @@ const seleccionarEdicion = (book, edition) => {
     i { color: var(--color-card-book-accent); }
   }
 
-  .book-categories {
-    display: flex;
-    align-items: flex-start;
-    gap: spacing(xs);
-    margin-top: spacing(sm);
-
-    > i {
-      color: var(--color-card-book-accent);
-      margin-top: spacing(xs);
-      flex-shrink: 0;
-    }
-  }
-
-  .category-tags,
   .subject-tags {
     display: flex;
     flex-wrap: wrap;
     gap: spacing(xs);
+  }
+
+  .subject-group + .subject-group {
+    margin-top: spacing(md);
+  }
+
+  .subject-group__label {
+    margin: 0 0 spacing(2xs);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
 
   .book-description-content {

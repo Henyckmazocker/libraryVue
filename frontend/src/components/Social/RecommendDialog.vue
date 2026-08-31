@@ -65,7 +65,7 @@
             v-model="comment"
             rows="3"
             maxlength="500"
-            placeholder="¿Por qué se lo recomiendas?"
+            :placeholder="t('recommend.commentPlaceholder')"
           />
         </div>
       </template>

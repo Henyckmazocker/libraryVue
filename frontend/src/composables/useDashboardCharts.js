@@ -7,6 +7,7 @@
  * llamarlas al cambiar de tema para que la gráfica repinte.
  */
 import { chartInk, chartTooltip } from '@/config/chartTheme';
+import { t } from '@/config/i18n';
 
 // Ejes, rejilla y texto, recesivos y según el tema activo.
 const scaleTheme = () => {
@@ -114,54 +115,45 @@ export const createStatsCards = (stats, itemType = 'books') => {
   else if (isAlbums) totalNumber = stats.totalAlbums;
   else if (!isBooks) totalNumber = stats.totalMovies;
 
-  let totalLabel = 'Total de Libros';
-  if (isGames) totalLabel = 'Total de Videojuegos';
-  else if (isAlbums) totalLabel = 'Total de Álbumes';
-  else if (!isBooks) totalLabel = 'Total de Películas';
+  // El medio como clave, y no cuatro asignaciones encadenadas por rótulo.
+  let clave = 'movies';
+  if (isBooks) clave = 'books';
+  else if (isGames) clave = 'games';
+  else if (isAlbums) clave = 'albums';
 
   let completedNumber = stats.readBooks;
   if (isGames) completedNumber = stats.completedGames;
   else if (isAlbums) completedNumber = stats.listenedAlbums;
   else if (!isBooks) completedNumber = stats.watchedMovies;
 
-  let completedLabel = 'Libros Leídos';
-  if (isGames) completedLabel = 'Juegos Completados';
-  else if (isAlbums) completedLabel = 'Álbumes Escuchados';
-  else if (!isBooks) completedLabel = 'Películas Vistas';
-
   let pendingNumber = stats.pendingBooks;
   if (isGames) pendingNumber = stats.pendingGames;
   else if (isAlbums) pendingNumber = stats.wishlistAlbums;
   else if (!isBooks) pendingNumber = stats.pendingMovies;
 
-  let pendingLabel = 'Por Leer';
-  if (isGames) pendingLabel = 'Por Jugar';
-  else if (isAlbums) pendingLabel = 'En Lista de Deseos';
-  else if (!isBooks) pendingLabel = 'Por Ver';
-
   return [
     {
       icon: mainIcon,
       number: totalNumber,
-      label: totalLabel,
+      label: t(`dashboardCards.total.${clave}`),
       color: 'primary'
     },
     {
       icon: 'fas fa-check-circle',
       number: completedNumber,
-      label: completedLabel,
+      label: t(`dashboardCards.completed.${clave}`),
       color: 'success'
     },
     {
       icon: 'fas fa-clock',
       number: pendingNumber,
-      label: pendingLabel,
+      label: t(`dashboardCards.pending.${clave}`),
       color: 'warning'
     },
     {
       icon: 'fas fa-star',
       number: formatRating(stats.averageRating),
-      label: 'Calificación Promedio',
+      label: t('dashboardCards.avgRating'),
       color: 'info'
     }
   ];
@@ -193,41 +185,30 @@ export const createChartConfigs = (chartData, itemType = 'books') => {
   const isGames = itemType === 'games';
   const isAlbums = itemType === 'albums';
 
-  let statusTitle = 'Estado de Lectura';
-  let monthlyTitle = 'Progreso Mensual de Páginas Leídas';
-  let genreIcon = 'fas fa-book-open';
+  let clave = 'movies';
+  let genreIcon = 'fas fa-film';
 
-  if (isGames) {
-    statusTitle = 'Estado de Juego';
-    monthlyTitle = 'Juegos Añadidos por Mes';
-    genreIcon = 'fas fa-gamepad';
-  } else if (isAlbums) {
-    statusTitle = 'Estado de Escucha';
-    monthlyTitle = 'Álbumes Añadidos por Mes';
-    genreIcon = 'fas fa-music';
-  } else if (!isBooks) {
-    statusTitle = 'Estado de Visualización';
-    monthlyTitle = 'Películas Vistas por Mes';
-    genreIcon = 'fas fa-film';
-  }
+  if (isBooks) { clave = 'books'; genreIcon = 'fas fa-book-open'; }
+  else if (isGames) { clave = 'games'; genreIcon = 'fas fa-gamepad'; }
+  else if (isAlbums) { clave = 'albums'; genreIcon = 'fas fa-music'; }
 
   const charts = [
     {
-      title: statusTitle,
+      title: t(`dashboardCharts.status.${clave}`),
       type: 'doughnut',
       data: chartData.statusData,
       options: getChartOptions(),
       icon: 'fas fa-chart-pie'
     },
     {
-      title: 'Distribución de Calificaciones',
+      title: t('dashboardCharts.ratings'),
       type: 'bar',
       data: chartData.ratingsData,
       options: getBarChartOptions(),
       icon: 'fas fa-chart-bar'
     },
     {
-      title: 'Géneros Favoritos',
+      title: t('dashboardCharts.genres'),
       type: 'pie',
       data: chartData.genresData,
       options: getChartOptions(),
@@ -239,7 +220,7 @@ export const createChartConfigs = (chartData, itemType = 'books') => {
   if (isGames) {
     if (chartData.platformsData) {
       charts.push({
-        title: 'Juegos por Plataforma',
+        title: t('dashboardCharts.platforms'),
         type: 'bar',
         data: chartData.platformsData,
         options: getHorizontalBarChartOptions(),
@@ -248,7 +229,7 @@ export const createChartConfigs = (chartData, itemType = 'books') => {
     }
     if (chartData.completionData) {
       charts.push({
-        title: 'Estado de Completitud',
+        title: t('dashboardCharts.completion'),
         type: 'doughnut',
         data: chartData.completionData,
         options: getChartOptions(),
@@ -261,7 +242,7 @@ export const createChartConfigs = (chartData, itemType = 'books') => {
   if (isAlbums) {
     if (chartData.albumTypeData) {
       charts.push({
-        title: 'Tipos de Álbum',
+        title: t('dashboardCharts.albumTypes'),
         type: 'doughnut',
         data: chartData.albumTypeData,
         options: getChartOptions(),
@@ -272,7 +253,7 @@ export const createChartConfigs = (chartData, itemType = 'books') => {
 
   // Gráfica de línea al final
   charts.push({
-    title: monthlyTitle,
+    title: t(`dashboardCharts.monthly.${clave}`),
     type: 'line',
     data: chartData.monthlyData,
     options: getLineChartOptions(),

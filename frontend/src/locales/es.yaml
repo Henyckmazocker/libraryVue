@@ -17,6 +17,12 @@ common:
   # Ejemplo de interpolación con llave simple. Lo consumirá el M4; hoy lo fija el
   # test del motor, y por eso está en la lista de pendientes de uso de la barrera.
   loading: "Cargando {what}…"
+  saving: Guardando...
+  untitled: Sin título
+  showMore: Mostrar más
+  showLess: Mostrar menos
+  seeMore: Ver más
+  seeLess: Ver menos
 
 library:
   title: Mi biblioteca
@@ -255,6 +261,16 @@ edit:
   favouriteTrackPlaceholder: Tu canción favorita del álbum
   firstListen: Primera escucha
   noStatuses: Sin estados asignados
+  pickOneOrMore: (selecciona uno o más)
+  notesGame: Tus notas sobre este juego...
+  notesVideo: Tus notas sobre este vídeo...
+  notesAlbum: Tus notas sobre este álbum...
+  addWithStatus: Añadir con estado
+  readOnlyHint: (solo lectura - usa el modal para editar)
+  saveMedia: Guardar {media}
+  editMedia: Editar {media}
+  deleteMedia: Eliminar {media}
+  status: Estado
 
 movie:
   seasons:
@@ -280,6 +296,9 @@ movie:
   type: "Tipo:"
   links: Enlaces externos
   viewOnImdb: Ver en IMDb
+  createdBy: Creada por
+  directedBy: Dirigida por
+  tvSeries: Serie de Televisión
 
 editions:
   title: Ediciones disponibles
@@ -353,7 +372,7 @@ home:
     games: Buscar videojuegos
     gamesHint: Explora nuevos juegos
     music: Música
-    musicHint: Próximamente
+    musicHint: Busca y guarda álbumes
 
 sessions:
   completed: "Sesiones completadas:"
@@ -387,6 +406,12 @@ notes:
   typeLabel: Tipo de nota
   contentLabel: Contenido
   privateLabel: Nota privada
+  pagePlaceholder: Número de página
+  typePlaceholder: Selecciona un tipo
+  textPlaceholder: Escribe tu nota aquí...
+  update: Actualizar
+  editTitle: Editar Nota
+  newTitle: Nueva Nota
 
 seasons:
   title: Progreso de temporadas
@@ -399,6 +424,7 @@ seasons:
   rating: Valoración
   notes: Notas
   episodes: Episodios
+  notesPlaceholder: Tus notas sobre esta temporada...
 
 round:
   proposing: "Estáis proponiendo. Van "
@@ -416,6 +442,8 @@ round:
   valves: Si alguien no participa, puedes seguir tú
   openVote: Abrir el voto con lo que hay
   closeVote: Cerrar la votación
+  yourVote: Tu voto
+  vote: Votar
 
 book:
   by: "por {name}"
@@ -430,6 +458,16 @@ book:
   openLibrary: Ver en OpenLibrary
   classifications: Clasificaciones
   lc: "LC:"
+  unknownAuthor: Autor desconocido
+  # Los vocabularios de OpenLibrary que se ven de verdad. Si aparece otro, se
+  # pinta tal cual: el catálogo no puede adelantarse a lo que publiquen.
+  subjectGroups:
+    form: Forma
+    series: Saga
+    genre: Género
+    place: Lugar
+    time: Época
+    person: Persona
 
 history:
   title: Historial de progreso
@@ -442,6 +480,8 @@ history:
   range: "Páginas {from} → {to}"
   advanced: "+{n} páginas"
   empty: No hay historial de progreso aún
+  emptyHint: El historial se creará automáticamente cuando actualices tu progreso de lectura.
+  modalTitle: Historial de lectura - {title}
 
 game:
   by: "por {name}"
@@ -491,6 +531,7 @@ recommend:
   comment: Comentario (opcional)
   send: Enviar
   action: Recomendar
+  commentPlaceholder: ¿Por qué se lo recomiendas?
 
 header:
   appName: Biblioteca Personal
@@ -499,6 +540,8 @@ header:
   clubs: Mis clubs
   avatarAlt: Usuario
   signOut: Cerrar sesión
+  toLight: Cambiar a modo claro
+  toDark: Cambiar a modo oscuro
 
 lists:
   mine: Mis listas
@@ -517,6 +560,11 @@ lists:
   public: Listas públicas
   removeItem: Quitar {title} de la lista
   thisItem: este ítem
+  emptyHint: Una lista mezcla libros, películas, juegos, álbumes y vídeos.
+  emptyItemsHint: Añade ítems desde la ficha de un libro, película, juego, álbum o vídeo.
+  cannotOpen: No se pudo abrir esta lista
+  leave: Salir de la lista
+  removePerson: Quitar a {name}
 
 reading:
   activeSession: "Sesión activa #{n}"
@@ -533,6 +581,7 @@ clubForm:
   description: Descripción (opcional)
   notice: Quien entre en el club verá el progreso de los demás sobre el ítem activo, y ellos el suyo. Se deja de compartir saliendo del club.
   create: Crear
+  namePlaceholder: Los del jueves
 
 clubInvite:
   title: Invitar al club
@@ -577,6 +626,7 @@ listForm:
   description: Descripción (opcional)
   whoSees: Quién la ve
   losesCollaborators: Al dejar de ser colaborativa, quienes colaboran perderán el acceso.
+  namePlaceholder: Para el verano
 
 carousel:
   albumType: "Tipo: {type}"
@@ -599,17 +649,30 @@ search:
   recentVideos: Vídeos Recientes
   noResults: No se encontraron resultados
   resultsTitle: "Resultados de búsqueda ({n})"
+  popularBooksHint: Los libros más populares en nuestra comunidad
+  popularMoviesHint: Las películas más populares en nuestra comunidad
+  popularSeriesHint: Las series más populares en nuestra comunidad
+  popularGamesHint: Los juegos más populares en nuestra comunidad
+  popularAlbumsHint: Los álbumes más populares en nuestra comunidad
+  recentVideosHint: Vídeos añadidos recientemente por la comunidad
+  noResultsHint: Prueba con otras palabras, o con menos.
 
 addToClub:
   title: Ponerlo en un club
   none: No hay ningún club donde puedas poner esto ahora mismo. Se puede proponer en los clubs que estén eligiendo, y elegir directamente solo en los que organizas y no tengan ítem activo.
   choose: Elige el club
+  proposeAndVote: Se propone y se vota
+  startsNow: Empieza directamente
 
 clubs:
   mine: Mis clubs
   new: Nuevo club
   emptyAll: Todavía no estás en ningún club
   invited: Te invitaron
+  emptyHint: Un club es un grupo de amigos con un mismo libro, película, juego, álbum o vídeo a la vez.
+  memberCount:
+    one: "{n} miembro"
+    other: "{n} miembros"
 
 clubProgress:
   notStarted: Sin empezar
@@ -625,6 +688,8 @@ inbox:
   invitesYou: te invita a colaborar en
   inviteHint: Si aceptas, podrás añadir y quitar ítems. Renombrarla o borrarla sigue siendo cosa de quien la creó.
   recommendsYou: te recomienda
+  anItem: un ítem
+  aList: una lista
 
 social:
   feedEmpty: Añade amigos para ver su actividad aquí
@@ -636,6 +701,14 @@ social:
   noUsersFound: No se encontraron usuarios
   privacyTitle: Configuración de privacidad
   privacyIntro: Elige qué actividad tuya ven tus amigos en su feed. Lo que apagues aquí deja de mostrarse, aunque siga registrado.
+  friendsTab: "Amigos ({n})"
+  searchUsers: Buscar usuarios
+  searchUsersPlaceholder: Buscar usuarios...
+  addFriend: Agregar amigo
+  removeFriend: Eliminar amigo
+  feedTab: Feed
+  requestsTab: Solicitudes
+  requestSent: Solicitud enviada
 
 importer:
   title: Importar datos
@@ -649,6 +722,7 @@ progress:
   pages: "{current} / {total} páginas ({percent}%)"
   currentPage: Página actual
   currentPageLabel: "Página actual:"
+  dragHint: Arrastra para cambiar la página (0-{total})
 
 sidebar:
   loading: Cargando menú...
@@ -669,3 +743,151 @@ video:
   openYouTubeAria: Ver este vídeo en YouTube
   views: "{n} vistas"
   description: Descripción
+
+# Los rótulos del sidebar. NO se escriben en la plantilla: viven como claves en
+# `public/config/sidebar-menu.json` y en el menú de reserva de `store/menu.js`, y
+# `Sidebar.vue` los resuelve con `t(item.nameKey)`. Por eso la barrera no los ve
+# como uso y `menu.` va en sus prefijos dinámicos, igual que `status.` y `media.`.
+menu:
+  sections:
+    main: Principal
+    search: Buscar
+    social: Social
+    books: Libros
+    movies: Películas
+    games: Videojuegos
+    videos: Vídeos
+    soon: Próximamente
+  library:
+    name: Biblioteca
+    hint: Tu biblioteca personal
+  stats:
+    name: Estadísticas
+    hint: Estadísticas de tu biblioteca
+  profile:
+    name: Mi Perfil
+    hint: Configuración de tu perfil
+  searchBooks:
+    name: Buscar Libros
+    hint: Buscar nuevos libros
+  searchMovies:
+    name: Buscar Películas/Series
+    hint: Buscar nuevas películas
+  searchGames:
+    name: Buscar Videojuegos
+    hint: Buscar nuevos videojuegos
+  searchAlbums:
+    name: Buscar Álbumes
+    hint: Buscar álbumes en Spotify
+  searchVideos:
+    name: Buscar Vídeos
+    hint: Buscar vídeos en YouTube
+  friends:
+    name: Amigos y Feed
+    hint: Feed de actividad y amigos
+  myBooks:
+    name: Mis Libros
+    hint: Dashboard de tus libros
+  myMovies:
+    name: Mis Películas
+    hint: Dashboard de tus películas
+  myGames:
+    name: Mis Videojuegos
+    hint: Dashboard de tus videojuegos
+  myVideos:
+    name: Mis Vídeos
+    hint: Dashboard de tus vídeos
+  music:
+    name: Música
+    hint: Próximamente disponible
+
+# Las tarjetas y las gráficas del dashboard. Se resuelven por medio
+# (`t('dashboardCards.total.' + clave)`) desde `composables/useDashboardCharts.js`,
+# así que van en los prefijos dinámicos de la barrera.
+dashboardCards:
+  total:
+    books: Total de Libros
+    movies: Total de Películas
+    games: Total de Videojuegos
+    albums: Total de Álbumes
+  completed:
+    books: Libros Leídos
+    movies: Películas Vistas
+    games: Juegos Completados
+    albums: Álbumes Escuchados
+  pending:
+    books: Por Leer
+    movies: Por Ver
+    games: Por Jugar
+    albums: En Lista de Deseos
+  avgRating: Calificación Promedio
+
+dashboardCharts:
+  status:
+    books: Estado de Lectura
+    movies: Estado de Visualización
+    games: Estado de Juego
+    albums: Estado de Escucha
+  monthly:
+    books: Progreso Mensual de Páginas Leídas
+    movies: Películas Vistas por Mes
+    games: Juegos Añadidos por Mes
+    albums: Álbumes Añadidos por Mes
+  ratings: Distribución de Calificaciones
+  genres: Géneros Favoritos
+  platforms: Juegos por Plataforma
+  completion: Estado de Completitud
+  albumTypes: Tipos de Álbum
+  starsAxis: "{n} estrellas"
+  pagesSeries: Páginas leídas
+  addedSeries: Agregados por mes
+  months: Ene,Feb,Mar,Abr,May,Jun,Jul,Ago,Sep,Oct,Nov,Dic
+
+# La configuración de los cinco `*Search.vue`, que viaja a `GenericSearch` como
+# objeto y no como plantilla: la regla del lint no la ve.
+searchPage:
+  books:
+    title: Buscador de Libros (Google Books + OpenLibrary)
+    placeholder: Buscar por ISBN o título del libro...
+    empty: Introduce un ISBN o título para buscar.
+    error: Error al buscar el libro.
+  movies:
+    title: Buscador de Películas/Series (OMDb)
+    placeholder: "Buscar por título o IMDb ID (ej: tt1234567)..."
+    empty: Introduce un título o IMDb ID para buscar.
+    error: Error al buscar la película.
+  games:
+    title: Buscador de Videojuegos (IGDB)
+    placeholder: Buscar por título o IGDB ID...
+    empty: Introduce un título o ID de IGDB para buscar.
+    error: Error al buscar el juego.
+  albums:
+    title: Buscador de Álbumes (Spotify)
+    placeholder: Buscar álbum o artista...
+    empty: Introduce el nombre de un álbum o artista para buscar.
+    error: Error al buscar el álbum.
+  videos:
+    title: Buscador de Vídeos (YouTube)
+    placeholder: Buscar vídeo o canal...
+    empty: Introduce el título de un vídeo o nombre de canal para buscar.
+    error: Error al buscar el vídeo.
+
+privacy:
+  additions: Cuando añado algo a mi biblioteca
+  statusChanges: Cuando cambio el estado de algo
+  ratings: Cuando valoro algo
+  notes: Cuando escribo una nota
+  notesHint: Solo las notas que marques como públicas. Las privadas no se publican nunca.
+  readingSessions: Cuando registro una sesión de lectura
+  achievements: Cuando consigo un logro
+
+rating:
+  rateWith:
+    one: Valorar con {n} estrella
+    other: Valorar con {n} estrellas
+
+inboxBadge:
+  none: Recomendaciones
+  pending:
+    one: "Recomendaciones: {n} pendiente"
+    other: "Recomendaciones: {n} pendientes"

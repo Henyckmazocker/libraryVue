@@ -63,11 +63,14 @@
           <p>{{ t('home.cards.gamesHint') }}</p>
         </router-link>
         
-        <div class="action-card action-card--disabled">
+        <router-link
+          class="action-card"
+          to="/albums"
+        >
           <i class="fas fa-music" />
           <h3>{{ t('home.cards.music') }}</h3>
           <p>{{ t('home.cards.musicHint') }}</p>
-        </div>
+        </router-link>
       </div>
     </div>
 
@@ -202,7 +205,7 @@ const openHelpPage = () => {
   cursor: pointer;
 }
 
-.action-card:hover:not(.action-card--disabled) {
+.action-card:hover {
   background: var(--color-background-mute);
   border-color: var(--color-info);
   transform: translateY(-2px);
@@ -228,22 +231,6 @@ const openHelpPage = () => {
   color: var(--color-text-muted);
   margin: 0;
   line-height: 1.4;
-}
-
-.action-card--disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.action-card--disabled:hover {
-  transform: none;
-  background: var(--color-background-soft);
-  border-color: var(--color-border);
-  box-shadow: none;
-}
-
-.action-card--disabled i {
-  color: var(--color-text-muted);
 }
 
 /* Sync Section */

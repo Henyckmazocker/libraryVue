@@ -91,7 +91,7 @@
             @click="$emit('vote', proposal.id)"
           >
             <i :class="round.myVote === proposal.id ? 'pi pi-check-circle' : 'pi pi-circle'" />
-            {{ round.myVote === proposal.id ? 'Tu voto' : 'Votar' }}
+            {{ round.myVote === proposal.id ? t('round.yourVote') : t('round.vote') }}
           </button>
         </div>
       </li>

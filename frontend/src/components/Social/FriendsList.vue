@@ -43,7 +43,7 @@
           >{{ friend.display_name }}</span>
         </div>
         <Button
-          v-tooltip.top="'Eliminar amigo'"
+          v-tooltip.top="t('social.removeFriend')"
           icon="pi pi-user-minus"
           severity="secondary"
           text

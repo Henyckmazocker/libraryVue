@@ -10,7 +10,7 @@
         :class="item.type === 'series' ? 'is-series' : 'is-movie'"
       >
         <i :class="item.type === 'series' ? 'fas fa-tv' : 'fas fa-film'" />
-        {{ item.type === 'series' ? 'Serie de Televisión' : 'Película' }}
+        {{ item.type === 'series' ? t('movie.tvSeries') : t('media.movie.label') }}
       </div>
 
       <div
@@ -26,7 +26,7 @@
         class="movie-director-large"
       >
         <i :class="item.type === 'series' ? 'fas fa-tv' : 'fas fa-video'" />
-        <span>{{ item.type === 'series' ? 'Creada por' : 'Dirigida por' }} {{ item.director }}</span>
+        <span>{{ item.type === 'series' ? t('movie.createdBy') : t('movie.directedBy') }} {{ item.director }}</span>
       </div>
 
       <div class="movie-metadata">

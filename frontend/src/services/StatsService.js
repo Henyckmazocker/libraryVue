@@ -1,7 +1,7 @@
 import Logger from '@/utils/logger';
 import { useAuthStore } from '@/store/auth.js';
 import { categoricalPalette, foldToOther, entityColor, chartInk } from '@/config/chartTheme';
-import { statusLabel } from '@/config/i18n';
+import { statusLabel, t } from '@/config/i18n';
 
 /**
  * Service para interactuar con la API de estadísticas
@@ -182,7 +182,7 @@ class StatsService {
     if (!ratingStats || !ratingStats.distribution) {
       // Si no hay datos, mostrar todas las categorías con 0
       return {
-        labels: allRatings.map(rating => `${rating} estrellas`),
+        labels: allRatings.map(rating => t('dashboardCharts.starsAxis', { n: rating })),
         datasets: [{
           data: new Array(allRatings.length).fill(0),
           backgroundColor: categoricalPalette(1)[0],
@@ -195,7 +195,7 @@ class StatsService {
     const data = allRatings.map(rating => ratingStats.distribution[rating] || 0);
     const labels = allRatings.map(rating => {
       const formattedRating = Number(rating).toFixed(1);
-      return `${formattedRating} estrellas`;
+      return t('dashboardCharts.starsAxis', { n: formattedRating });
     });
     
     // Una sola serie ordinal (1 → 5 estrellas): un color, no nueve. Nueve tonos
@@ -231,14 +231,15 @@ class StatsService {
 
     const labels = Object.keys(monthlyStats).map(month => {
       const [year, monthNum] = month.split('-');
-      const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 
-                         'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+      // Los doce en una clave y no doce claves: es una sola lista y así no se
+      // puede traducir a medias.
+      const monthNames = t('dashboardCharts.months').split(',');
       return `${monthNames[parseInt(monthNum) - 1]} ${year}`;
     });
     const data = Object.values(monthlyStats);
 
     const isPages = type === 'pages';
-    const label = isPages ? 'Páginas leídas' : 'Agregados por mes';
+    const label = isPages ? t('dashboardCharts.pagesSeries') : t('dashboardCharts.addedSeries');
     // Las series por medio llevan el color de su tarjeta en /library; el resto,
     // la primera ranura de la paleta categórica.
     const color = MEDIA_KEYS.includes(type) ? entityColor(type) : categoricalPalette(1)[0];

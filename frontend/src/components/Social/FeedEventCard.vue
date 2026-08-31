@@ -84,7 +84,7 @@
           :aria-expanded="noteOpen"
           @click="noteOpen = !noteOpen"
         >
-          {{ noteOpen ? 'Ver menos' : 'Ver más' }}
+          {{ noteOpen ? t('common.seeLess') : t('common.seeMore') }}
         </button>
       </template>
     </div>
@@ -228,7 +228,7 @@ const entityIcon = computed(() => {
  * preexistente, no de este plan, pero estaba en el mismo `computed` que había
  * que tocar.
  */
-const { statusLabel } = useI18n()
+const { t, statusLabel } = useI18n()
 
 const metadata = computed(() => props.event.metadata ?? {})
 

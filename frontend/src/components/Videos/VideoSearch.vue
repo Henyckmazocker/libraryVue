@@ -12,7 +12,7 @@
       type="videos"
       :item-component="VideoCarouselItem"
       :title="t('search.recentVideos')"
-      subtitle="Vídeos añadidos recientemente por la comunidad"
+      :subtitle="t('search.recentVideosHint')"
       @item-click="handleTrendingClick"
     />
   </div>
@@ -144,15 +144,15 @@ const fetchAllowedStatuses = async () => {
 };
 
 const searchConfig = computed(() => ({
-  title: 'Buscador de Vídeos (YouTube)',
+  title: t('searchPage.videos.title'),
   inputs: [
     {
       type: 'name',
-      placeholder: 'Buscar vídeo o canal...',
+      placeholder: t('searchPage.videos.placeholder'),
       buttonText: '',
       idField: 'youtube_id',
-      emptyMessage: 'Introduce el título de un vídeo o nombre de canal para buscar.',
-      errorMessage: 'Error al buscar el vídeo.'
+      emptyMessage: t('searchPage.videos.empty'),
+      errorMessage: t('searchPage.videos.error')
     }
   ],
   carouselItemComponent: VideoCarouselItem,

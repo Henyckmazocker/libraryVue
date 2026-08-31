@@ -25,7 +25,7 @@
       role="alert"
     >
       <i class="pi pi-lock" />
-      <p>{{ error || 'No se pudo abrir esta lista' }}</p>
+      <p>{{ error || t('lists.cannotOpen') }}</p>
     </div>
 
     <template v-else>
@@ -79,7 +79,7 @@
         v-if="items.length === 0"
         icon="pi pi-inbox"
         :title="t('lists.empty')"
-        message="Añade ítems desde la ficha de un libro, película, juego, álbum o vídeo."
+        :message="t('lists.emptyItemsHint')"
       />
 
       <div
@@ -157,7 +157,7 @@
             >
               <i class="pi pi-times" />
               <span class="u-sr-only">
-                {{ person.user_id === myUserId ? 'Salir de la lista' : `Quitar a ${person.username}` }}
+                {{ person.user_id === myUserId ? t('lists.leave') : t('lists.removePerson', { name: person.username }) }}
               </span>
             </button>
           </li>

@@ -13,7 +13,7 @@
         <button
           type="button"
           class="star-button"
-          :aria-label="`Valorar con ${starPosition} ${starPosition === 1 ? 'estrella' : 'estrellas'}`"
+          :aria-label="t('rating.rateWith', { n: starPosition })"
           :class="{ 'active': getVisualRating() >= starPosition - 0.5 }"
           @click="handleStarClick($event, starPosition)"
           @mousemove="handleStarHover($event, starPosition)"
@@ -50,6 +50,9 @@
 
 <script setup>
 import { ref, defineProps, defineEmits, watch } from 'vue';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 // Props
 const props = defineProps({

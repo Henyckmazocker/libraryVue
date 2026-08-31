@@ -46,7 +46,7 @@
         :class="isSeries ? 'is-series' : 'is-movie'"
       >
         <i :class="isSeries ? 'fas fa-tv' : 'fas fa-film'" />
-        {{ isSeries ? 'Serie' : 'Película' }}
+        {{ isSeries ? t('media.series.label') : t('media.movie.label') }}
       </div>
 
       <!-- Badge de "En tu biblioteca" -->

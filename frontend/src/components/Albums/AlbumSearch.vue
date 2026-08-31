@@ -12,7 +12,7 @@
       type="albums"
       :item-component="AlbumCarouselItem"
       :title="t('search.popularAlbums')"
-      subtitle="Los álbumes más populares en nuestra comunidad"
+      :subtitle="t('search.popularAlbumsHint')"
       @item-click="handleTrendingClick"
     />
   </div>
@@ -160,15 +160,15 @@ const fetchAllowedStatuses = async () => {
 };
 
 const searchConfig = computed(() => ({
-  title: 'Buscador de Álbumes (Spotify)',
+  title: t('searchPage.albums.title'),
   inputs: [
     {
       type: 'name',
-      placeholder: 'Buscar álbum o artista...',
+      placeholder: t('searchPage.albums.placeholder'),
       buttonText: '',
       idField: 'spotify_id',
-      emptyMessage: 'Introduce el nombre de un álbum o artista para buscar.',
-      errorMessage: 'Error al buscar el álbum.'
+      emptyMessage: t('searchPage.albums.empty'),
+      errorMessage: t('searchPage.albums.error')
     }
   ],
   carouselItemComponent: AlbumCarouselItem,

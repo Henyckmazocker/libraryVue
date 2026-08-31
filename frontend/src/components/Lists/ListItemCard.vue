@@ -33,7 +33,7 @@
         class="list-card__title"
         :to="itemRoute"
       >
-        {{ item.entity_title || 'Sin título' }}
+        {{ item.entity_title || t('common.untitled') }}
       </component>
 
       <span class="list-card__media">

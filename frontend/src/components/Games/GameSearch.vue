@@ -12,7 +12,7 @@
       type="games"
       :item-component="GameCarouselItem"
       :title="t('search.popularGames')"
-      subtitle="Los juegos más populares en nuestra comunidad"
+      :subtitle="t('search.popularGamesHint')"
       @item-click="handleTrendingClick"
     />
   </div>
@@ -233,15 +233,15 @@ const fetchAllowedStatuses = async () => {
 
 // Configuración del componente genérico
 const searchConfig = computed(() => ({
-  title: 'Buscador de Videojuegos (IGDB)',
+  title: t('searchPage.games.title'),
   inputs: [
     {
       type: 'auto',
-      placeholder: 'Buscar por título o IGDB ID...',
+      placeholder: t('searchPage.games.placeholder'),
       buttonText: '',
       idField: 'igdbId',
-      emptyMessage: 'Introduce un título o ID de IGDB para buscar.',
-      errorMessage: 'Error al buscar el juego.'
+      emptyMessage: t('searchPage.games.empty'),
+      errorMessage: t('searchPage.games.error')
     }
   ],
   carouselItemComponent: GameCarouselItem,

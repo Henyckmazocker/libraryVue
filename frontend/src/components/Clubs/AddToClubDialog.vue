@@ -47,7 +47,7 @@
           <!-- Qué va a pasar con ESTE club, dicho antes de pulsar: proponer y
                elegir no son lo mismo y el usuario tiene que saber cuál hace. -->
           <span class="add-to-club-dialog__club-count">
-            {{ acciones.get(club.id) === 'propose' ? 'Se propone y se vota' : 'Empieza directamente' }}
+            {{ acciones.get(club.id) === 'propose' ? t('addToClub.proposeAndVote') : t('addToClub.startsNow') }}
           </span>
         </button>
       </fieldset>

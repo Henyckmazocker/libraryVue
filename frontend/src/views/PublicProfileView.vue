@@ -51,14 +51,14 @@
         <div class="public-profile-view__actions">
           <Button
             v-if="!profile.is_friend && !profile.request_sent && !isCurrentUser"
-            label="Agregar amigo"
+            :label="t('social.addFriend')"
             icon="pi pi-user-plus"
             :loading="requestSending"
             @click="handleSendRequest"
           />
           <Tag
             v-else-if="profile.request_sent"
-            value="Solicitud enviada"
+            :value="t('social.requestSent')"
             severity="secondary"
           />
           <Tag

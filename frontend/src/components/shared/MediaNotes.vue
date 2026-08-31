@@ -109,7 +109,7 @@
     <!-- Add/Edit Note Dialog -->
     <BaseModal
       v-model="showNoteDialog"
-      :title="editingNote ? 'Editar Nota' : 'Nueva Nota'"
+      :title="editingNote ? t('notes.editTitle') : t('notes.newTitle')"
       class="note-dialog"
     >
       <div class="note-form">
@@ -123,7 +123,7 @@
             v-model="noteForm.pageNumber"
             :min="1"
             :use-grouping="false"
-            placeholder="Número de página"
+            :placeholder="t('notes.pagePlaceholder')"
           />
         </div>
 
@@ -135,7 +135,7 @@
             :options="config.notes.types"
             option-label="label"
             option-value="value"
-            placeholder="Selecciona un tipo"
+            :placeholder="t('notes.typePlaceholder')"
             append-to="self"
           />
         </div>
@@ -146,7 +146,7 @@
             id="noteText"
             v-model="noteForm.noteText"
             rows="5"
-            placeholder="Escribe tu nota aquí..."
+            :placeholder="t('notes.textPlaceholder')"
           />
         </div>
 
@@ -161,12 +161,12 @@
 
         <div class="dialog-actions">
           <Button
-            label="Cancelar"
+            :label="t('common.cancel')"
             severity="secondary"
             @click="closeNoteDialog"
           />
           <Button
-            :label="editingNote ? 'Actualizar' : 'Guardar'"
+            :label="editingNote ? t('notes.update') : t('common.save')"
             :loading="saving"
             @click="saveNote"
           />

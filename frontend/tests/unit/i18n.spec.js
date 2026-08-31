@@ -32,7 +32,11 @@ const SRC = join(process.cwd(), 'src')
 const PREFIJOS_DINAMICOS = [
   'status.',   // t('status.' + slug), los 28 estados de la biblioteca
   'errors.',   // t('errors.' + código) — los mensajes del backend, por código
-  'media.'     // t('media.' + medio + '.…'), desde `config/mediaRegistry.js`
+  'media.',    // t('media.' + medio + '.…'), desde `config/mediaRegistry.js`
+  'menu.',     // t(item.nameKey), con la clave dentro de `sidebar-menu.json`
+  'dashboardCards.',   // t(`dashboardCards.total.${clave}`), por medio
+  'dashboardCharts.',  // t(`dashboardCharts.status.${clave}`), por medio
+  'book.subjectGroups.' // t(`book.subjectGroups.${vocabulario}`) de OpenLibrary
 ]
 
 /**

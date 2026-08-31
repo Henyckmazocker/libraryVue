@@ -125,7 +125,7 @@
               v-model="editForm.notes"
               class="notes-input"
               rows="3"
-              placeholder="Tus notas sobre esta temporada..."
+              :placeholder="t('seasons.notesPlaceholder')"
             />
           </div>
 
@@ -136,7 +136,7 @@
               :disabled="isSaving"
               @click="saveSeason"
             >
-              <i class="fas fa-save" /> {{ isSaving ? 'Guardando...' : 'Guardar' }}
+              <i class="fas fa-save" /> {{ isSaving ? t('common.saving') : t('common.save') }}
             </button>
             <button
               class="btn btn--ghost cancel-btn"

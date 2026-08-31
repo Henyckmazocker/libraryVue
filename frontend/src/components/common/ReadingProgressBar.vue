@@ -32,7 +32,7 @@
         :value="localCurrentPage"
         :disabled="saving"
         :aria-label="t('progress.currentPage')"
-        :title="`Arrastra para cambiar la página (0-${totalPages || 100})`"
+        :title="t('progress.dragHint', { total: totalPages || 100 })"
         @input="updateCurrentPageFromSlider"
       >
     </div>

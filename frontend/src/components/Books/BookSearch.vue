@@ -10,7 +10,7 @@
       type="books"
       :item-component="BookCarouselItem"
       :title="t('search.popularBooks')"
-      subtitle="Los libros más populares en nuestra comunidad"
+      :subtitle="t('search.popularBooksHint')"
       @item-click="handleTrendingClick"
     />
   </div>
@@ -243,15 +243,15 @@ const fetchAllowedStatuses = async () => {
 
 // Configuración del componente genérico
 const searchConfig = computed(() => ({
-  title: 'Book Finder (Google Books + OpenLibrary)',
+  title: t('searchPage.books.title'),
   inputs: [
     {
       type: 'auto',
-      placeholder: 'Buscar por ISBN o título del libro...',
+      placeholder: t('searchPage.books.placeholder'),
       buttonText: '',
       idField: 'isbn',
-      emptyMessage: 'Introduce un ISBN o título para buscar.',
-      errorMessage: 'Error al buscar el libro.'
+      emptyMessage: t('searchPage.books.empty'),
+      errorMessage: t('searchPage.books.error')
     }
   ],
   carouselItemComponent: BookCarouselItem,

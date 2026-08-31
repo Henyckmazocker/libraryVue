@@ -110,7 +110,7 @@
           class="btn btn--ghost btn--sm toggle-desc-btn"
           @click="showFullDesc = !showFullDesc"
         >
-          {{ showFullDesc ? 'Mostrar menos' : 'Mostrar más' }}
+          {{ showFullDesc ? t('common.showLess') : t('common.showMore') }}
         </button>
       </div>
     </template>

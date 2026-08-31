@@ -39,20 +39,20 @@
       >
         <div 
           v-for="section in menuItems" 
-          :key="section.title" 
+          :key="section.titleKey" 
           class="app-sidebar__section"
         >
           <h3
             v-if="!isCollapsed"
             class="app-sidebar__section-title"
           >
-            {{ section.title }}
+            {{ t(section.titleKey) }}
           </h3>
           
           <ul class="app-sidebar__menu">
             <li 
               v-for="item in section.items" 
-              :key="item.name"
+              :key="item.path"
               class="app-sidebar__menu-item"
             >
               <router-link 
@@ -61,7 +61,7 @@
                   'app-sidebar__link',
                   { 'app-sidebar__link--disabled': item.disabled }
                 ]"
-                :title="isCollapsed ? item.description : ''"
+                :title="isCollapsed ? t(item.descriptionKey) : ''"
                 @click="item.disabled && $event.preventDefault()"
               >
                 <i
@@ -71,7 +71,7 @@
                 <span
                   v-if="!isCollapsed"
                   class="app-sidebar__text"
-                >{{ item.name }}</span>
+                >{{ t(item.nameKey) }}</span>
               </router-link>
             </li>
           </ul>

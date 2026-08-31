@@ -10,14 +10,14 @@
 
     <TabView class="friends-view__tabs">
       <!-- Feed -->
-      <TabPanel header="Feed">
+      <TabPanel :header="t('social.feedTab')">
         <div class="friends-view__tab-content">
           <FeedList />
         </div>
       </TabPanel>
 
       <!-- Amigos -->
-      <TabPanel :header="`Amigos (${friends.length})`">
+      <TabPanel :header="t('social.friendsTab', { n: friends.length })">
         <div class="friends-view__tab-content">
           <FriendsList
             :friends="friends"
@@ -27,7 +27,7 @@
       </TabPanel>
 
       <!-- Solicitudes -->
-      <TabPanel :header="`Solicitudes${pendingRequestsCount > 0 ? ` (${pendingRequestsCount})` : ''}`">
+      <TabPanel :header="`${t('social.requestsTab')}${pendingRequestsCount > 0 ? ` (${pendingRequestsCount})` : ''}`">
         <div class="friends-view__tab-content">
           <FriendRequests
             :requests="pendingRequests"
@@ -38,7 +38,7 @@
       </TabPanel>
 
       <!-- Buscar -->
-      <TabPanel header="Buscar usuarios">
+      <TabPanel :header="t('social.searchUsers')">
         <div class="friends-view__tab-content friends-view__search">
           <UserSearchInput />
           <div

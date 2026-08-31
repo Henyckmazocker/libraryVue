@@ -38,7 +38,7 @@
           class="recommendation-card__title"
           :to="itemRoute"
         >
-          <strong>{{ recommendation.entity_title || 'un ítem' }}</strong>
+          <strong>{{ recommendation.entity_title || t('inbox.anItem') }}</strong>
         </component>
         <span class="recommendation-card__time">{{ relativeTime }}</span>
       </p>

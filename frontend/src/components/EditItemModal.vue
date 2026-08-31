@@ -3,7 +3,7 @@
        pone `BaseModal`. El filete de color del medio va por su prop `accent`. -->
   <BaseModal
     :model-value="isVisible"
-    :title="item?.title || 'Sin título'"
+    :title="item?.title || t('common.untitled')"
     :accent="`var(--color-card-${itemType}-accent)`"
     size="lg"
     :dismissible="!isSaving"
@@ -49,8 +49,8 @@
         v-model="localStatuses"
         :allowed-statuses="allowedStatuses"
         :multiple="true"
-        label="Estado"
-        subtitle="(selecciona uno o más)"
+        :label="t('edit.status')"
+        :subtitle="t('edit.pickOneOrMore')"
       />
 
       <TagSelector
@@ -145,7 +145,7 @@
           id="personal-notes"
           v-model="localPersonalNotes"
           rows="3"
-          placeholder="Tus notas sobre este juego..."
+          :placeholder="t('edit.notesGame')"
           class="edit-modal__textarea"
         />
       </div>
@@ -166,7 +166,7 @@
           id="video-personal-notes"
           v-model="localPersonalNotes"
           rows="3"
-          placeholder="Tus notas sobre este vídeo..."
+          :placeholder="t('edit.notesVideo')"
           class="edit-modal__textarea"
         />
       </div>
@@ -226,7 +226,7 @@
           id="album-personal-notes"
           v-model="localPersonalNotes"
           rows="3"
-          placeholder="Tus notas sobre este álbum..."
+          :placeholder="t('edit.notesAlbum')"
           class="edit-modal__textarea"
         />
       </div>
@@ -283,7 +283,7 @@
         :disabled="isSaving"
         @click="handleSave"
       >
-        {{ isSaving ? 'Guardando...' : 'Guardar' }}
+        {{ isSaving ? t('common.saving') : t('common.save') }}
       </button>
     </template>
   </BaseModal>

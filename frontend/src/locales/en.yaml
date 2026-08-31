@@ -14,6 +14,12 @@ common:
   dismiss: Dismiss
   inLibrary: In your library
   loading: "Loading {what}…"
+  saving: Saving…
+  untitled: Untitled
+  showMore: Show more
+  showLess: Show less
+  seeMore: See more
+  seeLess: See less
 
 library:
   title: My library
@@ -244,6 +250,16 @@ edit:
   favouriteTrackPlaceholder: Your favourite track from the album
   firstListen: First listen
   noStatuses: No statuses assigned
+  pickOneOrMore: (pick one or more)
+  notesGame: Your notes about this game…
+  notesVideo: Your notes about this video…
+  notesAlbum: Your notes about this album…
+  addWithStatus: Add with a status
+  readOnlyHint: (read only — use the modal to edit)
+  saveMedia: Save {media}
+  editMedia: Edit {media}
+  deleteMedia: Delete {media}
+  status: Status
 
 movie:
   seasons:
@@ -269,6 +285,9 @@ movie:
   type: "Type:"
   links: External links
   viewOnImdb: View on IMDb
+  createdBy: Created by
+  directedBy: Directed by
+  tvSeries: TV series
 
 editions:
   title: Available editions
@@ -342,7 +361,7 @@ home:
     games: Search games
     gamesHint: Explore new games
     music: Music
-    musicHint: Coming soon
+    musicHint: Find and save albums
 
 sessions:
   completed: "Sessions completed:"
@@ -376,6 +395,12 @@ notes:
   typeLabel: Note type
   contentLabel: Content
   privateLabel: Private note
+  pagePlaceholder: Page number
+  typePlaceholder: Choose a type
+  textPlaceholder: Write your note here…
+  update: Update
+  editTitle: Edit note
+  newTitle: New note
 
 seasons:
   title: Season progress
@@ -388,6 +413,7 @@ seasons:
   rating: Rating
   notes: Notes
   episodes: Episodes
+  notesPlaceholder: Your notes about this season…
 
 round:
   proposing: "You're proposing. There are "
@@ -405,6 +431,8 @@ round:
   valves: If someone isn't taking part, you can move it on
   openVote: Open the vote with what there is
   closeVote: Close the vote
+  yourVote: Your vote
+  vote: Vote
 
 book:
   by: "by {name}"
@@ -419,6 +447,14 @@ book:
   openLibrary: View on OpenLibrary
   classifications: Classifications
   lc: "LC:"
+  unknownAuthor: Unknown author
+  subjectGroups:
+    form: Form
+    series: Series
+    genre: Genre
+    place: Place
+    time: Period
+    person: Person
 
 history:
   title: Progress history
@@ -431,6 +467,8 @@ history:
   range: "Pages {from} → {to}"
   advanced: "+{n} pages"
   empty: No progress history yet
+  emptyHint: The history is created on its own as you update your reading progress.
+  modalTitle: Reading history — {title}
 
 game:
   by: "by {name}"
@@ -480,6 +518,7 @@ recommend:
   comment: Comment (optional)
   send: Send
   action: Recommend
+  commentPlaceholder: Why are you recommending it?
 
 header:
   appName: Personal Library
@@ -488,6 +527,8 @@ header:
   clubs: My clubs
   avatarAlt: User
   signOut: Sign out
+  toLight: Switch to light mode
+  toDark: Switch to dark mode
 
 lists:
   mine: My lists
@@ -506,6 +547,11 @@ lists:
   public: Public lists
   removeItem: Remove {title} from the list
   thisItem: this item
+  emptyHint: A list mixes books, films, games, albums and videos.
+  emptyItemsHint: Add items from the page of a book, film, game, album or video.
+  cannotOpen: This list could not be opened
+  leave: Leave the list
+  removePerson: Remove {name}
 
 reading:
   activeSession: "Active session #{n}"
@@ -522,6 +568,7 @@ clubForm:
   description: Description (optional)
   notice: Anyone who joins will see the others' progress on the active item, and they'll see theirs. Leaving the club stops the sharing.
   create: Create
+  namePlaceholder: The Thursday crowd
 
 clubInvite:
   title: Invite to the club
@@ -566,6 +613,7 @@ listForm:
   description: Description (optional)
   whoSees: Who sees it
   losesCollaborators: When it stops being collaborative, its collaborators will lose access.
+  namePlaceholder: For the summer
 
 carousel:
   albumType: "Type: {type}"
@@ -588,17 +636,30 @@ search:
   recentVideos: Recent videos
   noResults: No results found
   resultsTitle: "Search results ({n})"
+  popularBooksHint: The most popular books in our community
+  popularMoviesHint: The most popular films in our community
+  popularSeriesHint: The most popular series in our community
+  popularGamesHint: The most popular games in our community
+  popularAlbumsHint: The most popular albums in our community
+  recentVideosHint: Videos recently added by the community
+  noResultsHint: Try other words, or fewer of them.
 
 addToClub:
   title: Put it in a club
   none: There is no club where you can put this right now. You can propose in clubs that are choosing, and pick directly only in the ones you organise that have no active item.
   choose: Choose the club
+  proposeAndVote: Proposed and voted
+  startsNow: Starts right away
 
 clubs:
   mine: My clubs
   new: New club
   emptyAll: You are not in any club yet
   invited: You were invited
+  emptyHint: A club is a group of friends on one same book, film, game, album or video at a time.
+  memberCount:
+    one: "{n} member"
+    other: "{n} members"
 
 clubProgress:
   notStarted: Not started
@@ -614,6 +675,8 @@ inbox:
   invitesYou: invites you to collaborate on
   inviteHint: If you accept, you will be able to add and remove items. Renaming or deleting it stays with whoever created it.
   recommendsYou: recommends you
+  anItem: an item
+  aList: a list
 
 social:
   feedEmpty: Add friends to see their activity here
@@ -625,6 +688,14 @@ social:
   noUsersFound: No users found
   privacyTitle: Privacy settings
   privacyIntro: Choose which of your activity your friends see in their feed. Whatever you switch off here stops showing, even though it stays recorded.
+  friendsTab: "Friends ({n})"
+  searchUsers: Search users
+  searchUsersPlaceholder: Search users…
+  addFriend: Add friend
+  removeFriend: Remove friend
+  feedTab: Feed
+  requestsTab: Requests
+  requestSent: Request sent
 
 importer:
   title: Import data
@@ -638,6 +709,7 @@ progress:
   pages: "{current} / {total} pages ({percent}%)"
   currentPage: Current page
   currentPageLabel: "Current page:"
+  dragHint: Drag to change the page (0-{total})
 
 sidebar:
   loading: Loading menu…
@@ -658,3 +730,142 @@ video:
   openYouTubeAria: Watch this video on YouTube
   views: "{n} views"
   description: Description
+
+menu:
+  sections:
+    main: Main
+    search: Search
+    social: Social
+    books: Books
+    movies: Films
+    games: Games
+    videos: Videos
+    soon: Coming soon
+  library:
+    name: Library
+    hint: Your personal library
+  stats:
+    name: Stats
+    hint: Stats of your library
+  profile:
+    name: My profile
+    hint: Your profile settings
+  searchBooks:
+    name: Search books
+    hint: Find new books
+  searchMovies:
+    name: Search films/series
+    hint: Find new films
+  searchGames:
+    name: Search games
+    hint: Find new games
+  searchAlbums:
+    name: Search albums
+    hint: Find albums on Spotify
+  searchVideos:
+    name: Search videos
+    hint: Find videos on YouTube
+  friends:
+    name: Friends and feed
+    hint: Activity feed and friends
+  myBooks:
+    name: My books
+    hint: Your book dashboard
+  myMovies:
+    name: My films
+    hint: Your film dashboard
+  myGames:
+    name: My games
+    hint: Your game dashboard
+  myVideos:
+    name: My videos
+    hint: Your video dashboard
+  music:
+    name: Music
+    hint: Coming soon
+
+dashboardCards:
+  total:
+    books: Total books
+    movies: Total films
+    games: Total games
+    albums: Total albums
+  completed:
+    books: Books read
+    movies: Films watched
+    games: Games completed
+    albums: Albums listened
+  pending:
+    books: To read
+    movies: To watch
+    games: To play
+    albums: On the wishlist
+  avgRating: Average rating
+
+dashboardCharts:
+  status:
+    books: Reading status
+    movies: Watching status
+    games: Playing status
+    albums: Listening status
+  monthly:
+    books: Monthly pages read
+    movies: Films watched per month
+    games: Games added per month
+    albums: Albums added per month
+  ratings: Rating spread
+  genres: Favourite genres
+  platforms: Games per platform
+  completion: Completion status
+  albumTypes: Album types
+  starsAxis: "{n} stars"
+  pagesSeries: Pages read
+  addedSeries: Added per month
+  months: Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec
+
+searchPage:
+  books:
+    title: Book finder (Google Books + OpenLibrary)
+    placeholder: Search by ISBN or book title…
+    empty: Enter an ISBN or a title to search.
+    error: Could not search for the book.
+  movies:
+    title: Film/series finder (OMDb)
+    placeholder: "Search by title or IMDb ID (e.g. tt1234567)…"
+    empty: Enter a title or an IMDb ID to search.
+    error: Could not search for the film.
+  games:
+    title: Game finder (IGDB)
+    placeholder: Search by title or IGDB ID…
+    empty: Enter a title or an IGDB ID to search.
+    error: Could not search for the game.
+  albums:
+    title: Album finder (Spotify)
+    placeholder: Search album or artist…
+    empty: Enter an album or artist name to search.
+    error: Could not search for the album.
+  videos:
+    title: Video finder (YouTube)
+    placeholder: Search video or channel…
+    empty: Enter a video title or a channel name to search.
+    error: Could not search for the video.
+
+privacy:
+  additions: When I add something to my library
+  statusChanges: When I change the status of something
+  ratings: When I rate something
+  notes: When I write a note
+  notesHint: Only the notes you mark as public. Private ones are never published.
+  readingSessions: When I log a reading session
+  achievements: When I earn an achievement
+
+rating:
+  rateWith:
+    one: Rate with {n} star
+    other: Rate with {n} stars
+
+inboxBadge:
+  none: Recommendations
+  pending:
+    one: "Recommendations: {n} pending"
+    other: "Recommendations: {n} pending"

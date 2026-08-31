@@ -75,7 +75,7 @@ docker compose exec backend composer test:unit   # la rápida: 1272, sin necesit
 docker compose exec backend composer test:integration   # 150, contra una BD desechable
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
-docker compose exec frontend npm test            # 381 tests
+docker compose exec frontend npm test            # 401 tests
 docker compose exec frontend npm run test:watch
 docker compose exec frontend npx vue-cli-service lint --no-fix   # lo corre también ./dev-setup.sh
 docker compose exec frontend npm run lint:styles                 # stylelint; también en ./dev-setup.sh
@@ -649,6 +649,37 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
   `user_album_notes` y `user_video_notes` **no tienen la columna**. Un `SELECT … page_number`
   genérico sobre las cinco revienta en tres. Y por eso **solo los libros** tienen la regla de spoiler
   fina: las series tienen eje pero sus notas no tienen punto.
+- **La interfaz habla dos idiomas, y el texto no se escribe en la plantilla.** El motor es propio
+  (`src/config/i18n.js` + `composables/useI18n.js`), **no `vue-i18n`**: solo ocho sitios piden plural
+  y es/en son ambos de dos formas. Los catálogos son `src/locales/es.yaml` y `en.yaml` —**682 claves,
+  simétricas**—, los compila `yaml-loader` en el build y entran por `import()` dinámico, así que en
+  frío solo baja el idioma que se usa. **Vitest no pasa por los loaders de webpack** y necesita su
+  propio `@rollup/plugin-yaml`: son **dos** paquetes, no uno. `vue/no-bare-strings-in-template` está
+  en **`error`**, así que escribir texto suelto en una plantilla rompe el lint.
+- **Lo que se importa antes de que cargue el catálogo va con GETTERS**, no con valores.
+  `config/mediaRegistry.js` y `components/Lists/visibility.js` se evalúan al importarse: un valor se
+  congelaría con el catálogo vacío y la app pintaría claves. Un getter se evalúa al leerlo y queda
+  suscrito al `ref`, así que la interfaz cambia de idioma **sin recargar**. Hay un test que impide
+  convertirlos en valores «para simplificar».
+- **Un estado se traduce al PINTARLO, nunca antes.** `statusLabel()` (`config/i18n.js`) es la única
+  copia: tolera las dos formas del backend (`'owned'` y el `{id, name}` de vídeos) y **cae al slug**
+  si el catálogo no lo conoce, para que un estado nuevo no pinte `status.loquesea`. El agrupado, el
+  filtrado y la comparación del dashboard siguen yendo **por slug**; traducir antes no rompe nada
+  ruidosamente, solo deja de casar.
+- **La regla de lint ve mucho menos de lo que parece, y por eso su config está escrita a mano.** Su
+  opción `attributes` por defecto solo mira `title`, los cinco `aria-*`, el `placeholder` de `<input>`
+  y el `alt` de `<img>`; declararla **reemplaza** al defecto, así que en `package.json` van repetidos
+  esos y añadidos `label`, `placeholder` (en cualquier elemento), `message`, `subtitle`, `header`,
+  `hint`, `empty-text`, `confirm-label` y `cancel-label`. Aun así **no** ve los literales dentro de
+  `{{ ternario }}` ni de una plantilla literal, ni el sidebar —que vive en
+  `public/config/sidebar-menu.json` y lleva **claves**, no texto—, ni **nada de lo que se pinta en
+  `<canvas>`**: los rótulos de Chart.js de `services/StatsService.js` y
+  `composables/useDashboardCharts.js` no están en el DOM. Eso solo lo ve una captura.
+- **Y si vas a verificar traducciones en el navegador, navega por rutas, no por hash.**
+  `router/index.js:189` usa `createWebHistory` salvo en móvil: con `#/library` el documento carga
+  pero el router se queda en `/`. Pasó el 2026-08-31 — **32 capturas de la misma pantalla de inicio**
+  y el informe en verde. El criterio que sí funciona es cruzar las dos pasadas: lo que sale idéntico
+  en español y en inglés es o un dato o algo sin traducir.
 - **Un medio nuevo se declara en `mediaRegistry`**, no se copia el componente del medio de al lado.
 - **Ni un hex ni un `px` de breakpoint fuera de su sitio**: el color va a `tokens/_colors.scss` /
   `themes/_dark.scss` y los umbrales a `abstracts/_breakpoints.scss`. `stylelint` lo comprueba.
@@ -661,7 +692,7 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
 3. `docker compose exec backend composer test` → verde (1422 tests: 1272 unitarios + 150 de
    integración; estos necesitan `docker compose --profile test up -d mysql-test`).
-4. `docker compose exec frontend npm test` → verde (381 tests) y
+4. `docker compose exec frontend npm test` → verde (401 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
 5. **`docker compose exec frontend npm run build` → `Build complete`.** No es redundante con el paso
    anterior: **ninguno de los tres comandos de arriba compila SCSS**. Los helpers de

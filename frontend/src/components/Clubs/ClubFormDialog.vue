@@ -13,7 +13,7 @@
           id="club-name"
           v-model="name"
           maxlength="120"
-          placeholder="Los del jueves"
+          :placeholder="t('clubForm.namePlaceholder')"
         />
       </div>
 

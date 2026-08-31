@@ -86,7 +86,7 @@
       v-else
       icon="fas fa-book"
       :title="t('history.empty')"
-      message="El historial se creará automáticamente cuando actualices tu progreso de lectura."
+      :message="t('history.emptyHint')"
     />
   </div>
 </template>

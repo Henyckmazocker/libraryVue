@@ -13,7 +13,7 @@
           id="list-name"
           v-model="name"
           maxlength="120"
-          placeholder="Para el verano"
+          :placeholder="t('listForm.namePlaceholder')"
         />
       </div>
 

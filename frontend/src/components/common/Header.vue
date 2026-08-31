@@ -17,7 +17,7 @@
       <button
         class="app-header__theme-toggle"
         :title="isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
-        :aria-label="isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
+        :aria-label="isDark ? t('header.toLight') : t('header.toDark')"
         @click="toggleTheme"
       >
         <i
@@ -182,13 +182,11 @@ const inboxStore = useInboxStore();
 const { pendingCount } = storeToRefs(inboxStore);
 
 const inboxLabel = computed(() => {
-  if (pendingCount.value === 0) return 'Recomendaciones';
+  if (pendingCount.value === 0) return t('inboxBadge.none');
 
   // Concuerda en singular: esto lo lee un lector de pantalla, y «1 pendientes»
-  // es justo el tipo de detalle que solo se oye.
-  return pendingCount.value === 1
-    ? 'Recomendaciones: 1 pendiente'
-    : `Recomendaciones: ${pendingCount.value} pendientes`;
+  // es justo el tipo de detalle que solo se oye. El plural lo resuelve el motor.
+  return t('inboxBadge.pending', { n: pendingCount.value });
 });
 
 // UI Store para tema

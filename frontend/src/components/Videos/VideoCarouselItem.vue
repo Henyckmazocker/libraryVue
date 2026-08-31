@@ -113,7 +113,7 @@ function handleClick() {
   cursor: pointer;
   width: 200px;
   flex-shrink: 0;
-  border-radius: 10px;
+  border-radius: radius(md);
   overflow: hidden;
   background: var(--color-card-video-bg);
   border: 1px solid var(--color-card-video-border);
@@ -153,7 +153,7 @@ function handleClick() {
   justify-content: center;
   background: linear-gradient(135deg, var(--color-card-video-bg), var(--color-card-video-border));
   color: var(--color-card-video-accent);
-  font-size: 2.5rem;
+  font-size: var(--font-size-3xl);
   opacity: 0.6;
 }
 
@@ -165,7 +165,7 @@ function handleClick() {
   justify-content: center;
   background: var(--color-overlay-strong);
   color: var(--color-on-overlay);
-  font-size: 2rem;
+  font-size: var(--font-size-2xl);
   opacity: 0;
   transition: opacity 0.2s ease;
 }
@@ -176,9 +176,9 @@ function handleClick() {
   right: 6px;
   background: rgba(0, 0, 0, 0.8);
   color: var(--color-on-overlay);
-  font-size: 0.68rem;
-  padding: 2px 6px;
-  border-radius: 4px;
+  font-size: var(--font-size-xs);
+  padding: spacing(3xs) spacing(xs);
+  border-radius: radius(sm);
   font-weight: 600;
 }
 
@@ -188,12 +188,12 @@ function handleClick() {
   right: 6px;
   background: var(--color-overlay-strong);
   color: var(--color-rating-star);
-  font-size: 0.7rem;
-  padding: 2px 6px;
-  border-radius: 4px;
+  font-size: var(--font-size-xs);
+  padding: spacing(3xs) spacing(xs);
+  border-radius: radius(sm);
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: spacing(2xs);
 }
 
 .library-badge {
@@ -202,20 +202,20 @@ function handleClick() {
   left: 6px;
   background: var(--color-overlay-strong);
   color: var(--color-on-overlay);
-  font-size: 0.75rem;
-  padding: 3px 6px;
-  border-radius: 4px;
+  font-size: var(--font-size-xs);
+  padding: spacing(2xs) spacing(xs);
+  border-radius: radius(sm);
 }
 
 .video-info {
-  padding: 8px 10px;
+  padding: spacing(xs) spacing(sm);
 }
 
 .video-title {
-  font-size: 0.8rem;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   color: var(--color-text);
-  margin: 0 0 3px;
+  margin: 0 0 spacing(2xs);
   line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -224,7 +224,7 @@ function handleClick() {
 }
 
 .video-channel {
-  font-size: 0.73rem;
+  font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
   margin: 0;
 }

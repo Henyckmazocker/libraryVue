@@ -217,7 +217,7 @@ const submit = async () => {
     text-align: center;
     padding: spacing(md);
     color: var(--color-text-secondary);
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
   }
 
   &__clubs {
@@ -230,7 +230,7 @@ const submit = async () => {
   }
 
   &__legend {
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
     margin-bottom: spacing(2xs);
   }
@@ -257,17 +257,17 @@ const submit = async () => {
 
   &__club-name {
     color: var(--color-text);
-    font-size: 0.9375rem;
+    font-size: var(--font-size-sm);
   }
 
   &__club-count {
-    font-size: 0.75rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
   }
 
   &__error {
     color: var(--color-error);
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
   }
 
 }

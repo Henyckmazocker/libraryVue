@@ -202,7 +202,7 @@ const getRatingClass = (rating) => {
   flex-shrink: 0;
   width: 160px;
   cursor: pointer;
-  border-radius: 10px;
+  border-radius: radius(md);
   overflow: hidden;
   background: var(--color-background-card);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -242,7 +242,7 @@ const getRatingClass = (rating) => {
   justify-content: center;
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
   color: rgba(255, 255, 255, 0.4);
-  font-size: 3rem;
+  font-size: var(--font-size-4xl);
 }
 
 .year-badge {
@@ -251,9 +251,9 @@ const getRatingClass = (rating) => {
   left: 6px;
   background: var(--color-overlay-strong);
   color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
+  padding: spacing(2xs) spacing(xs);
+  border-radius: radius(sm);
+  font-size: var(--font-size-xs);
   font-weight: 600;
 }
 
@@ -263,13 +263,13 @@ const getRatingClass = (rating) => {
   right: 8px;
   background: var(--color-overlay-strong);
   color: var(--color-rating-star);
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
+  padding: spacing(2xs) spacing(xs);
+  border-radius: radius(sm);
+  font-size: var(--font-size-xs);
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: spacing(2xs);
 }
 
 .rating-badge i {
@@ -282,9 +282,9 @@ const getRatingClass = (rating) => {
   left: 6px;
   background: var(--color-overlay-strong);
   color: var(--color-on-overlay);
-  padding: 3px 6px;
-  border-radius: 4px;
-  font-size: 0.75rem;
+  padding: spacing(2xs) spacing(xs);
+  border-radius: radius(sm);
+  font-size: var(--font-size-xs);
 }
 
 .status-badge {
@@ -293,9 +293,9 @@ const getRatingClass = (rating) => {
   right: 8px;
   background: rgba(23, 162, 184, 0.95);
   color: white;
-  padding: 6px 8px;
-  border-radius: 4px;
-  font-size: 0.9rem;
+  padding: spacing(xs) spacing(xs);
+  border-radius: radius(sm);
+  font-size: var(--font-size-sm);
 }
 
 .platform-badge {
@@ -304,20 +304,20 @@ const getRatingClass = (rating) => {
   left: 8px;
   background: rgba(0, 0, 0, 0.7);
   color: white;
-  padding: 6px 8px;
-  border-radius: 4px;
-  font-size: 0.9rem;
+  padding: spacing(xs) spacing(xs);
+  border-radius: radius(sm);
+  font-size: var(--font-size-sm);
 }
 
 .game-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px 10px;
+  gap: spacing(2xs);
+  padding: spacing(xs) spacing(sm);
 }
 
 .game-title {
-  font-size: 0.82rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text);
   margin: 0;
@@ -333,8 +333,8 @@ const getRatingClass = (rating) => {
 .igdb-score {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.78rem;
+  gap: spacing(xs);
+  font-size: var(--font-size-xs);
 }
 
 .score-label {
@@ -343,8 +343,8 @@ const getRatingClass = (rating) => {
 
 .score-value {
   font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 3px;
+  padding: spacing(3xs) spacing(xs);
+  border-radius: radius(sm);
 }
 
 .score-high {

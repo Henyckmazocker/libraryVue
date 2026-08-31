@@ -276,7 +276,7 @@ watch(() => detalle.value?.item?.imdbID, (imdbId) => {
     gap: spacing(2xs);
     padding: spacing(3xs) spacing(sm);
     border-radius: radius(full);
-    font-size: 0.82rem;
+    font-size: var(--font-size-sm);
     font-weight: 600;
     margin-bottom: spacing(sm);
 
@@ -293,7 +293,7 @@ watch(() => detalle.value?.item?.imdbID, (imdbId) => {
     gap: spacing(2xs);
     color: var(--color-card-movie-accent);
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: var(--font-size-base);
     margin-bottom: spacing(xs);
   }
 
@@ -302,7 +302,7 @@ watch(() => detalle.value?.item?.imdbID, (imdbId) => {
     align-items: center;
     gap: spacing(xs);
     color: var(--color-text-secondary);
-    font-size: 0.9rem;
+    font-size: var(--font-size-sm);
     margin-bottom: spacing(xs);
 
     i { color: var(--color-card-movie-accent); }
@@ -319,7 +319,7 @@ watch(() => detalle.value?.item?.imdbID, (imdbId) => {
     display: flex;
     align-items: center;
     gap: spacing(2xs);
-    font-size: 0.88rem;
+    font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
     margin-bottom: spacing(xs);
   }
@@ -335,19 +335,19 @@ watch(() => detalle.value?.item?.imdbID, (imdbId) => {
     display: flex;
     align-items: center;
     gap: spacing(2xs);
-    font-size: 0.9rem;
+    font-size: var(--font-size-sm);
 
     /* stylelint-disable-next-line color-no-hex -- IMDb: color de marca, drift intencional (styles.md) */
     i { color: #f5c518; }
 
     .votes {
       color: var(--color-text-secondary);
-      font-size: 0.8rem;
+      font-size: var(--font-size-xs);
     }
   }
 
   .series-imdb-id {
-    font-size: 0.82rem;
+    font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
   }
 
@@ -382,11 +382,11 @@ watch(() => detalle.value?.item?.imdbID, (imdbId) => {
   }
 
   .crew-item {
-    font-size: 0.92rem;
+    font-size: var(--font-size-sm);
   }
 
   .awards-content {
-    font-size: 0.92rem;
+    font-size: var(--font-size-sm);
     color: var(--color-text);
   }
 
@@ -394,7 +394,7 @@ watch(() => detalle.value?.item?.imdbID, (imdbId) => {
     background: rgba(139, 92, 246, 0.15);
     border: 2px dashed rgba(139, 92, 246, 0.3);
     color: rgba(139, 92, 246, 0.4);
-    font-size: 3rem;
+    font-size: var(--font-size-4xl);
   }
 
   @include responsive-below(md) {

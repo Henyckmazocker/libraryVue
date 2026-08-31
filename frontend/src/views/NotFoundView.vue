@@ -25,13 +25,15 @@
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .not-found {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 60vh;
   text-align: center;
-  padding: 2rem;
+  padding: spacing(xl);
 }
 
 .not-found-content {
@@ -47,22 +49,22 @@
 }
 
 .not-found-title {
-  font-size: 1.5rem;
-  margin: 0.5rem 0 1rem;
+  font-size: var(--font-size-xl);
+  margin: spacing(xs) 0 spacing(md);
   color: var(--color-text, var(--color-text-secondary));
 }
 
 .not-found-message {
   color: var(--color-text-muted, var(--color-text-secondary));
-  margin-bottom: 2rem;
+  margin-bottom: spacing(xl);
 }
 
 .not-found-link {
   display: inline-block;
-  padding: 0.75rem 1.5rem;
+  padding: spacing(sm) spacing(lg);
   background-color: var(--color-primary, var(--color-primary));
   color: var(--color-text-light);
-  border-radius: 6px;
+  border-radius: radius(sm);
   text-decoration: none;
   transition: opacity 0.2s;
 }

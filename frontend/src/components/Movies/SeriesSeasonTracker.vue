@@ -339,21 +339,21 @@ async function loadEpisodes(seasonNumber) {
 
 .series-season-tracker {
   background: var(--color-background-card);
-  border-radius: 12px;
-  padding: 1.5rem;
+  border-radius: radius(lg);
+  padding: spacing(lg);
   border: 1px solid rgba(139, 92, 246, 0.2);
 }
 
-.tracker-header { margin-bottom: 1.5rem; }
+.tracker-header { margin-bottom: spacing(lg); }
 
 .tracker-title {
-  font-size: 1.1rem;
+  font-size: var(--font-size-md);
   font-weight: 600;
   color: var(--text-color, var(--color-text-light));
-  margin-bottom: 0.75rem;
+  margin-bottom: spacing(sm);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: spacing(xs);
 }
 .tracker-title i { color: var(--color-card-movie-accent); }
 
@@ -361,20 +361,20 @@ async function loadEpisodes(seasonNumber) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.5rem;
+  margin-bottom: spacing(xs);
 }
 
-.progress-text { font-size: 0.9rem; color: var(--text-color-secondary, var(--color-border)); }
+.progress-text { font-size: var(--font-size-sm); color: var(--text-color-secondary, var(--color-border)); }
 
 .progress-bar-wrapper {
   height: 6px;
   background: rgba(255,255,255,0.1);
-  border-radius: 3px;
+  border-radius: radius(sm);
   overflow: hidden;
 }
 .progress-bar-fill {
   height: 100%;
-  border-radius: 3px;
+  border-radius: radius(sm);
   transition: width 0.4s ease;
 }
 .progress-bar-fill.low      { background: var(--color-card-movie-accent); }
@@ -385,16 +385,16 @@ async function loadEpisodes(seasonNumber) {
 .seasons-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  gap: spacing(sm);
+  margin-bottom: spacing(md);
 }
 
 .season-card {
   @include button-reset;
   background: rgba(255,255,255,0.05);
   border: 1.5px solid rgba(255,255,255,0.1);
-  border-radius: 10px;
-  padding: 0.75rem 0.5rem;
+  border-radius: radius(md);
+  padding: spacing(sm) spacing(xs);
   text-align: center;
   cursor: pointer;
   transition: all 0.2s;
@@ -405,23 +405,23 @@ async function loadEpisodes(seasonNumber) {
 .season-card.partial{ border-color: var(--color-warning); background: rgba(251, 191, 36, 0.1); }
 .season-card.skipped{ border-color: var(--color-border); background: rgba(107, 114, 128, 0.1); }
 
-.season-number { font-weight: 700; font-size: 1rem; color: var(--text-color, var(--color-background-card)); }
+.season-number { font-weight: 700; font-size: var(--font-size-base); color: var(--text-color, var(--color-background-card)); }
 
-.season-status-icon { font-size: 1.2rem; margin: 0.3rem 0; }
+.season-status-icon { font-size: var(--font-size-lg); margin: spacing(2xs) 0; }
 .seen   .season-status-icon { color: var(--color-success); }
 .partial .season-status-icon { color: var(--color-warning); }
 .skipped .season-status-icon { color: var(--color-border); }
 .unseen .season-status-icon  { color: rgba(255,255,255,0.25); }
 
-.season-label { font-size: 0.72rem; color: var(--text-color-secondary, var(--color-border)); }
+.season-label { font-size: var(--font-size-xs); color: var(--text-color-secondary, var(--color-border)); }
 
 /* Editor */
 .season-editor {
   background: rgba(139, 92, 246, 0.06);
   border: 1px solid rgba(139, 92, 246, 0.25);
-  border-radius: 10px;
-  padding: 1rem;
-  margin-top: 0.75rem;
+  border-radius: radius(md);
+  padding: spacing(md);
+  margin-top: spacing(sm);
 }
 
 .editor-header {
@@ -430,31 +430,31 @@ async function loadEpisodes(seasonNumber) {
   align-items: center;
   font-weight: 600;
   color: var(--color-card-movie-accent);
-  margin-bottom: 1rem;
+  margin-bottom: spacing(md);
 }
-.field-group { margin-bottom: 0.875rem; }
+.field-group { margin-bottom: spacing(sm); }
 // `.field-label` es un <span>: los dos grupos que no etiquetan un control único
 // (el de botones de estado y la valoración) no pueden usar <label>.
 .field-group label,
 .field-group .field-label {
   display: block;
-  font-size: 0.82rem;
+  font-size: var(--font-size-sm);
   color: var(--text-color-secondary, var(--color-text-muted));
-  margin-bottom: 0.35rem;
+  margin-bottom: spacing(xs);
 }
 
-.status-options { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.status-options { display: flex; gap: spacing(xs); flex-wrap: wrap; }
 .status-opt-btn {
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 6px;
+  border-radius: radius(sm);
   color: var(--text-color, var(--color-text-light));
-  padding: 0.35rem 0.75rem;
+  padding: spacing(xs) spacing(sm);
   cursor: pointer;
-  font-size: 0.82rem;
+  font-size: var(--font-size-sm);
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: spacing(xs);
   transition: all 0.15s;
 }
 .status-opt-btn.active {
@@ -467,10 +467,10 @@ async function loadEpisodes(seasonNumber) {
 .date-input {
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 6px;
+  border-radius: radius(sm);
   color: var(--text-color, var(--color-text-light));
-  padding: 0.4rem 0.6rem;
-  font-size: 0.9rem;
+  padding: spacing(xs) spacing(sm);
+  font-size: var(--font-size-sm);
   width: 100%;
   box-sizing: border-box;
 }
@@ -478,32 +478,32 @@ async function loadEpisodes(seasonNumber) {
 .notes-input {
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 6px;
+  border-radius: radius(sm);
   color: var(--text-color, var(--color-text-light));
-  padding: 0.5rem;
-  font-size: 0.9rem;
+  padding: spacing(xs);
+  font-size: var(--font-size-sm);
   width: 100%;
   box-sizing: border-box;
   resize: vertical;
 }
 
-.editor-actions { display: flex; gap: 0.75rem; margin-top: 0.5rem; }
+.editor-actions { display: flex; gap: spacing(sm); margin-top: spacing(xs); }
 /* Episodios */
-.load-episodes-btn { margin-top: 0.75rem; }
+.load-episodes-btn { margin-top: spacing(sm); }
 
-.episodes-list { margin-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.75rem; }
-.episodes-list h4 { font-size: 0.9rem; color: var(--color-card-movie-accent); margin-bottom: 0.5rem; }
+.episodes-list { margin-top: spacing(sm); border-top: 1px solid rgba(255,255,255,0.08); padding-top: spacing(sm); }
+.episodes-list h4 { font-size: var(--font-size-sm); color: var(--color-card-movie-accent); margin-bottom: spacing(xs); }
 .episode-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.25rem 0;
-  font-size: 0.85rem;
+  gap: spacing(xs);
+  padding: spacing(2xs) 0;
+  font-size: var(--font-size-sm);
   color: var(--text-color, var(--color-text-light));
   border-bottom: 1px solid rgba(255,255,255,0.04);
 }
 .ep-number { color: var(--text-color-secondary, var(--color-border)); min-width: min(28px, 100%); }
-.ep-rating { margin-left: auto; color: var(--color-warning); font-size: 0.8rem; }
+.ep-rating { margin-left: auto; color: var(--color-warning); font-size: var(--font-size-xs); }
 
 /* Transición */
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s, transform 0.2s; }

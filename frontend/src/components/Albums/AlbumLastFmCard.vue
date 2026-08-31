@@ -140,6 +140,8 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .album-lastfm-card {
   /* Inherits the container's dark theme */
 }
@@ -148,10 +150,10 @@ export default {
 .lastfm-state {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: spacing(sm);
   color: var(--text-color-secondary, var(--color-text-muted));
-  font-size: 0.88rem;
-  padding: 0.25rem 0;
+  font-size: var(--font-size-sm);
+  padding: spacing(2xs) 0;
 }
 
 .lastfm-state--muted {
@@ -166,24 +168,24 @@ export default {
 .lastfm-data {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: spacing(md);
 }
 
 /* ─── Stats row ─── */
 .lastfm-stats-row {
   display: flex;
-  gap: 2.5rem;
+  gap: spacing(xl);
   flex-wrap: wrap;
 }
 
 .lastfm-stat {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: spacing(3xs);
 }
 
 .lastfm-stat__value {
-  font-size: 1.5rem;
+  font-size: var(--font-size-xl);
   font-weight: 700;
   color: var(--text-color, var(--color-text));
 }
@@ -194,7 +196,7 @@ export default {
 }
 
 .lastfm-stat__label {
-  font-size: 0.72rem;
+  font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-color-secondary, var(--color-text-muted));
@@ -204,13 +206,13 @@ export default {
 .lastfm-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: spacing(xs);
 }
 
 .lastfm-tag {
-  font-size: 0.76rem;
-  padding: 3px 10px;
-  border-radius: 12px;
+  font-size: var(--font-size-xs);
+  padding: spacing(2xs) spacing(sm);
+  border-radius: radius(lg);
   background: var(--surface-section, var(--color-background-mute));
   color: var(--text-color-secondary, var(--color-text-muted));
   border: 1px solid var(--surface-border, var(--color-border));
@@ -226,7 +228,7 @@ export default {
 
 /* ─── Notes ─── */
 .lastfm-configure-note {
-  font-size: 0.82rem;
+  font-size: var(--font-size-sm);
   color: var(--text-color-secondary, var(--color-text-muted));
   margin: 0;
 }
@@ -242,7 +244,7 @@ export default {
 }
 
 .lastfm-wiki {
-  font-size: 0.84rem;
+  font-size: var(--font-size-sm);
   color: var(--text-color-secondary, var(--color-text-muted));
   line-height: 1.5;
   margin: 0;
@@ -257,8 +259,8 @@ export default {
 .lastfm-external-link {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.82rem;
+  gap: spacing(xs);
+  font-size: var(--font-size-sm);
   // El rojo de marca se queda en el icono, que es un gráfico y le basta 3:1; la
   // etiqueta va con token de texto, porque #d51007 sobre la card se queda en 4.42.
   color: var(--color-text);

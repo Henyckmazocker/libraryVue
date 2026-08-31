@@ -95,7 +95,7 @@ onUnmounted(() => {
 .horizontal-carousel {
   position: relative;
   width: 100%;
-  padding: 0 20px;
+  padding: 0 spacing(md);
 }
 
 .carousel-container {
@@ -117,7 +117,7 @@ onUnmounted(() => {
 
 .carousel-container::-webkit-scrollbar-thumb {
   background-color: var(--color-border);
-  border-radius: 4px;
+  border-radius: radius(sm);
 }
 
 .carousel-container::-webkit-scrollbar-thumb:hover {
@@ -126,8 +126,8 @@ onUnmounted(() => {
 
 .carousel-track {
   display: flex;
-  gap: 15px;
-  padding: 20px 5px;
+  gap: spacing(md);
+  padding: spacing(md) spacing(2xs);
   min-width: min-content;
 }
 
@@ -172,18 +172,18 @@ onUnmounted(() => {
 /* Responsive */
 @include responsive-below(md) {
   .horizontal-carousel {
-    padding: 0 10px;
+    padding: 0 spacing(sm);
   }
   
   .carousel-nav {
     width: 35px;
     height: 35px;
-    font-size: 0.9rem;
+    font-size: var(--font-size-sm);
   }
   
   .carousel-track {
-    gap: 10px;
-    padding: 15px 5px;
+    gap: spacing(sm);
+    padding: spacing(md) spacing(2xs);
   }
 }
 
@@ -193,7 +193,7 @@ onUnmounted(() => {
   }
   
   .horizontal-carousel {
-    padding: 0 5px;
+    padding: 0 spacing(2xs);
   }
 }
 </style>

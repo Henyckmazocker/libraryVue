@@ -57,7 +57,7 @@ const { feed, feedHasMore, feedLoading, sentinel } = useFeed()
     padding: spacing(2xl);
     color: var(--color-text-secondary);
 
-    i { font-size: 3rem; display: block; margin-bottom: spacing(md); }
+    i { font-size: var(--font-size-4xl); display: block; margin-bottom: spacing(md); }
   }
 
   &__items {
@@ -74,7 +74,7 @@ const { feed, feedHasMore, feedLoading, sentinel } = useFeed()
 
   &__end {
     text-align: center;
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
     padding: spacing(md);
   }

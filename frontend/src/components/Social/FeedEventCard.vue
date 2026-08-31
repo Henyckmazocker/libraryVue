@@ -290,7 +290,7 @@ const relativeTime = computed(() => {
     align-items: center;
     justify-content: center;
     align-self: center;
-    font-size: 1.1rem;
+    font-size: var(--font-size-md);
     color: var(--color-text-secondary);
 
     img {
@@ -319,7 +319,7 @@ const relativeTime = computed(() => {
   }
 
   &__cover-placeholder {
-    font-size: 1.5rem;
+    font-size: var(--font-size-xl);
     color: var(--color-text-secondary);
   }
 
@@ -359,13 +359,13 @@ const relativeTime = computed(() => {
   }
 
   &__time {
-    font-size: 0.75rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
     white-space: nowrap;
   }
 
   &__description {
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     color: var(--color-text);
     margin: 0;
   }
@@ -375,7 +375,7 @@ const relativeTime = computed(() => {
   // visualmente se vean tres líneas.
   &__note {
     margin: spacing(xs) 0 0;
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
     white-space: pre-line;
     display: -webkit-box;
@@ -395,7 +395,7 @@ const relativeTime = computed(() => {
     @include button-reset;
 
     margin-top: spacing(2xs);
-    font-size: 0.8125rem;
+    font-size: var(--font-size-xs);
     color: var(--color-accent);
     text-decoration: underline;
     cursor: pointer;

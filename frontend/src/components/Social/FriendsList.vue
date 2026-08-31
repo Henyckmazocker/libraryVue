@@ -72,7 +72,7 @@ defineEmits(['remove'])
     text-align: center;
     padding: spacing(2xl);
     color: var(--color-text-secondary);
-    i { font-size: 2.5rem; display: block; margin-bottom: spacing(md); }
+    i { font-size: var(--font-size-3xl); display: block; margin-bottom: spacing(md); }
   }
 
   &__items {
@@ -105,7 +105,7 @@ defineEmits(['remove'])
     flex-shrink: 0;
 
     img { width: 100%; height: 100%; object-fit: cover; }
-    i { font-size: 1.25rem; color: var(--color-text-secondary); }
+    i { font-size: var(--font-size-lg); color: var(--color-text-secondary); }
   }
 
   &__info {
@@ -123,7 +123,7 @@ defineEmits(['remove'])
   }
 
   &__display {
-    font-size: 0.8rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
   }
 }

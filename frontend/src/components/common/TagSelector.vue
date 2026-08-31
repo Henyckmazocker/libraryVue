@@ -100,20 +100,20 @@ function addTag() {
 .tag-selector {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: spacing(xs);
 }
 .tag-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: spacing(xs);
 }
 .tag-pill {
   @include button-reset;
   background: var(--color-border-light);
   color: var(--color-text-secondary);
-  border-radius: 12px;
-  padding: 4px 12px;
-  font-size: 0.95rem;
+  border-radius: radius(lg);
+  padding: spacing(2xs) spacing(sm);
+  font-size: var(--font-size-base);
   cursor: pointer;
   transition: background 0.2s;
   user-select: none;
@@ -133,13 +133,13 @@ function addTag() {
 }
 .tag-input-row {
   display: flex;
-  gap: 0.5rem;
+  gap: spacing(xs);
 }
 .tag-input {
   flex: 1;
-  padding: 4px 8px;
-  border-radius: 8px;
+  padding: spacing(2xs) spacing(xs);
+  border-radius: radius(md);
   border: 1px solid var(--color-border);
-  font-size: 0.95rem;
+  font-size: var(--font-size-base);
 }
 </style>

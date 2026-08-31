@@ -60,24 +60,26 @@ watch(() => props.modelValue, (newValue) => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: spacing(md);
 }
 
 .form-group label {
   display: block;
   color: var(--color-text);
   font-weight: 500;
-  margin-bottom: 8px;
-  font-size: 1rem;
+  margin-bottom: spacing(xs);
+  font-size: var(--font-size-base);
 }
 
 .service-dropdown {
   width: 100%;
-  padding: 12px 15px;
-  font-size: 1rem;
+  padding: spacing(sm) spacing(md);
+  font-size: var(--font-size-base);
   border: 1px solid var(--color-background-mute);
-  border-radius: 12px;
+  border-radius: radius(lg);
   background-color: var(--color-background-mute);
   color: var(--color-text);
   cursor: pointer;

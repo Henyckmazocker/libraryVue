@@ -179,10 +179,10 @@ defineExpose({
 @use '@/assets/styles/abstracts' as *;
 
 .reading-progress-container {
-  margin: 12px 0;
-  padding: 10px;
+  margin: spacing(sm) 0;
+  padding: spacing(sm);
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
+  border-radius: radius(md);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -190,8 +190,8 @@ defineExpose({
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
-  font-size: 0.85rem;
+  margin-bottom: spacing(xs);
+  font-size: var(--font-size-sm);
 }
 
 .progress-label {
@@ -201,7 +201,7 @@ defineExpose({
 
 .progress-text {
   color: var(--color-text-muted);
-  font-size: 0.8rem;
+  font-size: var(--font-size-xs);
 }
 
 .progress-bar-container {
@@ -209,9 +209,9 @@ defineExpose({
   width: 100%;
   height: 8px;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
+  border-radius: radius(sm);
   overflow: visible; /* Changed from hidden to allow slider thumb */
-  margin-bottom: 8px;
+  margin-bottom: spacing(xs);
 }
 
 .progress-bar-container.editable {
@@ -221,7 +221,7 @@ defineExpose({
 
 .progress-bar {
   height: 100%;
-  border-radius: 4px;
+  border-radius: radius(sm);
   position: relative;
   transition: width 0.3s ease, background-color 0.3s ease;
   overflow: hidden;
@@ -406,29 +406,29 @@ defineExpose({
 }
 
 .progress-footer {
-  margin-top: 8px;
+  margin-top: spacing(xs);
 }
 
 .page-input-container {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.8rem;
+  gap: spacing(xs);
+  font-size: var(--font-size-xs);
 }
 
 .page-label {
   color: var(--color-text-muted);
-  font-size: 0.8rem;
+  font-size: var(--font-size-xs);
 }
 
 .page-input {
   width: 80px;
-  padding: 4px 6px;
+  padding: spacing(2xs) spacing(xs);
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
+  border-radius: radius(sm);
   color: var(--color-text);
-  font-size: 0.8rem;
+  font-size: var(--font-size-xs);
   text-align: center;
 }
 
@@ -445,7 +445,7 @@ defineExpose({
 
 .saving-indicator {
   color: var(--color-info);
-  font-size: 0.8rem;
+  font-size: var(--font-size-xs);
 }
 
 /* Responsive */
@@ -453,17 +453,17 @@ defineExpose({
   .progress-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 4px;
+    gap: spacing(2xs);
   }
   
   .progress-text {
-    font-size: 0.75rem;
+    font-size: var(--font-size-xs);
   }
   
   .page-input-container {
     flex-direction: column;
     align-items: flex-start;
-    gap: 4px;
+    gap: spacing(2xs);
   }
 }
 

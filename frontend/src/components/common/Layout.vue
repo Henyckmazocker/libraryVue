@@ -113,6 +113,9 @@ const handleLogout = () => {
 }
 
 .app-layout__main {
+  // MEDIDAS, no espacios: estos dos valen exactamente lo que MIDEN el sidebar y el
+  // header, y el `min-height` de dos líneas más abajo depende del segundo. Meterlos
+  // en la escala de espaciado hunde el contenido debajo del sidebar — pasó.
   margin-left: 280px; /* Ancho del sidebar */
   margin-top: 70px; /* Altura del header */
   transition: margin-left 0.3s ease;
@@ -122,18 +125,18 @@ const handleLogout = () => {
   flex: 1;
 
   &--sidebar-collapsed {
-    margin-left: 60px;
+    margin-left: 60px; /* Ancho del sidebar plegado: medida, no espacio */
   }
 
   /* En móvil/nativo: sin sidebar, con espacio para la bottom nav bar */
   &--mobile {
     margin-left: 0;
-    padding-bottom: 60px; /* Altura de MobileNavBar */
+    padding-bottom: 60px; /* Altura de MobileNavBar: medida, no espacio */
   }
 }
 
 .app-layout__content {
-  padding: 20px;
+  padding: spacing(md);
   max-width: 1600px;
   margin: 0 auto;
   width: 100%;
@@ -141,7 +144,7 @@ const handleLogout = () => {
 
 @include responsive-below(md) {
   .app-layout__content {
-    padding: 15px;
+    padding: spacing(md);
   }
 }
 </style>

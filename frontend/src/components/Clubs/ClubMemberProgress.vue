@@ -116,7 +116,7 @@ const fillFor = (member) => `${Math.round(((member.point ?? 0) / maxPoint.value)
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     color: var(--color-text);
   }
 
@@ -138,7 +138,7 @@ const fillFor = (member) => `${Math.round(((member.point ?? 0) / maxPoint.value)
   }
 
   &__point {
-    font-size: 0.8125rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
     font-variant-numeric: tabular-nums;
 

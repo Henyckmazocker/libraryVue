@@ -279,7 +279,7 @@ const moviesStore = useMoviesStore();
   }
 
   .page-title {
-    font-size: 1.8rem;
+    font-size: var(--font-size-2xl);
     color: var(--color-heading);
     margin-bottom: spacing(md);
     font-weight: 600;
@@ -299,14 +299,14 @@ const moviesStore = useMoviesStore();
     display: flex;
     align-items: center;
     gap: spacing(xs);
-    font-size: 1.2rem;
+    font-size: var(--font-size-lg);
     color: var(--color-text-secondary);
     margin-bottom: spacing(md);
 
     i { color: var(--color-card-movie-accent); }
 
     @include responsive-below(md) {
-      font-size: 1rem;
+      font-size: var(--font-size-base);
     }
   }
 
@@ -316,7 +316,7 @@ const moviesStore = useMoviesStore();
     gap: spacing(2xs);
     padding: spacing(3xs) spacing(sm);
     border-radius: radius(sm);
-    font-size: 0.8rem;
+    font-size: var(--font-size-xs);
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -339,7 +339,7 @@ const moviesStore = useMoviesStore();
     display: flex;
     align-items: center;
     gap: spacing(xs);
-    font-size: 1rem;
+    font-size: var(--font-size-base);
     color: var(--color-card-movie-accent);
     margin-bottom: spacing(md);
     font-weight: 500;
@@ -362,7 +362,7 @@ const moviesStore = useMoviesStore();
     gap: spacing(xs);
     margin-bottom: spacing(sm);
     color: var(--color-text-secondary);
-    font-size: 0.95rem;
+    font-size: var(--font-size-base);
 
     i { color: var(--color-card-movie-accent); }
   }
@@ -395,18 +395,18 @@ const moviesStore = useMoviesStore();
     display: flex;
     align-items: center;
     gap: spacing(xs);
-    font-size: 0.95rem;
+    font-size: var(--font-size-base);
 
     i {
-      font-size: 1.2rem;
+      font-size: var(--font-size-lg);
       /* stylelint-disable-next-line color-no-hex -- IMDb: color de marca, drift intencional (styles.md) */
       color: #f5c518;
     }
 
     .votes {
       color: var(--color-text-muted);
-      font-size: 0.85rem;
-      margin-left: 5px;
+      font-size: var(--font-size-sm);
+      margin-left: spacing(2xs);
     }
   }
 
@@ -418,7 +418,7 @@ const moviesStore = useMoviesStore();
 
     > i {
       color: var(--color-card-movie-accent);
-      margin-top: 6px;
+      margin-top: spacing(xs);
       flex-shrink: 0;
     }
   }
@@ -432,7 +432,7 @@ const moviesStore = useMoviesStore();
   .movie-plot-content {
     line-height: 1.8;
     color: var(--color-text);
-    font-size: 1rem;
+    font-size: var(--font-size-base);
     text-align: justify;
   }
 
@@ -452,7 +452,7 @@ const moviesStore = useMoviesStore();
 
     i {
       color: var(--color-card-movie-accent);
-      margin-right: 5px;
+      margin-right: spacing(2xs);
     }
   }
 
@@ -466,7 +466,7 @@ const moviesStore = useMoviesStore();
   .awards-content {
     line-height: 1.8;
     color: var(--color-text);
-    font-size: 1rem;
+    font-size: var(--font-size-base);
   }
 
   .poster-placeholder {

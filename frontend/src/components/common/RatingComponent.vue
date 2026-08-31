@@ -159,12 +159,14 @@ watch(() => props.rating, (newValue) => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .rating-section {
-  margin: 15px 0;
+  margin: spacing(md) 0;
 }
 
 .current-rating {
-  margin: 0 0 8px 0;
+  margin: 0 0 spacing(xs) 0;
   font-weight: 500;
   color: var(--color-text);
 }
@@ -173,25 +175,25 @@ watch(() => props.rating, (newValue) => {
 .stars-display {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: spacing(2xs);
 }
 
 /* Editable stars */
 .star-wrapper {
   display: inline-block;
-  margin: 0 2px;
+  margin: 0 spacing(3xs);
 }
 
 .star-button {
   background: none;
   border: none;
-  padding: 4px;
+  padding: spacing(2xs);
   cursor: pointer;
   font-size: var(--star-size, 1.2rem);
   color: var(--color-text-secondary);
   transition: all 0.2s ease;
   line-height: 1;
-  border-radius: 4px;
+  border-radius: radius(sm);
 }
 
 .star-button:hover {
@@ -212,7 +214,7 @@ watch(() => props.rating, (newValue) => {
 
 .star-icon {
   font-size: var(--star-size, 1.2rem);
-  margin: 0 2px;
+  margin: 0 spacing(3xs);
   transition: all 0.2s ease;
 }
 

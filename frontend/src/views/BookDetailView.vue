@@ -343,14 +343,14 @@ const seleccionarEdicion = (book, edition) => {
     display: flex;
     align-items: center;
     gap: spacing(xs);
-    font-size: 1.2rem;
+    font-size: var(--font-size-lg);
     color: var(--color-text-secondary);
     margin-bottom: spacing(md);
 
     i { color: var(--color-card-book-accent); }
 
     @include responsive-below(md) {
-      font-size: 1rem;
+      font-size: var(--font-size-base);
     }
   }
 
@@ -371,7 +371,7 @@ const seleccionarEdicion = (book, edition) => {
     gap: spacing(xs);
     margin-bottom: spacing(sm);
     color: var(--color-text-secondary);
-    font-size: 0.95rem;
+    font-size: var(--font-size-base);
 
     i { color: var(--color-card-book-accent); }
   }
@@ -384,7 +384,7 @@ const seleccionarEdicion = (book, edition) => {
 
     > i {
       color: var(--color-card-book-accent);
-      margin-top: 6px;
+      margin-top: spacing(xs);
       flex-shrink: 0;
     }
   }
@@ -399,7 +399,7 @@ const seleccionarEdicion = (book, edition) => {
   .book-description-content {
     line-height: 1.8;
     color: var(--color-text);
-    font-size: 1rem;
+    font-size: var(--font-size-base);
     text-align: justify;
   }
 
@@ -413,12 +413,12 @@ const seleccionarEdicion = (book, edition) => {
     padding: spacing(xs) spacing(md);
     background: var(--color-background-soft);
     border-radius: radius(sm);
-    font-size: 0.9rem;
+    font-size: var(--font-size-sm);
   }
 
   .isbn-secondary {
     color: var(--color-text-muted);
-    margin-left: 5px;
+    margin-left: spacing(2xs);
   }
 
   @include responsive-below(md) {

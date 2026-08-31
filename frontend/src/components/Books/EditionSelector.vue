@@ -520,24 +520,24 @@ watch(() => props.workKey, () => {
 @use '@/assets/styles/abstracts' as *;
 
 .edition-selector {
-  margin: 32px 0;
-  padding: 24px;
+  margin: spacing(xl) 0;
+  padding: spacing(lg);
   background: var(--color-background-soft);
-  border-radius: 12px;
+  border-radius: radius(lg);
 }
 
 .section-header {
-  margin-bottom: 24px;
+  margin-bottom: spacing(lg);
 }
 
 .section-title {
-  font-size: 24px;
+  font-size: var(--font-size-xl);
   font-weight: 600;
   color: var(--color-text);
-  margin: 0 0 8px 0;
+  margin: 0 0 spacing(xs) 0;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: spacing(sm);
 }
 
 .section-title i {
@@ -545,7 +545,7 @@ watch(() => props.workKey, () => {
 }
 
 .section-subtitle {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   margin: 0;
 }
@@ -557,45 +557,45 @@ watch(() => props.workKey, () => {
 
 /* Filtros */
 .filters-section {
-  margin-bottom: 24px;
+  margin-bottom: spacing(lg);
 }
 
 .filters-container {
-  margin-top: 16px;
-  padding: 20px;
+  margin-top: spacing(md);
+  padding: spacing(md);
   background: var(--color-background-card);
-  border-radius: 8px;
+  border-radius: radius(md);
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
+  gap: spacing(md);
 }
 
 .filter-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: spacing(xs);
 }
 
 .filter-label {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: spacing(xs);
+  font-size: var(--font-size-xs);
   font-weight: 600;
   color: var(--color-text-dark);
 }
 
 .filter-label i {
   color: var(--color-primary);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
 }
 
 .filter-select,
 .filter-input {
-  padding: 10px 12px;
+  padding: spacing(sm) spacing(sm);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: radius(sm);
+  font-size: var(--font-size-sm);
   background: var(--color-background);
   color: var(--color-text);
   transition: border-color var(--transition-fast);
@@ -610,7 +610,7 @@ watch(() => props.workKey, () => {
 .year-range-inputs {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: spacing(xs);
 }
 
 .year-range-inputs .filter-input {
@@ -649,7 +649,7 @@ watch(() => props.workKey, () => {
   color: var(--color-error);
 }
 .retry-btn {
-  margin-top: 16px;
+  margin-top: spacing(md);
 }
 
 /* Carrusel */
@@ -663,10 +663,10 @@ watch(() => props.workKey, () => {
 
 .carousel-track {
   display: flex;
-  gap: 16px;
+  gap: spacing(md);
   overflow-x: auto;
   scroll-behavior: smooth;
-  padding: 16px 4px;
+  padding: spacing(md) spacing(2xs);
   scrollbar-width: thin;
   scrollbar-color: var(--color-primary) var(--color-border);
 }
@@ -677,12 +677,12 @@ watch(() => props.workKey, () => {
 
 .carousel-track::-webkit-scrollbar-track {
   background: var(--color-border);
-  border-radius: 4px;
+  border-radius: radius(sm);
 }
 
 .carousel-track::-webkit-scrollbar-thumb {
   background: var(--color-primary);
-  border-radius: 4px;
+  border-radius: radius(sm);
 }
 
 .carousel-item {

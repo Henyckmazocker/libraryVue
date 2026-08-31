@@ -168,7 +168,7 @@ const submit = async () => {
   }
 
   &__hint {
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
   }
 
@@ -187,7 +187,7 @@ const submit = async () => {
   }
 
   &__legend {
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     font-weight: 600;
     color: var(--color-text);
   }

@@ -77,7 +77,7 @@ const displayNumber = computed(() => {
   justify-content: center;
   background: var(--color-primary);
   color: var(--color-text-light);
-  font-size: 1.5rem;
+  font-size: var(--font-size-xl);
 }
 
 // Variantes funcionales (no por entidad — son indicadores semánticos)
@@ -102,14 +102,14 @@ const displayNumber = computed(() => {
 }
 
 .stat-number {
-  font-size: 2rem;
+  font-size: var(--font-size-2xl);
   font-weight: 700;
   margin: 0 0 spacing(3xs) 0;
   color: var(--color-text);
 }
 
 .stat-label {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   margin: 0;
   text-transform: uppercase;

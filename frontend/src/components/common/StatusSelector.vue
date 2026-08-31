@@ -271,13 +271,15 @@ watch(() => props.allowedStatuses, (newValue) => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .status-selector-container {
-  margin: 15px 0;
+  margin: spacing(md) 0;
   overflow: visible;
 }
 
 .status-selector-title {
-  margin: 0 0 8px 0;
+  margin: 0 0 spacing(xs) 0;
   font-weight: 500;
   color: var(--color-text);
 }
@@ -285,14 +287,14 @@ watch(() => props.allowedStatuses, (newValue) => {
 .status-badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
+  gap: spacing(xs);
+  margin-top: spacing(sm);
 }
 
 .status-badge {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.75rem;
+  padding: spacing(2xs) spacing(xs);
+  border-radius: radius(lg);
+  font-size: var(--font-size-xs);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -371,7 +373,7 @@ watch(() => props.allowedStatuses, (newValue) => {
 .no-status-text {
   color: var(--color-text-muted);
   font-style: italic;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 /* Status option with session indicator */
@@ -379,7 +381,7 @@ watch(() => props.allowedStatuses, (newValue) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 4px 0;
+  padding: spacing(2xs) 0;
   width: 100%;
 }
 
@@ -392,8 +394,8 @@ watch(() => props.allowedStatuses, (newValue) => {
 }
 
 .session-indicator {
-  margin-left: 8px;
-  font-size: 0.9rem;
+  margin-left: spacing(xs);
+  font-size: var(--font-size-sm);
   opacity: 0.7;
 }
 

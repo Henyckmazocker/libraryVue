@@ -207,7 +207,7 @@ function truncateDescription(text, maxLen) {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 3rem;
+    font-size: var(--font-size-4xl);
     color: rgba(255, 255, 255, 0.9);
     background: rgba(192, 57, 43, 0.3);
     border-radius: radius(md);
@@ -231,12 +231,12 @@ function truncateDescription(text, maxLen) {
     display: flex;
     align-items: center;
     gap: spacing(xs);
-    font-size: 1.1rem;
+    font-size: var(--font-size-md);
     color: var(--color-text-secondary);
 
     i { color: var(--color-card-video-accent); }
 
-    @include responsive-below(md) { font-size: 1rem; }
+    @include responsive-below(md) { font-size: var(--font-size-base); }
   }
 
   .video-metadata {
@@ -253,7 +253,7 @@ function truncateDescription(text, maxLen) {
     align-items: flex-start;
     gap: spacing(xs);
 
-    i { color: var(--color-card-video-accent); margin-top: 4px; }
+    i { color: var(--color-card-video-accent); margin-top: spacing(2xs); }
   }
 
   .category-tags {
@@ -289,7 +289,7 @@ function truncateDescription(text, maxLen) {
     color: var(--color-text-secondary);
     line-height: 1.7;
     white-space: pre-wrap;
-    font-size: 0.9rem;
+    font-size: var(--font-size-sm);
   }
 
   .toggle-desc-btn {

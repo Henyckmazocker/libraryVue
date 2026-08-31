@@ -165,6 +165,8 @@ const searchConfig = computed(() => ({
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 @use '@/assets/styles/components/search' as *;
 
 .video-search-container {

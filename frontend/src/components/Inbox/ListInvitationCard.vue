@@ -140,12 +140,12 @@ const relativeTime = computed(() => {
 
   &__time {
     margin-left: spacing(xs);
-    font-size: 0.8125rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
   }
 
   &__hint {
-    font-size: 0.8125rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
   }
 

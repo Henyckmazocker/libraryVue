@@ -159,8 +159,8 @@ const handleImageError = (event) => {
   width: 100%;
   background: var(--color-background-card);
   border: 2px solid var(--color-border);
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: radius(lg);
+  padding: spacing(md);
   cursor: pointer;
   transition: all var(--transition-medium);
   height: 100%;
@@ -179,8 +179,8 @@ const handleImageError = (event) => {
   position: relative;
   width: 100%;
   height: 200px;
-  margin-bottom: 12px;
-  border-radius: 8px;
+  margin-bottom: spacing(sm);
+  border-radius: radius(md);
   overflow: hidden;
   background: var(--color-background-soft);
   display: flex;
@@ -204,7 +204,7 @@ const handleImageError = (event) => {
 }
 
 .cover-placeholder i {
-  font-size: 48px;
+  font-size: var(--font-size-4xl);
   color: var(--color-text-muted);
 }
 
@@ -264,11 +264,11 @@ const handleImageError = (event) => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: spacing(xs);
 }
 
 .edition-title {
-  font-size: 16px;
+  font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--color-text-dark);
   margin: 0;
@@ -282,40 +282,40 @@ const handleImageError = (event) => {
 .edition-publisher {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 14px;
+  gap: spacing(xs);
+  font-size: var(--font-size-sm);
   color: var(--color-text-dark);
 }
 
 .edition-publisher i {
   color: var(--color-primary);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
 }
 
 .edition-metadata {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  font-size: 13px;
+  gap: spacing(sm);
+  font-size: var(--font-size-xs);
   color: var(--color-text-dark);
 }
 
 .metadata-item {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: spacing(2xs);
 }
 
 .metadata-item i {
   color: var(--color-primary);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
 }
 
 .edition-language {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: spacing(xs);
+  font-size: var(--font-size-xs);
   color: var(--color-text-dark);
 }
 
@@ -324,7 +324,7 @@ const handleImageError = (event) => {
 }
 
 .edition-isbn {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   font-family: 'Courier New', monospace;
 }
@@ -332,17 +332,17 @@ const handleImageError = (event) => {
 .edition-format {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
+  gap: spacing(2xs);
+  padding: spacing(2xs) spacing(xs);
   background: var(--color-primary-light);
   color: var(--color-text-light);
-  border-radius: 4px;
-  font-size: 12px;
+  border-radius: radius(sm);
+  font-size: var(--font-size-xs);
   font-weight: 500;
   align-self: flex-start;
 }
 
 .edition-format i {
-  font-size: 10px;
+  font-size: var(--font-size-xs);
 }
 </style>

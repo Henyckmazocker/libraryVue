@@ -290,14 +290,14 @@ const websiteName = (category) => ({
     display: flex;
     align-items: center;
     gap: spacing(xs);
-    font-size: 1.1rem;
+    font-size: var(--font-size-md);
     color: var(--color-text-secondary);
     margin-bottom: spacing(xs);
 
     i { color: var(--color-card-game-accent); }
 
     @include responsive-below(md) {
-      font-size: 1rem;
+      font-size: var(--font-size-base);
     }
   }
 
@@ -327,7 +327,7 @@ const websiteName = (category) => ({
     padding: spacing(xs) spacing(md);
     background: var(--color-background-soft);
     border-radius: radius(sm);
-    font-size: 0.95rem;
+    font-size: var(--font-size-base);
 
     i { color: var(--color-card-game-accent); }
   }
@@ -340,7 +340,7 @@ const websiteName = (category) => ({
 
     > i {
       color: var(--color-card-game-accent);
-      margin-top: 6px;
+      margin-top: spacing(xs);
       flex-shrink: 0;
     }
   }
@@ -381,7 +381,7 @@ const websiteName = (category) => ({
   .game-description-content {
     line-height: 1.8;
     color: var(--color-text);
-    font-size: 1rem;
+    font-size: var(--font-size-base);
     text-align: justify;
   }
 
@@ -395,7 +395,7 @@ const websiteName = (category) => ({
     padding: spacing(xs) spacing(sm);
     background: var(--color-background-soft);
     border-radius: radius(sm);
-    font-size: 0.9rem;
+    font-size: var(--font-size-sm);
 
     strong {
       margin-right: spacing(xs);
@@ -407,7 +407,7 @@ const websiteName = (category) => ({
     border-top: 3px solid var(--color-card-game-accent);
 
     h2 {
-      font-size: 1.5rem;
+      font-size: var(--font-size-xl);
       color: var(--color-heading);
       margin-bottom: spacing(lg);
     }

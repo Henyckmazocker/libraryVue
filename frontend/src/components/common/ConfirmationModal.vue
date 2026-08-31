@@ -259,50 +259,50 @@ export default {
 // componente pinta DENTRO del slot.
 
 .modal-message {
-  margin: 0 0 16px;
+  margin: 0 0 spacing(md);
   color: var(--color-text-secondary);
   line-height: 1.5;
 }
 
 .modal-details {
-  margin-top: 16px;
-  padding: 12px;
+  margin-top: spacing(md);
+  padding: spacing(sm);
   background-color: var(--color-background-soft);
-  border-radius: 6px;
+  border-radius: radius(sm);
   border-left: 4px solid var(--color-border);
 }
 
 .modal-details ul {
   margin: 0;
-  padding-left: 20px;
+  padding-left: spacing(md);
 }
 
 .modal-details li {
-  margin-bottom: 4px;
+  margin-bottom: spacing(2xs);
   color: var(--color-text-secondary);
 }
 
 .confirmation-input {
-  margin-top: 20px;
-  padding: 16px;
+  margin-top: spacing(md);
+  padding: spacing(md);
   background-color: var(--color-background-soft);
-  border-radius: 8px;
+  border-radius: radius(md);
   border: 2px dashed var(--color-border);
 }
 
 .confirmation-input label {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: spacing(xs);
   font-weight: 600;
   color: var(--color-text-secondary);
 }
 
 .confirmation-input .form-control {
   width: 100%;
-  padding: 8px 12px;
+  padding: spacing(xs) spacing(sm);
   border: 1px solid var(--color-border);
-  border-radius: 4px;
-  font-size: 14px;
+  border-radius: radius(sm);
+  font-size: var(--font-size-sm);
 }
 
 .confirmation-input .form-control:focus {
@@ -313,8 +313,8 @@ export default {
 
 .confirmation-input .text-muted {
   display: block;
-  margin-top: 4px;
-  font-size: 12px;
+  margin-top: spacing(2xs);
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
 </style>

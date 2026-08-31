@@ -124,31 +124,31 @@ const formatDate = (dateString) => {
 .reading-status-widget {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px;
+  gap: spacing(sm);
+  padding: spacing(sm);
   background: linear-gradient(135deg, rgba(29, 78, 74, 0.3) 0%, rgba(29, 78, 74, 0.15) 100%);
-  border-radius: 8px;
+  border-radius: radius(md);
   border-left: 3px solid var(--color-primary);
-  margin: 12px 0;
+  margin: spacing(sm) 0;
 }
 
 .active-session-badge {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: spacing(xs);
 }
 
 .session-info {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 14px;
+  gap: spacing(sm);
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-primary);
 }
 
 .session-info i {
-  font-size: 18px;
+  font-size: var(--font-size-md);
   color: var(--color-primary);
 }
 
@@ -159,9 +159,9 @@ const formatDate = (dateString) => {
 .session-details {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding-left: 28px;
-  font-size: 12px;
+  gap: spacing(2xs);
+  padding-left: spacing(lg);
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
 
@@ -174,27 +174,27 @@ const formatDate = (dateString) => {
 .completed-info {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  gap: spacing(xs);
+  font-size: var(--font-size-xs);
   color: var(--color-success);
   font-weight: 500;
 }
 
 .completed-info i {
-  font-size: 16px;
+  font-size: var(--font-size-base);
 }
 
 .history-link {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 8px 12px;
+  gap: spacing(xs);
+  padding: spacing(xs) spacing(sm);
   background: transparent;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: radius(sm);
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
@@ -207,21 +207,21 @@ const formatDate = (dateString) => {
 }
 
 .history-link i {
-  font-size: 13px;
+  font-size: var(--font-size-xs);
 }
 
 /* Responsive */
 @include responsive-below(md) {
   .reading-status-widget {
-    padding: 12px;
+    padding: spacing(sm);
   }
 
   .session-info {
-    font-size: 13px;
+    font-size: var(--font-size-xs);
   }
 
   .session-details {
-    font-size: 11px;
+    font-size: var(--font-size-xs);
   }
 }
 </style>

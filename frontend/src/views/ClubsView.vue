@@ -135,7 +135,7 @@ const handleCreate = async (form) => {
     display: flex;
     align-items: center;
     gap: spacing(sm);
-    font-size: 1.5rem;
+    font-size: var(--font-size-xl);
     font-weight: 700;
     color: var(--color-text);
 
@@ -164,7 +164,7 @@ const handleCreate = async (form) => {
   }
 
   &__card-description {
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
   }
 
@@ -173,7 +173,7 @@ const handleCreate = async (form) => {
     flex-wrap: wrap;
     align-items: center;
     gap: spacing(sm);
-    font-size: 0.8125rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
   }
 
@@ -188,7 +188,7 @@ const handleCreate = async (form) => {
     padding: spacing(2xl);
     color: var(--color-text-secondary);
 
-    i { font-size: 3rem; display: block; margin-bottom: spacing(md); }
+    i { font-size: var(--font-size-4xl); display: block; margin-bottom: spacing(md); }
   }
 
   &__error {

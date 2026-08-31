@@ -150,24 +150,24 @@ defineExpose({
 
 .reading-progress-history {
   background: var(--card-background, var(--color-background-mute));
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: radius(lg);
+  padding: spacing(md);
   border: 1px solid var(--border-color, var(--color-border));
 }
 
 .history-header {
-  margin-bottom: 20px;
+  margin-bottom: spacing(md);
   text-align: center;
 }
 
 .history-header h3 {
   color: var(--text-primary, var(--color-text));
-  margin: 0 0 8px 0;
-  font-size: 1.2rem;
+  margin: 0 0 spacing(xs) 0;
+  font-size: var(--font-size-lg);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: spacing(sm);
 }
 
 .history-header h3 i {
@@ -177,17 +177,17 @@ defineExpose({
 .subtitle {
   color: var(--text-secondary, var(--color-text-muted));
   margin: 0;
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
 }
 
 .stats-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: 15px;
-  margin-bottom: 25px;
-  padding: 15px;
+  gap: spacing(md);
+  margin-bottom: spacing(lg);
+  padding: spacing(md);
   background: var(--background-secondary, var(--color-background-mute));
-  border-radius: 8px;
+  border-radius: radius(md);
 }
 
 .stat-item {
@@ -196,15 +196,15 @@ defineExpose({
 
 .stat-number {
   display: block;
-  font-size: 1.5rem;
+  font-size: var(--font-size-xl);
   font-weight: bold;
   color: var(--color-success);
-  margin-bottom: 4px;
+  margin-bottom: spacing(2xs);
 }
 
 .stat-label {
   display: block;
-  font-size: 0.8rem;
+  font-size: var(--font-size-xs);
   color: var(--text-secondary, var(--color-text-muted));
 }
 
@@ -227,8 +227,8 @@ defineExpose({
 .history-entry {
   display: flex;
   align-items: center;
-  gap: 15px;
-  padding: 15px;
+  gap: spacing(md);
+  padding: spacing(md);
   border-bottom: 1px solid var(--border-color, var(--color-border));
   transition: background-color 0.2s ease;
 }
@@ -250,7 +250,7 @@ defineExpose({
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 1.1rem;
+  font-size: var(--font-size-md);
   flex-shrink: 0;
 }
 
@@ -263,8 +263,8 @@ defineExpose({
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 4px;
-  gap: 10px;
+  margin-bottom: spacing(2xs);
+  gap: spacing(sm);
 }
 
 .pages-info {
@@ -275,13 +275,13 @@ defineExpose({
 .pages-advanced {
   color: var(--color-success);
   font-weight: bold;
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
 }
 
 .entry-meta {
   display: flex;
-  gap: 15px;
-  font-size: 0.8rem;
+  gap: spacing(md);
+  font-size: var(--font-size-xs);
   color: var(--text-secondary, var(--color-text-muted));
 }
 
@@ -292,12 +292,12 @@ defineExpose({
 
 .history-list::-webkit-scrollbar-track {
   background: var(--background-secondary, var(--color-background-mute));
-  border-radius: 3px;
+  border-radius: radius(sm);
 }
 
 .history-list::-webkit-scrollbar-thumb {
   background: var(--border-color, var(--color-border));
-  border-radius: 3px;
+  border-radius: radius(sm);
 }
 
 .history-list::-webkit-scrollbar-thumb:hover {
@@ -308,17 +308,17 @@ defineExpose({
 @include responsive-below(sm) {
   .stats-summary {
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    gap: spacing(sm);
   }
   
   .entry-main {
     flex-direction: column;
     align-items: flex-start;
-    gap: 4px;
+    gap: spacing(2xs);
   }
   
   .entry-meta {
-    gap: 10px;
+    gap: spacing(sm);
   }
 }
 </style>

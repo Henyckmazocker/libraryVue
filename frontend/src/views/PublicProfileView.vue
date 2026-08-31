@@ -203,7 +203,7 @@ const handleSendRequest = async () => {
     text-align: center;
     padding: spacing(3xl);
     color: var(--color-text-secondary);
-    i { font-size: 3rem; display: block; margin-bottom: spacing(md); }
+    i { font-size: var(--font-size-4xl); display: block; margin-bottom: spacing(md); }
   }
 
   &__header {
@@ -228,7 +228,7 @@ const handleSendRequest = async () => {
     flex-shrink: 0;
 
     img { width: 100%; height: 100%; object-fit: cover; }
-    i { font-size: 2.5rem; color: var(--color-text-secondary); }
+    i { font-size: var(--font-size-3xl); color: var(--color-text-secondary); }
   }
 
   &__info {
@@ -237,20 +237,20 @@ const handleSendRequest = async () => {
   }
 
   &__username {
-    font-size: 1.5rem;
+    font-size: var(--font-size-xl);
     font-weight: 700;
     color: var(--color-text);
     margin: 0 0 spacing(2xs);
   }
 
   &__display {
-    font-size: 1rem;
+    font-size: var(--font-size-base);
     color: var(--color-text-secondary);
     margin: 0 0 spacing(xs);
   }
 
   &__bio {
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     color: var(--color-text);
     margin: 0;
   }
@@ -272,13 +272,13 @@ const handleSendRequest = async () => {
     border-radius: radius(md);
 
     &-value {
-      font-size: 1.5rem;
+      font-size: var(--font-size-xl);
       font-weight: 700;
       color: var(--color-primary);
     }
 
     &-label {
-      font-size: 0.75rem;
+      font-size: var(--font-size-xs);
       color: var(--color-text-secondary);
     }
   }
@@ -292,7 +292,7 @@ const handleSendRequest = async () => {
     align-items: center;
     gap: spacing(sm);
     margin-bottom: spacing(md);
-    font-size: 1.125rem;
+    font-size: var(--font-size-md);
     font-weight: 700;
     color: var(--color-text);
 
@@ -325,12 +325,12 @@ const handleSendRequest = async () => {
   }
 
   &__list-description {
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
   }
 
   &__list-count {
-    font-size: 0.8125rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
   }
 }

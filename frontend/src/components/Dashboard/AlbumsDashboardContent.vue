@@ -167,7 +167,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: spacing(xs);
-  font-size: 1rem;
+  font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--color-text);
   margin: 0 0 spacing(md);

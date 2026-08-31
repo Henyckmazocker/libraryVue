@@ -516,7 +516,7 @@ onMounted(() => {
 /* Modal Overlay */
 // El chasis lo pone `BaseModal`; aquí solo lo que va dentro del slot.
 .modal-body {
-  padding: 25px 30px;
+  padding: spacing(lg) spacing(xl);
   overflow-y: auto;
   flex: 1;
 }
@@ -524,9 +524,9 @@ onMounted(() => {
 /* Estadísticas Section */
 .statistics-section {
   background: var(--color-background-soft);
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 25px;
+  border-radius: radius(lg);
+  padding: spacing(md);
+  margin-bottom: spacing(lg);
   border: 1px solid var(--color-background-mute);
 }
 
@@ -534,7 +534,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 0;
+  padding: spacing(sm) 0;
   border-bottom: 1px solid var(--color-background-mute);
 }
 
@@ -544,19 +544,19 @@ onMounted(() => {
 
 .stat-label {
   color: var(--color-text-muted);
-  font-size: 0.95rem;
+  font-size: var(--font-size-base);
   font-weight: 500;
 }
 
 .stat-value {
   color: var(--color-text);
-  font-size: 1.1rem;
+  font-size: var(--font-size-md);
   font-weight: 700;
 }
 
 /* Sessions Container */
 .sessions-container {
-  margin-top: 20px;
+  margin-top: spacing(md);
 }
 
 /* Accordion Header Customization */
@@ -565,22 +565,22 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  gap: 15px;
+  gap: spacing(md);
 }
 
 .session-title-group {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: spacing(sm);
   flex: 1;
 }
 
 .session-icon {
-  font-size: 1.2rem;
+  font-size: var(--font-size-lg);
 }
 
 .session-number {
-  font-size: 1.1rem;
+  font-size: var(--font-size-md);
   font-weight: 600;
   color: var(--color-text);
 }
@@ -588,9 +588,9 @@ onMounted(() => {
 /* Badges */
 .session-badge,
 .update-badge {
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 0.8rem;
+  padding: spacing(2xs) spacing(sm);
+  border-radius: radius(lg);
+  font-size: var(--font-size-xs);
   font-weight: 600;
   text-transform: uppercase;
 }
@@ -625,17 +625,17 @@ onMounted(() => {
 
 /* Session Content */
 .session-content {
-  padding: 20px;
+  padding: spacing(md);
   background: var(--color-background-soft);
-  border-radius: 8px;
+  border-radius: radius(md);
 }
 
 /* Info Lines */
 .info-line {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 0;
+  gap: spacing(sm);
+  padding: spacing(sm) 0;
   border-bottom: 1px solid var(--color-background-mute);
 }
 
@@ -645,40 +645,40 @@ onMounted(() => {
 
 .info-icon {
   color: var(--color-info);
-  font-size: 1rem;
+  font-size: var(--font-size-base);
   min-width: min(20px, 100%);
 }
 
 .info-label {
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   min-width: min(80px, 100%);
 }
 
 .info-value {
   color: var(--color-text);
-  font-size: 0.95rem;
+  font-size: var(--font-size-base);
   flex: 1;
 }
 
 /* Progress Bar */
 .progress-bar-wrapper {
-  margin: 15px 0;
-  padding: 10px 0;
+  margin: spacing(md) 0;
+  padding: spacing(sm) 0;
 }
 
 .progress-bar-bg {
   height: 10px;
   background: var(--color-background-mute);
-  border-radius: 5px;
+  border-radius: radius(sm);
   overflow: hidden;
   position: relative;
 }
 
 .progress-bar-fill {
   height: 100%;
-  border-radius: 5px;
+  border-radius: radius(sm);
   transition: width 0.3s ease;
 }
 
@@ -707,104 +707,104 @@ onMounted(() => {
 
 /* Session Notes */
 .session-notes-section {
-  margin-top: 20px;
-  padding: 15px;
+  margin-top: spacing(md);
+  padding: spacing(md);
   background: var(--color-background-mute);
-  border-radius: 8px;
+  border-radius: radius(md);
   border-left: 4px solid var(--color-info);
 }
 
 .notes-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: spacing(xs);
+  margin-bottom: spacing(sm);
   color: var(--color-info);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
 }
 
 .notes-content {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   line-height: 1.6;
 }
 
 /* Progress Updates Section */
 .progress-updates-section {
-  margin-top: 20px;
-  padding: 15px;
+  margin-top: spacing(md);
+  padding: spacing(md);
   background: var(--color-background-mute);
-  border-radius: 8px;
+  border-radius: radius(md);
 }
 
 .updates-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 15px;
+  gap: spacing(xs);
+  margin-bottom: spacing(md);
   color: var(--color-warning);
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: var(--font-size-base);
 }
 
 .updates-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: spacing(sm);
 }
 
 .update-item {
-  padding: 12px;
+  padding: spacing(sm);
   background: var(--color-background-soft);
-  border-radius: 8px;
+  border-radius: radius(md);
   border: 1px solid var(--color-background-mute);
 }
 
 .update-line {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: spacing(sm);
+  margin-bottom: spacing(sm);
   flex-wrap: wrap;
 }
 
 .update-icon {
   color: var(--color-text-muted);
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
 }
 
 .update-date {
   color: var(--color-text-muted);
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   flex: 1;
 }
 
 .update-pages-line {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: spacing(md);
   flex-wrap: wrap;
-  padding: 8px 0;
+  padding: spacing(xs) 0;
 }
 
 .page-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: spacing(2xs);
 }
 
 .page-label {
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .page-number {
   color: var(--color-text);
-  font-size: 1.2rem;
+  font-size: var(--font-size-lg);
   font-weight: 700;
 }
 
@@ -814,14 +814,14 @@ onMounted(() => {
 
 .arrow-icon {
   color: var(--color-text-secondary);
-  font-size: 1rem;
+  font-size: var(--font-size-base);
 }
 
 .pages-diff {
   margin-left: auto;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 0.85rem;
+  padding: spacing(2xs) spacing(sm);
+  border-radius: radius(lg);
+  font-size: var(--font-size-sm);
   font-weight: 600;
 }
 
@@ -839,8 +839,8 @@ onMounted(() => {
 .modal-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 15px;
-  padding: 20px 30px;
+  gap: spacing(md);
+  padding: spacing(md) spacing(xl);
   border-top: 1px solid var(--color-background-mute);
   background: var(--color-background-mute);
 }
@@ -851,23 +851,23 @@ onMounted(() => {
   .modal-content {
     width: 95%;
     max-width: none;
-    border-radius: 15px;
+    border-radius: radius(xl);
   }
 
   .modal-header,
   .modal-body,
   .modal-footer {
-    padding: 20px;
+    padding: spacing(md);
   }
 
   .modal-header h2 {
-    font-size: 1.2rem;
+    font-size: var(--font-size-lg);
   }
 
   .session-accordion-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
+    gap: spacing(sm);
   }
 
   .info-line {
@@ -881,7 +881,7 @@ onMounted(() => {
   .update-pages-line {
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
+    gap: spacing(sm);
   }
 
   .arrow-icon {

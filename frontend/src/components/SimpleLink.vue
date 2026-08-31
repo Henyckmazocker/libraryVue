@@ -57,18 +57,20 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .simple-link {
-  margin-bottom: 0.5rem;
+  margin-bottom: spacing(xs);
 }
 
 .link-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
+  gap: spacing(sm);
+  padding: spacing(sm) spacing(md);
   background: var(--color-background-soft);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: radius(sm);
   text-decoration: none;
   color: var(--color-text);
   transition: all 0.2s ease;
@@ -96,7 +98,7 @@ export default {
 
 .link-external {
   flex-shrink: 0;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   opacity: 0.6;
 }
 

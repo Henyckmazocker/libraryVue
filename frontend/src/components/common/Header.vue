@@ -276,7 +276,7 @@ const handleLogout = async () => {
   justify-content: space-between;
   align-items: center;
   height: 70px;
-  padding: 0 20px;
+  padding: 0 spacing(md);
   background: var(--color-background-soft);
   border-bottom: 1px solid var(--color-border);
   position: fixed;
@@ -297,7 +297,7 @@ const handleLogout = async () => {
   align-items: center;
   color: var(--color-text);
   text-decoration: none;
-  font-size: 18px;
+  font-size: var(--font-size-md);
   font-weight: 600;
   transition: var(--transition-fast);
 }
@@ -307,20 +307,20 @@ const handleLogout = async () => {
 }
 
 .app-header__logo i {
-  font-size: 24px;
-  margin-right: 12px;
+  font-size: var(--font-size-xl);
+  margin-right: spacing(sm);
   color: var(--color-highlight);
 }
 
 .app-header__title {
-  font-size: 18px;
+  font-size: var(--font-size-md);
   font-weight: 600;
 }
 
 .app-header__right {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: spacing(md);
 }
 
 .app-header__theme-toggle {
@@ -335,7 +335,7 @@ const handleLogout = async () => {
   align-items: center;
   justify-content: center;
   transition: var(--transition-fast);
-  font-size: 18px;
+  font-size: var(--font-size-md);
   box-shadow: var(--shadow-light);
 }
 
@@ -364,7 +364,7 @@ const handleLogout = async () => {
   align-items: center;
   justify-content: center;
   transition: var(--transition-fast);
-  font-size: 18px;
+  font-size: var(--font-size-md);
   box-shadow: var(--shadow-light);
   text-decoration: none;
 }
@@ -381,11 +381,11 @@ const handleLogout = async () => {
   right: -4px;
   min-width: min(18px, 100%);
   height: 18px;
-  padding: 0 5px;
-  border-radius: 9px;
+  padding: 0 spacing(2xs);
+  border-radius: radius(md);
   background: var(--color-error);
   color: var(--color-on-status);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   line-height: 18px;
   text-align: center;
@@ -393,16 +393,16 @@ const handleLogout = async () => {
 
 .app-header__loading {
   color: var(--color-text);
-  font-size: 18px;
+  font-size: var(--font-size-md);
 }
 
 .app-header__user-menu {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: spacing(sm);
   background: var(--color-background-card);
-  padding: 8px 16px;
-  border-radius: 20px;
+  padding: spacing(xs) spacing(md);
+  border-radius: radius(xl);
   box-shadow: var(--shadow-medium);
   backdrop-filter: blur(10px);
 }
@@ -415,7 +415,7 @@ const handleLogout = async () => {
 }
 
 .app-header__user-name {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   color: var(--color-text-dark);
   max-width: 150px;
@@ -429,10 +429,10 @@ const handleLogout = async () => {
   border: none;
   color: var(--color-error);
   cursor: pointer;
-  padding: 6px;
-  border-radius: 4px;
+  padding: spacing(xs);
+  border-radius: radius(sm);
   transition: var(--transition-fast);
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -446,9 +446,9 @@ const handleLogout = async () => {
   color: var(--color-error);
   background-color: var(--color-error-bg);
   border: 1px solid var(--color-error);
-  border-radius: 6px;
-  padding: 8px 12px;
-  font-size: 12px;
+  border-radius: radius(sm);
+  padding: spacing(xs) spacing(sm);
+  font-size: var(--font-size-xs);
   max-width: 200px;
   word-wrap: break-word;
 }
@@ -465,7 +465,7 @@ const handleLogout = async () => {
 /* Responsive */
 @include responsive-below(md) {
   .app-header {
-    padding: 0 15px;
+    padding: 0 spacing(md);
   }
   
   .app-header__title {
@@ -499,13 +499,13 @@ const handleLogout = async () => {
 .app-header__native-signin {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: spacing(xs);
+  padding: spacing(xs) spacing(md);
   background: var(--color-background-soft);
   border: 1px solid var(--color-border);
-  border-radius: 24px;
+  border-radius: radius(2xl);
   color: var(--color-text);
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   cursor: pointer;
   transition: background 0.2s;
 

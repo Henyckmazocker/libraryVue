@@ -314,7 +314,7 @@ const confirmDelete = async () => {
   }
 
   &__title {
-    font-size: 1.5rem;
+    font-size: var(--font-size-xl);
     font-weight: 700;
     color: var(--color-text);
   }
@@ -330,7 +330,7 @@ const confirmDelete = async () => {
     align-items: center;
     gap: spacing(sm);
     margin-top: spacing(2xs);
-    font-size: 0.8125rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
   }
 
@@ -361,7 +361,7 @@ const confirmDelete = async () => {
     align-items: center;
     gap: spacing(sm);
     margin-bottom: spacing(md);
-    font-size: 1.125rem;
+    font-size: var(--font-size-md);
     font-weight: 700;
     color: var(--color-text);
 
@@ -375,7 +375,7 @@ const confirmDelete = async () => {
   }
 
   &__collaborators-empty {
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
   }
 
@@ -428,11 +428,11 @@ const confirmDelete = async () => {
     padding: spacing(2xl);
     color: var(--color-text-secondary);
 
-    i { font-size: 3rem; display: block; margin-bottom: spacing(md); }
+    i { font-size: var(--font-size-4xl); display: block; margin-bottom: spacing(md); }
   }
 
   &__empty-hint {
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
   }
 }
 </style>

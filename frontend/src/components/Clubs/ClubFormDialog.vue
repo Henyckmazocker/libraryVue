@@ -108,7 +108,7 @@ const submit = () => {
     gap: spacing(3xs);
 
     label {
-      font-size: 0.875rem;
+      font-size: var(--font-size-sm);
       color: var(--color-text-secondary);
     }
   }
@@ -120,7 +120,7 @@ const submit = () => {
     padding: spacing(sm);
     border-radius: radius(sm);
     background: var(--color-background-mute);
-    font-size: 0.8125rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
 
     i { color: var(--color-primary); }

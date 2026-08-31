@@ -483,8 +483,8 @@ const searchQuery = searchSystem.query;
 .library-container {
   display: flex;
   flex-direction: column;
-  padding: 5px 15px; /* Reducido padding lateral de 10px a 15px */
-  padding-top: 20px; /* Reducido de 100px a 20px para estar más pegado arriba */
+  padding: spacing(2xs) spacing(md); /* Reducido padding lateral de 10px a 15px */
+  padding-top: spacing(md); /* Reducido de 100px a 20px para estar más pegado arriba */
   width: 100%;
   max-width: 1600px; /* Aumentado de 1400px a 1600px para aprovechar más espacio */
   margin: auto;
@@ -492,19 +492,19 @@ const searchQuery = searchSystem.query;
 }
 
 .title {
-  font-size: 1.8rem;
+  font-size: var(--font-size-2xl);
   font-weight: 600;
   color: var(--color-text);
-  margin-bottom: 15px;
+  margin-bottom: spacing(md);
   text-align: center;
 }
 
 .loading-message,
 .error-message,
 .status-message {
-  font-size: 1.2rem;
+  font-size: var(--font-size-lg);
   color: var(--color-text-secondary);
-  margin: 20px auto;
+  margin: spacing(md) auto;
   width: 100%;
   max-width: 600px;
   text-align: center;
@@ -512,9 +512,9 @@ const searchQuery = searchSystem.query;
 
 .error-message,
 .status-message {
-  font-size: 1rem;
-  padding: 10px 15px;
-  border-radius: 15px;
+  font-size: var(--font-size-base);
+  padding: spacing(sm) spacing(md);
+  border-radius: radius(xl);
   box-sizing: border-box;
 }
 
@@ -546,18 +546,18 @@ const searchQuery = searchSystem.query;
 
 @include responsive-below(md) {
   .library-container {
-    padding: 5px 8px; /* Reducido padding lateral también en móvil */
-    padding-top: 15px;
+    padding: spacing(2xs) spacing(xs); /* Reducido padding lateral también en móvil */
+    padding-top: spacing(md);
   }
 
   .controls-container {
     justify-content: center;
-    margin-bottom: 12px;
+    margin-bottom: spacing(sm);
   }
 }
 
 // Los seis controles de filtro no caben en una fila por debajo de `sm`, así que
-// envuelven; con el hueco de 18px se irían a tres filas en vez de dos.
+// envuelven; con un hueco mayor que `spacing(md)` se irían a tres filas en vez de dos.
 @include responsive-below(sm) {
   .filter-checkboxes {
     gap: spacing(xs);
@@ -568,8 +568,8 @@ const searchQuery = searchSystem.query;
   display: flex;
   flex-direction: column;
   width: 100%;
-  margin-bottom: 15px; /* Reducido de 25px */
-  gap: 8px; /* Reducido de 10px */
+  margin-bottom: spacing(md); /* Reducido de 25px */
+  gap: spacing(xs); /* Reducido de 10px */
 }
 
 .search-sort-row {
@@ -577,14 +577,14 @@ const searchQuery = searchSystem.query;
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  gap: 15px;
+  gap: spacing(md);
 }
 
 .search-input {
-  padding: 10px 15px;
-  font-size: 1rem;
+  padding: spacing(sm) spacing(md);
+  font-size: var(--font-size-base);
   border: 1px solid var(--color-border);
-  border-radius: 20px;
+  border-radius: radius(xl);
   background-color: var(--color-background-mute);
   color: var(--color-text);
   flex-grow: 1;
@@ -600,18 +600,18 @@ const searchQuery = searchSystem.query;
 .sort-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: spacing(xs);
 }
 
 .sort-button {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
-  font-size: 0.9rem;
+  gap: spacing(xs);
+  padding: spacing(sm) spacing(md);
+  font-size: var(--font-size-sm);
   font-weight: 500;
   border: 2px solid var(--color-border);
-  border-radius: 20px;
+  border-radius: radius(xl);
   background-color: var(--color-background-mute);
   color: var(--color-text);
   cursor: pointer;
@@ -631,14 +631,14 @@ const searchQuery = searchSystem.query;
 }
 
 .sort-button i {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
 }
 
 .sort-dropdown {
-  padding: 10px 15px;
-  font-size: 1rem;
+  padding: spacing(sm) spacing(md);
+  font-size: var(--font-size-base);
   border: 1px solid var(--color-border);
-  border-radius: 20px;
+  border-radius: radius(xl);
   background-color: var(--color-background-mute);
   color: var(--color-text);
   cursor: pointer;
@@ -649,9 +649,9 @@ const searchQuery = searchSystem.query;
 .filter-checkboxes {
   display: flex;
   flex-wrap: wrap;
-  gap: 18px;
+  gap: spacing(md);
   align-items: center;
-  margin-bottom: 5px;
+  margin-bottom: spacing(2xs);
   margin-right: 0;
 }
 
@@ -664,9 +664,9 @@ const searchQuery = searchSystem.query;
   align-items: center;
   background: var(--color-background-soft);
   border: 1.5px solid var(--color-border);
-  border-radius: 999px;
-  padding: 7px 18px 7px 10px;
-  font-size: 1rem;
+  border-radius: radius(full);
+  padding: spacing(xs) spacing(md) spacing(xs) spacing(sm);
+  font-size: var(--font-size-base);
   color: var(--color-text);
   box-shadow: var(--shadow-light);
   transition: var(--transition-fast);
@@ -676,21 +676,21 @@ const searchQuery = searchSystem.query;
 
 .filter-checkbox-pill input[type="checkbox"] {
   accent-color: var(--color-primary);
-  margin-right: 8px;
+  margin-right: spacing(xs);
   width: 18px;
   height: 18px;
 }
 
 .filter-checkboxes label {
   color: var(--color-text);
-  font-size: 1rem;
+  font-size: var(--font-size-base);
   cursor: pointer;
   user-select: none;
 }
 
 .filter-checkboxes input[type="checkbox"] {
   accent-color: var(--color-primary);
-  margin-right: 5px;
+  margin-right: spacing(2xs);
   width: 18px;
   height: 18px;
 }
@@ -698,7 +698,7 @@ const searchQuery = searchSystem.query;
 /* Import button */
 .import-button {
   // Píldora: es el único control redondo de la fila de filtros.
-  border-radius: 999px;
+  border-radius: radius(full);
   box-shadow: shadow(medium);
 
   &:hover { transform: translateY(-1px); }

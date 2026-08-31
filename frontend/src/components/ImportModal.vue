@@ -146,9 +146,11 @@ watch(() => props.show, (newValue) => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 /* Modal styles */
 .modal-body {
-  padding: 25px 30px;
+  padding: spacing(lg) spacing(xl);
 }
 
 </style>

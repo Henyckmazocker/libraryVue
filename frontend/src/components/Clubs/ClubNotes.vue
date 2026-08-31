@@ -107,7 +107,7 @@ const spoilerLabel = (note) => (
   &__empty {
     padding: spacing(md) 0;
     color: var(--color-text-secondary);
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
   }
 
   &__list {
@@ -143,19 +143,19 @@ const spoilerLabel = (note) => (
   }
 
   &__author {
-    font-size: 0.8125rem;
+    font-size: var(--font-size-xs);
     font-weight: 600;
     color: var(--color-text);
   }
 
   &__point {
-    font-size: 0.75rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
     font-variant-numeric: tabular-nums;
   }
 
   &__text {
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     color: var(--color-text);
     white-space: pre-wrap;
   }
@@ -164,7 +164,7 @@ const spoilerLabel = (note) => (
     display: flex;
     align-items: center;
     gap: spacing(2xs);
-    font-size: 0.8125rem;
+    font-size: var(--font-size-xs);
     font-style: italic;
     color: var(--color-text-secondary);
   }

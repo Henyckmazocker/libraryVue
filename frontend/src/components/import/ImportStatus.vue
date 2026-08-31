@@ -57,20 +57,22 @@ defineProps({
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .import-status {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 15px;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  margin-top: 15px;
+  gap: spacing(sm);
+  padding: spacing(sm) spacing(md);
+  border-radius: radius(md);
+  font-size: var(--font-size-sm);
+  margin-top: spacing(md);
   position: relative;
 }
 
 .status-icon {
   flex-shrink: 0;
-  font-size: 1rem;
+  font-size: var(--font-size-base);
 }
 
 .status-text {
@@ -102,7 +104,7 @@ defineProps({
   right: 0;
   height: 3px;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 0 radius(md) radius(md);
   overflow: hidden;
 }
 

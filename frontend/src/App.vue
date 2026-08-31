@@ -46,6 +46,8 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .app-loading {
   display: flex;
   align-items: center;
@@ -54,7 +56,7 @@ onMounted(() => {
 }
 
 .app-loading__spinner {
-  font-size: 2.5rem;
+  font-size: var(--font-size-3xl);
   color: var(--color-secondary);
 }
 </style>

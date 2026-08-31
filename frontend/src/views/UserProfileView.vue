@@ -198,13 +198,13 @@ export default {
 }
 
 .profile-title {
-  font-size: 1.75rem;
+  font-size: var(--font-size-2xl);
   font-weight: 700;
   color: var(--text-color, var(--color-text));
-  margin-bottom: 1.5rem;
+  margin-bottom: spacing(lg);
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: spacing(sm);
 }
 
 /* ─── Profile card ─── */
@@ -240,7 +240,7 @@ export default {
   align-items: center;
   justify-content: center;
   color: var(--color-text-light);
-  font-size: 2rem;
+  font-size: var(--font-size-2xl);
 }
 
 .profile-info {
@@ -248,20 +248,20 @@ export default {
 }
 
 .profile-name {
-  font-size: 1.25rem;
+  font-size: var(--font-size-lg);
   font-weight: 600;
-  margin: 0 0 0.4rem;
+  margin: 0 0 spacing(xs);
   color: var(--text-color, var(--color-text));
 }
 
 .profile-email,
 .profile-auth-note {
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
-  margin: 0.25rem 0;
+  margin: spacing(2xs) 0;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: spacing(xs);
 }
 
 /* ─── Settings sections ─── */
@@ -270,19 +270,19 @@ export default {
 }
 
 .section-title {
-  font-size: 1.1rem;
+  font-size: var(--font-size-md);
   font-weight: 600;
-  margin: 0 0 0.5rem;
+  margin: 0 0 spacing(xs);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: spacing(xs);
   color: var(--text-color, var(--color-text));
 }
 
 .section-description {
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
-  margin-bottom: 1.25rem;
+  margin-bottom: spacing(md);
   line-height: 1.5;
 }
 
@@ -290,27 +290,27 @@ export default {
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: spacing(xs);
 }
 
 .form-label {
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--text-color, var(--color-text));
 }
 
 .input-row {
   display: flex;
-  gap: 0.75rem;
+  gap: spacing(sm);
 }
 
 .form-input {
   flex: 1;
-  padding: 0.6rem 0.85rem;
+  padding: spacing(sm) spacing(sm);
   background: var(--surface-ground, var(--color-background-soft));
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  font-size: 0.95rem;
+  border-radius: radius(md);
+  font-size: var(--font-size-base);
   color: var(--text-color, var(--color-text));
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -332,9 +332,9 @@ export default {
 }
 
 .form-hint {
-  font-size: 0.82rem;
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
-  margin-top: 0.25rem;
+  margin-top: spacing(2xs);
 }
 
 
@@ -344,18 +344,18 @@ export default {
 
 .feedback-success {
   color: var(--color-card-game-accent);
-  font-size: 0.88rem;
+  font-size: var(--font-size-sm);
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: spacing(xs);
 }
 
 .feedback-error {
   color: var(--color-error);
-  font-size: 0.88rem;
+  font-size: var(--font-size-sm);
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: spacing(xs);
 }
 
 @include responsive-below(sm) {

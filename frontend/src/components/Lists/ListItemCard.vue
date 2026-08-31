@@ -222,7 +222,7 @@ watch(localCover, () => {
     display: inline-flex;
     align-items: center;
     gap: spacing(2xs);
-    font-size: 0.8125rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
   }
 

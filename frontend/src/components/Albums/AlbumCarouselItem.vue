@@ -192,7 +192,7 @@ function handleClick() {
   cursor: pointer;
   width: 160px;
   flex-shrink: 0;
-  border-radius: 10px;
+  border-radius: radius(md);
   overflow: hidden;
   background: var(--color-background-card);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -226,7 +226,7 @@ function handleClick() {
   justify-content: center;
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
   color: rgba(255, 255, 255, 0.4);
-  font-size: 3rem;
+  font-size: var(--font-size-4xl);
 }
 
 .year-badge {
@@ -235,9 +235,9 @@ function handleClick() {
   left: 6px;
   background: var(--color-overlay-strong);
   color: var(--color-on-overlay);
-  font-size: 0.68rem;
-  padding: 2px 6px;
-  border-radius: 4px;
+  font-size: var(--font-size-xs);
+  padding: spacing(3xs) spacing(xs);
+  border-radius: radius(sm);
   font-weight: 600;
 }
 
@@ -247,12 +247,12 @@ function handleClick() {
   right: 6px;
   background: var(--color-overlay-strong);
   color: var(--color-rating-star);
-  font-size: 0.7rem;
-  padding: 2px 6px;
-  border-radius: 4px;
+  font-size: var(--font-size-xs);
+  padding: spacing(3xs) spacing(xs);
+  border-radius: radius(sm);
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: spacing(2xs);
 }
 
 .library-badge {
@@ -261,9 +261,9 @@ function handleClick() {
   left: 6px;
   background: var(--color-overlay-strong);
   color: var(--color-on-overlay);
-  font-size: 0.75rem;
-  padding: 3px 6px;
-  border-radius: 4px;
+  font-size: var(--font-size-xs);
+  padding: spacing(2xs) spacing(xs);
+  border-radius: radius(sm);
 }
 
 .type-badge {
@@ -272,37 +272,37 @@ function handleClick() {
   right: 6px;
   background: rgba(0, 0, 0, 0.6);
   color: rgba(255, 255, 255, 0.8);
-  font-size: 0.7rem;
-  padding: 2px 5px;
-  border-radius: 4px;
+  font-size: var(--font-size-xs);
+  padding: spacing(3xs) spacing(2xs);
+  border-radius: radius(sm);
 }
 
 .album-info {
-  padding: 8px 10px;
+  padding: spacing(xs) spacing(sm);
 }
 
 .album-title {
-  font-size: 0.82rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text);
-  margin: 0 0 3px;
+  margin: 0 0 spacing(2xs);
   line-height: 1.3;
 }
 
 .album-artist {
-  font-size: 0.74rem;
+  font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
-  margin: 0 0 5px;
+  margin: 0 0 spacing(2xs);
 }
 
 .album-popularity {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: spacing(xs);
 }
 
 .popularity-label {
-  font-size: 0.65rem;
+  font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
   white-space: nowrap;
 }
@@ -311,14 +311,14 @@ function handleClick() {
   flex: 1;
   height: 3px;
   background: rgba(255, 255, 255, 0.15);
-  border-radius: 2px;
+  border-radius: radius(sm);
   overflow: hidden;
 }
 
 .popularity-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--color-primary), var(--color-card-album-accent));
-  border-radius: 2px;
+  border-radius: radius(sm);
   display: block;
 }
 </style>

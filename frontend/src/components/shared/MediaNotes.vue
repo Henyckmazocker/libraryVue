@@ -362,6 +362,8 @@ watch(() => props.itemId, loadNotes)
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 @use '@/assets/styles/components/notes' as *;
 
 // `notes-panel($entity)` se resuelve al compilar —el `$entity` solo alimenta

@@ -132,7 +132,7 @@ const handleDismiss = async (recommendation) => {
     display: flex;
     align-items: center;
     gap: spacing(sm);
-    font-size: 1.5rem;
+    font-size: var(--font-size-xl);
     font-weight: 700;
     color: var(--color-text);
 
@@ -150,7 +150,7 @@ const handleDismiss = async (recommendation) => {
     padding: spacing(2xl);
     color: var(--color-text-secondary);
 
-    i { font-size: 3rem; display: block; margin-bottom: spacing(md); }
+    i { font-size: var(--font-size-4xl); display: block; margin-bottom: spacing(md); }
   }
 
   &__error {

@@ -677,9 +677,9 @@ defineExpose({ item, context, existing, reload: loadData, setItem })
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  margin-top: 2rem;
-  padding-top: 1.5rem;
+  gap: spacing(xs);
+  margin-top: spacing(xl);
+  padding-top: spacing(lg);
   border-top: 1px solid var(--color-border-light);
   text-align: center;
 
@@ -691,7 +691,7 @@ defineExpose({ item, context, existing, reload: loadData, setItem })
   &__text {
     margin: 0;
     max-width: 32rem;
-    font-size: 0.8rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-muted);
   }
 }
@@ -777,7 +777,7 @@ defineExpose({ item, context, existing, reload: loadData, setItem })
     background: rgba(139, 92, 246, 0.15);
     border: 2px dashed rgba(139, 92, 246, 0.3);
     color: rgba(139, 92, 246, 0.4);
-    font-size: 3rem;
+    font-size: var(--font-size-4xl);
 
     @include responsive-below(md) {
       width: 100%;

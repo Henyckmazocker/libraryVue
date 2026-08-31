@@ -103,11 +103,11 @@ const isActive = (path) => route.path.startsWith(path);
     left: 11px;
     min-width: min(16px, 100%);
     height: 16px;
-    padding: 0 4px;
+    padding: 0 spacing(2xs);
     border-radius: radius(full);
     background: var(--color-error);
     color: var(--color-on-status);
-    font-size: 0.625rem;
+    font-size: var(--font-size-xs);
     font-weight: 700;
     line-height: 16px;
     text-align: center;
@@ -119,15 +119,15 @@ const isActive = (path) => route.path.startsWith(path);
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
+    gap: spacing(2xs);
     color: var(--color-text-secondary);
     text-decoration: none;
-    font-size: 0.65rem;
+    font-size: var(--font-size-xs);
     transition: transition(fast);
     padding: spacing(2xs) spacing(3xs);
 
     i {
-      font-size: 1.1rem;
+      font-size: var(--font-size-md);
     }
 
     &--active {

@@ -251,7 +251,7 @@ const albumTypeLabel = (type) => {
     border-radius: radius(full);
     background: var(--color-card-album-accent);
     color: white;
-    font-size: 0.72rem;
+    font-size: var(--font-size-xs);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -262,7 +262,7 @@ const albumTypeLabel = (type) => {
     display: flex;
     align-items: center;
     gap: spacing(xs);
-    font-size: 1rem;
+    font-size: var(--font-size-base);
     color: var(--color-text-secondary);
     margin-bottom: spacing(md);
 
@@ -284,7 +284,7 @@ const albumTypeLabel = (type) => {
   }
 
   .popularity-label {
-    font-size: 0.82rem;
+    font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
     white-space: nowrap;
   }
@@ -294,7 +294,7 @@ const albumTypeLabel = (type) => {
     max-width: 180px;
     height: 6px;
     background: var(--color-background-soft);
-    border-radius: 3px;
+    border-radius: radius(sm);
     overflow: hidden;
   }
 
@@ -305,12 +305,12 @@ const albumTypeLabel = (type) => {
       var(--color-card-album-accent),
       color-mix(in srgb, var(--color-card-album-accent) 60%, white)
     );
-    border-radius: 3px;
+    border-radius: radius(sm);
     transition: width 0.5s ease;
   }
 
   .popularity-value {
-    font-size: 0.78rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
   }
 
@@ -322,7 +322,7 @@ const albumTypeLabel = (type) => {
 
     > i {
       color: var(--color-card-album-accent);
-      margin-top: 6px;
+      margin-top: spacing(xs);
       flex-shrink: 0;
     }
   }
@@ -352,20 +352,20 @@ const albumTypeLabel = (type) => {
     color: #0F1412;
     border-radius: radius(full);
     text-decoration: none;
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
     font-weight: 600;
     transition: background transition(fast);
 
     /* stylelint-disable-next-line color-no-hex -- Spotify (hover): color de marca, drift intencional (styles.md) */
     &:hover { background: #1AA34A; }
-    i { font-size: 1.1rem; }
+    i { font-size: var(--font-size-md); }
   }
 
   // Lista de tracks
   .tracks-list {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: spacing(3xs);
   }
 
   .track-item {
@@ -382,19 +382,19 @@ const albumTypeLabel = (type) => {
   .track-number {
     width: 24px;
     text-align: right;
-    font-size: 0.8rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
     flex-shrink: 0;
   }
 
   .track-name {
     flex: 1;
-    font-size: 0.88rem;
+    font-size: var(--font-size-sm);
     color: var(--color-text);
   }
 
   .track-duration {
-    font-size: 0.78rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
     flex-shrink: 0;
   }

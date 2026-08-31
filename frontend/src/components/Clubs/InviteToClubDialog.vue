@@ -174,7 +174,7 @@ const submit = async () => {
     padding: spacing(sm);
     border-radius: radius(sm);
     background: var(--color-background-mute);
-    font-size: 0.8125rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
   }
 
@@ -182,7 +182,7 @@ const submit = async () => {
     text-align: center;
     padding: spacing(md);
     color: var(--color-text-secondary);
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
   }
 
   &__friends {
@@ -195,7 +195,7 @@ const submit = async () => {
   }
 
   &__legend {
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
     margin-bottom: spacing(2xs);
   }
@@ -211,7 +211,7 @@ const submit = async () => {
     border: 1px solid var(--color-border-light);
     text-align: left;
     color: var(--color-text);
-    font-size: 0.9375rem;
+    font-size: var(--font-size-sm);
 
     &:hover { background: var(--color-background-mute); }
 
@@ -230,7 +230,7 @@ const submit = async () => {
 
   &__error {
     color: var(--color-error);
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
   }
 
 }

@@ -431,7 +431,7 @@ const handleLeave = async () => {
     align-items: center;
     gap: spacing(3xs);
     margin-bottom: spacing(md);
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
     text-decoration: none;
 
@@ -443,14 +443,14 @@ const handleLeave = async () => {
   }
 
   &__title {
-    font-size: 1.5rem;
+    font-size: var(--font-size-xl);
     font-weight: 700;
     color: var(--color-text);
   }
 
   &__description {
     margin-top: spacing(3xs);
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
   }
 
@@ -479,7 +479,7 @@ const handleLeave = async () => {
 
   &__section-title {
     margin-bottom: spacing(sm);
-    font-size: 1rem;
+    font-size: var(--font-size-base);
     font-weight: 600;
     color: var(--color-text);
   }
@@ -513,7 +513,7 @@ const handleLeave = async () => {
   }
 
   &__pick-meta {
-    font-size: 0.8125rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
   }
 
@@ -533,13 +533,13 @@ const handleLeave = async () => {
     align-items: center;
     justify-content: space-between;
     gap: spacing(sm);
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     color: var(--color-text);
   }
 
   &__owner-badge,
   &__history-date {
-    font-size: 0.75rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
   }
 
@@ -551,7 +551,7 @@ const handleLeave = async () => {
     padding: spacing(sm);
     border-radius: radius(sm);
     background: var(--color-info-bg);
-    font-size: 0.8125rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text);
 
     i { color: var(--color-primary); }
@@ -561,7 +561,7 @@ const handleLeave = async () => {
     padding: spacing(lg);
     text-align: center;
     color: var(--color-text-secondary);
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
   }
 
   &__error {

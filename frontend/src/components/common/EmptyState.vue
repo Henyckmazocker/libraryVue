@@ -75,7 +75,7 @@ defineProps({
 }
 
 .empty-state__icon {
-  font-size: 2rem;
+  font-size: var(--font-size-2xl);
   opacity: 0.5;
 }
 

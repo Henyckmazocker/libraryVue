@@ -272,19 +272,21 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .listening-stats {
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
 }
 
 /* ─── Not configured ─── */
 .lastfm-not-configured {
   text-align: center;
-  padding: 2rem 1rem;
+  padding: spacing(xl) spacing(md);
   color: var(--text-color-secondary, var(--color-text-muted));
 }
 
 .lastfm-not-configured p {
-  margin-top: 0.5rem;
+  margin-top: spacing(xs);
 }
 
 .lastfm-not-configured a {
@@ -295,29 +297,29 @@ export default {
 /* ─── Controls ─── */
 .stats-controls {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: spacing(md);
+  margin-bottom: spacing(md);
   flex-wrap: wrap;
 }
 
 .control-group {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: spacing(2xs);
 }
 
 .control-group label {
-  font-size: 0.78rem;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   color: var(--text-color-secondary, var(--color-text-muted));
   text-transform: uppercase;
 }
 
 .stats-select {
-  padding: 0.35rem 0.6rem;
+  padding: spacing(xs) spacing(sm);
   border: 1px solid var(--surface-border, var(--color-border));
-  border-radius: 6px;
-  font-size: 0.88rem;
+  border-radius: radius(sm);
+  font-size: var(--font-size-sm);
   background: var(--surface-section, var(--color-background-mute));
   color: var(--text-color, var(--color-text));
   cursor: pointer;
@@ -338,10 +340,10 @@ export default {
 /* ─── User info summary ─── */
 .user-info-card {
   display: flex;
-  gap: 1.5rem;
+  gap: spacing(lg);
   flex-wrap: wrap;
   align-items: flex-end;
-  padding: 0.5rem 0;
+  padding: spacing(xs) 0;
 }
 
 .user-info-stat {
@@ -351,20 +353,20 @@ export default {
 }
 
 .stat-value {
-  font-size: 1.4rem;
+  font-size: var(--font-size-xl);
   font-weight: 700;
   color: var(--text-color, var(--color-text));
 }
 
 .stat-label {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--text-color-secondary, var(--color-text-muted));
   text-transform: uppercase;
 }
 
 .lastfm-link {
   margin-left: auto;
-  font-size: 0.82rem;
+  font-size: var(--font-size-sm);
   /* stylelint-disable-next-line color-no-hex -- Last.fm: color de marca, drift intencional (styles.md) */
   color: #d51007;
   text-decoration: none;
@@ -379,18 +381,18 @@ export default {
 .stats-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: spacing(xs);
   max-height: 480px;
   overflow-y: auto;
-  padding-right: 0.25rem;
+  padding-right: spacing(2xs);
 }
 
 .stats-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.4rem 0.5rem;
-  border-radius: 8px;
+  gap: spacing(sm);
+  padding: spacing(xs) spacing(xs);
+  border-radius: radius(md);
   background: var(--surface-section, var(--color-background-mute));
 }
 
@@ -399,7 +401,7 @@ export default {
 }
 
 .item-rank {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   color: var(--text-color-secondary, var(--color-text-muted));
   min-width: min(2rem, 100%);
@@ -409,7 +411,7 @@ export default {
 .item-image {
   width: 40px;
   height: 40px;
-  border-radius: 4px;
+  border-radius: radius(sm);
   object-fit: cover;
   flex-shrink: 0;
 }
@@ -417,7 +419,7 @@ export default {
 .item-image-placeholder {
   width: 40px;
   height: 40px;
-  border-radius: 4px;
+  border-radius: radius(sm);
   background: var(--surface-hover, var(--color-background-mute));
   display: flex;
   align-items: center;
@@ -448,7 +450,7 @@ a.item-name:hover {
 
 .item-sub {
   display: block;
-  font-size: 0.8rem;
+  font-size: var(--font-size-xs);
   color: var(--text-color-secondary, var(--color-text-muted));
   white-space: nowrap;
   overflow: hidden;
@@ -456,14 +458,14 @@ a.item-name:hover {
 }
 
 .now-playing-badge {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--color-success);
   font-weight: 600;
 }
 
 .item-playcount,
 .item-date {
-  font-size: 0.78rem;
+  font-size: var(--font-size-xs);
   color: var(--text-color-secondary, var(--color-text-muted));
   white-space: nowrap;
   flex-shrink: 0;

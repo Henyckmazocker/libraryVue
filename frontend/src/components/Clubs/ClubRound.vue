@@ -239,7 +239,7 @@ const onCoverError = (proposalId) => {
     align-items: flex-start;
     gap: spacing(2xs);
     margin-bottom: spacing(sm);
-    font-size: 0.8125rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
 
     i { color: var(--color-primary); }
@@ -295,13 +295,13 @@ const onCoverError = (proposalId) => {
   }
 
   &__title {
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     font-weight: 600;
     color: var(--color-text);
   }
 
   &__by {
-    font-size: 0.75rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
   }
 
@@ -313,7 +313,7 @@ const onCoverError = (proposalId) => {
   }
 
   &__votes {
-    font-size: 1.125rem;
+    font-size: var(--font-size-md);
     font-weight: 700;
     color: var(--color-text);
   }
@@ -328,7 +328,7 @@ const onCoverError = (proposalId) => {
     border-radius: radius(sm);
     border: 1px solid var(--color-border);
     color: var(--color-text-secondary);
-    font-size: 0.8125rem;
+    font-size: var(--font-size-xs);
 
     &:hover { border-color: var(--color-primary); }
     &:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -353,7 +353,7 @@ const onCoverError = (proposalId) => {
 
   &__valves-title {
     margin-bottom: spacing(2xs);
-    font-size: 0.75rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
   }
 }

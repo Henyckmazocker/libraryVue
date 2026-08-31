@@ -173,7 +173,7 @@ onMounted(async () => {
 
 .app-sidebar__content {
   height: 100%;
-  padding: 20px 0;
+  padding: spacing(md) 0;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -184,9 +184,9 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  padding: 20px;
+  padding: spacing(md);
   color: var(--color-text-secondary);
-  gap: 10px;
+  gap: spacing(sm);
 }
 
 .app-sidebar__nav {
@@ -194,16 +194,16 @@ onMounted(async () => {
 }
 
 .app-sidebar__section {
-  margin-bottom: 25px;
+  margin-bottom: spacing(lg);
 }
 
 .app-sidebar__section-title {
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin: 0 0 10px 20px;
+  margin: 0 0 spacing(sm) spacing(md);
   opacity: 0.8;
 }
 
@@ -214,17 +214,17 @@ onMounted(async () => {
 }
 
 .app-sidebar__menu-item {
-  margin: 2px 0;
+  margin: spacing(3xs) 0;
 }
 
 .app-sidebar__link {
   display: flex;
   align-items: center;
-  padding: 12px 20px;
+  padding: spacing(sm) spacing(md);
   color: var(--color-text);
   text-decoration: none;
   transition: all var(--transition-fast);
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   border-radius: 0;
   position: relative;
@@ -262,7 +262,7 @@ onMounted(async () => {
 }
 
 .app-sidebar__text {
-  margin-left: 15px;
+  margin-left: spacing(md);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -279,7 +279,7 @@ onMounted(async () => {
 
 .app-sidebar__content::-webkit-scrollbar-thumb {
   background: var(--color-border);
-  border-radius: 3px;
+  border-radius: radius(sm);
 }
 
 .app-sidebar__content::-webkit-scrollbar-thumb:hover {

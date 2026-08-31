@@ -153,7 +153,7 @@ const handleRemoveFriend = async (friendId) => {
     display: flex;
     align-items: center;
     gap: spacing(sm);
-    font-size: 1.5rem;
+    font-size: var(--font-size-xl);
     font-weight: 700;
     color: var(--color-text);
 

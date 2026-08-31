@@ -112,7 +112,7 @@ watch(activeTab, (newTab) => {
 }
 
 .dashboard-title {
-  font-size: 2rem;
+  font-size: var(--font-size-2xl);
   font-weight: 700;
   color: var(--color-text);
   margin: 0 0 spacing(xs) 0;
@@ -123,12 +123,12 @@ watch(activeTab, (newTab) => {
 
   i {
     color: var(--color-primary);
-    font-size: 1.75rem;
+    font-size: var(--font-size-2xl);
   }
 }
 
 .dashboard-subtitle {
-  font-size: 1rem;
+  font-size: var(--font-size-base);
   color: var(--color-text-secondary);
   margin: 0;
 }
@@ -143,9 +143,9 @@ watch(activeTab, (newTab) => {
   gap: spacing(xs);
   padding: spacing(sm) spacing(lg);
   font-weight: 600;
-  font-size: 1rem;
+  font-size: var(--font-size-base);
 
-  i { font-size: 1.1rem; }
+  i { font-size: var(--font-size-md); }
 }
 
 .dashboard-tabs :deep(.p-tabpanel) {
@@ -167,7 +167,7 @@ watch(activeTab, (newTab) => {
       width: 1px;
       height: 1px;
       padding: 0;
-      margin: -1px;
+      margin: -spacing(3xs);
       overflow: hidden;
       clip: rect(0, 0, 0, 0);
       white-space: nowrap;

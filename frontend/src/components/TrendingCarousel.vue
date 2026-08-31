@@ -133,25 +133,25 @@ const handleItemClick = (item) => {
 
 .trending-section {
   width: 100%;
-  margin: 30px 0;
+  margin: spacing(xl) 0;
 }
 
 .trending-header {
-  margin-bottom: 20px;
+  margin-bottom: spacing(md);
 }
 
 .trending-title {
-  font-size: 1.8rem;
+  font-size: var(--font-size-2xl);
   font-weight: 600;
   color: var(--color-text);
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin: 0 0 8px 0;
+  gap: spacing(sm);
+  margin: 0 0 spacing(xs) 0;
 }
 
 .trending-subtitle {
-  font-size: 0.95rem;
+  font-size: var(--font-size-base);
   color: var(--color-text-secondary);
   margin: 0;
 }
@@ -164,22 +164,22 @@ const handleItemClick = (item) => {
 
 @include responsive-below(md) {
   .trending-title {
-    font-size: 1.5rem;
+    font-size: var(--font-size-xl);
   }
   
   .trending-subtitle {
-    font-size: 0.9rem;
+    font-size: var(--font-size-sm);
   }
 }
 
 @include responsive-below(sm) {
   .trending-title {
-    font-size: 1.3rem;
+    font-size: var(--font-size-lg);
   }
   
   .trending-info {
-    font-size: 0.8rem;
-    padding: 6px 12px;
+    font-size: var(--font-size-xs);
+    padding: spacing(xs) spacing(sm);
   }
 }
 </style>

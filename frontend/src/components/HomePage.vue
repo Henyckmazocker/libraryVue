@@ -126,19 +126,19 @@ const openHelpPage = () => {
 .home-container {
   max-width: 1000px;
   margin: 0 auto;
-  padding: 40px 20px;
+  padding: spacing(xl) spacing(md);
   position: relative;
 }
 
 /* Icono de ayuda flotante */
 .help-icon {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
+  bottom: spacing(md);
+  right: spacing(md);
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  font-size: 1.4rem;
+  font-size: var(--font-size-xl);
   box-shadow: shadow(medium);
   z-index: z(sticky);
 
@@ -148,20 +148,20 @@ const openHelpPage = () => {
 /* Hero Section */
 .hero-section {
   text-align: center;
-  margin-bottom: 60px;
+  margin-bottom: spacing(3xl);
 }
 
 .home-title {
-  font-size: 3rem;
+  font-size: var(--font-size-4xl);
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 20px;
+  margin-bottom: spacing(md);
   line-height: 1.2;
 }
 
 .home-description {
   color: var(--color-text-muted);
-  font-size: 1.2rem;
+  font-size: var(--font-size-lg);
   line-height: 1.6;
   max-width: 600px;
   margin: 0 auto;
@@ -169,21 +169,21 @@ const openHelpPage = () => {
 
 /* Quick Actions */
 .quick-actions {
-  margin-bottom: 60px;
+  margin-bottom: spacing(3xl);
 }
 
 .section-title {
-  font-size: 1.8rem;
+  font-size: var(--font-size-2xl);
   font-weight: 600;
   color: var(--color-text);
-  margin-bottom: 30px;
+  margin-bottom: spacing(xl);
   text-align: center;
 }
 
 .action-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 24px;
+  gap: spacing(lg);
   max-width: 800px;
   margin: 0 auto;
 }
@@ -191,8 +191,8 @@ const openHelpPage = () => {
 .action-card {
   background: var(--color-background-soft);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
-  padding: 30px 24px;
+  border-radius: radius(lg);
+  padding: spacing(xl) spacing(lg);
   text-align: center;
   text-decoration: none;
   color: var(--color-text);
@@ -208,21 +208,21 @@ const openHelpPage = () => {
 }
 
 .action-card i {
-  font-size: 2.5rem;
+  font-size: var(--font-size-3xl);
   color: var(--color-info);
-  margin-bottom: 16px;
+  margin-bottom: spacing(md);
   display: block;
 }
 
 .action-card h3 {
-  font-size: 1.3rem;
+  font-size: var(--font-size-lg);
   font-weight: 600;
-  margin: 0 0 8px 0;
+  margin: 0 0 spacing(xs) 0;
   color: var(--color-text);
 }
 
 .action-card p {
-  font-size: 0.95rem;
+  font-size: var(--font-size-base);
   color: var(--color-text-muted);
   margin: 0;
   line-height: 1.4;
@@ -256,50 +256,50 @@ const openHelpPage = () => {
 }
 
 .sync-button i {
-  font-size: 1.2rem;
+  font-size: var(--font-size-lg);
 }
 
 /* Responsive Design */
 @include responsive-below(md) {
   .home-container {
-    padding: 20px 15px;
+    padding: spacing(md) spacing(md);
   }
   
   .home-title {
-    font-size: 2.2rem;
+    font-size: var(--font-size-3xl);
   }
   
   .home-description {
-    font-size: 1.1rem;
+    font-size: var(--font-size-md);
   }
   
   .action-grid {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: spacing(md);
   }
   
   .action-card {
-    padding: 24px 20px;
+    padding: spacing(lg) spacing(md);
   }
   
   .action-card i {
-    font-size: 2rem;
+    font-size: var(--font-size-2xl);
   }
 }
 
 @include responsive-below(sm) {
   .home-title {
-    font-size: 1.8rem;
+    font-size: var(--font-size-2xl);
   }
   
   .home-description {
-    font-size: 1rem;
+    font-size: var(--font-size-base);
   }
   
   .help-icon {
     width: 45px;
     height: 45px;
-    font-size: 1.2rem;
+    font-size: var(--font-size-lg);
   }
 }
 </style>

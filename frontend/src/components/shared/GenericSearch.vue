@@ -232,15 +232,15 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 30px;
+  padding: spacing(xl);
   width: 100%;
   max-width: 100%;
 }
 
 .title {
-  font-size: 2rem;
+  font-size: var(--font-size-2xl);
   color: var(--color-text);
-  margin-bottom: 30px;
+  margin-bottom: spacing(xl);
   text-align: center;
 }
 
@@ -248,17 +248,17 @@ onMounted(async () => {
   display: flex;
   width: 100%;
   max-width: 600px;
-  margin-bottom: 30px;
+  margin-bottom: spacing(xl);
 }
 
 .search-input {
   flex-grow: 1;
-  padding: 12px 18px;
-  font-size: 1rem;
+  padding: spacing(sm) spacing(md);
+  font-size: var(--font-size-base);
   color: var(--color-text);
   background-color: var(--color-background-mute);
   border: 1px solid var(--color-border);
-  border-radius: 30px 0 0 30px;
+  border-radius: radius(2xl) 0 0 radius(2xl);
   outline: none;
   transition: border-color 0.2s ease;
 }
@@ -272,18 +272,18 @@ onMounted(async () => {
 }
 
 .search-button {
-  border-radius: 0 30px 30px 0;
+  border-radius: 0 radius(2xl) radius(2xl) 0;
 }
 
 .button-text {
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   font-weight: 500;
 }
 
 .error-message {
-  padding: 10px 15px;
-  border-radius: 12px;
-  margin-bottom: 20px;
+  padding: spacing(sm) spacing(md);
+  border-radius: radius(lg);
+  margin-bottom: spacing(md);
   width: 100%;
   text-align: center;
   box-sizing: border-box;
@@ -294,32 +294,32 @@ onMounted(async () => {
 .results-section {
   width: 100%;
   max-width: 100%;
-  margin-top: 30px;
+  margin-top: spacing(xl);
 }
 
 .results-title {
-  font-size: 1.3rem;
+  font-size: var(--font-size-lg);
   color: var(--color-heading);
-  margin-bottom: 15px;
+  margin-bottom: spacing(md);
   font-weight: 600;
   text-align: left;
-  padding: 0 20px;
+  padding: 0 spacing(md);
 }
 
 /* Responsive design */
 @include responsive-below(md) {
   .generic-search-container {
-    padding: 20px;
+    padding: spacing(md);
     max-width: 100%;
   }
   
   .title {
-    font-size: 1.8rem;
-    margin-bottom: 20px;
+    font-size: var(--font-size-2xl);
+    margin-bottom: spacing(md);
   }
   
   .search-button {
-    padding: 12px 18px;
+    padding: spacing(sm) spacing(md);
   }
   
   .button-text {
@@ -327,8 +327,8 @@ onMounted(async () => {
   }
   
   .results-title {
-    font-size: 1.1rem;
-    padding: 0 10px;
+    font-size: var(--font-size-md);
+    padding: 0 spacing(sm);
   }
 }
 </style>

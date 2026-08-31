@@ -162,7 +162,7 @@ const truncateText = (text, maxLength) => {
   flex-shrink: 0;
   width: 150px;
   cursor: pointer;
-  border-radius: 10px;
+  border-radius: radius(md);
   overflow: hidden;
   background: var(--color-background-card);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -205,7 +205,7 @@ const truncateText = (text, maxLength) => {
 }
 
 .movie-poster-placeholder i {
-  font-size: 3rem;
+  font-size: var(--font-size-4xl);
   color: rgba(255, 255, 255, 0.4);
 }
 
@@ -215,9 +215,9 @@ const truncateText = (text, maxLength) => {
   left: 8px;
   background: rgba(0, 0, 0, 0.8);
   color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
+  padding: spacing(2xs) spacing(xs);
+  border-radius: radius(sm);
+  font-size: var(--font-size-xs);
   font-weight: 600;
   box-shadow: shadow(light);
 }
@@ -228,18 +228,18 @@ const truncateText = (text, maxLength) => {
   right: 8px;
   background: var(--color-overlay-strong);
   color: var(--color-rating-star);
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.75rem;
+  padding: spacing(2xs) spacing(xs);
+  border-radius: radius(lg);
+  font-size: var(--font-size-xs);
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: spacing(2xs);
   box-shadow: shadow(light);
 }
 
 .rating-badge i {
-  font-size: 0.7rem;
+  font-size: var(--font-size-xs);
 }
 
 .status-badge {
@@ -248,9 +248,9 @@ const truncateText = (text, maxLength) => {
   left: 8px;
   background: rgba(76, 175, 80, 0.95);
   color: white;
-  padding: 4px 8px;
+  padding: spacing(2xs) spacing(xs);
   border-radius: 50%;
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -263,9 +263,9 @@ const truncateText = (text, maxLength) => {
   left: 6px;
   background: var(--color-overlay-strong);
   color: var(--color-on-overlay);
-  font-size: 0.75rem;
-  padding: 3px 6px;
-  border-radius: 4px;
+  font-size: var(--font-size-xs);
+  padding: spacing(2xs) spacing(xs);
+  border-radius: radius(sm);
 }
 
 .media-type-badge {
@@ -274,10 +274,10 @@ const truncateText = (text, maxLength) => {
   right: 8px;
   display: flex;
   align-items: center;
-  gap: 3px;
-  padding: 3px 7px;
-  border-radius: 4px;
-  font-size: 0.68rem;
+  gap: spacing(2xs);
+  padding: spacing(2xs) spacing(xs);
+  border-radius: radius(sm);
+  font-size: var(--font-size-xs);
   font-weight: 600;
   letter-spacing: 0.02em;
 }
@@ -299,11 +299,11 @@ const truncateText = (text, maxLength) => {
 .movie-info {
   display: flex;
   flex-direction: column;
-  padding: 8px 10px;
+  padding: spacing(xs) spacing(sm);
 }
 
 .movie-title {
-  font-size: 0.82rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text);
   line-height: 1.3;
@@ -336,7 +336,7 @@ const truncateText = (text, maxLength) => {
     height: 165px;
   }
   .movie-poster-placeholder i {
-    font-size: 2rem;
+    font-size: var(--font-size-2xl);
   }
 }
 </style>

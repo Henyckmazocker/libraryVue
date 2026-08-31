@@ -76,24 +76,26 @@ defineExpose({
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/abstracts' as *;
+
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: spacing(md);
 }
 
 .form-group label {
   display: block;
   color: var(--color-text);
   font-weight: 500;
-  margin-bottom: 8px;
-  font-size: 1rem;
+  margin-bottom: spacing(xs);
+  font-size: var(--font-size-base);
 }
 
 .file-input {
   width: 100%;
-  padding: 12px 15px;
-  font-size: 1rem;
+  padding: spacing(sm) spacing(md);
+  font-size: var(--font-size-base);
   border: 2px dashed var(--color-background-mute);
-  border-radius: 12px;
+  border-radius: radius(lg);
   background-color: var(--color-background-mute);
   color: var(--color-text);
   cursor: pointer;
@@ -112,12 +114,12 @@ defineExpose({
 }
 
 .file-info {
-  margin-top: 10px;
-  padding: 10px 15px;
+  margin-top: spacing(sm);
+  padding: spacing(sm) spacing(md);
   background: rgba(0, 123, 255, 0.1);
   border: 1px solid rgba(0, 123, 255, 0.3);
-  border-radius: 8px;
+  border-radius: radius(md);
   color: var(--color-info);
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
 }
 </style>

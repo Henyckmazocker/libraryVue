@@ -89,7 +89,7 @@ const message = computed(() => {
   margin-bottom: spacing(lg);
   padding: spacing(xs) spacing(md);
   border-radius: radius(md);
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   text-align: center;
 
   // El mismo par que ya usa `.error-message` de GenericSearch: tinta semántica
@@ -100,7 +100,7 @@ const message = computed(() => {
 
 @include responsive-below(md) {
   .stale-notice {
-    font-size: 0.8rem;
+    font-size: var(--font-size-xs);
     text-align: left;
   }
 }

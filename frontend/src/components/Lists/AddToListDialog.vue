@@ -173,7 +173,7 @@ const submit = async () => {
   }
 
   &__legend {
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     font-weight: 600;
     color: var(--color-text);
   }
@@ -204,7 +204,7 @@ const submit = async () => {
 
   &__list-count {
     flex-shrink: 0;
-    font-size: 0.8125rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
   }
 

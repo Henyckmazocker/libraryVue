@@ -148,7 +148,7 @@ const submit = () => {
 
     label,
     legend {
-      font-size: 0.875rem;
+      font-size: var(--font-size-sm);
       font-weight: 600;
       color: var(--color-text);
     }
@@ -182,7 +182,7 @@ const submit = () => {
   }
 
   &__option-hint {
-    font-size: 0.8125rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
   }
 
@@ -190,7 +190,7 @@ const submit = () => {
     display: flex;
     align-items: center;
     gap: spacing(2xs);
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     color: var(--color-warning);
   }
 

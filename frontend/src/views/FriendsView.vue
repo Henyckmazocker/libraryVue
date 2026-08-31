@@ -4,7 +4,7 @@
     <div class="friends-view__header">
       <h1 class="friends-view__title">
         <i class="pi pi-users" />
-        Amigos
+        {{ t('social.friends') }}
       </h1>
     </div>
 
@@ -62,7 +62,7 @@
             v-else-if="query && !isSearching && searchResults.length === 0"
             class="friends-view__no-results"
           >
-            No se encontraron usuarios
+            {{ t('social.noUsersFound') }}
           </p>
         </div>
       </TabPanel>
@@ -84,6 +84,9 @@ import FriendsList from '@/components/Social/FriendsList.vue'
 import FriendRequests from '@/components/Social/FriendRequests.vue'
 import UserSearchInput from '@/components/Social/UserSearchInput.vue'
 import UserSearchResult from '@/components/Social/UserSearchResult.vue'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const toast = useToast()
 const { friends, pendingRequests, pendingRequestsCount, fetchFriends, fetchPendingRequests, acceptFriendRequest, rejectFriendRequest, removeFriend, sendFriendRequest } = useFriends()

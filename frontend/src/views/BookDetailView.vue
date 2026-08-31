@@ -16,7 +16,7 @@
           class="book-author-large"
         >
           <i class="fas fa-user" />
-          <span>por {{ item.author }}</span>
+          <span>{{ t('book.by', { name: item.author }) }}</span>
         </div>
 
         <div class="book-metadata">
@@ -39,7 +39,7 @@
             class="metadata-item"
           >
             <i class="fas fa-file-alt" />
-            {{ item.pages }} páginas
+            {{ t('book.pages', { n: item.pages }) }}
           </span>
         </div>
 
@@ -55,11 +55,11 @@
           v-if="item.isbn"
           class="book-isbn-display"
         >
-          <strong>ISBN:</strong> {{ item.isbn }}
+          <strong>{{ t('book.isbn') }}</strong> {{ item.isbn }}
           <span
             v-if="item.isbn10"
             class="isbn-secondary"
-          > • ISBN-10: {{ item.isbn10 }}</span>
+          >{{ t('book.isbn10', { n: item.isbn10 }) }}</span>
         </div>
 
         <div
@@ -86,7 +86,7 @@
         >
           <h2 class="section-title">
             <i class="fas fa-book-open" />
-            Descripción
+            {{ t('book.description') }}
           </h2>
           <!-- eslint-disable vue/no-v-html -- saneado con utils/sanitize.js -->
           <div
@@ -111,7 +111,7 @@
         >
           <h2 class="section-title">
             <i class="fas fa-bookmark" />
-            Temas y Materias
+            {{ t('book.subjects') }}
           </h2>
           <div class="subject-tags">
             <a
@@ -133,7 +133,7 @@
         >
           <h2 class="section-title">
             <i class="fas fa-external-link-alt" />
-            Enlaces Externos
+            {{ t('book.links') }}
           </h2>
           <div class="external-links">
             <a
@@ -144,7 +144,7 @@
               class="external-link"
             >
               <i class="fab fa-google" />
-              Vista previa en Google Books
+              {{ t('book.googlePreview') }}
             </a>
             <a
               v-if="item.infoLink"
@@ -154,7 +154,7 @@
               class="external-link"
             >
               <i class="fab fa-google" />
-              Más información en Google Books
+              {{ t('book.googleInfo') }}
             </a>
             <a
               v-if="item.openLibraryUrl"
@@ -164,7 +164,7 @@
               class="external-link"
             >
               <i class="fas fa-book" />
-              Ver en OpenLibrary
+              {{ t('book.openLibrary') }}
             </a>
           </div>
         </div>
@@ -175,14 +175,14 @@
         >
           <h2 class="section-title">
             <i class="fas fa-list-ol" />
-            Clasificaciones
+            {{ t('book.classifications') }}
           </h2>
           <div class="classifications-content">
             <span
               v-if="item.classifications.lc"
               class="classification-item"
             >
-              <strong>LC:</strong> {{ item.classifications.lc.join(', ') }}
+              <strong>{{ t('book.lc') }}</strong> {{ item.classifications.lc.join(', ') }}
             </span>
           </div>
         </div>
@@ -226,6 +226,9 @@ import { useUIStore } from '@/store/ui';
 import { getLanguageName } from '@/utils/languageConstants';
 import Logger from '@/utils/logger';
 import { sanitizeRich } from '@/utils/sanitize';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 /**
  * Ficha de libro. El esqueleto —estados, cabecera, formulario de biblioteca,

@@ -3,13 +3,12 @@
        y pie ordenado, igual que en los cuatro modales propios. -->
   <BaseModal
     v-model="visible"
-    title="Invitar a colaborar"
+    :title="t('lists.inviteCollaborator')"
     class="invite-collaborator-dialog"
   >
     <div class="invite-collaborator-dialog__body">
       <p class="invite-collaborator-dialog__hint">
-        Quien acepte podrá añadir y quitar ítems. Renombrar la lista o borrarla
-        sigue siendo cosa tuya.
+        {{ t('listInvite.hint') }}
       </p>
 
       <div
@@ -23,7 +22,7 @@
         v-else-if="invitables.length === 0"
         class="invite-collaborator-dialog__state"
       >
-        No tienes amigos a quien invitar que no colaboren ya.
+        {{ t('listInvite.none') }}
       </p>
 
       <fieldset
@@ -31,7 +30,7 @@
         class="invite-collaborator-dialog__friends"
       >
         <legend class="invite-collaborator-dialog__legend">
-          Elige a quién
+          {{ t('listInvite.chooseWho') }}
         </legend>
         <!-- Botones con `aria-pressed`, no `<div @click>`: las 20 reglas de
              accesibilidad están en `error` y esto es un selector de verdad. -->
@@ -77,7 +76,7 @@
         :disabled="isSaving"
         @click="visible = false"
       >
-        Cancelar
+        {{ t('common.cancel') }}
       </button>
       <button
         type="button"
@@ -89,7 +88,7 @@
           v-if="isSaving"
           class="pi pi-spin pi-spinner"
         />
-        Invitar
+        {{ t('listInvite.invite') }}
       </button>
     </template>
   </BaseModal>
@@ -101,6 +100,9 @@ import BaseModal from '@/components/common/BaseModal.vue'
 import { storeToRefs } from 'pinia'
 import { useSocialStore } from '@/store/social'
 import { useListsStore } from '@/store/lists'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },

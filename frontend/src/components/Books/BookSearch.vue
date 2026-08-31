@@ -9,7 +9,7 @@
       :error="errorTrending"
       type="books"
       :item-component="BookCarouselItem"
-      title="Libros Populares"
+      :title="t('search.popularBooks')"
       subtitle="Los libros más populares en nuestra comunidad"
       @item-click="handleTrendingClick"
     />
@@ -30,6 +30,9 @@ import { useBooksStore } from '@/store/books';
 import { useUIStore } from '@/store/ui';
 import { storeToRefs } from 'pinia';
 import Logger from '@/utils/logger';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 // Router
 const router = useRouter();

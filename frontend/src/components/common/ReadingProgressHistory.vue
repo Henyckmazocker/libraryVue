@@ -3,10 +3,10 @@
     <div class="history-header">
       <h3>
         <i class="fas fa-chart-line" />
-        Historial de Progreso
+        {{ t('history.title') }}
       </h3>
       <p class="subtitle">
-        Registro de tu avance en la lectura de este libro
+        {{ t('history.subtitle') }}
       </p>
     </div>
 
@@ -17,19 +17,19 @@
     >
       <div class="stat-item">
         <span class="stat-number">{{ stats.totalSessions }}</span>
-        <span class="stat-label">Sesiones</span>
+        <span class="stat-label">{{ t('history.sessions') }}</span>
       </div>
       <div class="stat-item">
         <span class="stat-number">{{ stats.totalPagesRead }}</span>
-        <span class="stat-label">Páginas Leídas</span>
+        <span class="stat-label">{{ t('history.pagesRead') }}</span>
       </div>
       <div class="stat-item">
         <span class="stat-number">{{ stats.averagePagesPerSession }}</span>
-        <span class="stat-label">Promedio/Sesión</span>
+        <span class="stat-label">{{ t('history.perSession') }}</span>
       </div>
       <div class="stat-item">
         <span class="stat-number">{{ stats.readingSpeed }}</span>
-        <span class="stat-label">Páginas/Día</span>
+        <span class="stat-label">{{ t('history.perDay') }}</span>
       </div>
     </div>
 
@@ -39,7 +39,7 @@
       class="loading-state"
     >
       <i class="fas fa-spinner fa-spin" />
-      <span>Cargando historial...</span>
+      <span>{{ t('history.loading') }}</span>
     </div>
 
     <!-- Error -->
@@ -67,10 +67,10 @@
         <div class="entry-content">
           <div class="entry-main">
             <span class="pages-info">
-              Páginas {{ entry.previous_page }} → {{ entry.current_page }}
+              {{ t('history.range', { from: entry.previous_page, to: entry.current_page }) }}
             </span>
             <span class="pages-advanced">
-              +{{ entry.pagesAdvanced }} páginas
+              {{ t('history.advanced', { n: entry.pagesAdvanced }) }}
             </span>
           </div>
           <div class="entry-meta">
@@ -85,7 +85,7 @@
     <EmptyState
       v-else
       icon="fas fa-book"
-      title="No hay historial de progreso aún"
+      :title="t('history.empty')"
       message="El historial se creará automáticamente cuando actualices tu progreso de lectura."
     />
   </div>
@@ -96,6 +96,9 @@ import { computed, onMounted, defineProps, defineExpose } from 'vue';
 import EmptyState from '@/components/common/EmptyState.vue'
 import { useReadingProgress } from '@/composables/useReadingProgress';
 import Logger from '@/utils/logger';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   isbn: {

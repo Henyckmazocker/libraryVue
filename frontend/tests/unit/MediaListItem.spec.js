@@ -100,14 +100,18 @@ describe('MediaListItem — rating, estados y click', () => {
     expect(mount('album', { name: 'A' }).find('.list-item__rating').exists()).toBe(false)
   })
 
-  it('resuelve la etiqueta del estado por key, name o id', () => {
+  it('la etiqueta del estado sale del catálogo, no de `allowedStatuses`', () => {
+    // Hasta el 2026-08-31 esto se resolvía buscando en `allowedStatuses` objetos
+    // con `{key, name, id}`. Nunca funcionó fuera de vídeos: los otros cuatro
+    // medios devuelven cadenas planas, así que el `find` no casaba y el badge
+    // enseñaba el slug en inglés. Ahora la verdad es el catálogo, y por eso la
+    // lista permitida ya no hace falta para etiquetar.
     const item = { name: 'A', userStatuses: ['listening'] }
 
-    expect(mount('album', item, [{ key: 'listening', name: 'Escuchando' }])
-      .find('.list-item__status-badge').text()).toBe('Escuchando')
-    expect(mount('album', item, [{ name: 'listening', label: 'Escuchando' }])
-      .find('.list-item__status-badge').text()).toBe('Escuchando')
-    expect(mount('album', item, [{ id: 'listening', label: 'Escuchando' }])
+    expect(mount('album', item, []).find('.list-item__status-badge').text())
+      .toBe('Escuchando')
+    // Y da igual lo que traiga `allowedStatuses`: ya no se consulta para esto.
+    expect(mount('album', item, [{ key: 'listening', name: 'Otra cosa' }])
       .find('.list-item__status-badge').text()).toBe('Escuchando')
   })
 

@@ -33,8 +33,8 @@
       <input
         v-model="newTag"
         type="text"
-        aria-label="Añadir nuevo tag"
-        placeholder="Añadir nuevo tag..."
+        :aria-label="t('tags.addNew')"
+        :placeholder="t('tags.addNewPlaceholder')"
         class="tag-input"
         @keyup.enter="addTag"
       >
@@ -42,7 +42,7 @@
         class="btn btn--primary btn--sm add-tag-btn"
         @click="addTag"
       >
-        Añadir
+        {{ t('common.add') }}
       </button>
     </div>
   </div>
@@ -50,6 +50,9 @@
 
 <script setup>
 import { ref, defineProps, defineEmits, watch } from 'vue';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   tags: {

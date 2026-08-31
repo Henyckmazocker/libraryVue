@@ -3,7 +3,7 @@
     <div class="lists-view__header">
       <h1 class="lists-view__title">
         <i class="pi pi-list" />
-        Mis listas
+        {{ t('lists.mine') }}
       </h1>
 
       <button
@@ -12,7 +12,7 @@
         @click="openCreate"
       >
         <i class="pi pi-plus" />
-        Nueva lista
+        {{ t('lists.new') }}
       </button>
     </div>
 
@@ -27,7 +27,7 @@
     <EmptyState
       v-else-if="!hasLists"
       icon="pi pi-list"
-      title="Todavía no tienes ninguna lista"
+      :title="t('lists.emptyAll')"
       message="Una lista mezcla libros, películas, juegos, álbumes y vídeos."
     />
 
@@ -56,14 +56,14 @@
             <i :class="VISIBILITY[list.visibility].icon" />
             {{ VISIBILITY[list.visibility].label }}
           </span>
-          <span>{{ list.item_count }} {{ list.item_count === 1 ? 'ítem' : 'ítems' }}</span>
+          <span>{{ t('library.itemCount', { n: list.item_count }) }}</span>
           <!-- Una lista en la que solo colaboro no es mía, y se dice. -->
           <span
             v-if="!list.is_owner"
             class="lists-view__shared"
           >
             <i class="pi pi-users" />
-            Compartida contigo
+            {{ t('lists.sharedWithYou') }}
           </span>
         </span>
       </RouterLink>
@@ -95,6 +95,9 @@ import { useListsStore } from '@/store/lists'
 import ListFormDialog from '@/components/Lists/ListFormDialog.vue'
 import { VISIBILITY } from '@/components/Lists/visibility'
 import EmptyState from '@/components/common/EmptyState.vue'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const listsStore = useListsStore()
 const { lists, isLoading, error } = storeToRefs(listsStore)

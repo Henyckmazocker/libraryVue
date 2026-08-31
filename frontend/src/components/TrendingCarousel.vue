@@ -12,14 +12,14 @@
       v-if="isLoading"
       variant="carousel"
       :count="6"
-      :label="`Cargando ${title}…`"
+      :label="t('common.loading', { what: title })"
     />
 
     <!-- Empty State -->
     <EmptyState
       v-else-if="items.length === 0"
       icon="fas fa-fire"
-      title="No hay contenido trending disponible"
+      :title="t('carousel.emptyTrending')"
     />
 
     <!-- Carousel -->
@@ -52,6 +52,9 @@ import { defineProps, defineEmits } from 'vue';
 import EmptyState from '@/components/common/EmptyState.vue'
 import HorizontalCarousel from '@/components/shared/HorizontalCarousel.vue';
 import MediaSkeleton from '@/components/shared/MediaSkeleton.vue';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   // Datos

@@ -1,0 +1,671 @@
+# Catálogo de referencia: aquí se escribe primero y `en.yaml` se rellena después.
+# La barrera de paridad (`tests/unit/i18n.spec.js`) impide que se olvide una clave
+# en uno de los dos, y que sobre ninguna sin usar.
+
+common:
+  cancel: Cancelar
+  save: Guardar
+  edit: Editar
+  delete: Eliminar
+  close: Cerrar
+  add: Añadir
+  retry: Reintentar
+  accept: Aceptar
+  reject: Rechazar
+  dismiss: Descartar
+  inLibrary: En tu biblioteca
+  # Ejemplo de interpolación con llave simple. Lo consumirá el M4; hoy lo fija el
+  # test del motor, y por eso está en la lista de pendientes de uso de la barrera.
+  loading: "Cargando {what}…"
+
+library:
+  title: Mi biblioteca
+  loading: Cargando biblioteca…
+  filters:
+    books: Libros
+    movies: Películas
+    games: Videojuegos
+    albums: Álbumes
+    videos: Vídeos
+  import:
+    title: Importar datos
+    aria: Importar datos desde un fichero
+  search:
+    aria: Buscar en tu biblioteca por título o autor
+    placeholder: Buscar por título o autor…
+  sort:
+    title: Título
+    author: Autor
+    rating: Valoración
+    date: Fecha
+  empty:
+    title: Tu biblioteca está vacía
+    message: Añade algo desde los buscadores.
+  # Ejemplo de plural de dos formas, que es lo que piden español e inglés. Misma
+  # historia que `common.loading`: es contrato del motor y lo consume el M4.
+  itemCount:
+    one: "{n} ítem"
+    other: "{n} ítems"
+
+profile:
+  title: Mi perfil
+  googleLinked: Cuenta vinculada con Google
+  lastfm: Last.fm
+  lastfmDescription: "Vincula tu cuenta de Last.fm para ver estadísticas de escucha: tus álbumes, artistas y canciones más escuchados."
+  lastfmUsername: Nombre de usuario en Last.fm
+  lastfmPlaceholder: Tu usuario de Last.fm
+  saved: Nombre de usuario guardado correctamente.
+  hintBefore: "Puedes encontrar tu nombre de usuario en "
+  hintLink: last.fm
+  hintAfter: ". Déjalo en blanco para desvincular."
+  language:
+    title: Idioma
+    hint: Se recuerda en este navegador, no en tu cuenta.
+    label: Idioma de la interfaz
+
+# Los 28 estados de la biblioteca, tal como los manda el backend: el slug es la
+# clave y viaja SIEMPRE en inglés — traducir es cosa del cliente. Salen de las cinco
+# acciones `get_*_allowed_statuses`, comprobadas contra dev el 2026-08-31.
+#
+# Ojo: hay pares que comparten traducción en español y no en inglés —`dropped` y
+# `abandoned`, `viewed` y `watched`, `on-hold` y `paused`—. Es correcto: son estados
+# distintos para el backend y la comparación va SIEMPRE por slug, nunca por texto.
+status:
+  "100-completed": Completado al 100 %
+  "abandoned": Abandonado
+  "backlog": Pendiente
+  "completed": Completado
+  "dropped": Abandonado
+  "favorite": Favorito
+  "in-watchlist": En lista de ver
+  "in-wishlist": En lista de deseos
+  "listened": Escuchado
+  "listening": Escuchando
+  "on-hold": En pausa
+  "owned": En propiedad
+  "paused": En pausa
+  "played": Jugado
+  "playing": Jugando
+  "re-listening": Reescuchando
+  "re-reading": Releyendo
+  "re-watching": Reviendo
+  "read": Leído
+  "reading": Leyendo
+  "saved": Guardado
+  "to-read": Por leer
+  "viewed": Visto
+  "want-to-buy": Quiero comprarlo
+  "want-to-listen": Quiero escucharlo
+  "want-to-watch": Quiero verlo
+  "watched": Visto
+  "watching": Viendo
+
+# Lo que distingue a un medio de otro, sacado de `config/mediaRegistry.js`. El
+# registro los lee con GETTERS, no con valores: se evalúan al leerlos y así cambian
+# de idioma sin recargar. Si fueran valores, se congelarían al importar el módulo,
+# que ocurre ANTES de que el catálogo esté cargado.
+media:
+  noteTypes:
+    note: Nota
+    review: Reseña
+    thought: Pensamiento
+    quote: Cita
+    reflection: Reflexión
+    question: Pregunta
+    summary: Resumen
+    progress: Progreso
+    general: General
+  book:
+    fields:
+      page: Página
+      author: Autor
+      publisher: Editorial
+      publicationDate: Fecha de publicación
+      format: Formato
+      history: Historial
+      historyTitle: Ver historial de lectura
+    label: Libro
+    coverAlt: Portada del libro
+    statusLabel: Estado
+    emptyText: No se encontró información del libro
+    notesTitle: Notas de Edición
+  movie:
+    fields:
+      seen: Vista
+      originalTitle: Título original
+      director: Director
+      year: Año
+      imdbId: IMDb ID
+      format: Formato
+    label: Película
+    coverAlt: Cartel de la película
+    statusLabel: Estado
+    emptyText: No se encontró información de la película
+    notesTitle: Notas de la Película
+  game:
+    fields:
+      completed: Completado
+      originalTitle: Título original
+      developer: Desarrollador
+      publisher: Distribuidor
+      released: Lanzamiento
+      platforms: Plataformas
+      genres: Géneros
+      metacritic: Metacritic
+      rawgId: RAWG ID
+      hoursPlayed: Horas jugadas
+      startedOn: Fecha de inicio
+      finishedOn: Fecha de finalización
+      notes: Notas
+      format: Formato
+    label: Juego
+    coverAlt: Portada del juego
+    statusLabel: Estado
+    emptyText: No se encontró información del juego
+    notesTitle: Notas del Juego
+  album:
+    fields:
+      listened: Escuchado
+      artist: Artista
+      released: Lanzamiento
+      genres: Géneros
+      label: Sello
+      tracks: Pistas
+      duration: Duración
+      spotifyId: Spotify ID
+      favouriteTrack: Canción favorita
+      firstListen: Primera escucha
+      lastListen: Última escucha
+      notes: Notas
+      format: Formato
+    label: Álbum
+    coverAlt: Portada del álbum
+    statusLabel: Estado
+    emptyText: No se encontró información del álbum
+    notesTitle: Notas del Álbum
+  video:
+    fields:
+      seen: Visto
+      channel: Canal
+      duration: Duración
+      published: Publicado
+      youtubeId: YouTube ID
+      timesWatched: Veces visto
+      notes: Notas
+    label: Vídeo
+    coverAlt: Miniatura del vídeo
+    statusLabel: Estado
+    emptyText: No se encontró información del vídeo
+    notesTitle: Notas del Vídeo
+  series:
+    fields:
+      season: Temporada
+    label: Serie
+    statusLabel: Estado
+    emptyText: No se encontró información de la serie
+
+listening:
+  needsUser:
+    before: "Configura tu usuario de Last.fm en tu "
+    link: perfil
+    after: " para ver estadísticas de escucha."
+  typeLabel: Tipo
+  periodLabel: Período
+  loading: Cargando estadísticas de Last.fm…
+  profileLink: Ver perfil en Last.fm
+  nowPlaying: Escuchando ahora
+  plays: "{n} reproducciones"
+  empty: No hay datos disponibles para esta selección
+  type:
+    user_info: Resumen
+    top_albums: Top álbumes
+    top_artists: Top artistas
+    top_tracks: Top canciones
+    recent_tracks: Recientes
+    loved_tracks: Favoritas
+  period:
+    overall: Todo el tiempo
+    "12month": Último año
+    "6month": 6 meses
+    "3month": 3 meses
+    "1month": 1 mes
+    "7day": 7 días
+  stats:
+    scrobbles: Scrobbles
+    artists: Artistas
+    albums: Álbumes
+    tracks: Canciones
+
+edit:
+  totalPages: Total de páginas
+  totalPagesPlaceholder: Nº total de páginas del libro
+  ownershipFormat: Formato de propiedad
+  unspecified: — Sin especificar —
+  gameDetails: Detalles del juego
+  videoDetails: Detalles del vídeo
+  albumDetails: Detalles del álbum
+  hoursPlayed: Horas jugadas
+  platform: Plataforma
+  platformPlaceholder: PC, PS5, Xbox, etc.
+  startedOn: Fecha de inicio
+  finishedOn: Fecha de finalización
+  personalNotes: Notas personales
+  favouriteTrack: Canción favorita
+  favouriteTrackNone: — Ninguna —
+  favouriteTrackPlaceholder: Tu canción favorita del álbum
+  firstListen: Primera escucha
+  noStatuses: Sin estados asignados
+
+movie:
+  seasons:
+    one: "{n} temporada"
+    other: "{n} temporadas"
+  imdb: "IMDb:"
+  imdbScore: "{n}/10"
+  metaScore: "{n}/100"
+  votes: "({n} votos)"
+  metascore: "Metascore:"
+  imdbId: "IMDb ID:"
+  plot: Sinopsis
+  crew: Equipo y reparto
+  actors: "Actores:"
+  writer: "Guion:"
+  awards: Premios y nominaciones
+  production: Producción y lanzamiento
+  productionCompany: "Productora:"
+  boxOffice: "Recaudación:"
+  released: "Estreno:"
+  dvd: "DVD:"
+  website: "Sitio web:"
+  type: "Tipo:"
+  links: Enlaces externos
+  viewOnImdb: Ver en IMDb
+
+editions:
+  title: Ediciones disponibles
+  showFilters: Mostrar filtros
+  hideFilters: Ocultar filtros
+  language: Idioma
+  allLanguages: Todos los idiomas
+  year: Año
+  yearFromAria: Año de publicación desde
+  yearFrom: Desde
+  yearToAria: Año de publicación hasta
+  yearTo: Hasta
+  publisher: Editorial
+  allPublishers: Todas las editoriales
+  format: Formato
+  allFormats: Todos los formatos
+  clearFilters: Limpiar filtros
+  loading: Cargando ediciones…
+  retry: Reintentar
+  empty: No se encontraron ediciones con los filtros seleccionados
+  scrollLeft: Desplazar a la izquierda
+  scrollRight: Desplazar a la derecha
+
+club:
+  back: Volver a mis clubs
+  watching: Lo que estamos viendo
+  finish: Darlo por terminado
+  finishedBy: "{done} de {total} lo han terminado"
+  nothingActive: Ahora mismo el club no tiene nada activo.
+  nothingActiveOwner: Elige el siguiente desde la ficha de cualquier medio.
+  round: Qué leemos ahora
+  progress: Por dónde va cada uno
+  notes: Lo que ha escrito la gente
+  noticeBefore: "Aquí salen las notas "
+  noticePublic: públicas
+  noticeAfter: " de los miembros. Publicar una nota para el club la publica también en el feed de tus amigos."
+  members: "Miembros ({n})"
+  owner: Organiza
+  invite: Invitar a un amigo
+  leave: Salir del club
+  finished: "Ya terminados ({n})"
+
+series:
+  tvShow: Serie de televisión
+  createdBy: "Creada por {name}"
+  runtimePerEpisode: "{n} / ep."
+  awards: Premios
+  viewOn: Ver en
+
+# Nombres de marca. Van al catálogo aunque digan lo mismo en los dos idiomas: el
+# plan lo pide por escrito —«un nombre propio en plantilla es una cadena como
+# cualquier otra»— y así la regla de lint del M5 no necesita excepciones para ellos.
+brand:
+  imdb: IMDb
+  lastfm: Last.fm
+
+home:
+  helpTitle: Ayuda y documentación
+  helpAria: Abrir la ayuda y documentación
+  title: Bienvenido a tu Biblioteca Personal
+  description: Organiza y gestiona tu colección de libros, películas y más desde un solo lugar. Utiliza el menú lateral para navegar entre las diferentes secciones.
+  quickActions: Accesos rápidos
+  sync: Sincronizar con servidor
+  cards:
+    library: Mi biblioteca
+    libraryHint: Ver toda tu colección
+    books: Buscar libros
+    booksHint: Encuentra nuevos libros
+    movies: Buscar películas
+    moviesHint: Descubre nuevas películas
+    games: Buscar videojuegos
+    gamesHint: Explora nuevos juegos
+    music: Música
+    musicHint: Próximamente
+
+sessions:
+  completed: "Sesiones completadas:"
+  averageDuration: "Duración promedio:"
+  totalPages: "Páginas totales leídas:"
+  number: "Sesión #{n}"
+  start: "Inicio:"
+  end: "Fin:"
+  duration: "Duración:"
+  progress: "Progreso:"
+  progressValue: "{page} / {total} páginas ({percent} %)"
+  notes: Notas
+  progressUpdates: "Actualizaciones de progreso ({n})"
+  previousPage: "Pág. anterior:"
+  currentPage: "Pág. actual:"
+  empty: No hay sesiones de lectura registradas para este libro
+  close: Cerrar
+
+notes:
+  new: Nueva nota
+  loading: Cargando notas…
+  page: "Página {n}"
+  public: Pública
+  edit: Editar
+  editAria: Editar nota
+  delete: Eliminar
+  deleteAria: Eliminar nota
+  edited: "(editado {date})"
+  empty: No hay notas todavía
+  pageLabel: Página
+  typeLabel: Tipo de nota
+  contentLabel: Contenido
+  privateLabel: Nota privada
+
+seasons:
+  title: Progreso de temporadas
+  watched: "{done} / {total} vistas"
+  markAll: Marcar todas como vistas
+  short: "T{n}"
+  editing: "Temporada {n}"
+  status: Estado
+  finishedOn: Fecha de finalización
+  rating: Valoración
+  notes: Notas
+  episodes: Episodios
+
+round:
+  proposing: "Estáis proponiendo. Van "
+  proposalCount:
+    one: "{n} propuesta."
+    other: "{n} propuestas."
+  voting: Estáis votando.
+  votingTiebreak: Estáis votando el desempate.
+  pending: "Faltan {n} por votar."
+  allVoted: Han votado todos.
+  empty: Nadie ha propuesto nada todavía.
+  proposedBy: "Lo propone {name}"
+  eliminated: Eliminada en el desempate
+  propose: Buscar algo que proponer
+  valves: Si alguien no participa, puedes seguir tú
+  openVote: Abrir el voto con lo que hay
+  closeVote: Cerrar la votación
+
+book:
+  by: "por {name}"
+  pages: "{n} páginas"
+  isbn: "ISBN:"
+  isbn10: " • ISBN-10: {n}"
+  description: Descripción
+  subjects: Temas y materias
+  links: Enlaces externos
+  googlePreview: Vista previa en Google Books
+  googleInfo: Más información en Google Books
+  openLibrary: Ver en OpenLibrary
+  classifications: Clasificaciones
+  lc: "LC:"
+
+history:
+  title: Historial de progreso
+  subtitle: Registro de tu avance en la lectura de este libro
+  sessions: Sesiones
+  pagesRead: Páginas leídas
+  perSession: Promedio/sesión
+  perDay: Páginas/día
+  loading: Cargando historial…
+  range: "Páginas {from} → {to}"
+  advanced: "+{n} páginas"
+  empty: No hay historial de progreso aún
+
+game:
+  by: "por {name}"
+  ratingOutOf: "{n} / 5"
+  ratingsCount: "{n} valoraciones"
+  screenshots: Capturas de pantalla
+  description: Descripción
+  links: Enlaces externos
+  additional: Información adicional
+  ratingsCountLabel: "Número de valoraciones:"
+  playtimeLabel: "Tiempo de juego promedio:"
+  playtimeValue: "{n} horas"
+  metacriticLabel: "Puntuación Metacritic:"
+
+lastfmCard:
+  searching: Buscando en Last.fm…
+  notFound: Este álbum no se encontró en Last.fm
+  listeners: Oyentes
+  globalPlays: Reproducciones globales
+  yourPlays: Tus plays
+  configureLink: Configura tu usuario de Last.fm
+  configureAfter: " para ver cuántas veces has escuchado este álbum."
+  viewOn: Ver en Last.fm
+
+dashboard:
+  title: Estadísticas
+  subtitle: Resumen y estadísticas de tu biblioteca personal
+  listeningStats: Estadísticas de Escucha (Last.fm)
+  loading:
+    books: Cargando estadísticas de libros...
+    movies: Cargando estadísticas de películas...
+    games: Cargando estadísticas de videojuegos...
+    albums: Cargando estadísticas de álbumes...
+    videos: Cargando estadísticas de vídeos...
+  viewLibrary:
+    books: Ver Mi Biblioteca de Libros
+    movies: Ver Mi Biblioteca de Películas
+    games: Ver Mi Biblioteca de Videojuegos
+    albums: Ver Mi Biblioteca de Música
+    videos: Ver Mi Biblioteca de Vídeos
+
+recommend:
+  title: Recomendar a un amigo
+  aboutToBefore: "Vas a recomendar "
+  noFriends: Aún no tienes amigos a quien recomendar.
+  chooseWho: Elige a quién
+  comment: Comentario (opcional)
+  send: Enviar
+  action: Recomendar
+
+header:
+  appName: Biblioteca Personal
+  signInGoogle: Iniciar sesión con Google
+  lists: Mis listas
+  clubs: Mis clubs
+  avatarAlt: Usuario
+  signOut: Cerrar sesión
+
+lists:
+  mine: Mis listas
+  edit: Editar la lista
+  delete: Borrar la lista
+  empty: Esta lista todavía está vacía
+  collaborators: Colaboran
+  invite: Invitar
+  noCollaborators: Todavía no colabora nadie.
+  addToList: Añadir a una lista
+  create: Crear
+  inviteCollaborator: Invitar a colaborar
+  new: Nueva lista
+  emptyAll: Todavía no tienes ninguna lista
+  sharedWithYou: Compartida contigo
+  public: Listas públicas
+  removeItem: Quitar {title} de la lista
+  thisItem: este ítem
+
+reading:
+  activeSession: "Sesión activa #{n}"
+  startedAt: "Iniciada: {date}"
+  percentComplete: "{n} % completado"
+  completedTimes:
+    one: "Completado {n} vez"
+    other: "Completado {n} veces"
+  viewHistory: Ver historial de sesiones
+
+clubForm:
+  title: Nuevo club
+  name: Nombre
+  description: Descripción (opcional)
+  notice: Quien entre en el club verá el progreso de los demás sobre el ítem activo, y ellos el suyo. Se deja de compartir saliendo del club.
+  create: Crear
+
+clubInvite:
+  title: Invitar al club
+  hint: Quien acepte verá el progreso de los demás sobre el ítem activo, y ellos el suyo. Se deja de compartir saliendo del club.
+  none: No tienes amigos a quien invitar que no estén ya en el club.
+  chooseWho: Elige a quién
+  invite: Invitar
+
+album:
+  tracks: "{n} pistas"
+  popularity: "Popularidad:"
+  popularityValue: "{n}/100"
+  openSpotify: Abrir en Spotify
+  tracksTitle: Pistas
+
+addToList:
+  aboutToBefore: "Vas a añadir "
+  none: No tienes ninguna lista que puedas editar. Crea una desde «Mis listas».
+  chooseList: Elige la lista
+
+listInvite:
+  hint: Quien acepte podrá añadir y quitar ítems. Renombrar la lista o borrarla sigue siendo cosa tuya.
+  none: No tienes amigos a quien invitar que no colaboren ya.
+  chooseWho: Elige a quién
+  invite: Invitar
+
+visibility:
+  private:
+    label: Privada
+    hint: Solo la ves tú.
+  public:
+    label: Pública
+    hint: La ve cualquier usuario registrado desde tu perfil. Editarla, solo tú.
+  collaborative:
+    label: Colaborativa
+    hint: La ven y la editan las personas que invites. No es pública.
+
+listForm:
+  titleEdit: Editar lista
+  titleNew: Nueva lista
+  name: Nombre
+  description: Descripción (opcional)
+  whoSees: Quién la ve
+  losesCollaborators: Al dejar de ser colaborativa, quienes colaboran perderán el acceso.
+
+carousel:
+  albumType: "Tipo: {type}"
+  editionSaved: Guardada en tu biblioteca
+  pages: "{n} págs."
+  isbn: "ISBN:"
+  platform: "Plataforma: {name}"
+  rating: "Rating:"
+  ratingValue: "{n} / 5"
+  scrollLeft: Desplazar a la izquierda
+  scrollRight: Desplazar a la derecha
+  emptyTrending: No hay contenido trending disponible
+
+search:
+  popularBooks: Libros Populares
+  popularMovies: Películas Populares
+  popularSeries: Series Populares
+  popularGames: Juegos Populares
+  popularAlbums: Álbumes Populares
+  recentVideos: Vídeos Recientes
+  noResults: No se encontraron resultados
+  resultsTitle: "Resultados de búsqueda ({n})"
+
+addToClub:
+  title: Ponerlo en un club
+  none: No hay ningún club donde puedas poner esto ahora mismo. Se puede proponer en los clubs que estén eligiendo, y elegir directamente solo en los que organizas y no tengan ítem activo.
+  choose: Elige el club
+
+clubs:
+  mine: Mis clubs
+  new: Nuevo club
+  emptyAll: Todavía no estás en ningún club
+  invited: Te invitaron
+
+clubProgress:
+  notStarted: Sin empezar
+  finished: Lo ha terminado
+
+clubNotes:
+  empty: Todavía nadie ha escrito una nota pública sobre esto.
+  mine: " (tú)"
+
+inbox:
+  title: Recomendaciones
+  empty: No tienes recomendaciones pendientes
+  invitesYou: te invita a colaborar en
+  inviteHint: Si aceptas, podrás añadir y quitar ítems. Renombrarla o borrarla sigue siendo cosa de quien la creó.
+  recommendsYou: te recomienda
+
+social:
+  feedEmpty: Añade amigos para ver su actividad aquí
+  feedEnd: No hay más eventos
+  noRequests: No tienes solicitudes pendientes
+  wantsToBeFriend: quiere ser tu amigo/a
+  noFriends: Todavía no tienes amigos. ¡Busca usuarios y envía solicitudes!
+  friends: Amigos
+  noUsersFound: No se encontraron usuarios
+  privacyTitle: Configuración de privacidad
+  privacyIntro: Elige qué actividad tuya ven tus amigos en su feed. Lo que apagues aquí deja de mostrarse, aunque siga registrado.
+
+importer:
+  title: Importar datos
+  file: "Archivo de respaldo:"
+  service: "Selecciona el servicio:"
+  chooseService: -- Selecciona un servicio --
+  run: Importar
+
+progress:
+  reading: Progreso de lectura
+  pages: "{current} / {total} páginas ({percent}%)"
+  currentPage: Página actual
+  currentPageLabel: "Página actual:"
+
+sidebar:
+  loading: Cargando menú...
+  error: Error al cargar menú
+
+tags:
+  addNew: Añadir nuevo tag
+  addNewPlaceholder: Añadir nuevo tag...
+
+notFound:
+  code: "404"
+  title: Página no encontrada
+  message: La página que buscas no existe o ha sido movida.
+  back: Volver al inicio
+
+video:
+  openYouTube: Ver en YouTube
+  openYouTubeAria: Ver este vídeo en YouTube
+  views: "{n} vistas"
+  description: Descripción

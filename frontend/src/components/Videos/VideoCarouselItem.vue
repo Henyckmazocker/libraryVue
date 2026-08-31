@@ -43,13 +43,13 @@
       <div
         v-if="isInLibrary"
         class="library-badge"
-        title="En tu biblioteca"
+        :title="t('common.inLibrary')"
       >
         <i
           class="fas fa-bookmark"
           aria-hidden="true"
         />
-        <span class="u-sr-only">En tu biblioteca</span>
+        <span class="u-sr-only">{{ t('common.inLibrary') }}</span>
       </div>
 
       <!-- Play icon overlay -->
@@ -75,6 +75,9 @@
 <script setup>
 import { computed } from 'vue';
 import { useVideosStore } from '@/store/videos';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   video: {

@@ -40,7 +40,7 @@
               class="fas fa-times"
               aria-hidden="true"
             />
-            <span class="u-sr-only">Cerrar</span>
+            <span class="u-sr-only">{{ t('common.close') }}</span>
           </button>
         </header>
 
@@ -64,6 +64,9 @@
 <script setup>
 import { ref, useId } from 'vue'
 import { useFocusTrap } from '@/composables/useFocusTrap'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 // La raíz de este componente es un `<Teleport>`, y Vue no hereda atributos en un
 // Teleport: sin esto, la `class` que le pase quien lo use se PIERDE en silencio.

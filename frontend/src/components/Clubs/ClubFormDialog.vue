@@ -3,12 +3,12 @@
        y pie ordenado, igual que en los cuatro modales propios. -->
   <BaseModal
     v-model="visible"
-    title="Nuevo club"
+    :title="t('clubForm.title')"
     class="club-form-dialog"
   >
     <div class="club-form-dialog__body">
       <div class="club-form-dialog__field">
-        <label for="club-name">Nombre</label>
+        <label for="club-name">{{ t('clubForm.name') }}</label>
         <InputText
           id="club-name"
           v-model="name"
@@ -18,7 +18,7 @@
       </div>
 
       <div class="club-form-dialog__field">
-        <label for="club-description">Descripción (opcional)</label>
+        <label for="club-description">{{ t('clubForm.description') }}</label>
         <Textarea
           id="club-description"
           v-model="description"
@@ -32,8 +32,7 @@
            los que invite. No hay interruptor en Privacidad que lo gobierne. -->
       <p class="club-form-dialog__notice">
         <i class="pi pi-info-circle" />
-        Quien entre en el club verá el progreso de los demás sobre el ítem
-        activo, y ellos el suyo. Se deja de compartir saliendo del club.
+        {{ t('clubForm.notice') }}
       </p>
     </div>
 
@@ -43,7 +42,7 @@
         class="btn btn--ghost"
         @click="visible = false"
       >
-        Cancelar
+        {{ t('common.cancel') }}
       </button>
       <button
         type="button"
@@ -51,7 +50,7 @@
         :disabled="!canSubmit"
         @click="submit"
       >
-        Crear
+        {{ t('clubForm.create') }}
       </button>
     </template>
   </BaseModal>
@@ -62,6 +61,9 @@ import { computed, ref } from 'vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false }

@@ -53,13 +53,13 @@
       <div
         v-if="isInLibrary"
         class="library-badge"
-        title="En tu biblioteca"
+        :title="t('common.inLibrary')"
       >
         <i
           class="fas fa-bookmark"
           aria-hidden="true"
         />
-        <span class="u-sr-only">En tu biblioteca</span>
+        <span class="u-sr-only">{{ t('common.inLibrary') }}</span>
       </div>
       
       <!-- Badge de status si existe (para compatibilidad) -->
@@ -83,6 +83,9 @@
 import { computed, defineProps, defineEmits, ref } from 'vue';
 import { useMoviesStore } from '@/store/movies';
 import CoverService from '@/services/CoverService';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   movie: {

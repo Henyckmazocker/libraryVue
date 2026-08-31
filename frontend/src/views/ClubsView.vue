@@ -3,7 +3,7 @@
     <div class="clubs-view__header">
       <h1 class="clubs-view__title">
         <i class="pi pi-users" />
-        Mis clubs
+        {{ t('clubs.mine') }}
       </h1>
 
       <button
@@ -12,7 +12,7 @@
         @click="openCreate"
       >
         <i class="pi pi-plus" />
-        Nuevo club
+        {{ t('clubs.new') }}
       </button>
     </div>
 
@@ -27,7 +27,7 @@
     <EmptyState
       v-else-if="!hasClubs"
       icon="pi pi-users"
-      title="Todavía no estás en ningún club"
+      :title="t('clubs.emptyAll')"
       message="Un club es un grupo de amigos con un mismo libro, película, juego, álbum o vídeo a la vez."
     />
 
@@ -56,7 +56,7 @@
             class="clubs-view__guest"
           >
             <i class="pi pi-user" />
-            Te invitaron
+            {{ t('clubs.invited') }}
           </span>
         </span>
       </RouterLink>
@@ -87,6 +87,9 @@ import { storeToRefs } from 'pinia'
 import { useClubsStore } from '@/store/clubs'
 import ClubFormDialog from '@/components/Clubs/ClubFormDialog.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const clubsStore = useClubsStore()
 const { clubs, isLoading, error } = storeToRefs(clubsStore)

@@ -3,21 +3,21 @@
     <div class="tracker-header">
       <h3 class="tracker-title">
         <i class="fas fa-layer-group" />
-        Progreso de temporadas
+        {{ t('seasons.title') }}
       </h3>
       <div class="tracker-summary">
         <span class="progress-text">
-          {{ watchedCount }} / {{ totalSeasons }} temporada{{ totalSeasons !== 1 ? 's' : '' }} vista{{ watchedCount !== 1 ? 's' : '' }}
+          {{ t('seasons.watched', { done: watchedCount, total: totalSeasons }) }}
         </span>
         <button
           v-if="watchedCount < totalSeasons"
           class="btn btn--secondary btn--sm mark-all-btn"
           :disabled="isSaving"
-          title="Marcar todas como vistas"
+          :title="t('seasons.markAll')"
           @click="markAllViewed"
         >
           <i class="fas fa-check-double" />
-          Marcar todas
+          {{ t('seasons.markAll') }}
         </button>
       </div>
 
@@ -43,7 +43,7 @@
         @click="toggleSeason(n)"
       >
         <div class="season-number">
-          T{{ n }}
+          {{ t('seasons.short', { n }) }}
         </div>
         <div class="season-status-icon">
           <i :class="seasonIcon(n)" />
@@ -61,7 +61,7 @@
         class="season-editor"
       >
         <div class="editor-header">
-          <span><i class="fas fa-edit" /> Temporada {{ editing }}</span>
+          <span><i class="fas fa-edit" /> {{ t('seasons.editing', { n: editing }) }}</span>
           <button
             class="btn btn--ghost btn--icon btn--sm close-btn"
             @click="closeEditor"
@@ -77,7 +77,7 @@
             <span
               id="season-status-label"
               class="field-label"
-            >Estado</span>
+            >{{ t('seasons.status') }}</span>
             <div
               class="status-options"
               role="group"
@@ -97,7 +97,7 @@
 
           <!-- Fecha -->
           <div class="field-group">
-            <label for="season-date-input">Fecha de finalización</label>
+            <label for="season-date-input">{{ t('seasons.finishedOn') }}</label>
             <input
               id="season-date-input"
               v-model="editForm.dateViewed"
@@ -108,7 +108,7 @@
 
           <!-- Rating -->
           <div class="field-group">
-            <span class="field-label">Valoración</span>
+            <span class="field-label">{{ t('seasons.rating') }}</span>
             <RatingComponent
               :rating="editForm.personalRating"
               :editable="true"
@@ -119,7 +119,7 @@
 
           <!-- Notas -->
           <div class="field-group">
-            <label for="season-notes-input">Notas</label>
+            <label for="season-notes-input">{{ t('seasons.notes') }}</label>
             <textarea
               id="season-notes-input"
               v-model="editForm.notes"
@@ -142,7 +142,7 @@
               class="btn btn--ghost cancel-btn"
               @click="closeEditor"
             >
-              Cancelar
+              {{ t('common.cancel') }}
             </button>
           </div>
         </div>
@@ -152,7 +152,7 @@
           v-if="episodes[editing]"
           class="episodes-list"
         >
-          <h4><i class="fas fa-list" /> Episodios</h4>
+          <h4><i class="fas fa-list" /> {{ t('seasons.episodes') }}</h4>
           <div
             v-for="ep in episodes[editing]"
             :key="ep.Episode"
@@ -186,6 +186,9 @@
 import { ref, computed, watch } from 'vue';
 import { useAuthStore } from '@/store/auth';
 import RatingComponent from '@/components/common/RatingComponent.vue';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   imdbId:      { type: String, required: true },

@@ -6,7 +6,7 @@
       class="lastfm-state"
     >
       <i class="fas fa-spinner fa-spin" />
-      <span>Buscando en Last.fm…</span>
+      <span>{{ t('lastfmCard.searching') }}</span>
     </div>
 
     <!-- Not found on Last.fm -->
@@ -15,7 +15,7 @@
       class="lastfm-state lastfm-state--muted"
     >
       <i class="fas fa-search" />
-      <span>Este álbum no se encontró en Last.fm</span>
+      <span>{{ t('lastfmCard.notFound') }}</span>
     </div>
 
     <!-- Error -->
@@ -36,18 +36,18 @@
       <div class="lastfm-stats-row">
         <div class="lastfm-stat">
           <span class="lastfm-stat__value">{{ formatNumber(info.listeners) }}</span>
-          <span class="lastfm-stat__label">Oyentes</span>
+          <span class="lastfm-stat__label">{{ t('lastfmCard.listeners') }}</span>
         </div>
         <div class="lastfm-stat">
           <span class="lastfm-stat__value">{{ formatNumber(info.playcount) }}</span>
-          <span class="lastfm-stat__label">Reproducciones globales</span>
+          <span class="lastfm-stat__label">{{ t('lastfmCard.globalPlays') }}</span>
         </div>
         <div
           v-if="info.userplaycount !== null && info.userplaycount !== undefined"
           class="lastfm-stat lastfm-stat--personal"
         >
           <span class="lastfm-stat__value">{{ formatNumber(info.userplaycount) }}</span>
-          <span class="lastfm-stat__label">Tus plays</span>
+          <span class="lastfm-stat__label">{{ t('lastfmCard.yourPlays') }}</span>
         </div>
       </div>
 
@@ -72,9 +72,8 @@
         class="lastfm-configure-note"
       >
         <router-link to="/profile">
-          Configura tu usuario de Last.fm
-        </router-link>
-        para ver cuántas veces has escuchado este álbum.
+          {{ t('lastfmCard.configureLink') }}
+        </router-link>{{ t('lastfmCard.configureAfter') }}
       </p>
 
       <!-- Wiki summary -->
@@ -94,7 +93,7 @@
         class="lastfm-external-link"
       >
         <i class="fas fa-external-link-alt" />
-        Ver en Last.fm
+        {{ t('lastfmCard.viewOn') }}
       </a>
     </div>
   </div>
@@ -103,6 +102,7 @@
 <script>
 import { computed, onMounted, watch } from 'vue'
 import { useListeningStats } from '@/composables/useListeningStats'
+import { useI18n } from '@/composables/useI18n'
 
 export default {
   name: 'AlbumLastFmCard',
@@ -114,6 +114,7 @@ export default {
 
   setup(props) {
     const { stats, isLoading, error, hasLastFmUsername, fetchStats } = useListeningStats()
+    const { t } = useI18n()
 
     const info = computed(() => stats.value?.data ?? null)
 
@@ -134,7 +135,7 @@ export default {
     onMounted(() => load())
     watch(() => [props.artistName, props.albumName], () => load())
 
-    return { info, isLoading, error, hasLastFmUsername, formatNumber }
+    return { t, info, isLoading, error, hasLastFmUsername, formatNumber }
   }
 }
 </script>

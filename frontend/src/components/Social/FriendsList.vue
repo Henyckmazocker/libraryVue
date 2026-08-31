@@ -5,7 +5,7 @@
       class="friends-list__empty"
     >
       <i class="pi pi-users" />
-      <p>Todavía no tienes amigos. ¡Busca usuarios y envía solicitudes!</p>
+      <p>{{ t('social.noFriends') }}</p>
     </div>
 
     <div
@@ -57,6 +57,9 @@
 
 <script setup>
 import Button from 'primevue/button'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 defineProps({
   friends: { type: Array, default: () => [] }

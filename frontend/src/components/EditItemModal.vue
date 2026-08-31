@@ -31,13 +31,13 @@
         v-if="itemType === 'book'"
         class="edit-modal__field"
       >
-        <label for="total-pages-input">Total de páginas</label>
+        <label for="total-pages-input">{{ t('edit.totalPages') }}</label>
         <input
           id="total-pages-input"
           v-model.number="localTotalPages"
           type="number"
           min="1"
-          placeholder="Nº total de páginas del libro"
+          :placeholder="t('edit.totalPagesPlaceholder')"
           class="edit-modal__input"
         >
       </div>
@@ -64,14 +64,14 @@
         v-if="ownershipFormats.length > 0"
         class="edit-modal__field"
       >
-        <label for="ownership-format">Formato de Propiedad</label>
+        <label for="ownership-format">{{ t('edit.ownershipFormat') }}</label>
         <select
           id="ownership-format"
           v-model="localOwnershipFormatId"
           class="edit-modal__input"
         >
           <option :value="null">
-            — Sin especificar —
+            {{ t('edit.unspecified') }}
           </option>
           <option
             v-for="fmt in ownershipFormats"
@@ -90,36 +90,36 @@
       class="edit-modal__section edit-modal__section--card"
     >
       <h3 class="edit-modal__section-title">
-        Detalles del juego
+        {{ t('edit.gameDetails') }}
       </h3>
 
       <div class="edit-modal__grid">
         <div class="edit-modal__field">
-          <label for="hours-played">Horas jugadas</label>
+          <label for="hours-played">{{ t('edit.hoursPlayed') }}</label>
           <input
             id="hours-played"
             v-model.number="localHoursPlayed"
             type="number"
             min="0"
             step="0.5"
-            placeholder="Horas jugadas"
+            :placeholder="t('edit.hoursPlayed')"
             class="edit-modal__input"
           >
         </div>
 
         <div class="edit-modal__field">
-          <label for="platform-played">Plataforma</label>
+          <label for="platform-played">{{ t('edit.platform') }}</label>
           <input
             id="platform-played"
             v-model="localPlatformPlayed"
             type="text"
-            placeholder="PC, PS5, Xbox, etc."
+            :placeholder="t('edit.platformPlaceholder')"
             class="edit-modal__input"
           >
         </div>
 
         <div class="edit-modal__field">
-          <label for="date-started">Fecha de inicio</label>
+          <label for="date-started">{{ t('edit.startedOn') }}</label>
           <input
             id="date-started"
             v-model="localDateStarted"
@@ -129,7 +129,7 @@
         </div>
 
         <div class="edit-modal__field">
-          <label for="date-finished">Fecha de finalización</label>
+          <label for="date-finished">{{ t('edit.finishedOn') }}</label>
           <input
             id="date-finished"
             v-model="localDateFinished"
@@ -140,7 +140,7 @@
       </div>
 
       <div class="edit-modal__field">
-        <label for="personal-notes">Notas personales</label>
+        <label for="personal-notes">{{ t('edit.personalNotes') }}</label>
         <textarea
           id="personal-notes"
           v-model="localPersonalNotes"
@@ -157,11 +157,11 @@
       class="edit-modal__section edit-modal__section--card"
     >
       <h3 class="edit-modal__section-title">
-        Detalles del vídeo
+        {{ t('edit.videoDetails') }}
       </h3>
 
       <div class="edit-modal__field">
-        <label for="video-personal-notes">Notas personales</label>
+        <label for="video-personal-notes">{{ t('edit.personalNotes') }}</label>
         <textarea
           id="video-personal-notes"
           v-model="localPersonalNotes"
@@ -178,11 +178,11 @@
       class="edit-modal__section edit-modal__section--card"
     >
       <h3 class="edit-modal__section-title">
-        Detalles del álbum
+        {{ t('edit.albumDetails') }}
       </h3>
 
       <div class="edit-modal__field">
-        <label for="favorite-track">Canción favorita</label>
+        <label for="favorite-track">{{ t('edit.favouriteTrack') }}</label>
         <select
           v-if="albumTracks && albumTracks.length > 0"
           id="favorite-track"
@@ -190,7 +190,7 @@
           class="edit-modal__input"
         >
           <option value="">
-            — Ninguna —
+            {{ t('edit.favouriteTrackNone') }}
           </option>
           <option
             v-for="track in albumTracks"
@@ -205,13 +205,13 @@
           id="favorite-track"
           v-model="localFavoriteTrack"
           type="text"
-          placeholder="Tu canción favorita del álbum"
+          :placeholder="t('edit.favouriteTrackPlaceholder')"
           class="edit-modal__input"
         >
       </div>
 
       <div class="edit-modal__field">
-        <label for="album-date-started">Primera escucha</label>
+        <label for="album-date-started">{{ t('edit.firstListen') }}</label>
         <input
           id="album-date-started"
           v-model="localDateStarted"
@@ -221,7 +221,7 @@
       </div>
 
       <div class="edit-modal__field">
-        <label for="album-personal-notes">Notas personales</label>
+        <label for="album-personal-notes">{{ t('edit.personalNotes') }}</label>
         <textarea
           id="album-personal-notes"
           v-model="localPersonalNotes"
@@ -275,7 +275,7 @@
         :disabled="isSaving"
         @click="$emit('close')"
       >
-        Cancelar
+        {{ t('common.cancel') }}
       </button>
       <button
         type="button"
@@ -309,6 +309,9 @@ import { useAlbums } from '@/composables/useAlbums'
 import { useItemEdit } from '@/composables/useItemEdit'
 import { useUIStore } from '@/store/ui'
 import Logger from '@/utils/logger'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   item: {

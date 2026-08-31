@@ -35,13 +35,13 @@
       <div
         v-if="isSaved && !isSelected"
         class="saved-badge"
-        title="Guardada en tu biblioteca"
+        :title="t('carousel.editionSaved')"
       >
         <i
           class="fas fa-bookmark"
           aria-hidden="true"
         />
-        <span class="u-sr-only">Guardada en tu biblioteca</span>
+        <span class="u-sr-only">{{ t('carousel.editionSaved') }}</span>
       </div>
     </div>
 
@@ -72,7 +72,7 @@
           class="metadata-item"
         >
           <i class="fas fa-file-alt" />
-          {{ edition.number_of_pages }} págs.
+          {{ t('carousel.pages', { n: edition.number_of_pages }) }}
         </span>
       </div>
 
@@ -88,7 +88,7 @@
         v-if="edition.isbn_13 || edition.isbn_10"
         class="edition-isbn"
       >
-        <strong>ISBN:</strong> {{ edition.isbn_13 || edition.isbn_10 }}
+        <strong>{{ t('carousel.isbn') }}</strong> {{ edition.isbn_13 || edition.isbn_10 }}
       </div>
 
       <div
@@ -106,6 +106,9 @@
 import { computed } from 'vue';
 import Logger from '@/utils/logger';
 import { getLanguageName } from '@/utils/languageConstants';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 /* eslint-disable no-undef */
 const props = defineProps({

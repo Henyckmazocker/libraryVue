@@ -1,6 +1,6 @@
 <template>
   <div class="form-group">
-    <label for="service-select">Selecciona el servicio:</label>
+    <label for="service-select">{{ t('importer.service') }}</label>
     <select 
       id="service-select" 
       v-model="selectedService" 
@@ -8,7 +8,7 @@
       @change="handleServiceChange"
     >
       <option value="">
-        -- Selecciona un servicio --
+        {{ t('importer.chooseService') }}
       </option>
       <option 
         v-for="service in services" 
@@ -54,6 +54,9 @@ const handleServiceChange = () => {
 
 // Watch for external changes
 import { watch } from 'vue';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 watch(() => props.modelValue, (newValue) => {
   selectedService.value = newValue;
 });

@@ -12,7 +12,7 @@
         v-if="currentStatuses.length === 0"
         class="no-status-text"
       >
-        Sin estados asignados
+        {{ t('edit.noStatuses') }}
       </span>
       <span 
         v-for="status in currentStatuses" 
@@ -29,6 +29,8 @@
       v-else-if="multiple && !readonly"
       v-model="selectedStatuses"
       :options="allowedStatuses"
+      :option-label="getStatusLabel"
+      :option-value="slugDe"
       :filter="true"
       :display="'chip'"
       :placeholder="placeholder"
@@ -62,6 +64,8 @@
       v-else-if="!multiple && !readonly"
       v-model="selectedStatus"
       :options="allowedStatuses"
+      :option-label="getStatusLabel"
+      :option-value="slugDe"
       :placeholder="placeholder"
       :style="containerStyle"
       append-to="body"
@@ -89,6 +93,7 @@
 import { ref, computed, defineProps, defineEmits, watch, onMounted } from 'vue';
 import MultiSelect from 'primevue/multiselect';
 import Dropdown from 'primevue/dropdown';
+import { useI18n } from '@/composables/useI18n';
 import Logger from '@/utils/logger';
 
 // Props
@@ -177,29 +182,23 @@ const onStatusChange = () => {
   onStatusesChange();
 };
 
-const getStatusLabel = (status) => {
-  // Mapeo de estados a etiquetas legibles
-  const statusLabels = {
-    'owned': 'En biblioteca',
-    'in watchlist': 'En lista de deseos',
-    'in-watchlist': 'En lista de deseos',
-    'viewed': 'Visto',
-    'watched': 'Visto',
-    'want-to-buy': 'Quiero comprarlo',
-    'abandoned': 'Abandonado',
-    'reading': 'Leyendo',
-    'read': 'Leído',
-    'to-read': 'Por leer',
-    'currently-reading': 'Leyendo actualmente',
-    'want-to-read': 'Quiero leer',
-    'dropped': 'Abandonada',
-    'completed': 'Completado',
-    'on-hold': 'En pausa',
-    'watching': 'Viendo ahora'
-  };
-  
-  return statusLabels[status] || status;
-};
+const { t, statusLabel } = useI18n();
+
+/**
+ * El slug de una opción. Cuatro de los cinco medios devuelven cadenas planas y
+ * **vídeos devuelve `[{id, name}]`** (comprobado contra el backend el 2026-08-31),
+ * así que hay que tolerar las dos formas. Arreglar el backend para que devuelva lo
+ * mismo es tentador y no es este plan.
+ */
+const slugDe = (opcion) => (typeof opcion === 'string' ? opcion : opcion?.name ?? opcion?.id);
+
+/**
+ * La etiqueta de un estado. **Una sola verdad**: sale del catálogo, como en
+ * `MediaListItem`, `StatsService` y `FeedEventCard`. Hasta el 2026-08-31 aquí vivía
+ * un mapa español a mano de 18 entradas que cubría 14 de los 28 estados reales e
+ * incluía tres que el backend no manda; se borró con el barrido de i18n.
+ */
+const getStatusLabel = (status) => statusLabel(status);
 
 const getStatusClass = (status) => {
   // Clases CSS según el tipo de estado

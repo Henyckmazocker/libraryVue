@@ -10,9 +10,9 @@
         style="font-size:2rem; opacity:.5;"
       />
       <p>
-        Configura tu usuario de Last.fm en tu <router-link to="/profile">
-          perfil
-        </router-link> para ver estadísticas de escucha.
+        {{ t('listening.needsUser.before') }}<router-link to="/profile">
+          {{ t('listening.needsUser.link') }}
+        </router-link>{{ t('listening.needsUser.after') }}
       </p>
     </div>
 
@@ -20,7 +20,7 @@
       <!-- Controls -->
       <div class="stats-controls">
         <div class="control-group">
-          <label for="listening-stats-type">Tipo</label>
+          <label for="listening-stats-type">{{ t('listening.typeLabel') }}</label>
           <select
             id="listening-stats-type"
             v-model="selectedType"
@@ -28,22 +28,22 @@
             @change="load"
           >
             <option value="user_info">
-              Resumen
+              {{ t('listening.type.user_info') }}
             </option>
             <option value="top_albums">
-              Top Álbumes
+              {{ t('listening.type.top_albums') }}
             </option>
             <option value="top_artists">
-              Top Artistas
+              {{ t('listening.type.top_artists') }}
             </option>
             <option value="top_tracks">
-              Top Canciones
+              {{ t('listening.type.top_tracks') }}
             </option>
             <option value="recent_tracks">
-              Recientes
+              {{ t('listening.type.recent_tracks') }}
             </option>
             <option value="loved_tracks">
-              Favoritas
+              {{ t('listening.type.loved_tracks') }}
             </option>
           </select>
         </div>
@@ -52,7 +52,7 @@
           v-if="showPeriod"
           class="control-group"
         >
-          <label for="listening-stats-period">Período</label>
+          <label for="listening-stats-period">{{ t('listening.periodLabel') }}</label>
           <select
             id="listening-stats-period"
             v-model="selectedPeriod"
@@ -60,22 +60,22 @@
             @change="load"
           >
             <option value="overall">
-              Todo el tiempo
+              {{ t('listening.period.overall') }}
             </option>
             <option value="12month">
-              Último año
+              {{ t('listening.period.12month') }}
             </option>
             <option value="6month">
-              6 meses
+              {{ t('listening.period.6month') }}
             </option>
             <option value="3month">
-              3 meses
+              {{ t('listening.period.3month') }}
             </option>
             <option value="1month">
-              1 mes
+              {{ t('listening.period.1month') }}
             </option>
             <option value="7day">
-              7 días
+              {{ t('listening.period.7day') }}
             </option>
           </select>
         </div>
@@ -94,7 +94,7 @@
         class="stats-loading"
       >
         <i class="fas fa-spinner fa-spin" />
-        <span>Cargando estadísticas de Last.fm…</span>
+        <span>{{ t('listening.loading') }}</span>
       </div>
 
       <!-- Error -->
@@ -113,19 +113,19 @@
       >
         <div class="user-info-stat">
           <span class="stat-value">{{ formatNumber(stats.data?.playcount) }}</span>
-          <span class="stat-label">Scrobbles</span>
+          <span class="stat-label">{{ t('listening.stats.scrobbles') }}</span>
         </div>
         <div class="user-info-stat">
           <span class="stat-value">{{ formatNumber(stats.data?.artist_count) }}</span>
-          <span class="stat-label">Artistas</span>
+          <span class="stat-label">{{ t('listening.stats.artists') }}</span>
         </div>
         <div class="user-info-stat">
           <span class="stat-value">{{ formatNumber(stats.data?.album_count) }}</span>
-          <span class="stat-label">Álbumes</span>
+          <span class="stat-label">{{ t('listening.stats.albums') }}</span>
         </div>
         <div class="user-info-stat">
           <span class="stat-value">{{ formatNumber(stats.data?.track_count) }}</span>
-          <span class="stat-label">Canciones</span>
+          <span class="stat-label">{{ t('listening.stats.tracks') }}</span>
         </div>
         <a
           v-if="stats.data?.url"
@@ -134,7 +134,7 @@
           rel="noopener noreferrer"
           class="lastfm-link"
         >
-          <i class="fas fa-external-link-alt" /> Ver perfil en Last.fm
+          <i class="fas fa-external-link-alt" /> {{ t('listening.profileLink') }}
         </a>
       </div>
 
@@ -184,14 +184,14 @@
               v-if="item.now_playing"
               class="now-playing-badge"
             >
-              <i class="fas fa-volume-up" /> Escuchando ahora
+              <i class="fas fa-volume-up" /> {{ t('listening.nowPlaying') }}
             </span>
           </div>
           <span
             v-if="item.playcount"
             class="item-playcount"
           >
-            {{ formatNumber(item.playcount) }} plays
+            {{ t('listening.plays', { n: formatNumber(item.playcount) }) }}
           </span>
           <span
             v-else-if="item.date_text && !item.now_playing"
@@ -205,7 +205,7 @@
       <EmptyState
         v-else-if="stats && !isLoading"
         icon="fas fa-music"
-        title="No hay datos disponibles para esta selección"
+        :title="t('listening.empty')"
       />
     </template>
   </div>
@@ -215,6 +215,7 @@
 import { ref, computed, onMounted } from 'vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { useListeningStats } from '@/composables/useListeningStats'
+import { useI18n } from '@/composables/useI18n'
 import StaleNotice from '@/components/shared/StaleNotice.vue'
 
 export default {
@@ -224,6 +225,7 @@ export default {
 
   setup() {
     const { stats, isLoading, error, stale, cachedAt, hasLastFmUsername, fetchStats } = useListeningStats()
+    const { t } = useI18n()
 
     const selectedType = ref('user_info')
     const selectedPeriod = ref('overall')
@@ -254,6 +256,7 @@ export default {
     })
 
     return {
+      t,
       stats,
       isLoading,
       error,

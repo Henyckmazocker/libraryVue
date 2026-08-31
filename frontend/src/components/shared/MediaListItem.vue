@@ -91,6 +91,7 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/composables/useI18n';
 import { ref, computed } from 'vue';
 import RatingComponent from '@/components/common/RatingComponent.vue';
 import { getMediaConfig, mediaKeys } from '@/config/mediaRegistry';
@@ -152,14 +153,16 @@ const subtitle = computed(() => config.value.list.subtitleOf(props.item));
 
 // `badgeOf` y `extraOf` solo existen en los medios que los usan.
 const badge = computed(() => config.value.list.badgeOf?.(props.item) ?? null);
+const { statusLabel } = useI18n();
+
 const extra = computed(() => config.value.list.extraOf?.(props.item) ?? null);
 
-// De las dos implementaciones que había, se toma la de AlbumListItem: acepta
-// `name`, `id` o `key` y cae a `label`, `name` o el propio valor.
-const getStatusLabel = (status) => {
-  const found = props.allowedStatuses.find(s => s.name === status || s.id === status || s.key === status);
-  return found?.label || found?.name || status;
-};
+// La etiqueta sale del catálogo, como en `StatusSelector`, `StatsService` y
+// `FeedEventCard`: una sola verdad. Lo que había antes buscaba en `allowedStatuses`
+// objetos con `{name, id, key}`, pero **cuatro de los cinco medios devuelven
+// cadenas planas**, así que ese `find` no casaba nunca y siempre caía al slug — que
+// es exactamente el inglés crudo que se veía en `/library`.
+const getStatusLabel = (status) => statusLabel(status);
 </script>
 
 <style scoped lang="scss">

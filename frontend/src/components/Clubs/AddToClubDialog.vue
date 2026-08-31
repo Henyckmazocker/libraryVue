@@ -3,7 +3,7 @@
        y pie ordenado, igual que en los cuatro modales propios. -->
   <BaseModal
     v-model="visible"
-    title="Ponerlo en un club"
+    :title="t('addToClub.title')"
     class="add-to-club-dialog"
   >
     <div class="add-to-club-dialog__body">
@@ -22,9 +22,7 @@
         v-else-if="elegibles.length === 0"
         class="add-to-club-dialog__state"
       >
-        No hay ningún club donde puedas poner esto ahora mismo. Se puede proponer
-        en los clubs que estén eligiendo, y elegir directamente solo en los que
-        organizas y no tengan ítem activo.
+        {{ t('addToClub.none') }}
       </p>
 
       <fieldset
@@ -32,7 +30,7 @@
         class="add-to-club-dialog__clubs"
       >
         <legend class="add-to-club-dialog__legend">
-          Elige el club
+          {{ t('addToClub.choose') }}
         </legend>
         <!-- Botones con `aria-pressed`, no `<div @click>`: las 20 reglas de
              accesibilidad están en `error` y esto es un selector de verdad. -->
@@ -70,7 +68,7 @@
         :disabled="isSaving"
         @click="visible = false"
       >
-        Cancelar
+        {{ t('common.cancel') }}
       </button>
       <button
         type="button"
@@ -93,6 +91,9 @@ import { computed, inject, onMounted, ref } from 'vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import { storeToRefs } from 'pinia'
 import { useClubsStore } from '@/store/clubs'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },

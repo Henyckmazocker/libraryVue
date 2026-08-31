@@ -4,8 +4,8 @@
     <button
       type="button"
       class="btn btn--primary btn--icon help-icon"
-      title="Ayuda y documentación"
-      aria-label="Abrir la ayuda y documentación"
+      :title="t('home.helpTitle')"
+      :aria-label="t('home.helpAria')"
       @click="openHelpPage"
     >
       <i class="fas fa-question-circle" />
@@ -14,18 +14,17 @@
     <!-- Hero Section -->
     <div class="hero-section">
       <h1 class="home-title">
-        Bienvenido a tu Biblioteca Personal
+        {{ t('home.title') }}
       </h1>
       <p class="home-description">
-        Organiza y gestiona tu colección de libros, películas y más desde un solo lugar.
-        Utiliza el menú lateral para navegar entre las diferentes secciones.
+        {{ t('home.description') }}
       </p>
     </div>
 
     <!-- Quick Actions -->
     <div class="quick-actions">
       <h2 class="section-title">
-        Accesos Rápidos
+        {{ t('home.quickActions') }}
       </h2>
       <div class="action-grid">
         <router-link
@@ -33,8 +32,8 @@
           to="/library"
         >
           <i class="fas fa-bookmark" />
-          <h3>Mi Biblioteca</h3>
-          <p>Ver toda tu colección</p>
+          <h3>{{ t('home.cards.library') }}</h3>
+          <p>{{ t('home.cards.libraryHint') }}</p>
         </router-link>
         
         <router-link
@@ -42,8 +41,8 @@
           to="/books"
         >
           <i class="fas fa-search" />
-          <h3>Buscar Libros</h3>
-          <p>Encuentra nuevos libros</p>
+          <h3>{{ t('home.cards.books') }}</h3>
+          <p>{{ t('home.cards.booksHint') }}</p>
         </router-link>
         
         <router-link
@@ -51,8 +50,8 @@
           to="/movies"
         >
           <i class="fas fa-film" />
-          <h3>Buscar Películas</h3>
-          <p>Descubre nuevas películas</p>
+          <h3>{{ t('home.cards.movies') }}</h3>
+          <p>{{ t('home.cards.moviesHint') }}</p>
         </router-link>
         
         <router-link
@@ -60,14 +59,14 @@
           to="/games"
         >
           <i class="fas fa-gamepad" />
-          <h3>Buscar Videojuegos</h3>
-          <p>Explora nuevos juegos</p>
+          <h3>{{ t('home.cards.games') }}</h3>
+          <p>{{ t('home.cards.gamesHint') }}</p>
         </router-link>
         
         <div class="action-card action-card--disabled">
           <i class="fas fa-music" />
-          <h3>Música</h3>
-          <p>Próximamente</p>
+          <h3>{{ t('home.cards.music') }}</h3>
+          <p>{{ t('home.cards.musicHint') }}</p>
         </div>
       </div>
     </div>
@@ -79,7 +78,7 @@
         @click="saveBooksToBackend"
       >
         <i class="fas fa-sync-alt" />
-        <span>Sincronizar con servidor</span>
+        <span>{{ t('home.sync') }}</span>
       </button>
     </div>
   </div>
@@ -89,6 +88,9 @@
 import { useAuthStore } from '@/store/auth';
 // import { useAuth } from '@/composables'; // Por ahora mantener authStore.apiCall
 import Logger from '@/utils/logger';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const authStore = useAuthStore();
 // const { authenticatedApiCall } = useAuth(); // Por ahora mantener authStore.apiCall

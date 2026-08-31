@@ -76,19 +76,19 @@
       >
         <div class="public-profile-view__stat">
           <span class="public-profile-view__stat-value">{{ profile.stats.books ?? 0 }}</span>
-          <span class="public-profile-view__stat-label">Libros</span>
+          <span class="public-profile-view__stat-label">{{ t('library.filters.books') }}</span>
         </div>
         <div class="public-profile-view__stat">
           <span class="public-profile-view__stat-value">{{ profile.stats.movies ?? 0 }}</span>
-          <span class="public-profile-view__stat-label">Películas</span>
+          <span class="public-profile-view__stat-label">{{ t('library.filters.movies') }}</span>
         </div>
         <div class="public-profile-view__stat">
           <span class="public-profile-view__stat-value">{{ profile.stats.games ?? 0 }}</span>
-          <span class="public-profile-view__stat-label">Juegos</span>
+          <span class="public-profile-view__stat-label">{{ t('library.filters.games') }}</span>
         </div>
         <div class="public-profile-view__stat">
           <span class="public-profile-view__stat-value">{{ profile.stats.albums ?? 0 }}</span>
-          <span class="public-profile-view__stat-label">Álbumes</span>
+          <span class="public-profile-view__stat-label">{{ t('library.filters.albums') }}</span>
         </div>
       </div>
 
@@ -101,7 +101,7 @@
       >
         <h2 class="public-profile-view__lists-title">
           <i class="pi pi-list" />
-          Listas públicas
+          {{ t('lists.public') }}
         </h2>
 
         <div class="public-profile-view__lists-grid">
@@ -118,7 +118,7 @@
               class="public-profile-view__list-description"
             >{{ list.description }}</span>
             <span class="public-profile-view__list-count">
-              {{ list.item_count }} {{ list.item_count === 1 ? 'ítem' : 'ítems' }}
+              {{ t('library.itemCount', { n: list.item_count }) }}
             </span>
           </RouterLink>
         </div>
@@ -137,6 +137,9 @@ import { useAuthStore } from '@/store/auth'
 import { useSocialStore } from '@/store/social'
 import { storeToRefs } from 'pinia'
 import { useListsStore } from '@/store/lists'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const route = useRoute()
 const toast = useToast()

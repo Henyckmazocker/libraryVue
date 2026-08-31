@@ -43,7 +43,7 @@
     <EmptyState
       v-if="sinResultados"
       :icon="config.emptyIcon || 'fas fa-magnifying-glass'"
-      title="No se encontraron resultados"
+      :title="t('search.noResults')"
       message="Prueba con otras palabras, o con menos."
     />
 
@@ -59,7 +59,7 @@
       class="results-section"
     >
       <h2 class="results-title">
-        Resultados de búsqueda ({{ results.length }})
+        {{ t('search.resultsTitle', { n: results.length }) }}
       </h2>
       <HorizontalCarousel>
         <component
@@ -82,6 +82,9 @@ import StaleNotice from '@/components/shared/StaleNotice.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import { getMediaConfig, mediaKeys } from '@/config/mediaRegistry';
 import Logger from '@/utils/logger';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 // Props
 // eslint-disable-next-line no-undef

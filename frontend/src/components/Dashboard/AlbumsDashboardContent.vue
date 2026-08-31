@@ -6,7 +6,7 @@
         class="btn btn--primary"
       >
         <i class="fas fa-music" />
-        Ver Mi Biblioteca de Música
+        {{ t('dashboard.viewLibrary.albums') }}
       </router-link>
     </div>
 
@@ -15,7 +15,7 @@
       class="loading-container"
     >
       <i class="fas fa-spinner fa-spin" />
-      <p>Cargando estadísticas de álbumes...</p>
+      <p>{{ t('dashboard.loading.albums') }}</p>
     </div>
 
     <div
@@ -28,7 +28,7 @@
         class="btn btn--primary"
         @click="loadAlbumStats"
       >
-        Reintentar
+        {{ t('common.retry') }}
       </button>
     </div>
 
@@ -42,7 +42,7 @@
           <i
             class="fas fa-headphones u-brand-lastfm"
           />
-          Estadísticas de Escucha (Last.fm)
+          {{ t('dashboard.listeningStats') }}
         </h3>
         <ListeningStats />
       </div>
@@ -74,6 +74,9 @@ import {
   createChartConfigs,
   extractMockStats
 } from '@/composables/useDashboardCharts';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 ChartJS.register(
   Title, Tooltip, Legend, ArcElement,

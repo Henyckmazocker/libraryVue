@@ -13,15 +13,15 @@
       class="statistics-section"
     >
       <div class="stat-item">
-        <span class="stat-label">Sesiones completadas:</span>
+        <span class="stat-label">{{ t('sessions.completed') }}</span>
         <span class="stat-value">{{ statistics.totalCompleted }}</span>
       </div>
       <div class="stat-item">
-        <span class="stat-label">Duración promedio:</span>
+        <span class="stat-label">{{ t('sessions.averageDuration') }}</span>
         <span class="stat-value">{{ statistics.averageDuration }}</span>
       </div>
       <div class="stat-item">
-        <span class="stat-label">Páginas totales leídas:</span>
+        <span class="stat-label">{{ t('sessions.totalPages') }}</span>
         <span class="stat-value">{{ statistics.totalPagesRead }}</span>
       </div>
     </div>
@@ -44,7 +44,7 @@
                   class="session-icon"
                   :style="{ color: getStatusColor(item.status) }"
                 />
-                <span class="session-number">Sesión #{{ item.sessionNumber }}</span>
+                <span class="session-number">{{ t('sessions.number', { n: item.sessionNumber }) }}</span>
               </div>
               <span
                 class="session-badge"
@@ -60,7 +60,7 @@
             <!-- Información principal en líneas -->
             <div class="info-line">
               <i class="fas fa-calendar-alt info-icon" />
-              <span class="info-label">Inicio:</span>
+              <span class="info-label">{{ t('sessions.start') }}</span>
               <span class="info-value">{{ formatDate(item.startedAt) }}</span>
             </div>
 
@@ -69,7 +69,7 @@
               class="info-line"
             >
               <i class="fas fa-calendar-check info-icon" />
-              <span class="info-label">Fin:</span>
+              <span class="info-label">{{ t('sessions.end') }}</span>
               <span class="info-value">{{ formatDate(item.completedAt) }}</span>
             </div>
 
@@ -78,7 +78,7 @@
               class="info-line"
             >
               <i class="fas fa-clock info-icon" />
-              <span class="info-label">Duración:</span>
+              <span class="info-label">{{ t('sessions.duration') }}</span>
               <span class="info-value">{{ item.duration }}</span>
             </div>
 
@@ -87,8 +87,8 @@
               class="info-line"
             >
               <i class="fas fa-bookmark info-icon" />
-              <span class="info-label">Progreso:</span>
-              <span class="info-value">{{ item.finalPage }} / {{ book.total_pages }} páginas ({{ item.progressPercentage }}%)</span>
+              <span class="info-label">{{ t('sessions.progress') }}</span>
+              <span class="info-value">{{ t('sessions.progressValue', { page: item.finalPage, total: book.total_pages, percent: item.progressPercentage }) }}</span>
             </div>
 
             <!-- Barra de progreso -->
@@ -112,7 +112,7 @@
             >
               <div class="notes-header">
                 <i class="fas fa-comment-alt" />
-                <span>Notas</span>
+                <span>{{ t('sessions.notes') }}</span>
               </div>
               <p class="notes-content">
                 {{ item.sessionNotes }}
@@ -126,7 +126,7 @@
             >
               <div class="updates-header">
                 <i class="fas fa-list-ul" />
-                <span>Actualizaciones de progreso ({{ item.progressUpdates.length }})</span>
+                <span>{{ t('sessions.progressUpdates', { n: item.progressUpdates.length }) }}</span>
               </div>
               <div class="updates-list">
                 <div
@@ -146,12 +146,12 @@
                   </div>
                   <div class="update-pages-line">
                     <span class="page-info">
-                      <span class="page-label">Pág. anterior:</span>
+                      <span class="page-label">{{ t('sessions.previousPage') }}</span>
                       <span class="page-number">{{ update.previous_page }}</span>
                     </span>
                     <i class="fas fa-arrow-right arrow-icon" />
                     <span class="page-info">
-                      <span class="page-label">Pág. actual:</span>
+                      <span class="page-label">{{ t('sessions.currentPage') }}</span>
                       <span class="page-number highlight">{{ update.current_page }}</span>
                     </span>
                     <span
@@ -179,7 +179,7 @@
     <EmptyState
       v-else
       icon="fas fa-book"
-      title="No hay sesiones de lectura registradas para este libro"
+      :title="t('sessions.empty')"
     />
 
     <template #footer>
@@ -187,7 +187,7 @@
         class="btn btn--ghost"
         @click="handleClose"
       >
-        <i class="fas fa-times" /> Cerrar
+        <i class="fas fa-times" /> {{ t('sessions.close') }}
       </button>
     </template>
   </BaseModal>
@@ -201,6 +201,9 @@ import BaseModal from '@/components/common/BaseModal.vue'
 import Logger from '@/utils/logger'
 import Accordion from 'primevue/accordion'
 import AccordionTab from 'primevue/accordiontab'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   book: {

@@ -32,7 +32,7 @@
           class="metadata-item"
         >
           <i class="fas fa-music" />
-          {{ item.total_tracks || item.totalTracks }} pistas
+          {{ t('album.tracks', { n: item.total_tracks || item.totalTracks }) }}
         </span>
         <span
           v-if="item.label"
@@ -54,14 +54,14 @@
         v-if="item.popularity"
         class="album-popularity"
       >
-        <span class="popularity-label">Popularidad:</span>
+        <span class="popularity-label">{{ t('album.popularity') }}</span>
         <div class="popularity-bar-container">
           <div
             class="popularity-bar"
             :style="{ width: item.popularity + '%' }"
           />
         </div>
-        <span class="popularity-value">{{ item.popularity }}/100</span>
+        <span class="popularity-value">{{ t('album.popularityValue', { n: item.popularity }) }}</span>
       </div>
 
       <div
@@ -91,7 +91,7 @@
           class="spotify-link"
         >
           <i class="fab fa-spotify" />
-          Abrir en Spotify
+          {{ t('album.openSpotify') }}
         </a>
       </div>
     </template>
@@ -103,7 +103,7 @@
           <i
             class="fas fa-headphones u-brand-lastfm"
           />
-          Last.fm
+          {{ t('brand.lastfm') }}
         </h2>
         <AlbumLastFmCard
           :artist-name="artistName(item)"
@@ -118,7 +118,7 @@
       >
         <h2 class="section-title">
           <i class="fas fa-list-ul" />
-          Pistas
+          {{ t('album.tracksTitle') }}
         </h2>
         <div class="tracks-list">
           <div
@@ -140,6 +140,9 @@
 import MediaDetailView from '@/views/shared/MediaDetailView.vue';
 import AlbumLastFmCard from '@/components/Albums/AlbumLastFmCard.vue';
 import { useAlbumsStore } from '@/store/albums';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 /**
  * Ficha de álbum. El esqueleto —estados, cabecera, formulario de biblioteca,

@@ -1,6 +1,7 @@
 import Logger from '@/utils/logger';
 import { useAuthStore } from '@/store/auth.js';
 import { categoricalPalette, foldToOther, entityColor, chartInk } from '@/config/chartTheme';
+import { statusLabel } from '@/config/i18n';
 
 /**
  * Service para interactuar con la API de estadísticas
@@ -147,8 +148,15 @@ class StatsService {
       };
     }
 
+    // Las claves de `statusStats` son los slugs que manda el backend. Se traducen
+    // AQUÍ, al construir las etiquetas de la gráfica, y no antes: el agrupado y el
+    // filtrado siguen yendo por slug. Es el mismo `statusLabel` que el selector, la
+    // fila de la biblioteca y la tarjeta del feed — una sola verdad.
+    //
+    // Y se traduce ANTES de `foldToOther` para que el corte de «Otros» se decida
+    // sobre lo que se va a leer, no sobre el slug.
     const { labels, data } = foldToOther(
-      Object.keys(statusStats),
+      Object.keys(statusStats).map(statusLabel),
       Object.values(statusStats)
     );
 

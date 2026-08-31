@@ -5,7 +5,7 @@
       class="feed-list__empty"
     >
       <i class="pi pi-users" />
-      <p>Añade amigos para ver su actividad aquí</p>
+      <p>{{ t('social.feedEmpty') }}</p>
     </div>
 
     <div class="feed-list__items">
@@ -32,7 +32,7 @@
       v-if="!feedHasMore && feed.length > 0"
       class="feed-list__end"
     >
-      No hay más eventos
+      {{ t('social.feedEnd') }}
     </p>
   </div>
 </template>
@@ -40,6 +40,9 @@
 <script setup>
 import FeedEventCard from './FeedEventCard.vue'
 import { useFeed } from '@/composables/useFeed'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const { feed, feedHasMore, feedLoading, sentinel } = useFeed()
 </script>

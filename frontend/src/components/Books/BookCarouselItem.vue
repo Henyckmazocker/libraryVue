@@ -35,13 +35,13 @@
       <div
         v-if="isInLibrary"
         class="library-badge"
-        title="En tu biblioteca"
+        :title="t('common.inLibrary')"
       >
         <i
           class="fas fa-bookmark"
           aria-hidden="true"
         />
-        <span class="u-sr-only">En tu biblioteca</span>
+        <span class="u-sr-only">{{ t('common.inLibrary') }}</span>
       </div>
       
       <!-- Badge de status si existe (para compatibilidad) -->
@@ -67,6 +67,9 @@
 <script setup>
 import { computed, defineProps, defineEmits } from 'vue';
 import { useBooksStore } from '@/store/books';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   book: {

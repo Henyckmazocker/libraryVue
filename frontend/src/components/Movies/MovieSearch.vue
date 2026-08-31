@@ -9,7 +9,7 @@
       :error="errorTrending"
       type="movies"
       :item-component="MovieCarouselItem"
-      title="Películas Populares"
+      :title="t('search.popularMovies')"
       subtitle="Las películas más populares en nuestra comunidad"
       @item-click="handleTrendingClick"
     />
@@ -21,7 +21,7 @@
       :error="errorTrending"
       type="movies"
       :item-component="MovieCarouselItem"
-      title="Series Populares"
+      :title="t('search.popularSeries')"
       subtitle="Las series más populares en nuestra comunidad"
       @item-click="handleTrendingClick"
     />
@@ -41,6 +41,9 @@ import { useMoviesStore } from '@/store/movies';
 import { useUIStore } from '@/store/ui';
 import { storeToRefs } from 'pinia';
 import Logger from '@/utils/logger';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 // Router
 const router = useRouter();

@@ -6,16 +6,15 @@
     <p class="club-round__phase">
       <template v-if="isProposing">
         <i class="pi pi-pencil" />
-        Estáis proponiendo. Van <strong>{{ round.proposals.length }}</strong>
-        {{ round.proposals.length === 1 ? 'propuesta' : 'propuestas' }}.
+        {{ t('round.proposing') }}<strong>{{ t('round.proposalCount', { n: round.proposals.length }) }}</strong>
       </template>
       <template v-else>
         <i class="pi pi-chart-bar" />
-        Estáis votando{{ round.ballot > 1 ? ' el desempate' : '' }}.
+        {{ round.ballot > 1 ? t('round.votingTiebreak') : t('round.voting') }}
         <strong v-if="round.pendingVoters > 0">
-          Faltan {{ round.pendingVoters }} por votar.
+          {{ t('round.pending', { n: round.pendingVoters }) }}
         </strong>
-        <strong v-else>Han votado todos.</strong>
+        <strong v-else>{{ t('round.allVoted') }}</strong>
       </template>
     </p>
 
@@ -34,7 +33,7 @@
       v-if="round.proposals.length === 0"
       class="club-round__empty"
     >
-      Nadie ha propuesto nada todavía.
+      {{ t('round.empty') }}
     </p>
 
     <ul
@@ -59,13 +58,13 @@
             {{ proposal.entity_title || proposal.entity_id }}
           </span>
           <span class="club-round__by">
-            Lo propone {{ nameOf(proposal.user_id) }}
+            {{ t('round.proposedBy', { name: nameOf(proposal.user_id) }) }}
           </span>
           <span
             v-if="proposal.eliminated"
             class="club-round__by"
           >
-            Eliminada en el desempate
+            {{ t('round.eliminated') }}
           </span>
         </div>
 
@@ -109,7 +108,7 @@
       :to="{ name: 'Home' }"
     >
       <i class="pi pi-search" />
-      Buscar algo que proponer
+      {{ t('round.propose') }}
     </RouterLink>
 
     <!-- Las dos válvulas del dueño, separadas del resto: no son otra acción
@@ -120,7 +119,7 @@
       class="club-round__valves"
     >
       <p class="club-round__valves-title">
-        Si alguien no participa, puedes seguir tú
+        {{ t('round.valves') }}
       </p>
 
       <button
@@ -131,7 +130,7 @@
         @click="$emit('open-vote')"
       >
         <i class="pi pi-play" />
-        Abrir el voto con lo que hay
+        {{ t('round.openVote') }}
       </button>
 
       <button
@@ -142,7 +141,7 @@
         @click="$emit('close-vote')"
       >
         <i class="pi pi-flag" />
-        Cerrar la votación
+        {{ t('round.closeVote') }}
       </button>
     </div>
   </div>
@@ -152,6 +151,9 @@
 import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import CoverService from '@/services/CoverService'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   /** El bloque `round` de `get_club`, tal cual llega. */

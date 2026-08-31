@@ -7,7 +7,7 @@
         @click="router.push({ name: 'Lists' })"
       >
         <i class="fas fa-arrow-left" />
-        <span>Mis listas</span>
+        <span>{{ t('lists.mine') }}</span>
       </button>
     </div>
 
@@ -46,7 +46,7 @@
               <i :class="VISIBILITY[current.visibility].icon" />
               {{ VISIBILITY[current.visibility].label }}
             </span>
-            <span>{{ items.length }} {{ items.length === 1 ? 'ítem' : 'ítems' }}</span>
+            <span>{{ t('library.itemCount', { n: items.length }) }}</span>
           </p>
         </div>
 
@@ -62,7 +62,7 @@
             @click="showEdit = true"
           >
             <i class="pi pi-pencil" />
-            <span class="u-sr-only">Editar la lista</span>
+            <span class="u-sr-only">{{ t('lists.edit') }}</span>
           </button>
           <button
             type="button"
@@ -70,7 +70,7 @@
             @click="confirmDelete"
           >
             <i class="pi pi-trash" />
-            <span class="u-sr-only">Borrar la lista</span>
+            <span class="u-sr-only">{{ t('lists.delete') }}</span>
           </button>
         </div>
       </header>
@@ -78,7 +78,7 @@
       <EmptyState
         v-if="items.length === 0"
         icon="pi pi-inbox"
-        title="Esta lista todavía está vacía"
+        :title="t('lists.empty')"
         message="Añade ítems desde la ficha de un libro, película, juego, álbum o vídeo."
       />
 
@@ -104,7 +104,7 @@
       >
         <h2 class="list-detail__collaborators-title">
           <i class="pi pi-users" />
-          Colaboran
+          {{ t('lists.collaborators') }}
           <button
             v-if="isOwner"
             type="button"
@@ -112,7 +112,7 @@
             @click="showInvite = true"
           >
             <i class="pi pi-user-plus" />
-            Invitar
+            {{ t('lists.invite') }}
           </button>
         </h2>
 
@@ -120,7 +120,7 @@
           v-if="collaborators.length === 0"
           class="list-detail__collaborators-empty"
         >
-          Todavía no colabora nadie.
+          {{ t('lists.noCollaborators') }}
         </p>
 
         <ul
@@ -194,6 +194,9 @@ import ListFormDialog from '@/components/Lists/ListFormDialog.vue'
 import InviteCollaboratorDialog from '@/components/Lists/InviteCollaboratorDialog.vue'
 import { useAuthStore } from '@/store/auth'
 import { VISIBILITY } from '@/components/Lists/visibility'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   // Llega por `props: true` de la ruta, así que es una cadena.

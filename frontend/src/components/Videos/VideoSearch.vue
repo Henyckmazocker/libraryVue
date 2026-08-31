@@ -11,7 +11,7 @@
       :error="errorTrending"
       type="videos"
       :item-component="VideoCarouselItem"
-      title="Vídeos Recientes"
+      :title="t('search.recentVideos')"
       subtitle="Vídeos añadidos recientemente por la comunidad"
       @item-click="handleTrendingClick"
     />
@@ -29,6 +29,9 @@ import { useAuthStore } from '@/store/auth';
 import { useTrending } from '@/composables/useTrending';
 import { storeToRefs } from 'pinia';
 import Logger from '@/utils/logger';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const router = useRouter();
 const videosStore = useVideosStore();

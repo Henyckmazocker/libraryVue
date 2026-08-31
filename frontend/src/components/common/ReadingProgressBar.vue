@@ -1,8 +1,8 @@
 <template>
   <div class="reading-progress-container">
     <div class="progress-header">
-      <span class="progress-label">Progreso de lectura</span>
-      <span class="progress-text">{{ currentPage || 0 }} / {{ totalPages || 0 }} páginas ({{ progressPercentage }}%)</span>
+      <span class="progress-label">{{ t('progress.reading') }}</span>
+      <span class="progress-text">{{ t('progress.pages', { current: currentPage || 0, total: totalPages || 0, percent: progressPercentage }) }}</span>
     </div>
     
     <!-- Interactive progress bar/slider -->
@@ -31,7 +31,7 @@
         :max="totalPages || 100"
         :value="localCurrentPage"
         :disabled="saving"
-        aria-label="Página actual"
+        :aria-label="t('progress.currentPage')"
         :title="`Arrastra para cambiar la página (0-${totalPages || 100})`"
         @input="updateCurrentPageFromSlider"
       >
@@ -45,7 +45,7 @@
         <label
           for="current-page-input"
           class="page-label"
-        >Página actual:</label>
+        >{{ t('progress.currentPageLabel') }}</label>
         <input 
           id="current-page-input"
           type="number" 
@@ -71,6 +71,9 @@
 import { computed, ref, watch, defineExpose } from 'vue';
 import { defineProps, defineEmits } from 'vue';
 import Logger from '@/utils/logger';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   currentPage: {

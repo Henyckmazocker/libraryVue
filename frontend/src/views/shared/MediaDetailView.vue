@@ -20,7 +20,7 @@
           class="fas fa-share"
           aria-hidden="true"
         />
-        <span>Recomendar</span>
+        <span>{{ t('recommend.action') }}</span>
       </button>
 
       <!-- Añadir a una lista. Solo con sesión: las once acciones de listas
@@ -34,7 +34,7 @@
           class="fas fa-list-ul"
           aria-hidden="true"
         />
-        <span>Añadir a lista</span>
+        <span>{{ t('lists.addToList') }}</span>
       </button>
 
       <!-- Ponerlo como ítem de un club. Solo con sesión, como los otros dos, y
@@ -49,7 +49,7 @@
           class="fas fa-users"
           aria-hidden="true"
         />
-        <span>Ponerlo en un club</span>
+        <span>{{ t('addToClub.title') }}</span>
       </button>
     </div>
 
@@ -297,6 +297,9 @@ import { useAuthStore } from '@/store/auth'
 import { useUIStore } from '@/store/ui'
 import { useConfirmationModal } from '@/composables/useConfirmationModal'
 import Logger from '@/utils/logger'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 /**
  * Ficha de detalle única para los cinco medios.

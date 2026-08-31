@@ -44,13 +44,13 @@
       <div
         v-if="isInLibrary"
         class="library-badge"
-        title="En tu biblioteca"
+        :title="t('common.inLibrary')"
       >
         <i
           class="fas fa-bookmark"
           aria-hidden="true"
         />
-        <span class="u-sr-only">En tu biblioteca</span>
+        <span class="u-sr-only">{{ t('common.inLibrary') }}</span>
       </div>
 
       <!-- Album type badge -->
@@ -63,7 +63,7 @@
           :class="albumTypeIcon"
           aria-hidden="true"
         />
-        <span class="u-sr-only">Tipo: {{ albumType }}</span>
+        <span class="u-sr-only">{{ t('carousel.albumType', { type: albumType }) }}</span>
       </div>
     </div>
 
@@ -81,7 +81,7 @@
         v-if="album.popularity"
         class="album-popularity"
       >
-        <span class="popularity-label">Popularidad:</span>
+        <span class="popularity-label">{{ t('album.popularity') }}</span>
         <span class="popularity-bar">
           <span
             class="popularity-fill"
@@ -97,6 +97,9 @@
 import { computed, ref } from 'vue';
 import { useAlbumsStore } from '@/store/albums';
 import CoverService from '@/services/CoverService';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   album: {

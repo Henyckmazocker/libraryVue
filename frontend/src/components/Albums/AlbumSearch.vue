@@ -11,7 +11,7 @@
       :error="errorTrending"
       type="albums"
       :item-component="AlbumCarouselItem"
-      title="Álbumes Populares"
+      :title="t('search.popularAlbums')"
       subtitle="Los álbumes más populares en nuestra comunidad"
       @item-click="handleTrendingClick"
     />
@@ -29,6 +29,9 @@ import { useAuthStore } from '@/store/auth';
 import { useTrending } from '@/composables/useTrending';
 import { storeToRefs } from 'pinia';
 import Logger from '@/utils/logger';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const router = useRouter();
 const albumsStore = useAlbumsStore();

@@ -24,7 +24,7 @@
       <span
         v-else-if="axis"
         class="club-progress__point club-progress__point--none"
-      >Sin empezar</span>
+      >{{ t('clubProgress.notStarted') }}</span>
 
       <!-- Sin eje, la marca es binaria y no hay número que enseñar. -->
       <span
@@ -40,7 +40,7 @@
       <span
         v-if="member.completed"
         class="u-sr-only"
-      >Lo ha terminado</span>
+      >{{ t('clubProgress.finished') }}</span>
     </li>
   </ul>
 </template>
@@ -48,6 +48,9 @@
 <script setup>
 import { computed } from 'vue'
 import { mediaRegistry, mediaKeys } from '@/config/mediaRegistry'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   /**

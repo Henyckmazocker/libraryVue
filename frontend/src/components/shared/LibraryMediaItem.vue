@@ -118,7 +118,7 @@
               v-else-if="saveButtonState === 'error'"
               class="fas fa-times"
             />
-            <span>Guardar</span>
+            <span>{{ t('common.save') }}</span>
           </button>
 
           <!-- Acciones propias de un medio: hoy solo el historial de libros. -->
@@ -155,7 +155,7 @@
               v-else-if="editButtonState === 'error'"
               class="fas fa-times"
             />
-            <span>Editar</span>
+            <span>{{ t('common.edit') }}</span>
           </button>
 
           <button
@@ -165,7 +165,7 @@
             @click="onDelete"
           >
             <i class="fas fa-trash" />
-            <span>Eliminar</span>
+            <span>{{ t('common.delete') }}</span>
           </button>
         </div>
       </div>
@@ -180,6 +180,9 @@ import StatusSelector from '@/components/common/StatusSelector.vue'
 import { getMediaConfig, mediaKeys } from '@/config/mediaRegistry'
 import CoverService from '@/services/CoverService'
 import Logger from '@/utils/logger'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 /**
  * Ficha de biblioteca única para los cinco medios.

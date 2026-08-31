@@ -4,7 +4,7 @@
       v-if="notes.length === 0"
       class="club-notes__empty"
     >
-      Todavía nadie ha escrito una nota pública sobre esto.
+      {{ t('clubNotes.empty') }}
     </p>
 
     <ul
@@ -19,7 +19,7 @@
       >
         <div class="club-notes__meta">
           <span class="club-notes__author">
-            {{ note.author }}<span v-if="note.isMine"> (tú)</span>
+            {{ note.author }}<span v-if="note.isMine">{{ t('clubNotes.mine') }}</span>
           </span>
           <!-- `atPoint` viaja aunque la nota esté oculta: decir «hay una nota en
                la página 180» no destripa nada, y es lo que da sentido a la
@@ -59,6 +59,9 @@
 <script setup>
 import { computed } from 'vue'
 import { mediaRegistry, mediaKeys } from '@/config/mediaRegistry'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   /** `'page'`, `'season'` o `null`. Lo manda resuelto el servidor. */

@@ -1,0 +1,660 @@
+# English catalogue. Mirrors `es.yaml` key by key: the parity barrier in
+# `tests/unit/i18n.spec.js` fails if either file grows a key the other hasn't got.
+
+common:
+  cancel: Cancel
+  save: Save
+  edit: Edit
+  delete: Delete
+  close: Close
+  add: Add
+  retry: Retry
+  accept: Accept
+  reject: Decline
+  dismiss: Dismiss
+  inLibrary: In your library
+  loading: "Loading {what}…"
+
+library:
+  title: My library
+  loading: Loading your library…
+  filters:
+    books: Books
+    movies: Movies
+    games: Games
+    albums: Albums
+    videos: Videos
+  import:
+    title: Import data
+    aria: Import data from a file
+  search:
+    aria: Search your library by title or author
+    placeholder: Search by title or author…
+  sort:
+    title: Title
+    author: Author
+    rating: Rating
+    date: Date
+  empty:
+    title: Your library is empty
+    message: Add something from the search pages.
+  itemCount:
+    one: "{n} item"
+    other: "{n} items"
+
+profile:
+  title: My profile
+  googleLinked: Account linked with Google
+  lastfm: Last.fm
+  lastfmDescription: "Link your Last.fm account to see listening stats: your most played albums, artists and tracks."
+  lastfmUsername: Last.fm username
+  lastfmPlaceholder: Your Last.fm username
+  saved: Username saved.
+  hintBefore: "You can find your username at "
+  hintLink: last.fm
+  hintAfter: ". Leave it blank to unlink."
+  language:
+    title: Language
+    hint: Remembered in this browser, not in your account.
+    label: Interface language
+
+# The 28 library statuses. The slug is the key and always travels in English:
+# translating is the client's job. Mind the pairs that share a Spanish wording but
+# not an English one — `dropped`/`abandoned`, `viewed`/`watched`, `on-hold`/`paused`.
+status:
+  "100-completed": 100 % completed
+  "abandoned": Abandoned
+  "backlog": Backlog
+  "completed": Completed
+  "dropped": Dropped
+  "favorite": Favourite
+  "in-watchlist": In watchlist
+  "in-wishlist": In wishlist
+  "listened": Listened
+  "listening": Listening
+  "on-hold": On hold
+  "owned": Owned
+  "paused": Paused
+  "played": Played
+  "playing": Playing
+  "re-listening": Re-listening
+  "re-reading": Re-reading
+  "re-watching": Re-watching
+  "read": Read
+  "reading": Reading
+  "saved": Saved
+  "to-read": To read
+  "viewed": Viewed
+  "want-to-buy": Want to buy
+  "want-to-listen": Want to listen
+  "want-to-watch": Want to watch
+  "watched": Watched
+  "watching": Watching
+
+# What tells one medium from another, lifted from `config/mediaRegistry.js`. The
+# registry reads them through getters so they follow the language switch.
+media:
+  noteTypes:
+    note: Note
+    review: Review
+    thought: Thought
+    quote: Quote
+    reflection: Reflection
+    question: Question
+    summary: Summary
+    progress: Progress
+    general: General
+  book:
+    fields:
+      page: Page
+      author: Author
+      publisher: Publisher
+      publicationDate: Publication date
+      format: Format
+      history: History
+      historyTitle: View reading history
+    label: Book
+    coverAlt: Book cover
+    statusLabel: Status
+    emptyText: No book information found
+    notesTitle: Edition notes
+  movie:
+    fields:
+      seen: Seen
+      originalTitle: Original title
+      director: Director
+      year: Year
+      imdbId: IMDb ID
+      format: Format
+    label: Movie
+    coverAlt: Movie poster
+    statusLabel: Status
+    emptyText: No movie information found
+    notesTitle: Movie notes
+  game:
+    fields:
+      completed: Completed
+      originalTitle: Original title
+      developer: Developer
+      publisher: Publisher
+      released: Released
+      platforms: Platforms
+      genres: Genres
+      metacritic: Metacritic
+      rawgId: RAWG ID
+      hoursPlayed: Hours played
+      startedOn: Started on
+      finishedOn: Finished on
+      notes: Notes
+      format: Format
+    label: Game
+    coverAlt: Game cover
+    statusLabel: Status
+    emptyText: No game information found
+    notesTitle: Game notes
+  album:
+    fields:
+      listened: Listened
+      artist: Artist
+      released: Released
+      genres: Genres
+      label: Label
+      tracks: Tracks
+      duration: Duration
+      spotifyId: Spotify ID
+      favouriteTrack: Favourite track
+      firstListen: First listen
+      lastListen: Last listen
+      notes: Notes
+      format: Format
+    label: Album
+    coverAlt: Album cover
+    statusLabel: Status
+    emptyText: No album information found
+    notesTitle: Album notes
+  video:
+    fields:
+      seen: Seen
+      channel: Channel
+      duration: Duration
+      published: Published
+      youtubeId: YouTube ID
+      timesWatched: Times watched
+      notes: Notes
+    label: Video
+    coverAlt: Video thumbnail
+    statusLabel: Status
+    emptyText: No video information found
+    notesTitle: Video notes
+  series:
+    fields:
+      season: Season
+    label: Series
+    statusLabel: Status
+    emptyText: No series information found
+
+listening:
+  needsUser:
+    before: "Set your Last.fm username in your "
+    link: profile
+    after: " to see listening stats."
+  typeLabel: Type
+  periodLabel: Period
+  loading: Loading Last.fm stats…
+  profileLink: View profile on Last.fm
+  nowPlaying: Now playing
+  plays: "{n} plays"
+  empty: No data available for this selection
+  type:
+    user_info: Overview
+    top_albums: Top albums
+    top_artists: Top artists
+    top_tracks: Top tracks
+    recent_tracks: Recent
+    loved_tracks: Loved
+  period:
+    overall: All time
+    "12month": Last year
+    "6month": 6 months
+    "3month": 3 months
+    "1month": 1 month
+    "7day": 7 days
+  stats:
+    scrobbles: Scrobbles
+    artists: Artists
+    albums: Albums
+    tracks: Tracks
+
+edit:
+  totalPages: Total pages
+  totalPagesPlaceholder: Total number of pages
+  ownershipFormat: Ownership format
+  unspecified: — Unspecified —
+  gameDetails: Game details
+  videoDetails: Video details
+  albumDetails: Album details
+  hoursPlayed: Hours played
+  platform: Platform
+  platformPlaceholder: PC, PS5, Xbox, etc.
+  startedOn: Started on
+  finishedOn: Finished on
+  personalNotes: Personal notes
+  favouriteTrack: Favourite track
+  favouriteTrackNone: — None —
+  favouriteTrackPlaceholder: Your favourite track from the album
+  firstListen: First listen
+  noStatuses: No statuses assigned
+
+movie:
+  seasons:
+    one: "{n} season"
+    other: "{n} seasons"
+  imdb: "IMDb:"
+  imdbScore: "{n}/10"
+  metaScore: "{n}/100"
+  votes: "({n} votes)"
+  metascore: "Metascore:"
+  imdbId: "IMDb ID:"
+  plot: Plot
+  crew: Cast and crew
+  actors: "Actors:"
+  writer: "Writer:"
+  awards: Awards and nominations
+  production: Production and release
+  productionCompany: "Production:"
+  boxOffice: "Box office:"
+  released: "Released:"
+  dvd: "DVD:"
+  website: "Website:"
+  type: "Type:"
+  links: External links
+  viewOnImdb: View on IMDb
+
+editions:
+  title: Available editions
+  showFilters: Show filters
+  hideFilters: Hide filters
+  language: Language
+  allLanguages: All languages
+  year: Year
+  yearFromAria: Published from year
+  yearFrom: From
+  yearToAria: Published to year
+  yearTo: To
+  publisher: Publisher
+  allPublishers: All publishers
+  format: Format
+  allFormats: All formats
+  clearFilters: Clear filters
+  loading: Loading editions…
+  retry: Retry
+  empty: No editions found with the selected filters
+  scrollLeft: Scroll left
+  scrollRight: Scroll right
+
+club:
+  back: Back to my clubs
+  watching: What we're on
+  finish: Mark as finished
+  finishedBy: "{done} of {total} have finished it"
+  nothingActive: This club has nothing active right now.
+  nothingActiveOwner: Pick the next one from any item's page.
+  round: What we're reading next
+  progress: Where everyone is
+  notes: What people wrote
+  noticeBefore: "These are the members' "
+  noticePublic: public
+  noticeAfter: " notes. Posting a note for the club also posts it to your friends' feed."
+  members: "Members ({n})"
+  owner: Owner
+  invite: Invite a friend
+  leave: Leave the club
+  finished: "Finished ({n})"
+
+series:
+  tvShow: TV series
+  createdBy: "Created by {name}"
+  runtimePerEpisode: "{n} / ep."
+  awards: Awards
+  viewOn: View on
+
+# Nombres de marca. Van al catálogo aunque digan lo mismo en los dos idiomas: el
+# plan lo pide por escrito —«un nombre propio en plantilla es una cadena como
+# cualquier otra»— y así la regla de lint del M5 no necesita excepciones para ellos.
+brand:
+  imdb: IMDb
+  lastfm: Last.fm
+
+home:
+  helpTitle: Help and documentation
+  helpAria: Open help and documentation
+  title: Welcome to your Personal Library
+  description: Organise and manage your collection of books, movies and more in one place. Use the side menu to move between sections.
+  quickActions: Quick actions
+  sync: Sync with server
+  cards:
+    library: My library
+    libraryHint: See your whole collection
+    books: Search books
+    booksHint: Find new books
+    movies: Search movies
+    moviesHint: Discover new movies
+    games: Search games
+    gamesHint: Explore new games
+    music: Music
+    musicHint: Coming soon
+
+sessions:
+  completed: "Sessions completed:"
+  averageDuration: "Average duration:"
+  totalPages: "Total pages read:"
+  number: "Session #{n}"
+  start: "Start:"
+  end: "End:"
+  duration: "Duration:"
+  progress: "Progress:"
+  progressValue: "{page} / {total} pages ({percent} %)"
+  notes: Notes
+  progressUpdates: "Progress updates ({n})"
+  previousPage: "Previous page:"
+  currentPage: "Current page:"
+  empty: No reading sessions recorded for this book
+  close: Close
+
+notes:
+  new: New note
+  loading: Loading notes…
+  page: "Page {n}"
+  public: Public
+  edit: Edit
+  editAria: Edit note
+  delete: Delete
+  deleteAria: Delete note
+  edited: "(edited {date})"
+  empty: No notes yet
+  pageLabel: Page
+  typeLabel: Note type
+  contentLabel: Content
+  privateLabel: Private note
+
+seasons:
+  title: Season progress
+  watched: "{done} / {total} watched"
+  markAll: Mark all as watched
+  short: "S{n}"
+  editing: "Season {n}"
+  status: Status
+  finishedOn: Finished on
+  rating: Rating
+  notes: Notes
+  episodes: Episodes
+
+round:
+  proposing: "You're proposing. There are "
+  proposalCount:
+    one: "{n} proposal."
+    other: "{n} proposals."
+  voting: You're voting.
+  votingTiebreak: You're voting the tie-break.
+  pending: "{n} still to vote."
+  allVoted: Everyone has voted.
+  empty: Nobody has proposed anything yet.
+  proposedBy: "Proposed by {name}"
+  eliminated: Knocked out in the tie-break
+  propose: Find something to propose
+  valves: If someone isn't taking part, you can move it on
+  openVote: Open the vote with what there is
+  closeVote: Close the vote
+
+book:
+  by: "by {name}"
+  pages: "{n} pages"
+  isbn: "ISBN:"
+  isbn10: " • ISBN-10: {n}"
+  description: Description
+  subjects: Subjects
+  links: External links
+  googlePreview: Preview on Google Books
+  googleInfo: More on Google Books
+  openLibrary: View on OpenLibrary
+  classifications: Classifications
+  lc: "LC:"
+
+history:
+  title: Progress history
+  subtitle: A record of how you're getting through this book
+  sessions: Sessions
+  pagesRead: Pages read
+  perSession: Average/session
+  perDay: Pages/day
+  loading: Loading history…
+  range: "Pages {from} → {to}"
+  advanced: "+{n} pages"
+  empty: No progress history yet
+
+game:
+  by: "by {name}"
+  ratingOutOf: "{n} / 5"
+  ratingsCount: "{n} ratings"
+  screenshots: Screenshots
+  description: Description
+  links: External links
+  additional: Additional information
+  ratingsCountLabel: "Number of ratings:"
+  playtimeLabel: "Average playtime:"
+  playtimeValue: "{n} hours"
+  metacriticLabel: "Metacritic score:"
+
+lastfmCard:
+  searching: Searching Last.fm…
+  notFound: This album wasn't found on Last.fm
+  listeners: Listeners
+  globalPlays: Global plays
+  yourPlays: Your plays
+  configureLink: Set your Last.fm username
+  configureAfter: " to see how many times you've played this album."
+  viewOn: View on Last.fm
+
+dashboard:
+  title: Stats
+  subtitle: A summary of your personal library
+  listeningStats: Listening stats (Last.fm)
+  loading:
+    books: Loading book stats…
+    movies: Loading film stats…
+    games: Loading game stats…
+    albums: Loading album stats…
+    videos: Loading video stats…
+  viewLibrary:
+    books: See my book library
+    movies: See my film library
+    games: See my game library
+    albums: See my music library
+    videos: See my video library
+
+recommend:
+  title: Recommend to a friend
+  aboutToBefore: "You're recommending "
+  noFriends: You have no friends to recommend to yet.
+  chooseWho: Choose who
+  comment: Comment (optional)
+  send: Send
+  action: Recommend
+
+header:
+  appName: Personal Library
+  signInGoogle: Sign in with Google
+  lists: My lists
+  clubs: My clubs
+  avatarAlt: User
+  signOut: Sign out
+
+lists:
+  mine: My lists
+  edit: Edit list
+  delete: Delete list
+  empty: This list is still empty
+  collaborators: Collaborators
+  invite: Invite
+  noCollaborators: Nobody is collaborating yet.
+  addToList: Add to a list
+  create: Create
+  inviteCollaborator: Invite a collaborator
+  new: New list
+  emptyAll: You have no lists yet
+  sharedWithYou: Shared with you
+  public: Public lists
+  removeItem: Remove {title} from the list
+  thisItem: this item
+
+reading:
+  activeSession: "Active session #{n}"
+  startedAt: "Started: {date}"
+  percentComplete: "{n} % complete"
+  completedTimes:
+    one: "Completed {n} time"
+    other: "Completed {n} times"
+  viewHistory: View session history
+
+clubForm:
+  title: New club
+  name: Name
+  description: Description (optional)
+  notice: Anyone who joins will see the others' progress on the active item, and they'll see theirs. Leaving the club stops the sharing.
+  create: Create
+
+clubInvite:
+  title: Invite to the club
+  hint: Whoever accepts will see the others' progress on the active item, and they'll see theirs. Leaving the club stops the sharing.
+  none: You have no friends to invite who aren't already in the club.
+  chooseWho: Choose who
+  invite: Invite
+
+album:
+  tracks: "{n} tracks"
+  popularity: "Popularity:"
+  popularityValue: "{n}/100"
+  openSpotify: Open in Spotify
+  tracksTitle: Tracks
+
+addToList:
+  aboutToBefore: "You're adding "
+  none: You have no list you can edit. Create one from «My lists».
+  chooseList: Choose the list
+
+listInvite:
+  hint: Whoever accepts will be able to add and remove items. Renaming or deleting the list stays yours.
+  none: You have no friends to invite who aren't collaborating already.
+  chooseWho: Choose who
+  invite: Invite
+
+visibility:
+  private:
+    label: Private
+    hint: Only you can see it.
+  public:
+    label: Public
+    hint: Any registered user can see it from your profile. Only you can edit it.
+  collaborative:
+    label: Collaborative
+    hint: The people you invite can see and edit it. It is not public.
+
+listForm:
+  titleEdit: Edit list
+  titleNew: New list
+  name: Name
+  description: Description (optional)
+  whoSees: Who sees it
+  losesCollaborators: When it stops being collaborative, its collaborators will lose access.
+
+carousel:
+  albumType: "Type: {type}"
+  editionSaved: Saved in your library
+  pages: "{n} pp."
+  isbn: "ISBN:"
+  platform: "Platform: {name}"
+  rating: "Rating:"
+  ratingValue: "{n} / 5"
+  scrollLeft: Scroll left
+  scrollRight: Scroll right
+  emptyTrending: No trending content available
+
+search:
+  popularBooks: Popular books
+  popularMovies: Popular films
+  popularSeries: Popular series
+  popularGames: Popular games
+  popularAlbums: Popular albums
+  recentVideos: Recent videos
+  noResults: No results found
+  resultsTitle: "Search results ({n})"
+
+addToClub:
+  title: Put it in a club
+  none: There is no club where you can put this right now. You can propose in clubs that are choosing, and pick directly only in the ones you organise that have no active item.
+  choose: Choose the club
+
+clubs:
+  mine: My clubs
+  new: New club
+  emptyAll: You are not in any club yet
+  invited: You were invited
+
+clubProgress:
+  notStarted: Not started
+  finished: Finished it
+
+clubNotes:
+  empty: Nobody has written a public note about this yet.
+  mine: " (you)"
+
+inbox:
+  title: Recommendations
+  empty: You have no pending recommendations
+  invitesYou: invites you to collaborate on
+  inviteHint: If you accept, you will be able to add and remove items. Renaming or deleting it stays with whoever created it.
+  recommendsYou: recommends you
+
+social:
+  feedEmpty: Add friends to see their activity here
+  feedEnd: No more events
+  noRequests: You have no pending requests
+  wantsToBeFriend: wants to be your friend
+  noFriends: You have no friends yet. Search for users and send requests!
+  friends: Friends
+  noUsersFound: No users found
+  privacyTitle: Privacy settings
+  privacyIntro: Choose which of your activity your friends see in their feed. Whatever you switch off here stops showing, even though it stays recorded.
+
+importer:
+  title: Import data
+  file: "Backup file:"
+  service: "Choose the service:"
+  chooseService: -- Choose a service --
+  run: Import
+
+progress:
+  reading: Reading progress
+  pages: "{current} / {total} pages ({percent}%)"
+  currentPage: Current page
+  currentPageLabel: "Current page:"
+
+sidebar:
+  loading: Loading menu…
+  error: Could not load the menu
+
+tags:
+  addNew: Add a new tag
+  addNewPlaceholder: Add a new tag…
+
+notFound:
+  code: "404"
+  title: Page not found
+  message: The page you are looking for does not exist or has been moved.
+  back: Back to home
+
+video:
+  openYouTube: Watch on YouTube
+  openYouTubeAria: Watch this video on YouTube
+  views: "{n} views"
+  description: Description

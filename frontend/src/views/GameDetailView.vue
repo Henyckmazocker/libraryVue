@@ -9,7 +9,7 @@
         class="game-developer-large"
       >
         <i class="fas fa-code" />
-        <span>por {{ joinNames(item.developers) || item.developer }}</span>
+        <span>{{ t('game.by', { name: joinNames(item.developers) || item.developer }) }}</span>
       </div>
 
       <div class="game-metadata">
@@ -45,14 +45,14 @@
           class="rating-display"
         >
           <i class="fas fa-star" />
-          <span>{{ item.rating }} / 5</span>
+          <span>{{ t('game.ratingOutOf', { n: item.rating }) }}</span>
         </div>
         <div
           v-if="item.ratings_count"
           class="rating-count"
         >
           <i class="fas fa-users" />
-          <span>{{ formatNumber(item.ratings_count) }} valoraciones</span>
+          <span>{{ t('game.ratingsCount', { n: formatNumber(item.ratings_count) }) }}</span>
         </div>
       </div>
 
@@ -98,7 +98,7 @@
       >
         <h2 class="section-title">
           <i class="fas fa-images" />
-          Capturas de Pantalla
+          {{ t('game.screenshots') }}
         </h2>
         <div class="screenshots-grid">
           <img
@@ -119,7 +119,7 @@
       >
         <h2 class="section-title">
           <i class="fas fa-align-left" />
-          Descripción
+          {{ t('game.description') }}
         </h2>
         <!-- eslint-disable vue/no-v-html -- saneado con utils/sanitize.js -->
         <div
@@ -135,7 +135,7 @@
       >
         <h2 class="section-title">
           <i class="fas fa-external-link-alt" />
-          Enlaces Externos
+          {{ t('game.links') }}
         </h2>
         <div class="external-links">
           <a
@@ -158,26 +158,26 @@
       >
         <h2 class="section-title">
           <i class="fas fa-info-circle" />
-          Información Adicional
+          {{ t('game.additional') }}
         </h2>
         <div class="additional-info-content">
           <div
             v-if="item.ratings_count"
             class="info-item"
           >
-            <strong>Número de valoraciones:</strong> {{ formatNumber(item.ratings_count) }}
+            <strong>{{ t('game.ratingsCountLabel') }}</strong> {{ formatNumber(item.ratings_count) }}
           </div>
           <div
             v-if="item.playtime"
             class="info-item"
           >
-            <strong>Tiempo de juego promedio:</strong> {{ item.playtime }} horas
+            <strong>{{ t('game.playtimeLabel') }}</strong> {{ t('game.playtimeValue', { n: item.playtime }) }}
           </div>
           <div
             v-if="item.metacritic_score || item.metacriticScore"
             class="info-item"
           >
-            <strong>Puntuación Metacritic:</strong> {{ item.metacritic_score || item.metacriticScore }}
+            <strong>{{ t('game.metacriticLabel') }}</strong> {{ item.metacritic_score || item.metacriticScore }}
           </div>
         </div>
       </div>
@@ -189,6 +189,9 @@
 import MediaDetailView from '@/views/shared/MediaDetailView.vue';
 import { useGamesStore } from '@/store/games';
 import { sanitizeRich } from '@/utils/sanitize';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 /**
  * Ficha de juego. El esqueleto —estados, cabecera, formulario de biblioteca,

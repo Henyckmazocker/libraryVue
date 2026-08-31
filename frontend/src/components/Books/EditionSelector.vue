@@ -3,7 +3,7 @@
     <div class="section-header">
       <h2 class="section-title">
         <i class="fas fa-layer-group" />
-        Ediciones Disponibles
+        {{ t('editions.title') }}
       </h2>
     </div>
 
@@ -15,7 +15,7 @@
         @click="toggleFilters"
       >
         <i class="fas fa-filter" />
-        <span>{{ showFilters ? 'Ocultar' : 'Mostrar' }} Filtros</span>
+        <span>{{ showFilters ? t('editions.hideFilters') : t('editions.showFilters') }}</span>
         <i
           class="fas"
           :class="showFilters ? 'fa-chevron-up' : 'fa-chevron-down'"
@@ -34,7 +34,7 @@
               for="edition-filter-language"
             >
               <i class="fas fa-globe" />
-              Idioma
+              {{ t('editions.language') }}
             </label>
             <select
               id="edition-filter-language"
@@ -42,7 +42,7 @@
               class="filter-select"
             >
               <option value="">
-                Todos los idiomas
+                {{ t('editions.allLanguages') }}
               </option>
               <option
                 v-for="lang in availableLanguages"
@@ -63,14 +63,14 @@
               class="filter-label"
             >
               <i class="fas fa-calendar" />
-              Año de publicación
+              {{ t('editions.year') }}
             </span>
             <div class="year-range-inputs">
               <input 
                 v-model.number="filters.yearFrom" 
                 type="number" 
-                aria-label="Año de publicación desde"
-                placeholder="Desde"
+                :aria-label="t('editions.yearFromAria')"
+                :placeholder="t('editions.yearFrom')"
                 min="1000"
                 :max="currentYear"
                 class="filter-input"
@@ -79,8 +79,8 @@
               <input 
                 v-model.number="filters.yearTo" 
                 type="number" 
-                aria-label="Año de publicación hasta"
-                placeholder="Hasta"
+                :aria-label="t('editions.yearToAria')"
+                :placeholder="t('editions.yearTo')"
                 min="1000"
                 :max="currentYear"
                 class="filter-input"
@@ -95,7 +95,7 @@
               for="edition-filter-publisher"
             >
               <i class="fas fa-building" />
-              Editorial
+              {{ t('editions.publisher') }}
             </label>
             <select
               id="edition-filter-publisher"
@@ -103,7 +103,7 @@
               class="filter-select"
             >
               <option value="">
-                Todas las editoriales
+                {{ t('editions.allPublishers') }}
               </option>
               <option
                 v-for="pub in availablePublishers"
@@ -122,7 +122,7 @@
               for="edition-filter-format"
             >
               <i class="fas fa-bookmark" />
-              Formato
+              {{ t('editions.format') }}
             </label>
             <select
               id="edition-filter-format"
@@ -130,7 +130,7 @@
               class="filter-select"
             >
               <option value="">
-                Todos los formatos
+                {{ t('editions.allFormats') }}
               </option>
               <option
                 v-for="fmt in availableFormats"
@@ -149,7 +149,7 @@
               @click="clearFilters"
             >
               <i class="fas fa-times-circle" />
-              Limpiar filtros
+              {{ t('editions.clearFilters') }}
             </button>
           </div>
         </div>
@@ -162,7 +162,7 @@
       class="loading-state"
     >
       <i class="fas fa-spinner fa-spin" />
-      <p>Cargando ediciones...</p>
+      <p>{{ t('editions.loading') }}</p>
     </div>
 
     <!-- Error -->
@@ -177,7 +177,7 @@
         @click="loadEditions"
       >
         <i class="fas fa-redo" />
-        Reintentar
+        {{ t('editions.retry') }}
       </button>
     </div>
 
@@ -185,14 +185,14 @@
     <EmptyState
       v-else-if="filteredEditions.length === 0"
       icon="fas fa-inbox"
-      title="No se encontraron ediciones con los filtros seleccionados"
+      :title="t('editions.empty')"
     >
       <button
         v-if="hasActiveFilters"
         class="btn btn--ghost btn--sm clear-filters-btn"
         @click="clearFilters"
       >
-        Limpiar filtros
+        {{ t('editions.clearFilters') }}
       </button>
     </EmptyState>
 
@@ -205,7 +205,7 @@
         <button 
           v-if="canScrollLeft" 
           class="carousel-nav-btn left" 
-          aria-label="Scroll left"
+          :aria-label="t('editions.scrollLeft')"
           @click="scrollLeft"
         >
           <i class="fas fa-chevron-left" />
@@ -233,7 +233,7 @@
         <button 
           v-if="canScrollRight" 
           class="carousel-nav-btn right" 
-          aria-label="Scroll right"
+          :aria-label="t('editions.scrollRight')"
           @click="scrollRight"
         >
           <i class="fas fa-chevron-right" />
@@ -250,8 +250,11 @@ import EditionCarouselItem from './EditionCarouselItem.vue';
 import { useWorkSearch } from '@/composables/useWorkSearch';
 import { getLanguageName } from '@/utils/languageConstants';
 import Logger from '@/utils/logger';
+import { useI18n } from '@/composables/useI18n'
 
 /* eslint-disable no-undef */
+const { t } = useI18n()
+
 const props = defineProps({
   workKey: {
     type: String,

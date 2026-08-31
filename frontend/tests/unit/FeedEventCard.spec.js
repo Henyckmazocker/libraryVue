@@ -117,7 +117,10 @@ describe('FeedEventCard — los eventos que decían «undefined»', () => {
       metadata: { old_status: 'wishlist', new_status: 'owned' }
     }))
 
-    expect(w.text()).toContain('cambió de estado a "owned"')
+    // Traducido desde el 2026-08-31: el feed usa el MISMO `statusLabel` que el
+    // selector y la fila de la biblioteca, no un segundo mapa. Lo que este test
+    // protege sigue siendo lo mismo — que no diga «undefined».
+    expect(w.text()).toContain('cambió de estado a "En propiedad"')
     expect(w.text()).not.toContain('undefined')
   })
 

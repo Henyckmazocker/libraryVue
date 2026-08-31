@@ -4,7 +4,7 @@
        importación en marcha sin nada que la enseñe. -->
   <BaseModal
     :model-value="show"
-    title="Importar datos"
+    :title="t('importer.title')"
     icon="fas fa-upload"
     size="lg"
     :dismissible="!isImporting"
@@ -42,7 +42,7 @@
         <!-- `.btn--icon` exige nombre accesible, y este pie no tenía ninguno.
              La etiqueta VISIBLE («Cancelar» / «Importar») la pone el M4 del
              plan de componentes, junto con el resto del pie. -->
-        <span class="u-sr-only">Cancelar</span>
+        <span class="u-sr-only">{{ t('common.cancel') }}</span>
       </button>
       <button 
         :disabled="!canImport" 
@@ -59,7 +59,7 @@
           class="fas fa-upload"
           aria-hidden="true"
         />
-        <span class="u-sr-only">Importar</span>
+        <span class="u-sr-only">{{ t('importer.run') }}</span>
       </button>
     </template>
   </BaseModal>
@@ -72,6 +72,9 @@ import ServiceSelector from './import/ServiceSelector.vue';
 import FileUploader from './import/FileUploader.vue';
 import ImportStatus from './import/ImportStatus.vue';
 import { useFileImport } from '@/composables/useFileImport';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 // Props
 const props = defineProps({

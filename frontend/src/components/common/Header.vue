@@ -7,7 +7,7 @@
         class="app-header__logo"
       >
         <i class="fas fa-book-open" />
-        <span class="app-header__title">Biblioteca Personal</span>
+        <span class="app-header__title">{{ t('header.appName') }}</span>
       </router-link>
     </div>
 
@@ -35,7 +35,7 @@
           @click="nativeSignIn"
         >
           <i class="fab fa-google" />
-          Iniciar sesión con Google
+          {{ t('header.signInGoogle') }}
         </button>
         <!-- Botón SDK web -->
         <div
@@ -62,7 +62,7 @@
           />
           <!-- El texto va en .u-sr-only y no en un aria-label: es la convención
                del proyecto para lo que solo existe como icono. -->
-          <span class="u-sr-only">Mis listas</span>
+          <span class="u-sr-only">{{ t('header.lists') }}</span>
         </router-link>
 
         <!-- Los clubs. Sin contador, como las listas: no hay nada que avisar. -->
@@ -76,7 +76,7 @@
           />
           <!-- El texto va en .u-sr-only y no en un aria-label: es la convención
                del proyecto para lo que solo existe como icono. -->
-          <span class="u-sr-only">Mis clubs</span>
+          <span class="u-sr-only">{{ t('header.clubs') }}</span>
         </router-link>
 
         <!-- La bandeja. El icono se pinta SIEMPRE y solo el contador aparece y
@@ -103,7 +103,7 @@
         <div class="app-header__user-menu">
           <img
             :src="user?.picture"
-            alt="Usuario"
+            :alt="t('header.avatarAlt')"
             class="app-header__user-avatar"
             loading="lazy"
             decoding="async"
@@ -111,8 +111,8 @@
           <span class="app-header__user-name">{{ user?.name }}</span>
           <button
             class="app-header__logout-btn"
-            title="Cerrar sesión"
-            aria-label="Cerrar sesión"
+            :title="t('header.signOut')"
+            :aria-label="t('header.signOut')"
             @click="handleLogout"
           >
             <i
@@ -147,6 +147,9 @@ import { useUIStore } from '@/store/ui';
 import { useInboxStore } from '@/store/inbox';
 import { storeToRefs } from 'pinia';
 import Logger from '@/utils/logger';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 // Emits
 const emit = defineEmits(['logout']);

@@ -3,10 +3,10 @@
     <div class="dashboard-header">
       <h1 class="dashboard-title">
         <i class="fas fa-chart-bar" />
-        Estadísticas
+        {{ t('dashboard.title') }}
       </h1>
       <p class="dashboard-subtitle">
-        Resumen y estadísticas de tu biblioteca personal
+        {{ t('dashboard.subtitle') }}
       </p>
     </div>
 
@@ -22,23 +22,23 @@
       <TabList>
         <Tab value="books">
           <i class="fas fa-book" />
-          <span>Libros</span>
+          <span>{{ t('library.filters.books') }}</span>
         </Tab>
         <Tab value="movies">
           <i class="fas fa-film" />
-          <span>Películas</span>
+          <span>{{ t('library.filters.movies') }}</span>
         </Tab>
         <Tab value="games">
           <i class="fas fa-gamepad" />
-          <span>Videojuegos</span>
+          <span>{{ t('library.filters.games') }}</span>
         </Tab>
         <Tab value="albums">
           <i class="fas fa-music" />
-          <span>Música</span>
+          <span>{{ t('home.cards.music') }}</span>
         </Tab>
         <Tab value="videos">
           <i class="fab fa-youtube" />
-          <span>Vídeos</span>
+          <span>{{ t('library.filters.videos') }}</span>
         </Tab>
       </TabList>
 
@@ -76,6 +76,9 @@ import MoviesDashboardContent from './MoviesDashboardContent.vue';
 import GamesDashboardContent from './GamesDashboardContent.vue';
 import AlbumsDashboardContent from './AlbumsDashboardContent.vue';
 import VideosDashboardContent from './VideosDashboardContent.vue';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const route = useRoute();
 const router = useRouter();

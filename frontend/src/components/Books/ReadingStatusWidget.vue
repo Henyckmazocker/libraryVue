@@ -8,7 +8,7 @@
       <div class="session-info">
         <i class="fas fa-book-reader" />
         <span class="session-text">
-          Sesión activa #{{ book.current_session_number || 1 }}
+          {{ t('reading.activeSession', { n: book.current_session_number || 1 }) }}
         </span>
       </div>
       <div class="session-details">
@@ -16,13 +16,13 @@
           v-if="book.session_started_at"
           class="session-date"
         >
-          Iniciada: {{ formatDate(book.session_started_at) }}
+          {{ t('reading.startedAt', { date: formatDate(book.session_started_at) }) }}
         </span>
         <span
           v-if="book.current_page && book.pages"
           class="session-progress"
         >
-          {{ progressPercentage }}% completado
+          {{ t('reading.percentComplete', { n: progressPercentage }) }}
         </span>
       </div>
     </div>
@@ -33,7 +33,7 @@
       class="completed-info"
     >
       <i class="fas fa-check-circle" />
-      <span>Completado {{ book.total_sessions_completed }} vez{{ book.total_sessions_completed !== 1 ? 'es' : '' }}</span>
+      <span>{{ t('reading.completedTimes', { n: book.total_sessions_completed }) }}</span>
     </div>
 
     <!-- Enlace al historial de sesiones -->
@@ -43,7 +43,7 @@
       @click="showHistoryModal = true"
     >
       <i class="fas fa-history" />
-      Ver historial de sesiones
+      {{ t('reading.viewHistory') }}
     </button>
 
     <!-- Modal de historial de sesiones -->
@@ -60,6 +60,9 @@
 import { ref, computed, defineProps, onMounted, watch } from 'vue';
 import SessionHistoryModal from './SessionHistoryModal.vue';
 import Logger from '@/utils/logger';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   book: {

@@ -3,7 +3,7 @@
     <div class="inbox-view__header">
       <h1 class="inbox-view__title">
         <i class="pi pi-inbox" />
-        Recomendaciones
+        {{ t('inbox.title') }}
       </h1>
     </div>
 
@@ -18,7 +18,7 @@
     <EmptyState
       v-else-if="!hasItems"
       icon="pi pi-inbox"
-      title="No tienes recomendaciones pendientes"
+      :title="t('inbox.empty')"
     />
 
     <div
@@ -59,6 +59,9 @@ import RecommendationCard from '@/components/Inbox/RecommendationCard.vue'
 import ListInvitationCard from '@/components/Inbox/ListInvitationCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const inbox = useInboxStore()
 const { items, isLoading, resolvingId, error } = storeToRefs(inbox)

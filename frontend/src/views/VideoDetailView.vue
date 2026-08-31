@@ -11,8 +11,8 @@
         target="_blank"
         rel="noopener noreferrer"
         class="youtube-play-btn"
-        title="Ver en YouTube"
-        aria-label="Ver este vídeo en YouTube"
+        :title="t('video.openYouTube')"
+        :aria-label="t('video.openYouTubeAria')"
       >
         <i
           class="fab fa-youtube"
@@ -50,7 +50,7 @@
           class="metadata-item"
         >
           <i class="fas fa-eye" />
-          {{ formatCount(item.view_count || item.viewCount) }} vistas
+          {{ t('video.views', { n: formatCount(item.view_count || item.viewCount) }) }}
         </span>
         <span
           v-if="item.like_count || item.likeCount"
@@ -88,7 +88,7 @@
           class="youtube-link"
         >
           <i class="fab fa-youtube" />
-          Ver en YouTube
+          {{ t('video.openYouTube') }}
         </a>
       </div>
     </template>
@@ -100,7 +100,7 @@
       >
         <h2 class="section-title">
           <i class="fas fa-align-left" />
-          Descripción
+          {{ t('video.description') }}
         </h2>
         <p class="video-description">
           {{ truncateDescription(item.description, showFullDesc ? 9999 : 300) }}
@@ -121,6 +121,9 @@
 import { ref } from 'vue';
 import MediaDetailView from '@/views/shared/MediaDetailView.vue';
 import { useVideosStore } from '@/store/videos';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 /**
  * Ficha de vídeo. El esqueleto —estados, cabecera, formulario de biblioteca,

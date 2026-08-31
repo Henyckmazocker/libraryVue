@@ -43,13 +43,13 @@
       <div
         v-if="isInLibrary"
         class="library-badge"
-        title="En tu biblioteca"
+        :title="t('common.inLibrary')"
       >
         <i
           class="fas fa-bookmark"
           aria-hidden="true"
         />
-        <span class="u-sr-only">En tu biblioteca</span>
+        <span class="u-sr-only">{{ t('common.inLibrary') }}</span>
       </div>
       
       <!-- Badge de status si existe -->
@@ -70,7 +70,7 @@
           :class="platformIcon"
           aria-hidden="true"
         />
-        <span class="u-sr-only">Plataforma: {{ mainPlatform }}</span>
+        <span class="u-sr-only">{{ t('carousel.platform', { name: mainPlatform }) }}</span>
       </div>
     </div>
     
@@ -82,12 +82,12 @@
         v-if="game.rating"
         class="igdb-score"
       >
-        <span class="score-label">Rating:</span>
+        <span class="score-label">{{ t('carousel.rating') }}</span>
         <span
           class="score-value"
           :class="getRatingClass(game.rating)"
         >
-          {{ game.rating }} / 5
+          {{ t('carousel.ratingValue', { n: game.rating }) }}
         </span>
       </div>
     </div>
@@ -97,6 +97,9 @@
 <script setup>
 import { computed, defineProps, defineEmits } from 'vue';
 import { useGamesStore } from '@/store/games';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   game: {

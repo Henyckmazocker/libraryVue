@@ -2,7 +2,7 @@
   <div class="profile-container">
     <h1 class="profile-title">
       <i class="fas fa-user-cog" />
-      Mi Perfil
+      {{ t('profile.title') }}
     </h1>
 
     <!-- User info card -->
@@ -34,7 +34,7 @@
         </p>
         <p class="profile-auth-note">
           <i class="fab fa-google" />
-          Cuenta vinculada con Google
+          {{ t('profile.googleLinked') }}
         </p>
       </div>
     </div>
@@ -45,24 +45,24 @@
         <i
           class="fas fa-lastfm u-brand-lastfm"
         />
-        Last.fm
+        {{ t('profile.lastfm') }}
       </h3>
       <p class="section-description">
-        Vincula tu cuenta de Last.fm para ver estadísticas de escucha: tus álbumes, artistas y canciones más escuchados.
+        {{ t('profile.lastfmDescription') }}
       </p>
 
       <div class="form-group">
         <label
           class="form-label"
           for="lastfm-input"
-        >Nombre de usuario en Last.fm</label>
+        >{{ t('profile.lastfmUsername') }}</label>
         <div class="input-row">
           <input
             id="lastfm-input"
             v-model="lastfmUsername"
             type="text"
             class="form-input"
-            placeholder="Tu usuario de Last.fm"
+            :placeholder="t('profile.lastfmPlaceholder')"
             :disabled="isSaving"
             @keyup.enter="saveLastFmUsername"
           >
@@ -88,7 +88,7 @@
           class="feedback-success"
         >
           <i class="fas fa-check-circle" />
-          Nombre de usuario guardado correctamente.
+          {{ t('profile.saved') }}
         </p>
         <p
           v-if="saveError"
@@ -99,14 +99,47 @@
         </p>
 
         <p class="form-hint">
-          Puedes encontrar tu nombre de usuario en
-          <a
+          {{ t('profile.hintBefore') }}<a
             href="https://www.last.fm"
             target="_blank"
             rel="noopener noreferrer"
-          >last.fm</a>.
-          Déjalo en blanco para desvincular.
+          >{{ t('profile.hintLink') }}</a>{{ t('profile.hintAfter') }}
         </p>
+      </div>
+    </div>
+
+    <!-- El idioma se elige aquí y se recuerda en el navegador, no en la cuenta:
+         es una preferencia del dispositivo, como el tema. El `<select>` nativo y
+         no un desplegable de PrimeVue porque son dos opciones y el nativo ya trae
+         teclado, lector de pantalla y el widget del sistema en móvil. -->
+    <div class="settings-section">
+      <h3 class="section-title">
+        <i class="fas fa-language" />
+        {{ t('profile.language.title') }}
+      </h3>
+      <p class="section-description">
+        {{ t('profile.language.hint') }}
+      </p>
+
+      <div class="form-group">
+        <label
+          class="form-label"
+          for="locale-select"
+        >{{ t('profile.language.label') }}</label>
+        <select
+          id="locale-select"
+          class="form-input"
+          :value="locale"
+          @change="setLocale($event.target.value)"
+        >
+          <option
+            v-for="l in availableLocales"
+            :key="l.code"
+            :value="l.code"
+          >
+            {{ l.native }}
+          </option>
+        </select>
       </div>
     </div>
 
@@ -125,6 +158,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/store/auth'
 import { storeToRefs } from 'pinia'
 import PrivacySettingsPanel from '@/components/Social/PrivacySettingsPanel.vue'
+import { useI18n } from '@/composables/useI18n'
 
 export default {
   name: 'UserProfileView',
@@ -133,6 +167,7 @@ export default {
 
   setup() {
     const authStore = useAuthStore()
+    const { t, locale, setLocale, availableLocales } = useI18n()
     const { userName, userEmail, userPicture, userLastFmUsername } = storeToRefs(authStore)
 
     const lastfmUsername = ref('')
@@ -173,6 +208,10 @@ export default {
     }
 
     return {
+      t,
+      locale,
+      setLocale,
+      availableLocales,
       userName,
       userEmail,
       userPicture,

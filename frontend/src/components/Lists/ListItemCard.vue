@@ -50,7 +50,7 @@
       @click="$emit('remove', item)"
     >
       <i :class="busy ? 'pi pi-spin pi-spinner' : 'pi pi-times'" />
-      <span class="u-sr-only">Quitar {{ item.entity_title || 'este ítem' }} de la lista</span>
+      <span class="u-sr-only">{{ t('lists.removeItem', { title: item.entity_title || t('lists.thisItem') }) }}</span>
     </button>
   </div>
 </template>
@@ -60,6 +60,9 @@ import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { detailRouteFor, getMediaConfig, mediaKeys } from '@/config/mediaRegistry'
 import CoverService from '@/services/CoverService'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 /**
  * Una fila de `media_list_item`, pintada.

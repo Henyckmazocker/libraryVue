@@ -3,7 +3,7 @@
     <button 
       v-if="showNavigation && canScrollLeft" 
       class="carousel-nav carousel-nav-left" 
-      aria-label="Scroll left"
+      :aria-label="t('carousel.scrollLeft')"
       @click="scrollLeft"
     >
       <i class="fas fa-chevron-left" />
@@ -22,7 +22,7 @@
     <button 
       v-if="showNavigation && canScrollRight" 
       class="carousel-nav carousel-nav-right" 
-      aria-label="Scroll right"
+      :aria-label="t('carousel.scrollRight')"
       @click="scrollRight"
     >
       <i class="fas fa-chevron-right" />
@@ -32,6 +32,9 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 // eslint-disable-next-line no-undef
 const props = defineProps({

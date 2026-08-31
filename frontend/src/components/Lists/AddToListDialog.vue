@@ -3,12 +3,12 @@
        y pie ordenado, igual que en los cuatro modales propios. -->
   <BaseModal
     v-model="visible"
-    title="Añadir a una lista"
+    :title="t('lists.addToList')"
     class="add-to-list-dialog"
   >
     <div class="add-to-list-dialog__body">
       <p class="add-to-list-dialog__item">
-        Vas a añadir <strong>{{ entityTitle }}</strong>
+        {{ t('addToList.aboutToBefore') }}<strong>{{ entityTitle }}</strong>
       </p>
 
       <div
@@ -22,7 +22,7 @@
         v-else-if="editable.length === 0"
         class="add-to-list-dialog__state"
       >
-        No tienes ninguna lista que puedas editar. Crea una desde «Mis listas».
+        {{ t('addToList.none') }}
       </p>
 
       <fieldset
@@ -30,7 +30,7 @@
         class="add-to-list-dialog__lists"
       >
         <legend class="add-to-list-dialog__legend">
-          Elige la lista
+          {{ t('addToList.chooseList') }}
         </legend>
         <!-- Botones con `aria-pressed`, no `<div @click>`: las 20 reglas de
              accesibilidad están en `error` y esto es un selector de verdad. -->
@@ -45,7 +45,7 @@
         >
           <span class="add-to-list-dialog__list-name">{{ list.name }}</span>
           <span class="add-to-list-dialog__list-count">
-            {{ list.item_count }} {{ list.item_count === 1 ? 'ítem' : 'ítems' }}
+            {{ t('library.itemCount', { n: list.item_count }) }}
           </span>
         </button>
       </fieldset>
@@ -66,7 +66,7 @@
         :disabled="isSaving"
         @click="visible = false"
       >
-        Cancelar
+        {{ t('common.cancel') }}
       </button>
       <button
         type="button"
@@ -78,7 +78,7 @@
           v-if="isSaving"
           class="pi pi-spin pi-spinner"
         />
-        Añadir
+        {{ t('common.add') }}
       </button>
     </template>
   </BaseModal>
@@ -89,6 +89,9 @@ import { computed, inject, onMounted, ref } from 'vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import { storeToRefs } from 'pinia'
 import { useListsStore } from '@/store/lists'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },

@@ -11,7 +11,7 @@
       :error="errorTrending"
       type="games"
       :item-component="GameCarouselItem"
-      title="Juegos Populares"
+      :title="t('search.popularGames')"
       subtitle="Los juegos más populares en nuestra comunidad"
       @item-click="handleTrendingClick"
     />
@@ -29,6 +29,9 @@ import { useAuthStore } from '@/store/auth';
 import { useTrending } from '@/composables/useTrending';
 import { storeToRefs } from 'pinia';
 import Logger from '@/utils/logger';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const router = useRouter();
 const gamesStore = useGamesStore();

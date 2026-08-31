@@ -8,25 +8,31 @@
  *
  * El texto de `hint` es lo que impide el malentendido de siempre: `collaborative`
  * NO es pública.
+ *
+ * Rótulo y pista son **getters**, como en `mediaRegistry`: este módulo se importa
+ * antes de que el catálogo esté cargado, y un valor fijado al declarar se quedaría
+ * con la clave sin traducir para siempre.
  */
+import { t } from '@/config/i18n'
+
 export const VISIBILITY = {
   private: {
     value: 'private',
-    label: 'Privada',
+    get label () { return t('visibility.private.label') },
     icon: 'pi pi-lock',
-    hint: 'Solo la ves tú.'
+    get hint () { return t('visibility.private.hint') }
   },
   public: {
     value: 'public',
-    label: 'Pública',
+    get label () { return t('visibility.public.label') },
     icon: 'pi pi-globe',
-    hint: 'La ve cualquier usuario registrado desde tu perfil. Editarla, solo tú.'
+    get hint () { return t('visibility.public.hint') }
   },
   collaborative: {
     value: 'collaborative',
-    label: 'Colaborativa',
+    get label () { return t('visibility.collaborative.label') },
     icon: 'pi pi-users',
-    hint: 'La ven y la editan las personas que invites. No es pública.'
+    get hint () { return t('visibility.collaborative.hint') }
   }
 }
 

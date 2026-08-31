@@ -2,25 +2,28 @@
   <div class="not-found">
     <div class="not-found-content">
       <h1 class="not-found-code">
-        404
+        {{ t('notFound.code') }}
       </h1>
       <h2 class="not-found-title">
-        Página no encontrada
+        {{ t('notFound.title') }}
       </h2>
       <p class="not-found-message">
-        La página que buscas no existe o ha sido movida.
+        {{ t('notFound.message') }}
       </p>
       <router-link
         to="/"
         class="not-found-link"
       >
-        Volver al inicio
+        {{ t('notFound.back') }}
       </router-link>
     </div>
   </div>
 </template>
 
 <script setup>
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 // No logic needed
 </script>
 

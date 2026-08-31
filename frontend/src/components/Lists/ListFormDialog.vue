@@ -3,12 +3,12 @@
        y pie ordenado, igual que en los cuatro modales propios. -->
   <BaseModal
     v-model="visible"
-    :title="isEdit ? 'Editar lista' : 'Nueva lista'"
+    :title="isEdit ? t('listForm.titleEdit') : t('listForm.titleNew')"
     class="list-form-dialog"
   >
     <div class="list-form-dialog__body">
       <div class="list-form-dialog__field">
-        <label for="list-name">Nombre</label>
+        <label for="list-name">{{ t('listForm.name') }}</label>
         <InputText
           id="list-name"
           v-model="name"
@@ -18,7 +18,7 @@
       </div>
 
       <div class="list-form-dialog__field">
-        <label for="list-description">Descripción (opcional)</label>
+        <label for="list-description">{{ t('listForm.description') }}</label>
         <Textarea
           id="list-description"
           v-model="description"
@@ -28,7 +28,7 @@
       </div>
 
       <fieldset class="list-form-dialog__field">
-        <legend>Quién la ve</legend>
+        <legend>{{ t('listForm.whoSees') }}</legend>
         <!-- Botones con `aria-pressed`, no `<div @click>`: las 20 reglas de
              accesibilidad están en `error` y esto es un selector de verdad. -->
         <button
@@ -57,7 +57,7 @@
         role="alert"
       >
         <i class="pi pi-exclamation-triangle" />
-        Al dejar de ser colaborativa, quienes colaboran perderán el acceso.
+        {{ t('listForm.losesCollaborators') }}
       </p>
     </div>
 
@@ -67,7 +67,7 @@
         class="btn btn--ghost"
         @click="visible = false"
       >
-        Cancelar
+        {{ t('common.cancel') }}
       </button>
       <button
         type="button"
@@ -75,7 +75,7 @@
         :disabled="!canSubmit"
         @click="submit"
       >
-        {{ isEdit ? 'Guardar' : 'Crear' }}
+        {{ isEdit ? t('common.save') : t('lists.create') }}
       </button>
     </template>
   </BaseModal>
@@ -87,6 +87,9 @@ import BaseModal from '@/components/common/BaseModal.vue'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
 import { VISIBILITY_OPTIONS } from './visibility'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },

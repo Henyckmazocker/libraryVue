@@ -1,6 +1,6 @@
 <template>
   <div class="form-group">
-    <label for="file-input">Archivo de respaldo:</label>
+    <label for="file-input">{{ t('importer.file') }}</label>
     <input 
       id="file-input"
       ref="fileInput"
@@ -61,6 +61,9 @@ const resetFile = () => {
 
 // Watch for external changes
 import { watch } from 'vue';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 watch(() => props.modelValue, (newValue) => {
   if (!newValue) {
     resetFile();

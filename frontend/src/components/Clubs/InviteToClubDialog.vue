@@ -3,7 +3,7 @@
        y pie ordenado, igual que en los cuatro modales propios. -->
   <BaseModal
     v-model="visible"
-    title="Invitar al club"
+    :title="t('clubInvite.title')"
     class="invite-to-club-dialog"
   >
     <div class="invite-to-club-dialog__body">
@@ -11,8 +11,7 @@
            que sus miembros vean tu progreso, y no hay interruptor en Privacidad
            que lo gobierne. Quien invita tiene que saber qué está pidiendo. -->
       <p class="invite-to-club-dialog__hint">
-        Quien acepte verá el progreso de los demás sobre el ítem activo, y ellos
-        el suyo. Se deja de compartir saliendo del club.
+        {{ t('clubInvite.hint') }}
       </p>
 
       <div
@@ -26,7 +25,7 @@
         v-else-if="invitables.length === 0"
         class="invite-to-club-dialog__state"
       >
-        No tienes amigos a quien invitar que no estén ya en el club.
+        {{ t('clubInvite.none') }}
       </p>
 
       <fieldset
@@ -34,7 +33,7 @@
         class="invite-to-club-dialog__friends"
       >
         <legend class="invite-to-club-dialog__legend">
-          Elige a quién
+          {{ t('clubInvite.chooseWho') }}
         </legend>
         <!-- Botones con `aria-pressed`, no `<div @click>`: las 20 reglas de
              accesibilidad están en `error` y esto es un selector de verdad. -->
@@ -80,7 +79,7 @@
         :disabled="isSaving"
         @click="visible = false"
       >
-        Cancelar
+        {{ t('common.cancel') }}
       </button>
       <button
         type="button"
@@ -92,7 +91,7 @@
           v-if="isSaving"
           class="pi pi-spin pi-spinner"
         />
-        Invitar
+        {{ t('clubInvite.invite') }}
       </button>
     </template>
   </BaseModal>
@@ -104,6 +103,9 @@ import BaseModal from '@/components/common/BaseModal.vue'
 import { storeToRefs } from 'pinia'
 import { useSocialStore } from '@/store/social'
 import { useClubsStore } from '@/store/clubs'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },

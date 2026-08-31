@@ -1,12 +1,11 @@
 <template>
   <div class="privacy-settings-panel">
     <h3 class="privacy-settings-panel__title">
-      Configuración de privacidad
+      {{ t('social.privacyTitle') }}
     </h3>
 
     <p class="privacy-settings-panel__intro">
-      Elige qué actividad tuya ven tus amigos en su feed. Lo que apagues aquí deja de mostrarse,
-      aunque siga registrado.
+      {{ t('social.privacyIntro') }}
     </p>
 
     <div
@@ -54,6 +53,9 @@ import ToggleSwitch from 'primevue/toggleswitch'
 import Button from 'primevue/button'
 import { usePrivacySettings } from '@/composables/usePrivacySettings'
 import { useToast } from 'primevue/usetoast'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 /**
  * Los **seis** ajustes que existen de verdad, con el mismo nombre que tienen en

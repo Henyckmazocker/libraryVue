@@ -5,7 +5,7 @@
       class="friend-requests__empty"
     >
       <i class="pi pi-inbox" />
-      <p>No tienes solicitudes pendientes</p>
+      <p>{{ t('social.noRequests') }}</p>
     </div>
 
     <div
@@ -32,7 +32,7 @@
         </div>
         <div class="friend-requests__info">
           <span class="friend-requests__name">{{ req.username }}</span>
-          <span class="friend-requests__sub">quiere ser tu amigo/a</span>
+          <span class="friend-requests__sub">{{ t('social.wantsToBeFriend') }}</span>
         </div>
         <div class="friend-requests__actions">
           <Button
@@ -58,6 +58,9 @@
 
 <script setup>
 import Button from 'primevue/button'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 defineProps({
   requests: { type: Array, default: () => [] }

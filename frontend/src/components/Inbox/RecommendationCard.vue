@@ -32,7 +32,7 @@
         >
           {{ senderName }}
         </component>
-        te recomienda
+        {{ t('inbox.recommendsYou') }}
         <component
           :is="tagFor(itemRoute, 'span')"
           class="recommendation-card__title"
@@ -59,7 +59,7 @@
           @click="$emit('add', recommendation)"
         >
           <i :class="busy ? 'pi pi-spin pi-spinner' : 'pi pi-plus'" />
-          Añadir
+          {{ t('common.add') }}
         </button>
         <button
           type="button"
@@ -68,7 +68,7 @@
           @click="$emit('dismiss', recommendation)"
         >
           <i class="pi pi-times" />
-          Descartar
+          {{ t('common.dismiss') }}
         </button>
       </div>
     </div>
@@ -80,6 +80,9 @@ import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { detailRouteFor } from '@/config/mediaRegistry'
 import CoverService from '@/services/CoverService'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   recommendation: {

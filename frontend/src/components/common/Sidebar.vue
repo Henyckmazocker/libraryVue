@@ -22,7 +22,7 @@
         class="app-sidebar__loading"
       >
         <i class="fas fa-spinner fa-spin" />
-        <span v-if="!isCollapsed">Cargando menú...</span>
+        <span v-if="!isCollapsed">{{ t('sidebar.loading') }}</span>
       </div>
 
       <div
@@ -30,7 +30,7 @@
         class="app-sidebar__error"
       >
         <i class="fas fa-exclamation-triangle" />
-        <span v-if="!isCollapsed">Error al cargar menú</span>
+        <span v-if="!isCollapsed">{{ t('sidebar.error') }}</span>
       </div>
 
       <nav
@@ -90,6 +90,9 @@ export default {
 <script setup>
 import { ref, onMounted, defineProps, defineEmits } from 'vue';
 import { useSidebarMenu } from '@/composables/useSidebarMenu';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 // Props
 const props = defineProps({

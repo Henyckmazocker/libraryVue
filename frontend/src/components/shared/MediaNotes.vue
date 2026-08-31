@@ -10,7 +10,7 @@
         :disabled="!itemId"
         @click="showAddNoteDialog = true"
       >
-        <i class="pi pi-plus" /> Nueva Nota
+        <i class="pi pi-plus" /> {{ t('notes.new') }}
       </button>
     </div>
 
@@ -19,7 +19,7 @@
       v-if="loading"
       class="loading-state"
     >
-      <i class="pi pi-spin pi-spinner" /> Cargando notas...
+      <i class="pi pi-spin pi-spinner" /> {{ t('notes.loading') }}
     </div>
 
     <!-- Notes list -->
@@ -40,20 +40,20 @@
               v-if="config.notes.hasPageNumber"
               class="note-page"
             >
-              Página {{ note.pageNumber || note.page_number }}
+              {{ t('notes.page', { n: note.pageNumber || note.page_number }) }}
             </span>
             <span
               v-if="!(note.isPrivate ?? note.is_private)"
               class="note-public"
             >
-              <i class="pi pi-eye" /> Pública
+              <i class="pi pi-eye" /> {{ t('notes.public') }}
             </span>
           </div>
           <div class="note-actions">
             <button
               class="btn btn--ghost btn--icon btn--sm note-action-btn"
-              title="Editar"
-              aria-label="Editar nota"
+              :title="t('notes.edit')"
+              :aria-label="t('notes.editAria')"
               @click="editNote(note)"
             >
               <i
@@ -63,8 +63,8 @@
             </button>
             <button
               class="btn btn--ghost btn--icon btn--sm note-action-btn delete"
-              title="Eliminar"
-              aria-label="Eliminar nota"
+              :title="t('notes.delete')"
+              :aria-label="t('notes.deleteAria')"
               @click="confirmDeleteNote(note)"
             >
               <i
@@ -88,7 +88,7 @@
             v-if="(note.updatedAt || note.updated_at) !== (note.createdAt || note.created_at)"
             class="note-updated"
           >
-            (editado {{ formatDate(note.updatedAt || note.updated_at) }})
+            {{ t('notes.edited', { date: formatDate(note.updatedAt || note.updated_at) }) }}
           </span>
         </div>
       </div>
@@ -98,7 +98,7 @@
     <EmptyState
       v-else
       :icon="config.notes.emptyIcon"
-      title="No hay notas todavía"
+      :title="t('notes.empty')"
       :message="config.notes.emptyHint"
     >
       <!-- El slot `empty` se conserva: los cinco paneles de notas pueden
@@ -117,7 +117,7 @@
           v-if="config.notes.hasPageNumber"
           class="form-group"
         >
-          <label for="pageNumber">Página</label>
+          <label for="pageNumber">{{ t('notes.pageLabel') }}</label>
           <InputNumber
             id="pageNumber"
             v-model="noteForm.pageNumber"
@@ -128,7 +128,7 @@
         </div>
 
         <div class="form-group">
-          <label for="noteType">Tipo de Nota</label>
+          <label for="noteType">{{ t('notes.typeLabel') }}</label>
           <Dropdown
             id="noteType"
             v-model="noteForm.noteType"
@@ -141,7 +141,7 @@
         </div>
 
         <div class="form-group">
-          <label for="noteText">Contenido</label>
+          <label for="noteText">{{ t('notes.contentLabel') }}</label>
           <Textarea
             id="noteText"
             v-model="noteForm.noteText"
@@ -156,7 +156,7 @@
             v-model="noteForm.isPrivate"
             :binary="true"
           />
-          <label for="isPrivate">Nota privada</label>
+          <label for="isPrivate">{{ t('notes.privateLabel') }}</label>
         </div>
 
         <div class="dialog-actions">
@@ -188,6 +188,9 @@ import Textarea from 'primevue/textarea'
 import Checkbox from 'primevue/checkbox'
 import InputNumber from 'primevue/inputnumber'
 import Logger from '@/utils/logger'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   media: {

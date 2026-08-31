@@ -6,7 +6,7 @@
         class="btn btn--primary"
       >
         <i class="fas fa-film" />
-        Ver Mi Biblioteca de Películas
+        {{ t('dashboard.viewLibrary.movies') }}
       </router-link>
     </div>
 
@@ -15,7 +15,7 @@
       class="loading-container"
     >
       <i class="fas fa-spinner fa-spin" />
-      <p>Cargando estadísticas de películas...</p>
+      <p>{{ t('dashboard.loading.movies') }}</p>
     </div>
 
     <div
@@ -28,7 +28,7 @@
         class="btn btn--primary"
         @click="loadMovieStats"
       >
-        Reintentar
+        {{ t('common.retry') }}
       </button>
     </div>
 
@@ -62,6 +62,9 @@ import {
   createChartConfigs,
   extractMockStats
 } from '@/composables/useDashboardCharts';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 ChartJS.register(
   Title, Tooltip, Legend, ArcElement,

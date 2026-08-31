@@ -3,12 +3,12 @@
        y pie ordenado, igual que en los cuatro modales propios. -->
   <BaseModal
     v-model="visible"
-    title="Recomendar a un amigo"
+    :title="t('recommend.title')"
     class="recommend-dialog"
   >
     <div class="recommend-dialog__body">
       <p class="recommend-dialog__item">
-        Vas a recomendar <strong>{{ entityTitle }}</strong>
+        {{ t('recommend.aboutToBefore') }}<strong>{{ entityTitle }}</strong>
       </p>
 
       <div
@@ -22,13 +22,13 @@
         v-else-if="friends.length === 0"
         class="recommend-dialog__state"
       >
-        Aún no tienes amigos a quien recomendar.
+        {{ t('recommend.noFriends') }}
       </p>
 
       <template v-else>
         <fieldset class="recommend-dialog__friends">
           <legend class="recommend-dialog__legend">
-            Elige a quién
+            {{ t('recommend.chooseWho') }}
           </legend>
           <!-- Botones con `aria-pressed`, no `<div @click>`: las 20 reglas de
                accesibilidad están en `error` y esto es un selector de verdad. -->
@@ -59,7 +59,7 @@
         </fieldset>
 
         <div class="recommend-dialog__field">
-          <label for="recommend-comment">Comentario (opcional)</label>
+          <label for="recommend-comment">{{ t('recommend.comment') }}</label>
           <Textarea
             id="recommend-comment"
             v-model="comment"
@@ -86,7 +86,7 @@
         :disabled="isSending"
         @click="visible = false"
       >
-        Cancelar
+        {{ t('common.cancel') }}
       </button>
       <button
         type="button"
@@ -98,7 +98,7 @@
           v-if="isSending"
           class="pi pi-spin pi-spinner"
         />
-        Enviar
+        {{ t('recommend.send') }}
       </button>
     </template>
   </BaseModal>
@@ -111,6 +111,9 @@ import Textarea from 'primevue/textarea'
 import { storeToRefs } from 'pinia'
 import { useSocialStore } from '@/store/social'
 import { useInboxStore } from '@/store/inbox'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },

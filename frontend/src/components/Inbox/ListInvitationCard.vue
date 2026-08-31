@@ -14,14 +14,13 @@
         >
           {{ senderName }}
         </component>
-        te invita a colaborar en
+        {{ t('inbox.invitesYou') }}
         <strong>{{ invitation.entity_title || 'una lista' }}</strong>
         <span class="list-invitation-card__time">{{ relativeTime }}</span>
       </p>
 
       <p class="list-invitation-card__hint">
-        Si aceptas, podrás añadir y quitar ítems. Renombrarla o borrarla sigue siendo
-        cosa de quien la creó.
+        {{ t('inbox.inviteHint') }}
       </p>
 
       <div class="list-invitation-card__actions">
@@ -32,7 +31,7 @@
           @click="$emit('accept', invitation)"
         >
           <i :class="busy ? 'pi pi-spin pi-spinner' : 'pi pi-check'" />
-          Aceptar
+          {{ t('common.accept') }}
         </button>
         <button
           type="button"
@@ -41,7 +40,7 @@
           @click="$emit('dismiss', invitation)"
         >
           <i class="pi pi-times" />
-          Rechazar
+          {{ t('common.reject') }}
         </button>
       </div>
     </div>
@@ -51,6 +50,9 @@
 <script setup>
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 /**
  * Una invitación a colaborar en una lista, en la bandeja.

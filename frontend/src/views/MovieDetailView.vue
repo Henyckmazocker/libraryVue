@@ -18,7 +18,7 @@
         class="series-seasons-info"
       >
         <i class="fas fa-layer-group" />
-        <span>{{ item.totalSeasons }} temporada{{ item.totalSeasons > 1 ? 's' : '' }}</span>
+        <span>{{ t('movie.seasons', { n: item.totalSeasons }) }}</span>
       </div>
 
       <div
@@ -74,18 +74,18 @@
           class="rating-item"
         >
           <i class="fab fa-imdb" />
-          <strong>IMDb:</strong> {{ item.imdbRating }}/10
+          <strong>{{ t('movie.imdb') }}</strong> {{ t('movie.imdbScore', { n: item.imdbRating }) }}
           <span
             v-if="item.imdbVotes"
             class="votes"
-          >({{ item.imdbVotes }} votos)</span>
+          >{{ t('movie.votes', { n: item.imdbVotes }) }}</span>
         </div>
         <div
           v-if="item.metascore && item.metascore !== 'N/A'"
           class="rating-item"
         >
           <i class="fas fa-star" />
-          <strong>Metascore:</strong> {{ item.metascore }}/100
+          <strong>{{ t('movie.metascore') }}</strong> {{ t('movie.metaScore', { n: item.metascore }) }}
         </div>
         <div
           v-if="item.ratings && item.ratings.length > 0"
@@ -103,7 +103,7 @@
       </div>
 
       <div class="movie-imdb-id">
-        <strong>IMDb ID:</strong> {{ item.imdbID }}
+        <strong>{{ t('movie.imdbId') }}</strong> {{ item.imdbID }}
       </div>
 
       <div
@@ -130,7 +130,7 @@
       >
         <h2 class="section-title">
           <i class="fas fa-align-left" />
-          Sinopsis
+          {{ t('movie.plot') }}
         </h2>
         <p class="movie-plot-content">
           {{ item.plot }}
@@ -143,20 +143,20 @@
       >
         <h2 class="section-title">
           <i class="fas fa-users" />
-          Equipo y Reparto
+          {{ t('movie.crew') }}
         </h2>
         <div class="crew-info">
           <div
             v-if="item.actors && item.actors !== 'N/A'"
             class="crew-item"
           >
-            <strong><i class="fas fa-user-tie" /> Actores:</strong> {{ item.actors }}
+            <strong><i class="fas fa-user-tie" /> {{ t('movie.actors') }}</strong> {{ item.actors }}
           </div>
           <div
             v-if="item.writer && item.writer !== 'N/A'"
             class="crew-item"
           >
-            <strong><i class="fas fa-pen" /> Guion:</strong> {{ item.writer }}
+            <strong><i class="fas fa-pen" /> {{ t('movie.writer') }}</strong> {{ item.writer }}
           </div>
         </div>
       </div>
@@ -167,7 +167,7 @@
       >
         <h2 class="section-title">
           <i class="fas fa-trophy" />
-          Premios y Nominaciones
+          {{ t('movie.awards') }}
         </h2>
         <p class="awards-content">
           {{ item.awards }}
@@ -181,38 +181,38 @@
       >
         <h2 class="section-title">
           <i class="fas fa-building" />
-          Producción y Lanzamiento
+          {{ t('movie.production') }}
         </h2>
         <div class="production-info">
           <div
             v-if="item.production && item.production !== 'N/A'"
             class="production-item"
           >
-            <strong><i class="fas fa-industry" /> Productora:</strong> {{ item.production }}
+            <strong><i class="fas fa-industry" /> {{ t('movie.productionCompany') }}</strong> {{ item.production }}
           </div>
           <div
             v-if="item.boxOffice && item.boxOffice !== 'N/A'"
             class="production-item"
           >
-            <strong><i class="fas fa-dollar-sign" /> Recaudación:</strong> {{ item.boxOffice }}
+            <strong><i class="fas fa-dollar-sign" /> {{ t('movie.boxOffice') }}</strong> {{ item.boxOffice }}
           </div>
           <div
             v-if="item.released && item.released !== 'N/A'"
             class="production-item"
           >
-            <strong><i class="fas fa-calendar-day" /> Estreno:</strong> {{ item.released }}
+            <strong><i class="fas fa-calendar-day" /> {{ t('movie.released') }}</strong> {{ item.released }}
           </div>
           <div
             v-if="item.dvd && item.dvd !== 'N/A'"
             class="production-item"
           >
-            <strong><i class="fas fa-compact-disc" /> DVD:</strong> {{ item.dvd }}
+            <strong><i class="fas fa-compact-disc" /> {{ t('movie.dvd') }}</strong> {{ item.dvd }}
           </div>
           <div
             v-if="item.website && item.website !== 'N/A'"
             class="production-item"
           >
-            <strong><i class="fas fa-link" /> Sitio Web:</strong>
+            <strong><i class="fas fa-link" /> {{ t('movie.website') }}</strong>
             <a
               :href="item.website"
               target="_blank"
@@ -223,7 +223,7 @@
             v-if="item.type && item.type !== 'N/A'"
             class="production-item"
           >
-            <strong><i class="fas fa-film" /> Tipo:</strong> {{ item.type }}
+            <strong><i class="fas fa-film" /> {{ t('movie.type') }}</strong> {{ item.type }}
           </div>
         </div>
       </div>
@@ -231,7 +231,7 @@
       <div class="movie-links-section">
         <h2 class="section-title">
           <i class="fas fa-external-link-alt" />
-          Enlaces Externos
+          {{ t('movie.links') }}
         </h2>
         <div class="external-links">
           <a
@@ -241,7 +241,7 @@
             class="external-link"
           >
             <i class="fab fa-imdb" />
-            Ver en IMDb
+            {{ t('movie.viewOnImdb') }}
           </a>
         </div>
       </div>
@@ -252,6 +252,9 @@
 <script setup>
 import MediaDetailView from '@/views/shared/MediaDetailView.vue';
 import { useMoviesStore } from '@/store/movies';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 /**
  * Ficha de película. El esqueleto —estados, cabecera, formulario de biblioteca,

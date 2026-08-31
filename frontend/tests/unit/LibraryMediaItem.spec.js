@@ -26,6 +26,9 @@ describe('LibraryMediaItem — clases por medio', () => {
   })
 })
 
+// Los rótulos pasaron del inglés al catálogo el 2026-08-31: `mediaRegistry.js`
+// rotulaba en inglés en libros, películas y juegos y en español en álbumes y
+// vídeos, y estaba escrito que era a propósito. Ya no.
 describe('LibraryMediaItem — campos declarados en el registry', () => {
   it('el libro pinta autor, editorial y fecha con sus rótulos', () => {
     const wrapper = mount('book', {
@@ -33,21 +36,21 @@ describe('LibraryMediaItem — campos declarados en el registry', () => {
     })
 
     expect(wrapper.find('.book-title').text()).toBe('Dune')
-    expect(texto(wrapper)).toContain('Author: Frank Herbert')
-    expect(texto(wrapper)).toContain('Publisher: Ace')
-    expect(texto(wrapper)).toContain('Publication Date: 1965')
+    expect(texto(wrapper)).toContain('Autor: Frank Herbert')
+    expect(texto(wrapper)).toContain('Editorial: Ace')
+    expect(texto(wrapper)).toContain('Fecha de publicación: 1965')
   })
 
   it('el libro prefiere la lista `publishers` a `publisher`', () => {
     const wrapper = mount('book', { title: 'X', publishers: ['Ace', 'Gollancz'], publisher: 'Otra' })
-    expect(texto(wrapper)).toContain('Publisher: Ace, Gollancz')
+    expect(texto(wrapper)).toContain('Editorial: Ace, Gollancz')
   })
 
   it('la película oculta el título original si coincide con el título', () => {
     expect(texto(mount('movie', { title: 'Alien', originalTitle: 'Alien', isbn: 'tt1' })))
       .not.toContain('Original Title')
     expect(texto(mount('movie', { title: 'Alien', originalTitle: 'Xenomorph', isbn: 'tt1' })))
-      .toContain('Original Title: Xenomorph')
+      .toContain('Título original: Xenomorph')
   })
 
   it('la película siempre pinta el IMDb ID, aunque el resto falte', () => {

@@ -1,7 +1,7 @@
 <template>
   <div class="library-container">
     <h1 class="title">
-      Mi biblioteca
+      {{ t('library.title') }}
     </h1>
     
     <div class="controls-container">
@@ -12,39 +12,39 @@
         > <i
           class="fas fa-book"
           aria-hidden="true"
-        /><span class="u-sr-only">Libros</span></label>
+        /><span class="u-sr-only">{{ t('library.filters.books') }}</span></label>
         <label class="filter-checkbox-pill"><input
           v-model="showMovies"
           type="checkbox"
         > <i
           class="fas fa-film"
           aria-hidden="true"
-        /><span class="u-sr-only">Películas</span></label>
+        /><span class="u-sr-only">{{ t('library.filters.movies') }}</span></label>
         <label class="filter-checkbox-pill"><input
           v-model="showGames"
           type="checkbox"
         > <i
           class="fas fa-gamepad"
           aria-hidden="true"
-        /><span class="u-sr-only">Videojuegos</span></label>
+        /><span class="u-sr-only">{{ t('library.filters.games') }}</span></label>
         <label class="filter-checkbox-pill"><input
           v-model="showAlbums"
           type="checkbox"
         > <i
           class="fas fa-music"
           aria-hidden="true"
-        /><span class="u-sr-only">Álbumes</span></label>
+        /><span class="u-sr-only">{{ t('library.filters.albums') }}</span></label>
         <label class="filter-checkbox-pill"><input
           v-model="showVideos"
           type="checkbox"
         > <i
           class="fab fa-youtube"
           aria-hidden="true"
-        /><span class="u-sr-only">Vídeos</span></label>
+        /><span class="u-sr-only">{{ t('library.filters.videos') }}</span></label>
         <button
           class="btn btn--primary import-button"
-          title="Importar datos"
-          aria-label="Importar datos desde un fichero"
+          :title="t('library.import.title')"
+          :aria-label="t('library.import.aria')"
           @click="openImportModal"
         >
           <i
@@ -57,8 +57,8 @@
         <input 
           v-model="searchQuery" 
           type="text" 
-          aria-label="Buscar en tu biblioteca por título o autor"
-          placeholder="Buscar por título o autor..." 
+          :aria-label="t('library.search.aria')"
+          :placeholder="t('library.search.placeholder')" 
           class="search-input"
         >
         <div class="sort-buttons">
@@ -66,7 +66,7 @@
             :class="['sort-button', { active: sortField === 'title' }]"
             @click="toggleSort('title')"
           >
-            Título
+            {{ t('library.sort.title') }}
             <i
               v-if="sortField === 'title'"
               :class="sortDirection === 'asc' ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"
@@ -76,7 +76,7 @@
             :class="['sort-button', { active: sortField === 'author' }]"
             @click="toggleSort('author')"
           >
-            Autor
+            {{ t('library.sort.author') }}
             <i
               v-if="sortField === 'author'"
               :class="sortDirection === 'asc' ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"
@@ -86,7 +86,7 @@
             :class="['sort-button', { active: sortField === 'rating' }]"
             @click="toggleSort('rating')"
           >
-            Valoración
+            {{ t('library.sort.rating') }}
             <i
               v-if="sortField === 'rating'"
               :class="sortDirection === 'asc' ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"
@@ -96,7 +96,7 @@
             :class="['sort-button', { active: sortField === 'date' }]"
             @click="toggleSort('date')"
           >
-            Fecha
+            {{ t('library.sort.date') }}
             <i
               v-if="sortField === 'date'"
               :class="sortDirection === 'asc' ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"
@@ -112,7 +112,7 @@
       v-if="isLoading && displayedItems.length === 0"
       variant="list-item"
       :count="8"
-      label="Cargando biblioteca…"
+      :label="t('library.loading')"
     />
     <div
       v-if="fetchError"
@@ -124,8 +124,8 @@
     <EmptyState
       v-if="!isLoading && !fetchError && displayedItems.length === 0"
       icon="fas fa-book-open"
-      title="Tu biblioteca está vacía"
-      message="Añade algo desde los buscadores."
+      :title="t('library.empty.title')"
+      :message="t('library.empty.message')"
     />
 
     <div
@@ -155,6 +155,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
 import EmptyState from '@/components/common/EmptyState.vue'
+import { useI18n } from '@/composables/useI18n'
 import { useRouter } from 'vue-router';
 import { useBooks } from '@/composables/useBooks';
 import { useMovies } from '@/composables/useMovies';
@@ -171,6 +172,7 @@ import MediaSkeleton from './shared/MediaSkeleton.vue';
 import ImportModal from './ImportModal.vue';
 
 // Composables
+const { t } = useI18n();
 const router = useRouter();
 const { isAuthenticated } = useAuth();
 const booksComposable = useBooks();

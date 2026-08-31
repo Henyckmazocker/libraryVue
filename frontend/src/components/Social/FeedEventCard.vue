@@ -96,6 +96,7 @@ import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { detailRouteFor } from '@/config/mediaRegistry'
 import CoverService from '@/services/CoverService'
+import { useI18n } from '@/composables/useI18n'
 
 const props = defineProps({
   event: {
@@ -227,13 +228,16 @@ const entityIcon = computed(() => {
  * preexistente, no de este plan, pero estaba en el mismo `computed` que había
  * que tocar.
  */
+const { statusLabel } = useI18n()
+
 const metadata = computed(() => props.event.metadata ?? {})
 
 const eventDescription = computed(() => {
   switch (props.event.event_type) {
     case 'item_added': return 'se añadió a la biblioteca'
     case 'item_rated': return `recibió una valoración de ${metadata.value.rating ?? '—'}`
-    case 'status_changed': return `cambió de estado a "${metadata.value.new_status ?? '—'}"`
+    // El mismo `t('status.' + slug)` que el resto: dos mapas serían dos verdades.
+    case 'status_changed': return `cambió de estado a "${metadata.value.new_status ? statusLabel(metadata.value.new_status) : '—'}"`
     case 'notes_updated': return 'tiene una nota nueva'
     case 'reading_session': return 'tiene una sesión de lectura registrada'
     default: return ''

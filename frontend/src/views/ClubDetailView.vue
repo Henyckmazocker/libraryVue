@@ -5,7 +5,7 @@
       :to="{ name: 'Clubs' }"
     >
       <i class="pi pi-arrow-left" />
-      Volver a mis clubs
+      {{ t('club.back') }}
     </RouterLink>
 
     <div
@@ -44,7 +44,7 @@
         class="club-detail__section club-detail__section--principal"
       >
         <h2 class="club-detail__section-title">
-          Lo que estamos viendo
+          {{ t('club.watching') }}
         </h2>
 
         <div
@@ -71,7 +71,7 @@
             >{{ currentPick.entity_title || currentPick.entity_id }}</span>
 
             <span class="club-detail__pick-meta">
-              {{ finishedCount }} de {{ currentMembers.length }} lo han terminado
+              {{ t('club.finishedBy', { done: finishedCount, total: currentMembers.length }) }}
             </span>
 
             <!-- Cerrar es del dueño, y NO es la excepción: el cierre automático
@@ -85,15 +85,15 @@
               @click="handleFinish"
             >
               <i class="pi pi-check" />
-              Darlo por terminado
+              {{ t('club.finish') }}
             </button>
           </div>
         </div>
 
         <EmptyState
           v-else-if="!currentRound"
-          title="Ahora mismo el club no tiene nada activo."
-          :message="isCurrentOwner ? 'Elige el siguiente desde la ficha de cualquier medio.' : ''"
+          :title="t('club.nothingActive')"
+          :message="isCurrentOwner ? t('club.nothingActiveOwner') : ''"
         />
       </section>
 
@@ -104,7 +104,7 @@
         class="club-detail__section club-detail__section--principal"
       >
         <h2 class="club-detail__section-title">
-          Qué leemos ahora
+          {{ t('club.round') }}
         </h2>
 
         <ClubRound
@@ -124,7 +124,7 @@
         class="club-detail__section"
       >
         <h2 class="club-detail__section-title">
-          Por dónde va cada uno
+          {{ t('club.progress') }}
         </h2>
 
         <div
@@ -147,7 +147,7 @@
         class="club-detail__section"
       >
         <h2 class="club-detail__section-title">
-          Lo que ha escrito la gente
+          {{ t('club.notes') }}
         </h2>
 
         <!-- Se avisa de la consecuencia de reutilizar las notas públicas, y se
@@ -155,8 +155,7 @@
              publica también en el feed de todos tus amigos. -->
         <p class="club-detail__notice">
           <i class="pi pi-info-circle" />
-          Aquí salen las notas <strong>públicas</strong> de los miembros. Publicar
-          una nota para el club la publica también en el feed de tus amigos.
+          {{ t('club.noticeBefore') }}<strong>{{ t('club.noticePublic') }}</strong>{{ t('club.noticeAfter') }}
         </p>
 
         <div
@@ -176,7 +175,7 @@
       <!-- Los miembros -->
       <section class="club-detail__section">
         <h2 class="club-detail__section-title">
-          Miembros ({{ currentMembers.length }})
+          {{ t('club.members', { n: currentMembers.length }) }}
         </h2>
 
         <ul class="club-detail__members">
@@ -194,7 +193,7 @@
             <span
               v-if="member.user_id === current.owner_id"
               class="club-detail__owner-badge"
-            >Organiza</span>
+            >{{ t('club.owner') }}</span>
           </li>
         </ul>
 
@@ -207,7 +206,7 @@
           @click="showInvite = true"
         >
           <i class="pi pi-user-plus" />
-          Invitar a un amigo
+          {{ t('club.invite') }}
         </button>
 
         <!-- Salir es el ÚNICO control de privacidad del club: entrar es
@@ -221,7 +220,7 @@
           @click="handleLeave"
         >
           <i class="pi pi-sign-out" />
-          Salir del club
+          {{ t('club.leave') }}
         </button>
       </section>
 
@@ -231,7 +230,7 @@
         class="club-detail__section"
       >
         <h2 class="club-detail__section-title">
-          Ya terminados ({{ currentHistory.length }})
+          {{ t('club.finished', { n: currentHistory.length }) }}
         </h2>
 
         <ul class="club-detail__history">
@@ -269,6 +268,7 @@ import ClubRound from '@/components/Clubs/ClubRound.vue'
 import InviteToClubDialog from '@/components/Clubs/InviteToClubDialog.vue'
 import ClubNotes from '@/components/Clubs/ClubNotes.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import { useI18n } from '@/composables/useI18n'
 import { detailRouteFor } from '@/config/mediaRegistry'
 import CoverService from '@/services/CoverService'
 
@@ -276,6 +276,7 @@ const props = defineProps({
   clubId: { type: [String, Number], required: true }
 })
 
+const { t } = useI18n()
 const clubsStore = useClubsStore()
 const {
   current, currentMembers, currentPick, currentRound, currentHistory,

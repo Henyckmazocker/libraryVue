@@ -11,22 +11,27 @@
  */
 
 import tmdbLogo from '@/assets/tmdbLogo.svg'
+// Los rótulos salen del catálogo y se leen con getters, no con valores: este módulo
+// se importa ANTES de que el catálogo esté cargado, así que un valor se congelaría
+// con el catálogo vacío. Un getter se evalúa al leerlo y además queda suscrito, así
+// que la interfaz cambia de idioma sin recargar.
+import { t } from '@/config/i18n'
 
 const NOTE_TYPES_DEFAULT = [
-  { label: 'Nota', value: 'note' },
-  { label: 'Reseña', value: 'review' },
-  { label: 'Pensamiento', value: 'thought' }
+  { get label() { return t('media.noteTypes.note'); }, value: 'note' },
+  { get label() { return t('media.noteTypes.review'); }, value: 'review' },
+  { get label() { return t('media.noteTypes.thought'); }, value: 'thought' }
 ]
 
 // Libros no comparten los tipos de nota con el resto: son notas de lectura.
 const NOTE_TYPES_EDITION = [
-  { label: 'Nota', value: 'note' },
-  { label: 'Cita', value: 'quote' },
-  { label: 'Reflexión', value: 'thought' },
-  { label: 'Pregunta', value: 'question' },
-  { label: 'Resumen', value: 'summary' },
-  { label: 'Progreso', value: 'progress' },
-  { label: 'General', value: 'general' }
+  { get label() { return t('media.noteTypes.note'); }, value: 'note' },
+  { get label() { return t('media.noteTypes.quote'); }, value: 'quote' },
+  { get label() { return t('media.noteTypes.reflection'); }, value: 'thought' },
+  { get label() { return t('media.noteTypes.question'); }, value: 'question' },
+  { get label() { return t('media.noteTypes.summary'); }, value: 'summary' },
+  { get label() { return t('media.noteTypes.progress'); }, value: 'progress' },
+  { get label() { return t('media.noteTypes.general'); }, value: 'general' }
 ]
 
 const NOTE_TYPE_ICONS_DEFAULT = {
@@ -248,7 +253,7 @@ function openLibraryFields (olData, edition) {
 export const mediaRegistry = {
   book: {
     key: 'book',
-    label: 'Libro',
+    get label() { return t('media.book.label'); },
     labelPlural: 'Libros',
     // La ficha de libro trabaja con ediciones, no con obras: el identificador
     // es el de la edición del usuario.
@@ -269,7 +274,7 @@ export const mediaRegistry = {
      */
     progress: {
       axis: 'page',
-      label: 'Página',
+      get label() { return t('media.book.fields.page'); },
       unit: 'pág.',
       completedStatuses: ['read']
     },
@@ -285,7 +290,7 @@ export const mediaRegistry = {
       loadingText: 'Cargando información del libro...',
       notFoundText: 'No se encontró información del libro.',
       errorText: 'No se pudo obtener información del libro. Verifica el ISBN.',
-      emptyText: 'No se encontró información del libro',
+      get emptyText() { return t('media.book.emptyText'); },
       placeholderIcon: 'fas fa-book',
       librarySectionClass: 'library-form-section',
       libraryTitleIcon: true,
@@ -417,35 +422,36 @@ export const mediaRegistry = {
       // para reservar la caja antes de que cargue la imagen. Salen de los mixins SCSS de la
       // familia y tienen que ir sincronizadas con ellos.
       coverAspect: { width: 80, height: 120 },
-      coverAlt: 'Book Cover',
+      get coverAlt() { return t('media.book.coverAlt'); },
       idOf: (i) => i.isbn,
       coverOf: (i) => i.coverUrl,
       titleOf: (i) => i.title,
-      // Libros, películas y juegos rotulan en inglés; álbumes y vídeos, en
-      // español. Se conserva tal cual: cambiarlo se vería en pantalla.
-      statusLabel: 'Status',
+      // La excepción que hubo aquí —libros, películas y juegos rotulando en
+      // inglés y álbumes y vídeos en español— dejó de existir el 2026-08-31: todo
+      // sale del catálogo.
+      get statusLabel() { return t('media.book.statusLabel'); },
       defaultStatus: 'owned',
       ratingFallback: 0,
       fields: [
-        { cls: 'book-author', label: 'Author', value: (i) => i.author },
+        { cls: 'book-author', get label() { return t('media.book.fields.author'); }, value: (i) => i.author },
         {
           cls: 'book-publisher',
-          label: 'Publisher',
+          get label() { return t('media.book.fields.publisher'); },
           value: (i) => (Array.isArray(i.publishers) && i.publishers.length > 0
             ? i.publishers.join(', ')
             : i.publisher)
         },
-        { cls: 'book-publication-date', label: 'Publication Date', value: (i) => i.publicationDate }
+        { cls: 'book-publication-date', get label() { return t('media.book.fields.publicationDate'); }, value: (i) => i.publicationDate }
       ],
       // Libros y películas sacan el formato como `<p>` suelto; los otros tres
       // lo meten en el bloque `.readonly-fields`.
       extrasWrapped: false,
       extras: [
-        { cls: 'book-field', label: 'Formato', value: ownershipLabel, badge: true }
+        { cls: 'book-field', get label() { return t('media.book.fields.format'); }, value: ownershipLabel, badge: true }
       ],
       // El botón de historial solo existe en libros.
       extraActions: [
-        { cls: 'btn--secondary', icon: 'fas fa-history', label: 'Historial', title: 'Ver historial de lectura', event: 'show-history', onlyExisting: true }
+        { cls: 'btn--secondary', icon: 'fas fa-history', get label() { return t('media.book.fields.history'); }, get title() { return t('media.book.fields.historyTitle'); }, event: 'show-history', onlyExisting: true }
       ],
       savePayload: (item, statuses) => ({ book: item, statuses, itemType: 'book' }),
       deletePayload: (item) => ({ isbn: item.isbn, itemType: 'book' }),
@@ -560,7 +566,7 @@ export const mediaRegistry = {
       subtitleOf: (i) => joinSubtitle(i.author || 'Autor desconocido', yearOf(i.publicationDate))
     },
     notes: {
-      title: 'Notas de Edición',
+      get title() { return t('media.book.notesTitle'); },
       emptyIcon: 'pi pi-book',
       emptyHint: 'Agrega notas para recordar tus pensamientos mientras lees',
       types: NOTE_TYPES_EDITION,
@@ -586,7 +592,7 @@ export const mediaRegistry = {
 
   movie: {
     key: 'movie',
-    label: 'Película',
+    get label() { return t('media.movie.label'); },
     labelPlural: 'Películas',
     idProp: 'imdbId',
     // ⚠ El backend exige la clave `movieIsbn` en el payload
@@ -601,7 +607,7 @@ export const mediaRegistry = {
     // añadirlos era «Fuera» del plan. Aquí el progreso es binario.
     progress: {
       axis: null,
-      label: 'Vista',
+      get label() { return t('media.movie.fields.seen'); },
       unit: null,
       completedStatuses: ['viewed']
     },
@@ -617,7 +623,7 @@ export const mediaRegistry = {
       loadingText: 'Cargando información de la película...',
       notFoundText: 'No se encontró información de la película.',
       errorText: 'No se pudo obtener información de la película. Verifica el IMDb ID.',
-      emptyText: 'No se encontró información de la película',
+      get emptyText() { return t('media.movie.emptyText'); },
       // La atribución de TMDB NO es decorativa ni opcional: sus condiciones de
       // uso exigen mostrar el logo y esta frase en cualquier pantalla que use
       // datos suyos. Solo la llevan película y serie, que son los dos medios
@@ -668,28 +674,28 @@ export const mediaRegistry = {
       // para reservar la caja antes de que cargue la imagen. Salen de los mixins SCSS de la
       // familia y tienen que ir sincronizadas con ellos.
       coverAspect: { width: 80, height: 120 },
-      coverAlt: 'Movie Poster',
+      get coverAlt() { return t('media.movie.coverAlt'); },
       idOf: (i) => i.imdbID,
       coverOf: (i) => i.coverUrl,
       titleOf: (i) => i.title,
-      statusLabel: 'Status',
+      get statusLabel() { return t('media.movie.statusLabel'); },
       defaultStatus: 'owned',
       ratingFallback: 0,
       fields: [
         {
           cls: 'movie-original-title',
-          label: 'Original Title',
+          get label() { return t('media.movie.fields.originalTitle'); },
           value: (i) => (i.originalTitle && i.originalTitle !== i.title ? i.originalTitle : '')
         },
-        { cls: 'movie-director', label: 'Director', value: (i) => i.director },
-        { cls: 'movie-author', label: 'Author', value: (i) => i.author },
-        { cls: 'movie-year', label: 'Year', value: (i) => i.year },
+        { cls: 'movie-director', get label() { return t('media.movie.fields.director'); }, value: (i) => i.director },
+        { cls: 'movie-author', get label() { return t('media.movie.fields.director'); }, value: (i) => i.author },
+        { cls: 'movie-year', get label() { return t('media.movie.fields.year'); }, value: (i) => i.year },
         // Sin `v-if`: la ficha de película siempre pinta el IMDb ID.
-        { cls: 'movie-isbn', label: 'IMDb ID', value: (i) => i.isbn, always: true }
+        { cls: 'movie-isbn', get label() { return t('media.movie.fields.imdbId'); }, value: (i) => i.isbn, always: true }
       ],
       extrasWrapped: false,
       extras: [
-        { cls: 'movie-field', label: 'Formato', value: ownershipLabel, badge: true }
+        { cls: 'movie-field', get label() { return t('media.movie.fields.format'); }, value: ownershipLabel, badge: true }
       ],
       savePayload: (item, statuses) => ({ movie: item, statuses, itemType: 'movie' }),
       // ⚠ `imdbID` va con el valor de `isbn`, no con el de `imdbID`: es lo que
@@ -792,7 +798,7 @@ export const mediaRegistry = {
       })
     },
     notes: {
-      title: 'Notas de la Película',
+      get title() { return t('media.movie.notesTitle'); },
       emptyIcon: 'pi pi-video',
       emptyHint: 'Agrega notas para recordar tus opiniones sobre esta película',
       types: NOTE_TYPES_DEFAULT,
@@ -812,7 +818,7 @@ export const mediaRegistry = {
 
   game: {
     key: 'game',
-    label: 'Juego',
+    get label() { return t('media.game.label'); },
     labelPlural: 'Juegos',
     idProp: 'gameId',
     idPayloadKey: 'gameId',
@@ -821,7 +827,7 @@ export const mediaRegistry = {
     accentVar: '--color-card-game-accent',
     progress: {
       axis: null,
-      label: 'Completado',
+      get label() { return t('media.game.fields.completed'); },
       unit: null,
       completedStatuses: ['completed']
     },
@@ -839,7 +845,7 @@ export const mediaRegistry = {
       loadingText: 'Cargando información del juego...',
       notFoundText: 'No se encontró información del juego.',
       errorText: 'No se pudo obtener información del juego. Verifica el ID.',
-      emptyText: 'No se encontró información del juego',
+      get emptyText() { return t('media.game.emptyText'); },
       placeholderIcon: 'fas fa-gamepad',
       coverOf: (i) => i.coverUrl || i.background_image,
       libraryTitleNew: 'Añadir a tu Biblioteca',
@@ -888,39 +894,39 @@ export const mediaRegistry = {
       // para reservar la caja antes de que cargue la imagen. Salen de los mixins SCSS de la
       // familia y tienen que ir sincronizadas con ellos.
       coverAspect: { width: 80, height: 120 },
-      coverAlt: 'Game Cover',
+      get coverAlt() { return t('media.game.coverAlt'); },
       idOf: (i) => i.id || i.rawgId || i.gameId,
       coverOf: (i) => i.coverUrl,
       titleOf: (i) => i.title || i.name,
-      statusLabel: 'Status',
+      get statusLabel() { return t('media.game.statusLabel'); },
       defaultStatus: 'owned',
       ratingFallback: 0,
       fields: [
         {
           cls: 'game-original-title',
-          label: 'Título Original',
+          get label() { return t('media.game.fields.originalTitle'); },
           value: (i) => (i.originalTitle && i.originalTitle !== (i.title || i.name) ? i.originalTitle : '')
         },
-        { cls: 'game-developer', label: 'Desarrollador', value: (i) => i.developer || joinNames(i.developers) },
-        { cls: 'game-publisher', label: 'Distribuidor', value: (i) => i.publisher || joinNames(i.publishers) },
-        { cls: 'game-release', label: 'Lanzamiento', value: (i) => i.releaseDate || i.released },
-        { cls: 'game-platforms', label: 'Plataformas', value: (i) => joinNames(i.platforms) },
-        { cls: 'game-genres', label: 'Géneros', value: (i) => joinNames(i.genres) },
+        { cls: 'game-developer', get label() { return t('media.game.fields.developer'); }, value: (i) => i.developer || joinNames(i.developers) },
+        { cls: 'game-publisher', get label() { return t('media.game.fields.publisher'); }, value: (i) => i.publisher || joinNames(i.publishers) },
+        { cls: 'game-release', get label() { return t('media.game.fields.released'); }, value: (i) => i.releaseDate || i.released },
+        { cls: 'game-platforms', get label() { return t('media.game.fields.platforms'); }, value: (i) => joinNames(i.platforms) },
+        { cls: 'game-genres', get label() { return t('media.game.fields.genres'); }, value: (i) => joinNames(i.genres) },
         {
           cls: 'game-metacritic',
-          label: 'Metacritic',
+          get label() { return t('media.game.fields.metacritic'); },
           value: (i) => i.metacriticScore || i.metacritic,
           valueClass: (i) => metacriticClass(i.metacriticScore || i.metacritic)
         },
-        { cls: 'game-id', label: 'RAWG ID', value: (i) => i.id || i.rawgId || i.gameId, always: true }
+        { cls: 'game-id', get label() { return t('media.game.fields.rawgId'); }, value: (i) => i.id || i.rawgId || i.gameId, always: true }
       ],
       extrasWrapped: true,
       extras: [
-        { cls: 'game-field', label: 'Horas Jugadas', value: (i) => i.hoursPlayed || i.hours_played || 0 },
-        { cls: 'game-field', label: 'Fecha de Inicio', value: (i) => i.dateStarted || i.date_started || '' },
-        { cls: 'game-field', label: 'Fecha de Finalización', value: (i) => i.dateFinished || i.date_finished || '' },
-        { cls: 'game-field', label: 'Notas', value: (i) => i.notes || '' },
-        { cls: 'game-field', label: 'Formato', value: ownershipLabel, badge: true }
+        { cls: 'game-field', get label() { return t('media.game.fields.hoursPlayed'); }, value: (i) => i.hoursPlayed || i.hours_played || 0 },
+        { cls: 'game-field', get label() { return t('media.game.fields.startedOn'); }, value: (i) => i.dateStarted || i.date_started || '' },
+        { cls: 'game-field', get label() { return t('media.game.fields.finishedOn'); }, value: (i) => i.dateFinished || i.date_finished || '' },
+        { cls: 'game-field', get label() { return t('media.game.fields.notes'); }, value: (i) => i.notes || '' },
+        { cls: 'game-field', get label() { return t('media.game.fields.format'); }, value: ownershipLabel, badge: true }
       ],
       // Guardar y editar añaden los campos propios del juego al ítem.
       withOwnFields: (item) => ({
@@ -1046,7 +1052,7 @@ export const mediaRegistry = {
       }
     },
     notes: {
-      title: 'Notas del Juego',
+      get title() { return t('media.game.notesTitle'); },
       emptyIcon: 'pi pi-desktop',
       emptyHint: 'Agrega notas para recordar tus experiencias con este juego',
       types: NOTE_TYPES_DEFAULT,
@@ -1066,7 +1072,7 @@ export const mediaRegistry = {
 
   album: {
     key: 'album',
-    label: 'Álbum',
+    get label() { return t('media.album.label'); },
     labelPlural: 'Álbumes',
     idProp: 'albumId',
     idPayloadKey: 'albumId',
@@ -1075,7 +1081,7 @@ export const mediaRegistry = {
     accentVar: '--color-card-album-accent',
     progress: {
       axis: null,
-      label: 'Escuchado',
+      get label() { return t('media.album.fields.listened'); },
       unit: null,
       completedStatuses: ['listened']
     },
@@ -1093,7 +1099,7 @@ export const mediaRegistry = {
       loadingText: 'Cargando información del álbum...',
       notFoundText: 'No se encontró información del álbum.',
       errorText: 'No se pudo obtener información del álbum.',
-      emptyText: 'No se encontró información del álbum',
+      get emptyText() { return t('media.album.emptyText'); },
       placeholderIcon: 'fas fa-music',
       libraryTitleNew: 'Añadir a tu Biblioteca',
       libraryTitleExisting: 'Detalles en tu Biblioteca',
@@ -1199,29 +1205,29 @@ export const mediaRegistry = {
       // para reservar la caja antes de que cargue la imagen. Salen de los mixins SCSS de la
       // familia y tienen que ir sincronizadas con ellos.
       coverAspect: { width: 120, height: 120 },
-      coverAlt: 'Album Cover',
+      get coverAlt() { return t('media.album.coverAlt'); },
       idOf: (i) => i.id || i.spotify_id,
       coverOf: (i) => i.cover_url || i.coverUrl,
       titleOf: (i) => i.title || i.name,
-      statusLabel: 'Estado',
+      get statusLabel() { return t('media.album.statusLabel'); },
       defaultStatus: 'owned',
       ratingFallback: null,
       fields: [
-        { cls: 'album-artist', label: 'Artista', value: (i) => i.artist || i.artists?.[0]?.name || '' },
-        { cls: 'album-release', label: 'Lanzamiento', value: (i) => i.release_date || i.releaseDate },
-        { cls: 'album-genres', label: 'Géneros', value: (i) => joinNames(i.genres) },
-        { cls: 'album-label', label: 'Sello', value: (i) => i.label },
-        { cls: 'album-tracks', label: 'Pistas', value: (i) => i.total_tracks || i.totalTracks },
-        { cls: 'album-duration', label: 'Duración', value: albumDuration },
-        { cls: 'album-id', label: 'Spotify ID', value: (i) => i.spotify_id }
+        { cls: 'album-artist', get label() { return t('media.album.fields.artist'); }, value: (i) => i.artist || i.artists?.[0]?.name || '' },
+        { cls: 'album-release', get label() { return t('media.album.fields.released'); }, value: (i) => i.release_date || i.releaseDate },
+        { cls: 'album-genres', get label() { return t('media.album.fields.genres'); }, value: (i) => joinNames(i.genres) },
+        { cls: 'album-label', get label() { return t('media.album.fields.label'); }, value: (i) => i.label },
+        { cls: 'album-tracks', get label() { return t('media.album.fields.tracks'); }, value: (i) => i.total_tracks || i.totalTracks },
+        { cls: 'album-duration', get label() { return t('media.album.fields.duration'); }, value: albumDuration },
+        { cls: 'album-id', get label() { return t('media.album.fields.spotifyId'); }, value: (i) => i.spotify_id }
       ],
       extrasWrapped: true,
       extras: [
-        { cls: 'album-field', label: 'Canción favorita', value: (i) => i.favoriteTrack ?? i.favorite_track ?? '' },
-        { cls: 'album-field', label: 'Primera escucha', value: (i) => i.dateStarted ?? i.date_started ?? '' },
-        { cls: 'album-field', label: 'Última escucha', value: (i) => i.dateFinished ?? i.date_finished ?? '' },
-        { cls: 'album-field', label: 'Notas', value: (i) => i.personalNotes ?? i.personal_notes ?? '' },
-        { cls: 'album-field', label: 'Formato', value: ownershipLabel, badge: true }
+        { cls: 'album-field', get label() { return t('media.album.fields.favouriteTrack'); }, value: (i) => i.favoriteTrack ?? i.favorite_track ?? '' },
+        { cls: 'album-field', get label() { return t('media.album.fields.firstListen'); }, value: (i) => i.dateStarted ?? i.date_started ?? '' },
+        { cls: 'album-field', get label() { return t('media.album.fields.lastListen'); }, value: (i) => i.dateFinished ?? i.date_finished ?? '' },
+        { cls: 'album-field', get label() { return t('media.album.fields.notes'); }, value: (i) => i.personalNotes ?? i.personal_notes ?? '' },
+        { cls: 'album-field', get label() { return t('media.album.fields.format'); }, value: ownershipLabel, badge: true }
       ],
       // Álbumes y vídeos emiten el ítem entero, no un objeto envolvente.
       savePayload: (item, statuses, rating) => ({ ...item, userStatuses: statuses, user_rating: rating }),
@@ -1318,7 +1324,7 @@ export const mediaRegistry = {
       )
     },
     notes: {
-      title: 'Notas del Álbum',
+      get title() { return t('media.album.notesTitle'); },
       emptyIcon: 'pi pi-headphones',
       emptyHint: 'Agrega notas para recordar tus opiniones sobre este álbum',
       types: NOTE_TYPES_DEFAULT,
@@ -1338,7 +1344,7 @@ export const mediaRegistry = {
 
   video: {
     key: 'video',
-    label: 'Vídeo',
+    get label() { return t('media.video.label'); },
     labelPlural: 'Vídeos',
     idProp: 'youtubeId',
     idPayloadKey: 'youtubeId',
@@ -1347,7 +1353,7 @@ export const mediaRegistry = {
     accentVar: '--color-card-video-accent',
     progress: {
       axis: null,
-      label: 'Visto',
+      get label() { return t('media.video.fields.seen'); },
       unit: null,
       completedStatuses: ['watched']
     },
@@ -1366,7 +1372,7 @@ export const mediaRegistry = {
       loadingText: 'Cargando información del vídeo...',
       notFoundText: 'No se encontró el vídeo. Vuelve al buscador y selecciónalo de nuevo.',
       errorText: 'No se pudo obtener información del vídeo.',
-      emptyText: 'No se encontró información del vídeo',
+      get emptyText() { return t('media.video.emptyText'); },
       placeholderIcon: 'fab fa-youtube',
       libraryTitleNew: 'Añadir a tu Biblioteca',
       libraryTitleExisting: 'Detalles en tu Biblioteca',
@@ -1398,24 +1404,24 @@ export const mediaRegistry = {
       // para reservar la caja antes de que cargue la imagen. Salen de los mixins SCSS de la
       // familia y tienen que ir sincronizadas con ellos.
       coverAspect: { width: 120, height: 68 },
-      coverAlt: 'Video Thumbnail',
+      get coverAlt() { return t('media.video.coverAlt'); },
       idOf: (i) => i.youtube_id || i.youtubeId,
       coverOf: (i) => i.cover_url || i.coverUrl,
       titleOf: (i) => i.title,
-      statusLabel: 'Estado',
+      get statusLabel() { return t('media.video.statusLabel'); },
       // ⚠ Único medio que NO preselecciona 'owned' al añadir.
       defaultStatus: null,
       ratingFallback: null,
       fields: [
-        { cls: 'video-channel', label: 'Canal', value: (i) => i.channel_name || i.channelName },
-        { cls: 'video-duration', label: 'Duración', value: (i) => i.duration },
-        { cls: 'video-published', label: 'Publicado', value: (i) => i.published_at || i.publishedAt },
-        { cls: 'video-id', label: 'YouTube ID', value: (i) => i.youtube_id || i.youtubeId }
+        { cls: 'video-channel', get label() { return t('media.video.fields.channel'); }, value: (i) => i.channel_name || i.channelName },
+        { cls: 'video-duration', get label() { return t('media.video.fields.duration'); }, value: (i) => i.duration },
+        { cls: 'video-published', get label() { return t('media.video.fields.published'); }, value: (i) => i.published_at || i.publishedAt },
+        { cls: 'video-id', get label() { return t('media.video.fields.youtubeId'); }, value: (i) => i.youtube_id || i.youtubeId }
       ],
       extrasWrapped: true,
       extras: [
-        { cls: 'video-field', label: 'Veces visto', value: (i) => i.watchCount ?? i.watch_count ?? null },
-        { cls: 'video-field', label: 'Notas', value: (i) => i.personalNotes ?? i.personal_notes ?? '' }
+        { cls: 'video-field', get label() { return t('media.video.fields.timesWatched'); }, value: (i) => i.watchCount ?? i.watch_count ?? null },
+        { cls: 'video-field', get label() { return t('media.video.fields.notes'); }, value: (i) => i.personalNotes ?? i.personal_notes ?? '' }
       ],
       savePayload: (item, statuses, rating) => ({ ...item, userStatuses: statuses, user_rating: rating }),
       deletePayload: (item) => item?.youtube_id || item?.youtubeId || item?.id,
@@ -1517,7 +1523,7 @@ export const mediaRegistry = {
       )
     },
     notes: {
-      title: 'Notas del Vídeo',
+      get title() { return t('media.video.notesTitle'); },
       // Único medio que usa FontAwesome aquí (VideoNotes.vue:62). Se reproduce
       // tal cual: `pi pi-youtube` existe, pero cambiarlo cambiaría el glifo.
       emptyIcon: 'fab fa-youtube',
@@ -1542,7 +1548,7 @@ export const mediaRegistry = {
   // no declara `store` ni `api`, y createMediaStore('series') falla a propósito.
   series: {
     key: 'series',
-    label: 'Serie',
+    get label() { return t('media.series.label'); },
     labelPlural: 'Series',
     idProp: 'imdbId',
     idPayloadKey: 'movieIsbn',
@@ -1562,7 +1568,7 @@ export const mediaRegistry = {
      */
     progress: {
       axis: 'season',
-      label: 'Temporada',
+      get label() { return t('media.series.fields.season'); },
       unit: 'T',
       completedStatuses: ['viewed']
     },
@@ -1578,7 +1584,7 @@ export const mediaRegistry = {
       loadingText: 'Cargando información de la serie...',
       notFoundText: 'No se encontró información de la serie.',
       errorText: 'No se pudo obtener información de la serie.',
-      emptyText: 'No se encontró información de la serie',
+      get emptyText() { return t('media.series.emptyText'); },
       // La atribución de TMDB NO es decorativa ni opcional: sus condiciones de
       // uso exigen mostrar el logo y esta frase en cualquier pantalla que use
       // datos suyos. Solo la llevan película y serie, que son los dos medios

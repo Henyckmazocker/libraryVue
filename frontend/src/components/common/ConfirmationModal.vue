@@ -81,6 +81,7 @@
 import { ref, computed, nextTick, watch } from 'vue'
 import BaseModal from './BaseModal.vue'
 import { sanitizePlain } from '@/utils/sanitize'
+import { t } from '@/config/i18n'
 
 export default {
   name: 'ConfirmationModal',
@@ -95,7 +96,7 @@ export default {
     // Contenido del modal
     title: {
       type: String,
-      default: 'Confirmar acción'
+      default: () => t('confirm.title')
     },
     message: {
       type: String,
@@ -116,15 +117,15 @@ export default {
     // Textos de botones
     confirmText: {
       type: String,
-      default: 'Confirmar'
+      default: () => t('confirm.confirm')
     },
     cancelText: {
       type: String,
-      default: 'Cancelar'
+      default: () => t('common.cancel')
     },
     processingText: {
       type: String,
-      default: 'Procesando...'
+      default: () => t('confirm.processing')
     },
     
     // Confirmación por texto
@@ -138,11 +139,11 @@ export default {
     },
     textConfirmationLabel: {
       type: String,
-      default: 'Para confirmar, escribe el texto exacto:'
+      default: () => t('confirm.textLabel')
     },
     textConfirmationPlaceholder: {
       type: String,
-      default: 'Escribe aquí...'
+      default: () => t('confirm.textPlaceholder')
     },
     textConfirmationHint: {
       type: String,

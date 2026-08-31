@@ -166,10 +166,10 @@ onMounted(async () => {
     if (response.data.status === 'success') {
       profile.value = response.data.data
     } else {
-      error.value = response.data.message || 'Perfil no encontrado'
+      error.value = response.data.message || t('toasts.profileNotFound')
     }
   } catch {
-    error.value = 'No se pudo cargar el perfil'
+    error.value = t('toasts.profileFailed')
   } finally {
     loading.value = false
   }
@@ -184,7 +184,7 @@ const handleSendRequest = async () => {
   try {
     await socialStore.sendFriendRequest(profile.value.id)
     profile.value.request_sent = true
-    toast.add({ severity: 'success', summary: 'Solicitud enviada', life: 3000 })
+    toast.add({ severity: 'success', summary: t('toasts.requestSent'), life: 3000 })
   } catch (err) {
     toast.add({ severity: 'error', summary: 'Error', detail: err.message, life: 4000 })
   } finally {

@@ -1,6 +1,7 @@
 import { ref, computed, watch } from 'vue';
 import { useAuthStore } from '@/store/auth';
 import Logger from '@/utils/logger';
+import { t } from '@/config/i18n';
 
 /**
  * Composable principal para autenticación
@@ -36,7 +37,7 @@ export function useAuth() {
       await authStore.initializeAuth();
       Logger.auth('[useAuth] Authentication initialized successfully');
     } catch (err) {
-      error.value = err.message || 'Failed to initialize authentication';
+      error.value = err.message || t('authError.init');
       Logger.error('[useAuth] Failed to initialize authentication:', err);
     } finally {
       isLoading.value = false;
@@ -50,7 +51,7 @@ export function useAuth() {
    */
   const login = async (googleToken) => {
     if (!googleToken) {
-      const message = 'Google token is required';
+      const message = '[useAuth] Google token is required';
       error.value = message;
       return { success: false, message };
     }
@@ -67,12 +68,12 @@ export function useAuth() {
         Logger.auth('[useAuth] Login successful');
         return { success: true };
       } else {
-        error.value = result.message || 'Login failed';
+        error.value = result.message || t('authError.login');
         Logger.auth('[useAuth] Login failed:', result.message);
         return { success: false, message: result.message };
       }
     } catch (err) {
-      const message = err.message || 'An unexpected error occurred during login';
+      const message = err.message || t('authError.loginUnexpected');
       error.value = message;
       Logger.error('[useAuth] Login error:', err);
       return { success: false, message };
@@ -93,7 +94,7 @@ export function useAuth() {
       await authStore.logout();
       Logger.auth('[useAuth] Logout successful');
     } catch (err) {
-      error.value = err.message || 'Failed to logout';
+      error.value = err.message || t('authError.logout');
       Logger.error('[useAuth] Logout error:', err);
     } finally {
       isLoading.value = false;
@@ -112,9 +113,9 @@ export function useAuth() {
     } catch (err) {
       // Maneja errores de autenticación
       if (authStore.handleAuthError(err)) {
-        error.value = 'Session expired. Please login again.';
+        error.value = t('authError.expired');
       } else {
-        error.value = err.message || 'API call failed';
+        error.value = err.message || t('authError.apiFailed');
       }
       throw err;
     }

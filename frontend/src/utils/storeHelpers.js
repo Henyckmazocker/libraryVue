@@ -1,35 +1,31 @@
+import { apiError } from '@/composables/useApiError'
+import { t } from '@/config/i18n'
+
 /**
  * Shared utilities for Pinia stores
  * Extracted to avoid code duplication across books, movies, and games stores
  */
 
 /**
- * Parses an API error and returns a user-friendly message.
- * Handles axios error shapes (response, request, message) and falls back to a default.
+ * Traduce un error de una llamada al backend a algo que el usuario pueda leer.
  *
- * @param {Error} err - The caught error (typically from axios)
- * @param {string} defaultMessage - Fallback message if no specific info is available
- * @returns {string} Human-readable error message
+ * Era la **tercera** copia de la misma lógica —`_messageFor` en dos stores y
+ * `_handleError` en `store/sessions.js` eran las otras— y además enseñaba el
+ * `message` del backend, que llega en inglés. Ahora delega en `apiError`, que
+ * resuelve por código y manda ese mensaje al `Logger`.
+ *
+ * Se conserva el nombre porque lo usa la factoría de los cinco stores de medio
+ * (`store/createMediaStore.js:5`), y cambiarlo no aporta nada.
+ *
+ * @param {Error|object|number} err
+ * @param {object} [claves] - claves del catálogo por código; ver `apiError`
+ * @returns {string}
  */
-export function handleStoreError(err, defaultMessage = 'Operation failed') {
-  if (err.response) {
-    const status = err.response.status
-    const data = err.response.data
-
-    if (status === 401) {
-      return 'Authentication required. Please login again.'
-    } else if (status === 403) {
-      return 'Invalid CSRF token. Please refresh the page and try again.'
-    } else if (data && data.message) {
-      return data.message
-    } else {
-      return `Server error (${status})`
-    }
-  } else if (err.request) {
-    return 'Network error. Please check your connection.'
-  } else if (err.message) {
-    return err.message
+export function handleStoreError (err, claves = {}) {
+  // Un error de red no trae respuesta ni código: no hay nada que consultar.
+  if (err && typeof err === 'object' && err.request && !err.response) {
+    return t('errors.network')
   }
 
-  return defaultMessage
+  return apiError(err, claves)
 }

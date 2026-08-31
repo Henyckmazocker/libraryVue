@@ -329,7 +329,7 @@ const availableLanguages = computed(() => {
       const normalizedCode = String(lang).toLowerCase();
       
       if (normalizedCode) {
-        const langName = getLanguageName(normalizedCode, 'es');
+        const langName = getLanguageName(normalizedCode, 'ui');
         
         if (!langMap.has(normalizedCode)) {
           langMap.set(normalizedCode, { code: normalizedCode, name: langName, count: 0 });

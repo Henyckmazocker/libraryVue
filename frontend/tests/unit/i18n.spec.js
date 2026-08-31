@@ -3,6 +3,14 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import es from '@/locales/es.yaml'
 import en from '@/locales/en.yaml'
+import { cadenasDe } from './helpers/cadenas'
+import lista from './i18n-strings.allowlist.json'
+
+// El YAML crudo, además del compilado: una clave repetida no se ve en el objeto.
+const CRUDOS = {
+  'es.yaml': join(process.cwd(), 'src/locales/es.yaml'),
+  'en.yaml': join(process.cwd(), 'src/locales/en.yaml')
+}
 
 /**
  * La barrera del catálogo.
@@ -15,6 +23,14 @@ import en from '@/locales/en.yaml'
  *   1. `es.yaml` y `en.yaml` tienen exactamente las mismas claves.
  *   2. Toda clave literal usada como `t('…')` en `src/` existe en el catálogo.
  *   3. No hay claves en el catálogo que nadie use.
+ *   4. Ningún bloque está declarado dos veces.
+ *   5. No hay cadenas de interfaz en el `<script>` fuera del catálogo.
+ *
+ * La quinta es el candado del plan de textos de stores y servicios: la regla de
+ * lint solo mira la plantilla, y en esta app **la mayoría de las cadenas no
+ * estaban ahí** sino en stores, composables y servicios. `helpers/cadenas.js` las
+ * reparte en tres montones por la **forma de la llamada**, y aquí se exige que el
+ * de interfaz esté vacío.
  */
 
 // Desde `process.cwd()` y no desde `import.meta.url`: en Vitest esa URL no siempre
@@ -36,7 +52,8 @@ const PREFIJOS_DINAMICOS = [
   'menu.',     // t(item.nameKey), con la clave dentro de `sidebar-menu.json`
   'dashboardCards.',   // t(`dashboardCards.total.${clave}`), por medio
   'dashboardCharts.',  // t(`dashboardCharts.status.${clave}`), por medio
-  'book.subjectGroups.' // t(`book.subjectGroups.${vocabulario}`) de OpenLibrary
+  'book.subjectGroups.', // t(`book.subjectGroups.${vocabulario}`) de OpenLibrary
+  'language.'           // t(`language.${código}`) desde `utils/languageConstants.js`
 ]
 
 /**
@@ -94,12 +111,33 @@ function usosEn (contenido) {
   return [...sinComentarios(contenido).matchAll(/\bt\(\s*['"]([\w.-]+)['"]\s*[,)]/g)].map(m => m[1])
 }
 
+/**
+ * Una clave también se usa cuando viaja como **dato** en vez de como argumento
+ * de `t()`: los mapas por código de `store/lists.js` y `store/clubs.js` guardan
+ * `403: 'lists.error403'` y es `apiError` quien lo traduce.
+ *
+ * Se cuenta solo si el literal **casa exactamente** con una clave que existe;
+ * cualquier otra cadena con puntos —una ruta, un `fas fa-x`— no cuela.
+ */
+function clavesComoDato (contenido, existentes) {
+  return [...sinComentarios(contenido).matchAll(/['"]([\w-]+(?:\.[\w-]+)+)['"]/g)]
+    .map(m => m[1])
+    .filter(k => existentes.has(k))
+}
+
 const clavesEs = claves(es).sort()
 const clavesEn = claves(en).sort()
 
+const conjuntoEs = new Set(clavesEs)
 const usos = new Map()
 for (const fichero of ficherosDe(SRC)) {
-  for (const clave of usosEn(readFileSync(fichero, 'utf8'))) {
+  const contenido = readFileSync(fichero, 'utf8')
+  for (const clave of usosEn(contenido)) {
+    if (!usos.has(clave)) usos.set(clave, relative(SRC, fichero))
+  }
+  // Las que viajan como dato solo cuentan para «nadie la usa»: para la
+  // comprobación de huérfanas no aportan nada, porque ya se filtran por existir.
+  for (const clave of clavesComoDato(contenido, conjuntoEs)) {
     if (!usos.has(clave)) usos.set(clave, relative(SRC, fichero))
   }
 }
@@ -138,6 +176,53 @@ describe('i18n — la barrera del catálogo', () => {
 
     expect(sobran, `Claves en el catálogo que no usa nadie:\n  ${sobran.join('\n  ')}`)
       .toEqual([])
+  })
+
+  it('ningún bloque del catálogo está declarado dos veces', () => {
+    // YAML se queda con la última y tira la anterior entera. Pasó el 2026-08-31
+    // añadiendo un segundo bloque `lists:` al final del fichero.
+    //
+    // `@rollup/plugin-yaml` **sí** lo detecta, pero tumbando la carga del módulo:
+    // la suite entera sale con «no tests» y sin nombrar el fichero ni la clave.
+    // Esta comprobación no añade cobertura, añade el nombre — que es lo que
+    // convierte diez minutos de búsqueda en uno.
+    for (const [nombre, ruta] of Object.entries(CRUDOS)) {
+      const bloques = readFileSync(ruta, 'utf8')
+        .split('\n')
+        .filter(l => /^[a-zA-Z]/.test(l) && l.includes(':'))
+        .map(l => l.split(':')[0])
+
+      const repetidos = bloques.filter((b, i) => bloques.indexOf(b) !== i)
+
+      expect(repetidos, `${nombre} declara dos veces: ${repetidos.join(', ')}`).toEqual([])
+    }
+  })
+
+  it('no hay cadenas de interfaz en el `<script>` fuera del catálogo', () => {
+    const datos = new Set((lista.datosDelFormato ?? []).map(x => `${x.file}||${x.text}`))
+    const sueltas = []
+
+    for (const fichero of ficherosDe(SRC)) {
+      const rel = relative(SRC, fichero)
+      for (const { texto, monton } of cadenasDe(readFileSync(fichero, 'utf8'), fichero)) {
+        if (monton !== 'interfaz') continue
+        if (datos.has(`${rel}||${texto}`)) continue
+        sueltas.push(`${rel}  «${texto.slice(0, 70)}»`)
+      }
+    }
+
+    expect(
+      sueltas,
+      'Cadenas de interfaz sin sacar al catálogo:\n  ' + sueltas.join('\n  ') +
+      '\n\nSácalas a `src/locales/*.yaml` y úsalas con `t()`. Si NO son interfaz, ' +
+      'mira `tests/unit/i18n-strings.allowlist.json` → `_comoSeApaga`.'
+    ).toEqual([])
+  })
+
+  it('la lista de deuda sigue vacía: es el candado, no una lista de pendientes', () => {
+    // El M5 la vació. Volver a llenarla apagaría la comprobación de arriba para
+    // esa cadena, que es justo lo que no puede pasar sin que se vea en el diff.
+    expect(lista.pendientes).toEqual([])
   })
 
   it('la lista de pendientes de uso sigue vacía', () => {

@@ -254,7 +254,7 @@ export const mediaRegistry = {
   book: {
     key: 'book',
     get label() { return t('media.book.label'); },
-    labelPlural: 'Libros',
+    get labelPlural () { return t('media.book.labelPlural') },
     // La ficha de libro trabaja con ediciones, no con obras: el identificador
     // es el de la edición del usuario.
     idProp: 'userEditionId',
@@ -275,7 +275,7 @@ export const mediaRegistry = {
     progress: {
       axis: 'page',
       get label() { return t('media.book.fields.page'); },
-      unit: 'pág.',
+      get unit () { return t('media.book.unit') },
       completedStatuses: ['read']
     },
     detail: {
@@ -285,17 +285,17 @@ export const mediaRegistry = {
       coverAspect: { width: 220, height: 330 },
       stateKey: 'book',
       routeParam: 'isbn',
-      backText: 'Volver a búsqueda',
+      get backText () { return t('media.book.back') },
       backRoute: 'Books',
-      loadingText: 'Cargando información del libro...',
-      notFoundText: 'No se encontró información del libro.',
-      errorText: 'No se pudo obtener información del libro. Verifica el ISBN.',
+      get loadingText () { return t('media.book.loading') },
+      get notFoundText () { return t('media.book.notFound') },
+      get errorText () { return t('media.book.error') },
       get emptyText() { return t('media.book.emptyText'); },
       placeholderIcon: 'fas fa-book',
       librarySectionClass: 'library-form-section',
       libraryTitleIcon: true,
-      libraryTitleNew: 'Añadir a Mi Biblioteca',
-      libraryTitleExisting: 'Editar en Mi Biblioteca',
+      get libraryTitleNew () { return t('media.book.libraryNew') },
+      get libraryTitleExisting () { return t('media.book.libraryExisting') },
       divider: true,
       hasNotes: false,
       statusesAsNames: false,
@@ -334,8 +334,8 @@ export const mediaRegistry = {
           const item = {
             isbn: google.isbn_13 || routeId,
             isbn10: google.isbn_10 || null,
-            title: google.title || 'Título no disponible',
-            author: google.authors?.length > 0 ? google.authors.join(', ') : 'Autor no disponible',
+            title: google.title || t('media.book.titleUnavailable'),
+            author: google.authors?.length > 0 ? google.authors.join(', ') : t('media.book.authorUnavailable'),
             publisher: google.publisher || '',
             publicationDate: google.published_date || '',
             coverUrl: google.cover_url_large || google.cover_url_medium || google.cover_url_small || '',
@@ -380,8 +380,8 @@ export const mediaRegistry = {
           item: {
             isbn: olData.identifiers?.isbn_13?.[0] || routeId,
             isbn10: olData.identifiers?.isbn_10?.[0] || null,
-            title: olData.title || 'Título no disponible',
-            author: olData.authors?.length > 0 ? olData.authors.map((a) => a.name).join(', ') : 'Autor no disponible',
+            title: olData.title || t('media.book.titleUnavailable'),
+            author: olData.authors?.length > 0 ? olData.authors.map((a) => a.name).join(', ') : t('media.book.authorUnavailable'),
             publisher: olData.publishers?.length > 0 ? olData.publishers.map((pub) => pub.name).join(', ') : '',
             publicationDate: olData.publish_date || '',
             coverUrl: olData.cover?.large || olData.cover?.medium || olData.cover?.small || '',
@@ -409,10 +409,10 @@ export const mediaRegistry = {
       itemForModal: (item, stored) => ({ ...item, ...stored, isbn: stored.isbn ?? item?.isbn }),
       unwrapSave: (payload) => [payload.book, payload.statuses],
       unwrapDelete: (payload) => payload.isbn,
-      savedMessage: 'Libro actualizado correctamente',
-      deleteConfirm: '¿Eliminar este libro de tu biblioteca?',
-      deletedMessage: 'Libro eliminado de tu biblioteca',
-      deleteErrorMessage: 'Error al eliminar el libro'
+      get savedMessage () { return t('media.book.saved') },
+      get deleteConfirm () { return t('media.book.deleteConfirm') },
+      get deletedMessage () { return t('media.book.deleted') },
+      get deleteErrorMessage () { return t('media.book.deleteError') }
     },
     // Ficha de biblioteca (LibraryMediaItem). Cada campo conserva la clase que
     // tenía en LibraryBookItem, porque el mixin `library-item` estiliza
@@ -548,7 +548,7 @@ export const mediaRegistry = {
       // Único medio cuyo helper por id no se llama `find{One}ById`.
       findByIdName: 'findBookByISBN',
       deleteIdLabel: 'ISBN',
-      deleteWarning: 'También se eliminarán todas las sesiones de lectura asociadas',
+      get deleteWarning () { return t('media.book.deleteWarning') },
       editSyncFields: ['currentPage']
     },
     list: {
@@ -563,12 +563,12 @@ export const mediaRegistry = {
       idOf: (i) => i.isbn,
       coverOf: (i) => i.coverUrl,
       titleOf: (i) => i.title,
-      subtitleOf: (i) => joinSubtitle(i.author || 'Autor desconocido', yearOf(i.publicationDate))
+      subtitleOf: (i) => joinSubtitle(i.author || t('book.unknownAuthor'), yearOf(i.publicationDate))
     },
     notes: {
       get title() { return t('media.book.notesTitle'); },
       emptyIcon: 'pi pi-book',
-      emptyHint: 'Agrega notas para recordar tus pensamientos mientras lees',
+      get emptyHint () { return t('media.book.notesHint') },
       types: NOTE_TYPES_EDITION,
       typeIcons: NOTE_TYPE_ICONS_EDITION,
       // Ediciones caían a 'pi-file' y al propio `type`; los otros cuatro,
@@ -593,7 +593,7 @@ export const mediaRegistry = {
   movie: {
     key: 'movie',
     get label() { return t('media.movie.label'); },
-    labelPlural: 'Películas',
+    get labelPlural () { return t('media.movie.labelPlural') },
     idProp: 'imdbId',
     // ⚠ El backend exige la clave `movieIsbn` en el payload
     // (routes.php:481,483). Es herencia de haber copiado el esquema de libros:
@@ -618,11 +618,11 @@ export const mediaRegistry = {
       coverAspect: { width: 220, height: 330 },
       stateKey: 'movie',
       routeParam: 'imdbId',
-      backText: 'Volver a búsqueda',
+      get backText () { return t('media.movie.back') },
       backRoute: 'Movies',
-      loadingText: 'Cargando información de la película...',
-      notFoundText: 'No se encontró información de la película.',
-      errorText: 'No se pudo obtener información de la película. Verifica el IMDb ID.',
+      get loadingText () { return t('media.movie.loading') },
+      get notFoundText () { return t('media.movie.notFound') },
+      get errorText () { return t('media.movie.error') },
       get emptyText() { return t('media.movie.emptyText'); },
       // La atribución de TMDB NO es decorativa ni opcional: sus condiciones de
       // uso exigen mostrar el logo y esta frase en cualquier pantalla que use
@@ -630,9 +630,9 @@ export const mediaRegistry = {
       // enriquecidos con TMDB.
       attribution: {
         logo: tmdbLogo,
-        alt: 'The Movie Database',
+        get alt () { return t('brand.tmdb') },
         href: 'https://www.themoviedb.org/',
-        text: 'Este producto usa la API de TMDB, pero no está avalado ni certificado por TMDB.'
+        get text () { return t('brand.tmdbNotice') }
       },
       placeholderIcon: 'fas fa-film',
       coverClass: 'movie-poster-large',
@@ -640,8 +640,8 @@ export const mediaRegistry = {
       placeholderClass: 'poster-placeholder',
       librarySectionClass: 'library-form-section',
       libraryTitleIcon: true,
-      libraryTitleNew: 'Añadir a Mi Biblioteca',
-      libraryTitleExisting: 'Editar en Mi Biblioteca',
+      get libraryTitleNew () { return t('media.movie.libraryNew') },
+      get libraryTitleExisting () { return t('media.movie.libraryExisting') },
       divider: true,
       hasNotes: false,
       statusesAsNames: false,
@@ -662,12 +662,12 @@ export const mediaRegistry = {
       }),
       unwrapSave: (payload) => [payload.movie, payload.statuses],
       unwrapDelete: (payload) => payload.isbn,
-      savedMessage: 'Película actualizada correctamente',
+      get savedMessage () { return t('media.movie.saved') },
       // ⚠ Antes el botón de borrar no hacía nada (handler vacío en
       // MovieDetailView.vue:362). Ahora borra de verdad, con confirmación.
-      deleteConfirm: '¿Eliminar esta película de tu biblioteca?',
-      deletedMessage: 'Película eliminada de tu biblioteca',
-      deleteErrorMessage: 'Error al eliminar la película'
+      get deleteConfirm () { return t('media.movie.deleteConfirm') },
+      get deletedMessage () { return t('media.movie.deleted') },
+      get deleteErrorMessage () { return t('media.movie.deleteError') }
     },
     libraryItem: {
       // Dimensiones intrínsecas de la portada en esta familia, en px: el navegador las usa
@@ -789,7 +789,7 @@ export const mediaRegistry = {
       idOf: (i) => i.imdbID,
       coverOf: (i) => i.coverUrl,
       titleOf: (i) => i.title,
-      subtitleOf: (i) => joinSubtitle(i.director || 'Director desconocido', i.year ? String(i.year) : ''),
+      subtitleOf: (i) => joinSubtitle(i.director || t('media.movie.unknownDirector'), i.year ? String(i.year) : ''),
       // Único medio con badge: distingue serie de película (MovieListItem.vue:16-22).
       badgeOf: (i) => ({
         icon: isSeries(i) ? 'fas fa-tv' : 'fas fa-film',
@@ -800,7 +800,7 @@ export const mediaRegistry = {
     notes: {
       get title() { return t('media.movie.notesTitle'); },
       emptyIcon: 'pi pi-video',
-      emptyHint: 'Agrega notas para recordar tus opiniones sobre esta película',
+      get emptyHint () { return t('media.movie.notesHint') },
       types: NOTE_TYPES_DEFAULT,
       typeIcons: NOTE_TYPE_ICONS_DEFAULT,
       typeFallbackIcon: 'pi-file-edit',
@@ -819,7 +819,7 @@ export const mediaRegistry = {
   game: {
     key: 'game',
     get label() { return t('media.game.label'); },
-    labelPlural: 'Juegos',
+    get labelPlural () { return t('media.game.labelPlural') },
     idProp: 'gameId',
     idPayloadKey: 'gameId',
     idType: Number,
@@ -840,16 +840,16 @@ export const mediaRegistry = {
       librarySectionClass: 'library-section',
       libraryTitleIcon: false,
       routeParam: 'gameId',
-      backText: 'Volver',
+      get backText () { return t('media.game.back') },
       backRoute: 'Games',
-      loadingText: 'Cargando información del juego...',
-      notFoundText: 'No se encontró información del juego.',
-      errorText: 'No se pudo obtener información del juego. Verifica el ID.',
+      get loadingText () { return t('media.game.loading') },
+      get notFoundText () { return t('media.game.notFound') },
+      get errorText () { return t('media.game.error') },
       get emptyText() { return t('media.game.emptyText'); },
       placeholderIcon: 'fas fa-gamepad',
       coverOf: (i) => i.coverUrl || i.background_image,
-      libraryTitleNew: 'Añadir a tu Biblioteca',
-      libraryTitleExisting: 'Detalles en tu Biblioteca',
+      get libraryTitleNew () { return t('media.game.libraryNew') },
+      get libraryTitleExisting () { return t('media.game.libraryExisting') },
       divider: false,
       hasNotes: true,
       statusesAsNames: false,
@@ -886,8 +886,8 @@ export const mediaRegistry = {
       unwrapSave: (payload) => [payload.game, payload.statuses],
       unwrapDelete: (payload) => payload.gameId,
       deleteConfirm: null,
-      deletedMessage: 'Juego eliminado de tu biblioteca',
-      deleteErrorMessage: 'Error al eliminar el juego'
+      get deletedMessage () { return t('media.game.deleted') },
+      get deleteErrorMessage () { return t('media.game.deleteError') }
     },
     libraryItem: {
       // Dimensiones intrínsecas de la portada en esta familia, en px: el navegador las usa
@@ -1043,7 +1043,7 @@ export const mediaRegistry = {
         if (developer && year) return `${developer} • ${year}`
         if (developer) return developer
         if (year) return String(year)
-        return 'Desarrollador desconocido'
+        return t('media.game.unknownDeveloper')
       },
       // Único medio con línea extra: las plataformas (GameListItem.vue:19-22).
       extraOf: (i) => {
@@ -1054,7 +1054,7 @@ export const mediaRegistry = {
     notes: {
       get title() { return t('media.game.notesTitle'); },
       emptyIcon: 'pi pi-desktop',
-      emptyHint: 'Agrega notas para recordar tus experiencias con este juego',
+      get emptyHint () { return t('media.game.notesHint') },
       types: NOTE_TYPES_DEFAULT,
       typeIcons: NOTE_TYPE_ICONS_DEFAULT,
       typeFallbackIcon: 'pi-file-edit',
@@ -1073,7 +1073,7 @@ export const mediaRegistry = {
   album: {
     key: 'album',
     get label() { return t('media.album.label'); },
-    labelPlural: 'Álbumes',
+    get labelPlural () { return t('media.album.labelPlural') },
     idProp: 'albumId',
     idPayloadKey: 'albumId',
     idType: Number,
@@ -1094,15 +1094,15 @@ export const mediaRegistry = {
       librarySectionClass: 'library-section',
       libraryTitleIcon: false,
       routeParam: 'albumId',
-      backText: 'Volver',
+      get backText () { return t('media.album.back') },
       backRoute: 'Albums',
-      loadingText: 'Cargando información del álbum...',
-      notFoundText: 'No se encontró información del álbum.',
-      errorText: 'No se pudo obtener información del álbum.',
+      get loadingText () { return t('media.album.loading') },
+      get notFoundText () { return t('media.album.notFound') },
+      get errorText () { return t('media.album.error') },
       get emptyText() { return t('media.album.emptyText'); },
       placeholderIcon: 'fas fa-music',
-      libraryTitleNew: 'Añadir a tu Biblioteca',
-      libraryTitleExisting: 'Detalles en tu Biblioteca',
+      get libraryTitleNew () { return t('media.album.libraryNew') },
+      get libraryTitleExisting () { return t('media.album.libraryExisting') },
       divider: false,
       hasNotes: true,
       statusesAsNames: false,
@@ -1196,9 +1196,9 @@ export const mediaRegistry = {
       modalProps: (context) => ({ albumTracks: context.tracks || [] }),
       unwrapSave: (payload) => [payload, payload.userStatuses || []],
       unwrapDelete: (id) => id,
-      deleteConfirm: '¿Eliminar este álbum de tu biblioteca?',
-      deletedMessage: 'Álbum eliminado de tu biblioteca',
-      deleteErrorMessage: 'Error al eliminar el álbum'
+      get deleteConfirm () { return t('media.album.deleteConfirm') },
+      get deletedMessage () { return t('media.album.deleted') },
+      get deleteErrorMessage () { return t('media.album.deleteError') }
     },
     libraryItem: {
       // Dimensiones intrínsecas de la portada en esta familia, en px: el navegador las usa
@@ -1319,14 +1319,14 @@ export const mediaRegistry = {
       coverOf: (i) => i.cover_url,
       titleOf: (i) => i.title || i.name,
       subtitleOf: (i) => joinSubtitle(
-        i.artist || i.artists?.[0]?.name || 'Artista desconocido',
+        i.artist || i.artists?.[0]?.name || t('media.album.unknownArtist'),
         yearOf(i.release_date || i.releaseDate)
       )
     },
     notes: {
       get title() { return t('media.album.notesTitle'); },
       emptyIcon: 'pi pi-headphones',
-      emptyHint: 'Agrega notas para recordar tus opiniones sobre este álbum',
+      get emptyHint () { return t('media.album.notesHint') },
       types: NOTE_TYPES_DEFAULT,
       typeIcons: NOTE_TYPE_ICONS_DEFAULT,
       typeFallbackIcon: 'pi-file-edit',
@@ -1345,7 +1345,7 @@ export const mediaRegistry = {
   video: {
     key: 'video',
     get label() { return t('media.video.label'); },
-    labelPlural: 'Vídeos',
+    get labelPlural () { return t('media.video.labelPlural') },
     idProp: 'youtubeId',
     idPayloadKey: 'youtubeId',
     idType: String,
@@ -1367,15 +1367,15 @@ export const mediaRegistry = {
       librarySectionClass: 'library-section',
       libraryTitleIcon: false,
       routeParam: 'youtubeId',
-      backText: 'Volver',
+      get backText () { return t('media.video.back') },
       backRoute: 'Videos',
-      loadingText: 'Cargando información del vídeo...',
-      notFoundText: 'No se encontró el vídeo. Vuelve al buscador y selecciónalo de nuevo.',
-      errorText: 'No se pudo obtener información del vídeo.',
+      get loadingText () { return t('media.video.loading') },
+      get notFoundText () { return t('media.video.notFound') },
+      get errorText () { return t('media.video.error') },
       get emptyText() { return t('media.video.emptyText'); },
       placeholderIcon: 'fab fa-youtube',
-      libraryTitleNew: 'Añadir a tu Biblioteca',
-      libraryTitleExisting: 'Detalles en tu Biblioteca',
+      get libraryTitleNew () { return t('media.video.libraryNew') },
+      get libraryTitleExisting () { return t('media.video.libraryExisting') },
       divider: false,
       hasNotes: true,
       // El selector de estados de los vídeos trabaja con nombres, no con los
@@ -1397,7 +1397,7 @@ export const mediaRegistry = {
       itemForModal: (item, stored) => ({ ...item, ...stored }),
       unwrapSave: (payload) => [payload, payload.userStatuses || []],
       unwrapDelete: (id) => id,
-      deleteConfirm: '¿Seguro que quieres eliminar este vídeo de tu biblioteca?'
+      get deleteConfirm () { return t('media.video.deleteConfirm') }
     },
     libraryItem: {
       // Dimensiones intrínsecas de la portada en esta familia, en px: el navegador las usa
@@ -1518,7 +1518,7 @@ export const mediaRegistry = {
       coverOf: (i) => i.cover_url,
       titleOf: (i) => i.title,
       subtitleOf: (i) => joinSubtitle(
-        i.channel_name || i.channelName || 'Canal desconocido',
+        i.channel_name || i.channelName || t('media.video.unknownChannel'),
         i.duration || ''
       )
     },
@@ -1527,7 +1527,7 @@ export const mediaRegistry = {
       // Único medio que usa FontAwesome aquí (VideoNotes.vue:62). Se reproduce
       // tal cual: `pi pi-youtube` existe, pero cambiarlo cambiaría el glifo.
       emptyIcon: 'fab fa-youtube',
-      emptyHint: 'Agrega notas para recordar tus opiniones sobre este vídeo',
+      get emptyHint () { return t('media.video.notesHint') },
       types: NOTE_TYPES_DEFAULT,
       typeIcons: NOTE_TYPE_ICONS_DEFAULT,
       typeFallbackIcon: 'pi-file-edit',
@@ -1549,7 +1549,7 @@ export const mediaRegistry = {
   series: {
     key: 'series',
     get label() { return t('media.series.label'); },
-    labelPlural: 'Series',
+    get labelPlural () { return t('media.series.labelPlural') },
     idProp: 'imdbId',
     idPayloadKey: 'movieIsbn',
     idType: String,
@@ -1569,7 +1569,7 @@ export const mediaRegistry = {
     progress: {
       axis: 'season',
       get label() { return t('media.series.fields.season'); },
-      unit: 'T',
+      get unit () { return t('media.series.unit') },
       completedStatuses: ['viewed']
     },
     detail: {
@@ -1579,11 +1579,11 @@ export const mediaRegistry = {
       coverAspect: { width: 220, height: 330 },
       stateKey: 'movie',
       routeParam: 'imdbId',
-      backText: 'Volver',
+      get backText () { return t('media.series.back') },
       backRoute: 'Movies',
-      loadingText: 'Cargando información de la serie...',
-      notFoundText: 'No se encontró información de la serie.',
-      errorText: 'No se pudo obtener información de la serie.',
+      get loadingText () { return t('media.series.loading') },
+      get notFoundText () { return t('media.series.notFound') },
+      get errorText () { return t('media.series.error') },
       get emptyText() { return t('media.series.emptyText'); },
       // La atribución de TMDB NO es decorativa ni opcional: sus condiciones de
       // uso exigen mostrar el logo y esta frase en cualquier pantalla que use
@@ -1591,9 +1591,9 @@ export const mediaRegistry = {
       // enriquecidos con TMDB.
       attribution: {
         logo: tmdbLogo,
-        alt: 'The Movie Database',
+        get alt () { return t('brand.tmdb') },
         href: 'https://www.themoviedb.org/',
-        text: 'Este producto usa la API de TMDB, pero no está avalado ni certificado por TMDB.'
+        get text () { return t('brand.tmdbNotice') }
       },
       placeholderIcon: 'fas fa-tv',
       coverClass: 'series-poster-large',
@@ -1601,8 +1601,8 @@ export const mediaRegistry = {
       placeholderClass: 'poster-placeholder',
       librarySectionClass: 'library-form-section',
       libraryTitleIcon: true,
-      libraryTitleNew: 'Añadir a Mi Biblioteca',
-      libraryTitleExisting: 'Editar en Mi Biblioteca',
+      get libraryTitleNew () { return t('media.series.libraryNew') },
+      get libraryTitleExisting () { return t('media.series.libraryExisting') },
       divider: false,
       hasNotes: false,
       statusesAsNames: false,
@@ -1625,12 +1625,12 @@ export const mediaRegistry = {
       }),
       unwrapSave: (payload) => [payload.movie, payload.statuses],
       unwrapDelete: (payload) => payload.isbn,
-      savedMessage: 'Serie actualizada correctamente',
+      get savedMessage () { return t('media.series.saved') },
       // ⚠ Igual que en películas, antes el borrado no hacía nada
       // (SeriesDetailView.vue:319).
-      deleteConfirm: '¿Eliminar esta serie de tu biblioteca?',
-      deletedMessage: 'Serie eliminada de tu biblioteca',
-      deleteErrorMessage: 'Error al eliminar la serie'
+      get deleteConfirm () { return t('media.series.deleteConfirm') },
+      get deletedMessage () { return t('media.series.deleted') },
+      get deleteErrorMessage () { return t('media.series.deleteError') }
     }
   }
 }

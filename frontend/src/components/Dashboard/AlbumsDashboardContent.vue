@@ -137,7 +137,7 @@ const loadAlbumStats = async () => {
     Logger.info('[AlbumsDashboardContent] Album statistics loaded successfully', stats);
   } catch (err) {
     Logger.error('[AlbumsDashboardContent] Failed to load album statistics:', err);
-    error.value = 'Error al cargar las estadísticas. Por favor, intenta de nuevo.';
+    error.value = t('toasts.statsFailed');
   } finally {
     loading.value = false;
   }

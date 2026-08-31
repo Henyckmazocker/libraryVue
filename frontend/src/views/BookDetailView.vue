@@ -339,8 +339,8 @@ const seleccionarEdicion = (book, edition) => {
   });
 
   uiStore.showSuccess(enBiblioteca
-    ? 'Edición seleccionada. Esta edición ya está en tu biblioteca.'
-    : 'Edición seleccionada. Los datos del libro se han actualizado.');
+    ? t('toasts.editionSelectedSaved')
+    : t('toasts.editionSelected'));
 };
 </script>
 

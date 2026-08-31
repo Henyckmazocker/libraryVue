@@ -1,0 +1,18 @@
+{
+  "_comment": "CANDADO. `pendientes` esta VACIA desde el M5 del plan de textos de stores y servicios, y tiene que seguir estandolo. Si el test la nombra, es que hay una cadena de interfaz nueva en un <script>: sacala al catalogo (src/locales/es.yaml y en.yaml) y usala con t(). NO la anadas aqui: esta lista solo baja.",
+  "_datos": "Cadenas que el escaner ve como texto y NO lo son: son datos de un formato que se importa o de un mensaje del backend contra el que se compara, y traducirlas corromperia el dato. Revisadas a mano, una a una. Anadir una entrada aqui es una decision, no un atajo para callar el test.",
+  "_comoSeApaga": "Si una cadena nueva NO es interfaz, hay tres salidas por FORMA, que no piden tocar este fichero: meterla en un Logger.*(), darle el prefijo [Modulo] del repo si es un guarda de programador, o dejarla como clave de objeto / operando de comparacion. Ver tests/unit/helpers/cadenas.js.",
+  "datosDelFormato": [
+    {
+      "file": "services/FileProcessorService.js",
+      "text": "película",
+      "porque": "Valor por defecto del campo <tipo> del XML de Palomitacas; viaja al backend tal cual."
+    },
+    {
+      "file": "composables/useBooks.js",
+      "text": "Debes marcar la última página",
+      "porque": "Texto que manda el BACKEND y contra el que se compara para distinguir el caso de la última página. No se traduce."
+    }
+  ],
+  "pendientes": []
+}

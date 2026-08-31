@@ -2,6 +2,7 @@ import { ref, computed } from 'vue';
 import { useAuth } from './useAuth';
 import { FileProcessorService } from '@/services/FileProcessorService';
 import Logger from '@/utils/logger';
+import { t } from '@/config/i18n';
 
 /**
  * Composable para gestión de importación de archivos
@@ -24,7 +25,7 @@ export function useFileImport() {
     {
       id: 'palomitacas',
       name: 'Palomitacas',
-      description: 'Importar desde archivo XML de Palomitacas',
+      get description () { return t('importer.palomitacas') },
       acceptedTypes: '.xml',
       icon: 'fas fa-file-code',
       type: 'movies'
@@ -32,7 +33,7 @@ export function useFileImport() {
     {
       id: 'letterboxd',
       name: 'Letterboxd',
-      description: 'Importar desde archivo CSV de Letterboxd',
+      get description () { return t('importer.letterboxd') },
       acceptedTypes: '.csv',
       icon: 'fas fa-file-csv',
       type: 'movies'
@@ -40,15 +41,15 @@ export function useFileImport() {
     {
       id: 'goodreads',
       name: 'Goodreads',
-      description: 'Importar desde archivo CSV de Goodreads',
+      get description () { return t('importer.goodreads') },
       acceptedTypes: '.csv',
       icon: 'fas fa-file-csv',
       type: 'books'
     },
     {
       id: 'serialized',
-      name: 'Datos Serializados',
-      description: 'Importar desde archivo JSON serializado',
+      get name () { return t('importer.serializedName') },
+      get description () { return t('importer.serialized') },
       acceptedTypes: '.json',
       icon: 'fas fa-file-code',
       type: 'mixed'
@@ -122,7 +123,7 @@ export function useFileImport() {
         );
         
         if (!isCompatible) {
-          error.value = `Tipo de archivo no compatible. Se esperaba: ${currentService.value.acceptedTypes}`;
+          error.value = t('importer.wrongType', { tipos: currentService.value.acceptedTypes });
           selectedFile.value = null;
         }
       }
@@ -134,7 +135,7 @@ export function useFileImport() {
    */
   const startImport = async () => {
     if (!canImport.value) {
-      const errorMsg = 'Cannot start import: missing service or file';
+      const errorMsg = t('importer.noServiceOrFile');
       error.value = errorMsg;
       Logger.error('[useFileImport]', errorMsg);
       return { success: false, message: errorMsg };
@@ -150,26 +151,26 @@ export function useFileImport() {
       Logger.debug(`[useFileImport] Starting import with service: ${selectedService.value}`);
 
       // Fase 1: Procesar el archivo localmente
-      updateProgress(10, 'Procesando archivo...');
+      updateProgress(10, t('importer.processing'));
       const processedData = await FileProcessorService.processFile(
         selectedFile.value,
         selectedService.value
       );
 
       if (!processedData || !Array.isArray(processedData) || processedData.length === 0) {
-        throw new Error('No se pudieron extraer datos válidos del archivo');
+        throw new Error(t('importer.noValidData'));
       }
 
       Logger.debug(`[useFileImport] File processed successfully. Found ${processedData.length} items`);
 
       // Fase 2: Enviar datos al backend
-      updateProgress(30, 'Enviando datos al servidor...');
+      updateProgress(30, t('importer.sending'));
       const response = await authenticatedApiCall('import_data', {
         processedData: processedData
       });
 
       if (response.data.status === 'success') {
-        updateProgress(100, 'Importación completada exitosamente');
+        updateProgress(100, t('importer.done'));
         importStatus.value = 'success';
         importResults.value = response.data.data || {};
         
@@ -178,14 +179,15 @@ export function useFileImport() {
         return {
           success: true,
           data: importResults.value,
-          message: 'Importación completada exitosamente'
+          message: t('importer.done')
         };
       } else {
-        throw new Error(response.data.message || 'Error en el servidor durante la importación');
+        // El `message` del backend no se enseña, como en `apiError`: viene en inglés.
+        throw new Error(t('importer.serverError'));
       }
 
     } catch (err) {
-      const errorMessage = err.message || 'Error desconocido durante la importación';
+      const errorMessage = err.message || t('importer.unknownError');
       error.value = errorMessage;
       importStatus.value = 'error';
       importProgress.value = 0;
@@ -266,7 +268,7 @@ export function useFileImport() {
       isImporting.value = false;
       importStatus.value = 'idle';
       importProgress.value = 0;
-      error.value = 'Importación cancelada por el usuario';
+      error.value = t('importer.cancelled');
       
       Logger.debug('[useFileImport] Import cancelled by user');
     }

@@ -75,6 +75,9 @@ export const skeletonVariants = Object.keys(VARIANTS)
 <script setup>
 import { computed } from 'vue'
 import Skeleton from 'primevue/skeleton'
+// `t` del módulo y no de `useI18n()`: los valores por defecto de `defineProps`
+// se izan fuera de `setup()` y no pueden leer una variable local.
+import { t } from '@/config/i18n';
 
 const props = defineProps({
   variant: {
@@ -90,7 +93,7 @@ const props = defineProps({
   /** Lo que oye quien usa lector de pantalla mientras se espera. */
   label: {
     type: String,
-    default: 'Cargando contenido…',
+    default: () => t('misc.loadingContent'),
   },
 })
 

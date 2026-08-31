@@ -342,10 +342,10 @@ export const extractMockStats = (rawStats, itemType = 'books') => {
       pendingBooks: statusStats.to_read || statusStats['por leer'] || statusStats.deseado || 0,
       currentlyReading: statusStats.reading || statusStats.leyendo || 0,
       averageRating: rawStats.ratingStats?.averageRating || 0,
-      favoriteAuthor: 'Análisis en desarrollo',
+      favoriteAuthor: t('listening.soon'),
       favoriteGenre: rawStats.genreStats?.topGenres ? Object.keys(rawStats.genreStats.topGenres)[0] : 'N/A',
       totalPages: 'Calculando...',
-      averageReadingTime: 'Análisis en desarrollo'
+      averageReadingTime: t('listening.soon')
     };
   } else if (isGames) {
     return {
@@ -354,7 +354,7 @@ export const extractMockStats = (rawStats, itemType = 'books') => {
       pendingGames: statusStats.to_play || statusStats['por jugar'] || statusStats.deseado || statusStats.owned || 0,
       playingGames: statusStats.playing || statusStats.jugando || 0,
       averageRating: rawStats.ratingStats?.averageRating || 0,
-      favoriteDeveloper: 'Análisis en desarrollo',
+      favoriteDeveloper: t('listening.soon'),
       favoriteGenre: rawStats.genreStats?.topGenres ? Object.keys(rawStats.genreStats.topGenres)[0] : 'N/A',
       totalHoursPlayed: rawStats.hoursPlayedStats?.totalHours || 0,
       averagePlayTime: rawStats.hoursPlayedStats?.averageHours ? `${rawStats.hoursPlayedStats.averageHours}h` : 'N/A'
@@ -366,7 +366,7 @@ export const extractMockStats = (rawStats, itemType = 'books') => {
       wishlistAlbums: statusStats.wishlist || statusStats.deseado || 0,
       listeningAlbums: statusStats.listening || statusStats.escuchando || 0,
       averageRating: rawStats.ratingStats?.averageRating || 0,
-      favoriteArtist: 'Análisis en desarrollo',
+      favoriteArtist: t('listening.soon'),
       favoriteGenre: rawStats.genreStats?.topGenres ? Object.keys(rawStats.genreStats.topGenres)[0] : 'N/A',
       totalListens: rawStats.listenStats?.totalListens || 0,
       averageListens: rawStats.listenStats?.averageListens ? `${rawStats.listenStats.averageListens}` : 'N/A'
@@ -390,10 +390,10 @@ export const extractMockStats = (rawStats, itemType = 'books') => {
       pendingMovies: statusStats.to_watch || statusStats['por ver'] || statusStats.deseada || 0,
       currentlyWatching: statusStats.watching || statusStats.viendo || 0,
       averageRating: rawStats.ratingStats?.averageRating || 0,
-      favoriteDirector: 'Análisis en desarrollo',
+      favoriteDirector: t('listening.soon'),
       favoriteGenre: rawStats.genreStats?.topGenres ? Object.keys(rawStats.genreStats.topGenres)[0] : 'N/A',
       totalWatchTime: 'Calculando...',
-      averageWatchTime: 'Análisis en desarrollo'
+      averageWatchTime: t('listening.soon')
     };
   }
 };

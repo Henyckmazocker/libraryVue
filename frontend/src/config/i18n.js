@@ -24,8 +24,8 @@ import Logger from '@/utils/logger'
 
 /** Los idiomas que existen. Añadir uno es un `.yaml` más y una entrada aquí. */
 export const availableLocales = [
-  { code: 'es', native: 'Español' },
-  { code: 'en', native: 'English' }
+  { code: 'es', native: 'Español', bcp47: 'es-ES' },
+  { code: 'en', native: 'English', bcp47: 'en-GB' }
 ]
 
 const CODES = availableLocales.map(l => l.code)
@@ -37,6 +37,22 @@ const current = ref(FALLBACK)
 
 /** Solo lectura desde fuera: el idioma se cambia con `setLocale`, no asignando. */
 export const locale = readonly(current)
+
+/**
+ * La etiqueta BCP-47 del idioma activo, para `toLocaleDateString`,
+ * `toLocaleTimeString` y `toLocaleString`.
+ *
+ * **No es el código del catálogo.** `Intl` quiere una etiqueta de idioma con
+ * región —`es-ES`, `en-GB`—, y pasarle `'es'` a secas funciona por casualidad
+ * pero deja el formato a merced de la implementación. Se declara junto al idioma
+ * en `availableLocales` en vez de componerla, que es donde se mira al añadir uno.
+ *
+ * Se lee `current.value`, así que quien la use dentro de un `computed` se repinta
+ * al cambiar de idioma, como todo lo demás.
+ */
+export function intlLocale () {
+  return availableLocales.find(l => l.code === current.value)?.bcp47 ?? 'es-ES'
+}
 
 /**
  * Las claves que ya se han avisado. Sin esto, una clave que falta en una lista

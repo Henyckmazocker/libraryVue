@@ -188,13 +188,13 @@ const submit = async () => {
   if (!result.success) {
     // Traducido por código desde el store: el backend responde en inglés y no
     // se lee su texto.
-    notifications?.showError?.(result.message || 'No se pudo añadir al club')
+    notifications?.showError?.(result.message || t('toasts.clubAddFailed'))
     return
   }
 
   visible.value = false
   notifications?.showSuccess?.(
-    proponer ? 'Propuesta enviada al club' : 'El club ya tiene su siguiente ítem'
+    proponer ? t('toasts.clubProposed') : t('toasts.clubHasNext')
   )
 }
 </script>

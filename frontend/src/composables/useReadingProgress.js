@@ -5,6 +5,7 @@
 import { ref } from 'vue';
 import { useAuth } from './useAuth';
 import Logger from '@/utils/logger';
+import { t, intlLocale } from '@/config/i18n';
 
 export function useReadingProgress() {
   const { authenticatedApiCall } = useAuth();
@@ -20,7 +21,7 @@ export function useReadingProgress() {
    */
   const getProgressHistory = async (isbn) => {
     if (!isbn) {
-      throw new Error('ISBN es requerido');
+      throw new Error('[useReadingProgress] ISBN es requerido');
     }
 
     isLoading.value = true;
@@ -40,8 +41,8 @@ export function useReadingProgress() {
         progressHistory.value = history.map(entry => ({
           ...entry,
           pagesAdvanced: entry.current_page - entry.previous_page,
-          date: new Date(entry.logged_at).toLocaleDateString('es-ES'),
-          time: new Date(entry.logged_at).toLocaleTimeString('es-ES', { 
+          date: new Date(entry.logged_at).toLocaleDateString(intlLocale()),
+          time: new Date(entry.logged_at).toLocaleTimeString(intlLocale(), { 
             hour: '2-digit', 
             minute: '2-digit' 
           })
@@ -50,10 +51,10 @@ export function useReadingProgress() {
         Logger.debug('[useReadingProgress] Historial obtenido:', progressHistory.value);
         return progressHistory.value;
       } else {
-        throw new Error(response.data.message || 'Error al obtener historial de progreso');
+        throw new Error(t('progressError.historyFailed'));
       }
     } catch (err) {
-      error.value = err.message || 'Error al obtener historial de progreso';
+      error.value = err.message || t('progressError.historyFailed');
       Logger.error('[useReadingProgress] Error:', err);
       progressHistory.value = [];
       return [];

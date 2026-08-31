@@ -166,7 +166,7 @@ const send = async () => {
   // `entityId` ya no es `required` —la ficha puede montar esto antes de tener la
   // ruta resuelta—, así que se comprueba aquí en vez de mandar la cadena 'null'.
   if (!props.entityId) {
-    error.value = 'Todavía no se puede recomendar este ítem'
+    error.value = t('recommendDialog.notYet')
     return
   }
 
@@ -185,7 +185,7 @@ const send = async () => {
   isSending.value = false
 
   if (result.success) {
-    notifications?.showSuccess?.('Recomendación enviada')
+    notifications?.showSuccess?.(t('recommendDialog.sent'))
     visible.value = false
     return
   }
@@ -206,13 +206,15 @@ const send = async () => {
  * mensaje en inglés es uno inventado que no describe lo que pasó.
  */
 function mensajeDeError (result) {
+  // Claves del catálogo, como los mapas de `store/lists.js`: el idioma se
+  // resuelve al pintar y no al declarar.
   const porCodigo = {
-    400: 'Solo puedes recomendar ítems a tus amigos.',
-    403: 'Esta recomendación no es tuya.',
-    409: 'Ya le recomendaste esto a esta persona.'
+    400: 'recommendDialog.onlyFriends',
+    403: 'recommendDialog.notYours',
+    409: 'recommendDialog.already'
   }
 
-  return porCodigo[result.code] ?? result.message
+  return porCodigo[result.code] ? t(porCodigo[result.code]) : result.message
 }
 </script>
 

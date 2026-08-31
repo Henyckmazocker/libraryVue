@@ -108,7 +108,7 @@ const completionData = computed(() => {
   return {
     labels,
     datasets: [{
-      label: 'Estado de Completitud',
+      label: t('dashboardCharts.completion'),
       data: values,
       backgroundColor: categoricalPalette(labels.length)
     }]
@@ -143,7 +143,7 @@ const loadGameStats = async () => {
     Logger.info('[GamesDashboardContent] Game statistics loaded successfully', stats);
   } catch (err) {
     Logger.error('[GamesDashboardContent] Failed to load game statistics:', err);
-    error.value = 'Error al cargar las estadísticas. Por favor, intenta de nuevo.';
+    error.value = t('toasts.statsFailed');
   } finally {
     loading.value = false;
   }

@@ -1,5 +1,6 @@
 import { useUIStore } from '@/store/ui';
 import Logger from '@/utils/logger';
+import { t } from '@/config/i18n';
 
 /**
  * Composable para gestionar feedback visual de sesiones de lectura
@@ -23,8 +24,12 @@ export function useSessionFeedback() {
     
     showNotification({
       type: 'info',
-      title: isFirstReading ? '📖 Sesión de lectura iniciada' : '🔄 Re-lectura iniciada',
-      message: `Has comenzado ${isFirstReading ? 'a leer' : 'tu re-lectura de'} "${bookTitle}". ${isFirstReading ? 'Se ha creado tu primera sesión de lectura.' : `Esta es tu sesión #${sessionNumber}.`}`,
+      title: isFirstReading ? t('sessionFeedback.startTitle') : t('sessionFeedback.reReadTitle'),
+      // Una clave por frase entera y no un montaje de trozos: en inglés la
+      // primera lectura y la re-lectura no se parten por el mismo sitio.
+      message: isFirstReading
+        ? t('sessionFeedback.startFirst', { title: bookTitle })
+        : t('sessionFeedback.startAgain', { title: bookTitle, n: sessionNumber }),
       duration: 4500
     });
   };
@@ -39,8 +44,10 @@ export function useSessionFeedback() {
     
     showNotification({
       type: 'success',
-      title: '✅ ¡Libro completado!',
-      message: `Has terminado "${bookTitle}" (${completionPercentage}% - página ${finalPage}/${totalPages}). La sesión de lectura se ha marcado como completada.`,
+      title: t('sessionFeedback.completeTitle'),
+      message: t('sessionFeedback.complete', {
+        title: bookTitle, percent: completionPercentage, page: finalPage, total: totalPages
+      }),
       duration: 6000
     });
   };
@@ -53,8 +60,8 @@ export function useSessionFeedback() {
     
     showNotification({
       type: 'warning',
-      title: '⏸ Lectura pausada',
-      message: `Has pausado "${bookTitle}" en la página ${currentPage}. Podrás retomar la sesión cuando desees cambiando el estado a "Leyendo".`,
+      title: t('sessionFeedback.pauseTitle'),
+      message: t('sessionFeedback.pause', { title: bookTitle, page: currentPage }),
       duration: 4000
     });
   };
@@ -69,8 +76,8 @@ export function useSessionFeedback() {
     
     showNotification({
       type: 'warning',
-      title: '✗ Lectura abandonada',
-      message: `Has abandonado "${bookTitle}" (${readPercentage}% completado). La sesión se ha cerrado pero se mantiene en el historial.`,
+      title: t('sessionFeedback.abandonTitle'),
+      message: t('sessionFeedback.abandon', { title: bookTitle, percent: readPercentage }),
       duration: 5000
     });
   };
@@ -89,8 +96,11 @@ export function useSessionFeedback() {
       
       showNotification({
         type: 'info',
-        title: `📊 ${progressPercentage}% completado`,
-        message: `Llevas ${currentPage} de ${totalPages} páginas de "${bookTitle}". ${pagesAdvanced > 0 ? `¡Has avanzado ${pagesAdvanced} páginas!` : ''}`,
+        title: t('sessionFeedback.milestoneTitle', { percent: progressPercentage }),
+        message: [
+          t('sessionFeedback.milestone', { page: currentPage, total: totalPages, title: bookTitle }),
+          pagesAdvanced > 0 ? t('sessionFeedback.milestoneAdvanced', { n: pagesAdvanced }) : ''
+        ].filter(Boolean).join(' '),
         duration: 3000
       });
     }
@@ -104,8 +114,8 @@ export function useSessionFeedback() {
     
     showNotification({
       type: 'info',
-      title: '📖 Sesión iniciada automáticamente',
-      message: `Al cambiar el estado a "Leyendo", se ha creado automáticamente una sesión de lectura para "${bookTitle}".`,
+      title: t('sessionFeedback.autoStartTitle'),
+      message: t('sessionFeedback.autoStart', { title: bookTitle }),
       duration: 4000
     });
   };
@@ -118,8 +128,8 @@ export function useSessionFeedback() {
     
     showNotification({
       type: 'success',
-      title: '✅ Sesión completada automáticamente',
-      message: `Al cambiar el estado a "Leído", se ha completado automáticamente la sesión de lectura de "${bookTitle}".`,
+      title: t('sessionFeedback.autoCompleteTitle'),
+      message: t('sessionFeedback.autoComplete', { title: bookTitle }),
       duration: 4000
     });
   };
@@ -132,8 +142,8 @@ export function useSessionFeedback() {
     
     showNotification({
       type: 'warning',
-      title: '⏸ Sesión pausada automáticamente',
-      message: `Al cambiar el estado a "Pausado", se ha pausado automáticamente la sesión de lectura de "${bookTitle}".`,
+      title: t('sessionFeedback.autoPauseTitle'),
+      message: t('sessionFeedback.autoPause', { title: bookTitle }),
       duration: 4000
     });
   };
@@ -146,8 +156,8 @@ export function useSessionFeedback() {
     
     showNotification({
       type: 'warning',
-      title: '✗ Sesión abandonada automáticamente',
-      message: `Al cambiar el estado a "Abandonado", se ha cerrado automáticamente la sesión de lectura de "${bookTitle}".`,
+      title: t('sessionFeedback.autoAbandonTitle'),
+      message: t('sessionFeedback.autoAbandon', { title: bookTitle }),
       duration: 4000
     });
   };

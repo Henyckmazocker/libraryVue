@@ -147,7 +147,7 @@ const handleSearch = async (input, index) => {
   const query = inputValues.value[index].trim();
   
   if (!query) {
-    errorMessage.value = input.emptyMessage || 'Por favor introduce un valor para buscar.';
+    errorMessage.value = input.emptyMessage || t('toasts.searchEmpty');
     return;
   }
   
@@ -199,7 +199,7 @@ const handleSearch = async (input, index) => {
     Logger.debug(`[GenericSearch] Found ${results.value.length} results`);
   } catch (error) {
     Logger.error('[GenericSearch] Search error:', error);
-    errorMessage.value = input.errorMessage || 'Error al realizar la búsqueda.';
+    errorMessage.value = input.errorMessage || t('toasts.searchFailed');
     results.value = [];
     // Sin resultados no hay nada que la franja describa, y dejarla puesta
     // pondría un aviso de caché encima de un error de búsqueda.

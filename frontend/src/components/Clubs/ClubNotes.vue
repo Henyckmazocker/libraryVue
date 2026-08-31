@@ -98,8 +98,8 @@ const etiquetaEje = computed(() => {
  */
 const spoilerLabel = (note) => (
   note.atPoint !== null
-    ? `Oculta hasta que llegues a la ${etiquetaEje.value} ${note.atPoint}`
-    : 'Oculta hasta que lo termines'
+    ? t('misc.hiddenUntilPage', { page: `${etiquetaEje.value} ${note.atPoint}` })
+    : t('misc.hiddenUntilDone')
 )
 </script>
 

@@ -14,6 +14,9 @@
 
 <script setup>
 import { computed } from 'vue';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 /**
  * La franja que dice que lo que estás viendo sale de una caché caducada.
@@ -55,24 +58,24 @@ const relativeTime = computed(() => {
   if (Number.isNaN(cuando)) return null;
 
   const mins = Math.floor((Date.now() - cuando) / 60000);
-  if (mins < 1) return 'ahora mismo';
-  if (mins < 60) return `hace ${mins} min`;
+  if (mins < 1) return t('feed.justNow');
+  if (mins < 60) return t('feed.minutesAgo', { n: mins });
 
   const horas = Math.floor(mins / 60);
-  if (horas < 24) return `hace ${horas} h`;
+  if (horas < 24) return t('feed.hoursAgo', { n: horas });
 
   const dias = Math.floor(horas / 24);
-  return `hace ${dias} d`;
+  return t('feed.daysAgo', { n: dias });
 });
 
 const message = computed(() => {
   const cabecera = props.provider
-    ? `Sin conexión con ${props.provider}.`
-    : 'Sin conexión con el proveedor.';
+    ? t('stale.offlineNamed', { proveedor: props.provider })
+    : t('stale.offline');
 
   return relativeTime.value
-    ? `${cabecera} Estos resultados son de ${relativeTime.value}`
-    : `${cabecera} Estos resultados pueden no estar actualizados`;
+    ? t('stale.from', { cabecera, cuando: relativeTime.value })
+    : t('stale.maybeOld', { cabecera });
 });
 </script>
 

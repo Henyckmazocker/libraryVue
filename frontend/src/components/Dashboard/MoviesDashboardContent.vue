@@ -119,7 +119,7 @@ const loadMovieStats = async () => {
     Logger.info('[MoviesDashboardContent] Movie statistics loaded successfully', stats);
   } catch (err) {
     Logger.error('[MoviesDashboardContent] Failed to load movie statistics:', err);
-    error.value = 'Error al cargar las estadísticas. Por favor, intenta de nuevo.';
+    error.value = t('toasts.statsFailed');
   } finally {
     loading.value = false;
   }

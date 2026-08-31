@@ -1,4 +1,5 @@
 import { reactive } from 'vue'
+import { t } from '@/config/i18n'
 
 // Estado global del modal de confirmación
 const modalState = reactive({
@@ -24,18 +25,18 @@ export function useConfirmationModal() {
     return new Promise((resolve, reject) => {
       modalState.config = {
         // Valores por defecto
-        title: 'Confirmar acción',
-        message: '¿Estás seguro de que deseas continuar?',
+        title: t('confirm.title'),
+        message: t('confirm.message'),
         type: 'warning',
-        confirmText: 'Confirmar',
-        cancelText: 'Cancelar',
-        processingText: 'Procesando...',
+        confirmText: t('confirm.confirm'),
+        cancelText: t('common.cancel'),
+        processingText: t('confirm.processing'),
         closeOnOverlay: true,
         size: 'medium',
         requiresTextConfirmation: false,
         textConfirmationValue: '',
-        textConfirmationLabel: 'Para confirmar, escribe el texto exacto:',
-        textConfirmationPlaceholder: 'Escribe aquí...',
+        textConfirmationLabel: t('confirm.textLabel'),
+        textConfirmationPlaceholder: t('confirm.textPlaceholder'),
         textConfirmationHint: '',
         details: [],
         // Sobrescribir con la configuración proporcionada
@@ -94,15 +95,17 @@ export function useConfirmationModal() {
    */
   const confirmDelete = (itemName, additionalMessage = '') => {
     return showConfirmation({
-      title: 'Eliminar elemento',
-      message: `¿Estás seguro de que deseas eliminar <strong>"${itemName}"</strong>?<br>${additionalMessage}`,
+      title: t('confirm.delete.title'),
+      message: t('confirm.delete.message', { name: itemName, extra: additionalMessage }),
       type: 'danger',
-      confirmText: 'Eliminar',
-      details: ['Esta acción no se puede deshacer'],
+      confirmText: t('confirm.delete.confirm'),
+      details: [t('confirm.irreversible')],
       requiresTextConfirmation: true,
-      textConfirmationValue: 'ELIMINAR',
-      textConfirmationPlaceholder: 'Escribe "ELIMINAR" para confirmar',
-      textConfirmationHint: 'Esta acción es irreversible'
+      // La palabra que hay que teclear se traduce con el resto: en inglés se
+      // escribe DELETE, y el `placeholder` la nombra a partir de la misma clave.
+      textConfirmationValue: t('confirm.delete.word'),
+      textConfirmationPlaceholder: t('confirm.delete.placeholder', { word: t('confirm.delete.word') }),
+      textConfirmationHint: t('confirm.delete.hint')
     })
   }
 
@@ -111,13 +114,13 @@ export function useConfirmationModal() {
    */
   const confirmReset = (itemName, additionalDetails = []) => {
     return showConfirmation({
-      title: 'Reiniciar progreso',
-      message: `¿Deseas reiniciar el progreso de <strong>"${itemName}"</strong>?`,
+      title: t('confirm.reset.title'),
+      message: t('confirm.reset.message', { name: itemName }),
       type: 'warning',
-      confirmText: 'Reiniciar',
+      confirmText: t('confirm.reset.confirm'),
       details: [
-        'Se perderá todo el progreso actual',
-        'Se mantendrá el historial de sesiones',
+        t('confirm.reset.lose'),
+        t('confirm.reset.keepHistory'),
         ...additionalDetails
       ]
     })
@@ -130,18 +133,22 @@ export function useConfirmationModal() {
     const isReReading = readingType === 'rereading'
     
     return showConfirmation({
-      title: isReReading ? 'Nueva re-lectura' : 'Nueva sesión de lectura',
-      message: `¿Deseas iniciar ${isReReading ? 'una re-lectura' : 'una nueva sesión de lectura'} para <strong>"${bookTitle}"</strong>?`,
+      title: isReReading ? t('confirm.session.reReadTitle') : t('confirm.session.newTitle'),
+      // Una clave por frase entera, y no una plantilla con el trozo variable
+      // dentro: en inglés la preposición cambia de sitio y el hueco no cuadra.
+      message: isReReading
+        ? t('confirm.session.reReadMessage', { title: bookTitle })
+        : t('confirm.session.newMessage', { title: bookTitle }),
       type: 'info',
-      confirmText: 'Iniciar sesión',
+      confirmText: t('confirm.session.confirm'),
       details: isReReading ? [
-        `Comenzarás desde la página ${currentPage}`,
-        'Se creará un nuevo registro de sesión',
-        'Tu historial de lecturas anteriores se mantendrá'
+        t('confirm.session.fromPage', { n: currentPage }),
+        t('confirm.session.willCreate'),
+        t('confirm.session.keepPrevious')
       ] : [
-        `Página actual: ${currentPage}`,
-        'Se creará un nuevo registro de sesión',
-        'Podrás retroceder en páginas sin perder el historial'
+        t('confirm.session.currentPage', { n: currentPage }),
+        t('confirm.session.willCreate'),
+        t('confirm.session.canGoBack')
       ]
     })
   }
@@ -151,14 +158,14 @@ export function useConfirmationModal() {
    */
   const confirmCompleteBook = (bookTitle, finalPage) => {
     return showConfirmation({
-      title: 'Completar libro',
-      message: `¿Has terminado de leer <strong>"${bookTitle}"</strong>?`,
+      title: t('confirm.complete.title'),
+      message: t('confirm.complete.message', { title: bookTitle }),
       type: 'success',
-      confirmText: 'Marcar como completado',
+      confirmText: t('confirm.complete.confirm'),
       details: [
-        `Página final: ${finalPage}`,
-        'Se cerrará la sesión actual de lectura',
-        'El libro se marcará como completado'
+        t('confirm.complete.finalPage', { n: finalPage }),
+        t('confirm.complete.willClose'),
+        t('confirm.complete.willMark')
       ]
     })
   }
@@ -168,15 +175,15 @@ export function useConfirmationModal() {
    */
   const confirmReReading = (bookTitle) => {
     return showConfirmation({
-      title: 'Releer libro',
-      message: `¿Deseas volver a leer <strong>"${bookTitle}"</strong>?`,
+      title: t('confirm.reRead.title'),
+      message: t('confirm.reRead.message', { title: bookTitle }),
       type: 'info',
-      confirmText: 'Iniciar re-lectura',
-      cancelText: 'Cancelar',
+      confirmText: t('confirm.reRead.confirm'),
+      cancelText: t('common.cancel'),
       details: [
-        'Se creará una nueva sesión de lectura',
-        'Se mantendrá el historial anterior',
-        'Comenzarás desde la página 1'
+        t('confirm.reRead.willCreate'),
+        t('confirm.reRead.keepPrevious'),
+        t('confirm.reRead.fromFirst')
       ]
     })
   }
@@ -185,47 +192,50 @@ export function useConfirmationModal() {
    * Modal de confirmación de cambio de estado con impacto en sesión
    */
   const confirmStatusChangeWithSession = (bookTitle, newStatus, sessionData) => {
+    // Las claves del mapa son los slugs que manda el backend, y se quedan como
+    // están: lo que se traduce es el valor. `'to read'` lleva espacio y en el
+    // catálogo es `toRead`, que es la única diferencia entre ambos.
     const statusConfigs = {
       'read': {
         type: 'success',
-        title: 'Marcar como leído',
-        message: `¿Deseas marcar <strong>"${bookTitle}"</strong> como leído?`,
-        confirmText: 'Marcar como leído',
-        sessionAction: 'completada',
+        title: t('confirm.status.read.title'),
+        message: t('confirm.status.read.message', { title: bookTitle }),
+        confirmText: t('confirm.status.read.confirm'),
+        sessionAction: t('confirm.status.read.action'),
         icon: '✓'
       },
       'paused': {
         type: 'warning',
-        title: 'Pausar lectura',
-        message: `¿Deseas pausar la lectura de <strong>"${bookTitle}"</strong>?`,
-        confirmText: 'Pausar lectura',
-        sessionAction: 'pausada',
+        title: t('confirm.status.paused.title'),
+        message: t('confirm.status.paused.message', { title: bookTitle }),
+        confirmText: t('confirm.status.paused.confirm'),
+        sessionAction: t('confirm.status.paused.action'),
         icon: '⏸'
       },
       'abandoned': {
         type: 'danger',
-        title: 'Abandonar libro',
-        message: `¿Deseas abandonar <strong>"${bookTitle}"</strong>?`,
-        confirmText: 'Abandonar',
-        sessionAction: 'abandonada',
+        title: t('confirm.status.abandoned.title'),
+        message: t('confirm.status.abandoned.message', { title: bookTitle }),
+        confirmText: t('confirm.status.abandoned.confirm'),
+        sessionAction: t('confirm.status.abandoned.action'),
         icon: '✗'
       },
       'to read': {
         type: 'info',
-        title: 'Cambiar a "Para leer"',
-        message: `¿Deseas cambiar <strong>"${bookTitle}"</strong> a "Para leer"?`,
-        confirmText: 'Confirmar cambio',
-        sessionAction: 'abandonada',
+        title: t('confirm.status.toRead.title'),
+        message: t('confirm.status.toRead.message', { title: bookTitle }),
+        confirmText: t('confirm.status.toRead.confirm'),
+        sessionAction: t('confirm.status.toRead.action'),
         icon: '✗'
       }
     }
 
     const config = statusConfigs[newStatus] || {
       type: 'warning',
-      title: 'Cambiar estado',
-      message: `¿Deseas cambiar el estado de <strong>"${bookTitle}"</strong>?`,
-      confirmText: 'Confirmar',
-      sessionAction: 'modificada',
+      title: t('confirm.status.other.title'),
+      message: t('confirm.status.other.message', { title: bookTitle }),
+      confirmText: t('confirm.status.other.confirm'),
+      sessionAction: t('confirm.status.other.action'),
       icon: '◉'
     }
 
@@ -233,35 +243,41 @@ export function useConfirmationModal() {
 
     // Información de la sesión actual
     if (sessionData.hasActiveSession) {
-      details.push(
-        `${config.icon} Sesión actual (#${sessionData.sessionNumber}) se marcará como ${config.sessionAction.toUpperCase()}`
-      )
+      details.push(t('confirm.status.sessionMark', {
+        icon: config.icon,
+        n: sessionData.sessionNumber,
+        action: config.sessionAction.toUpperCase()
+      }))
       
       if (sessionData.currentPage && sessionData.totalPages) {
-        details.push(`📖 Página final: ${sessionData.currentPage} de ${sessionData.totalPages}`)
+        details.push(t('confirm.status.finalPage', {
+          current: sessionData.currentPage,
+          total: sessionData.totalPages
+        }))
       }
 
       if (sessionData.startedAt) {
         const daysReading = Math.ceil((new Date() - new Date(sessionData.startedAt)) / (1000 * 60 * 60 * 24))
-        details.push(`📅 Duración de la sesión: ${daysReading} día${daysReading !== 1 ? 's' : ''}`)
+        // El plural lo resuelve el motor; antes se concatenaba una «s».
+        details.push(t('confirm.status.duration', { n: daysReading }))
       }
     }
 
     // Información adicional según el nuevo estado
     if (newStatus === 'read') {
-      details.push('📚 El libro se marcará como completado en tu biblioteca')
+      details.push(t('confirm.status.markedComplete'))
       if (sessionData.totalCompleted > 0) {
-        details.push(`🔄 Esta será tu lectura #${sessionData.totalCompleted + 1} de este libro`)
+        details.push(t('confirm.status.nthReading', { n: sessionData.totalCompleted + 1 }))
       }
     } else if (newStatus === 'paused') {
-      details.push('💾 Se guardará tu progreso actual')
-      details.push('▶️ Podrás reanudar la lectura cuando quieras')
+      details.push(t('confirm.status.savedProgress'))
+      details.push(t('confirm.status.canResume'))
     } else if (newStatus === 'abandoned') {
-      details.push('⚠️ El progreso actual se perderá')
-      details.push('📋 El historial de sesiones se mantendrá')
+      details.push(t('confirm.status.lostProgress'))
+      details.push(t('confirm.status.keepHistory'))
     } else if (newStatus === 'to read') {
-      details.push('🔄 El libro volverá a tu lista de pendientes')
-      details.push('📋 El historial de sesiones se mantendrá')
+      details.push(t('confirm.status.backToPending'))
+      details.push(t('confirm.status.keepHistory'))
     }
 
     return showConfirmation({
@@ -269,7 +285,7 @@ export function useConfirmationModal() {
       message: config.message,
       type: config.type,
       confirmText: config.confirmText,
-      cancelText: 'Cancelar',
+      cancelText: t('common.cancel'),
       details: details,
       size: 'medium'
     })
@@ -304,7 +320,7 @@ export function useConfirmationModal() {
       ...config,
       requiresTextConfirmation: true,
       textConfirmationValue: expectedText,
-      textConfirmationPlaceholder: `Escribe "${expectedText}" para confirmar`
+      textConfirmationPlaceholder: t('confirm.delete.placeholder', { word: expectedText })
     })
   }
 

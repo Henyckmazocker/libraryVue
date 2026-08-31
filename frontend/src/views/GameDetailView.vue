@@ -190,6 +190,7 @@ import MediaDetailView from '@/views/shared/MediaDetailView.vue';
 import { useGamesStore } from '@/store/games';
 import { sanitizeRich } from '@/utils/sanitize';
 import { useI18n } from '@/composables/useI18n';
+import { intlLocale } from '@/config/i18n';
 
 const { t } = useI18n();
 
@@ -240,17 +241,19 @@ const platformIcon = (platform) => {
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '';
-  return new Date(dateStr).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+  return new Date(dateStr).toLocaleDateString(intlLocale(), { year: 'numeric', month: 'long', day: 'numeric' });
 };
 
-const formatNumber = (num) => num.toLocaleString('es-ES');
+const formatNumber = (num) => num.toLocaleString(intlLocale());
 
+// Casi todas las categorías de IGDB son nombres de marca y se quedan tal cual;
+// las dos que son texto salen del catálogo.
 const websiteName = (category) => ({
-  1: 'Sitio Oficial', 2: 'Wikia', 3: 'Wikipedia', 4: 'Facebook', 5: 'Twitter',
+  1: t('misc.officialSite'), 2: 'Wikia', 3: 'Wikipedia', 4: 'Facebook', 5: 'Twitter',
   6: 'Twitch', 8: 'Instagram', 9: 'YouTube', 10: 'iPhone', 11: 'iPad',
   12: 'Android', 13: 'Steam', 14: 'Reddit', 15: 'Discord', 16: 'Google+',
   17: 'Tumblr', 18: 'LinkedIn'
-}[category] || 'Ver enlace');
+}[category] || t('misc.viewLink'));
 
 </script>
 

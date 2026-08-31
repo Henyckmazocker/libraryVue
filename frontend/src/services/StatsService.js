@@ -21,7 +21,7 @@ class StatsService {
     const response = await authStore.authenticatedApiCall(action);
 
     if (response.data.status === 'error') {
-      throw new Error(response.data.message || `Failed to fetch ${action}`);
+      throw new Error(t('statsError.fetchFailed'));
     }
 
     return response.data.data;

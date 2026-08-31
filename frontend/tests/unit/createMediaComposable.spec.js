@@ -142,7 +142,7 @@ describe('createMediaComposable — la superficie pública no cambia', () => {
   it('createUserTag rechaza un nombre vacío sin llamar al backend', async () => {
     const { createUserTag } = useAlbums()
 
-    expect(await createUserTag('   ')).toEqual({ success: false, message: 'Tag name cannot be empty' })
+    expect(await createUserTag('   ')).toEqual({ success: false, message: '[createMediaComposable] Tag name cannot be empty' })
     expect(authenticatedApiCall).not.toHaveBeenCalled()
   })
 
@@ -336,7 +336,8 @@ describe('createMediaComposable — cada medio conserva su superficie exacta', (
 
     const result = await updateBookStatuses('9780000000001', ['read'])
 
-    expect(result).toEqual({ success: false, message: 'Book not found' })
+    // El texto sale del catálogo desde el M3 del plan de textos de stores.
+    expect(result).toEqual({ success: false, message: 'No se encontró el libro', causa: undefined })
     expect(authenticatedApiCall).not.toHaveBeenCalled()
   })
 

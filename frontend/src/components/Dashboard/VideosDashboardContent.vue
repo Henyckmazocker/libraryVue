@@ -119,7 +119,7 @@ const loadVideoStats = async () => {
     Logger.info('[VideosDashboardContent] Video statistics loaded successfully', stats);
   } catch (err) {
     Logger.error('[VideosDashboardContent] Failed to load video statistics:', err);
-    error.value = 'Error al cargar las estadísticas. Por favor, intenta de nuevo.';
+    error.value = t('toasts.statsFailed');
   } finally {
     loading.value = false;
   }

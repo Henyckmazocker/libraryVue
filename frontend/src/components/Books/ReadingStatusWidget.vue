@@ -61,6 +61,7 @@ import { ref, computed, defineProps, onMounted, watch } from 'vue';
 import SessionHistoryModal from './SessionHistoryModal.vue';
 import Logger from '@/utils/logger';
 import { useI18n } from '@/composables/useI18n';
+import { intlLocale } from '@/config/i18n';
 
 const { t } = useI18n();
 
@@ -112,7 +113,7 @@ const progressPercentage = computed(() => {
 const formatDate = (dateString) => {
   if (!dateString) return '';
   const date = new Date(dateString);
-  return date.toLocaleDateString('es-ES', { 
+  return date.toLocaleDateString(intlLocale(), { 
     day: 'numeric', 
     month: 'short', 
     year: 'numeric' 

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import Logger from '@/utils/logger'
+import { t } from '@/config/i18n'
 
 export const useMenuStore = defineStore('menu', {
   state: () => ({
@@ -64,7 +65,7 @@ export const useMenuStore = defineStore('menu', {
         const response = await fetch('/config/sidebar-menu.json')
         
         if (!response.ok) {
-          throw new Error(`Error loading menu: ${response.status}`)
+          throw new Error(t('storeError.menu'))
         }
         
         const menuConfig = await response.json()

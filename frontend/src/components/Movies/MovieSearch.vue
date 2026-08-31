@@ -121,7 +121,7 @@ const searchMovies = async (query, searchType) => {
         Logger.debug(`[MovieSearch] Found ${results.length} movies`);
         return results;
       } else {
-        throw new Error(response.data?.message || 'No se encontraron resultados.');
+        throw new Error(response.data?.message || t('toasts.noResults'));
       }
     } catch (error) {
       Logger.error('[MovieSearch] Error searching movies:', error);
@@ -153,7 +153,7 @@ const transformResult = (result) => {
 const navigateToDetail = (router, movie) => {
   if (!movie.imdbID) {
     Logger.warn('[MovieSearch] Movie has no IMDb ID, cannot navigate to detail');
-    uiStore.showError('Esta película no tiene IMDb ID disponible');
+    uiStore.showError(t('toasts.noImdbId'));
     return;
   }
   

@@ -4,6 +4,7 @@ import { fetchLibraryItems } from './_libraryCache'
 import { getMediaConfig } from '@/config/mediaRegistry'
 import { handleStoreError } from '@/utils/storeHelpers'
 import Logger from '@/utils/logger'
+import { t } from '@/config/i18n'
 
 /**
  * Factoría de stores de medio.
@@ -152,9 +153,9 @@ export function createMediaStore (media) {
           Logger.debug(`${log} Fetched ${this[collection].length} ${collection}`)
           return this[collection]
         }
-        throw new Error(response.data.message || `Failed to fetch ${collection}`)
+        throw new Error(t('storeError.fetch', { que: collection }))
       } catch (err) {
-        this.error = this._handleError(err, `Failed to fetch ${collection}`)
+        this.error = this._handleError(err)
         Logger.error(`${log} Error fetching ${collection}:`, err)
         // Solo la vía del caché vaciaba el array al fallar; se conserva.
         if (api.list.fromLibraryCache) this[collection] = []
@@ -198,9 +199,9 @@ export function createMediaStore (media) {
           Logger.debug(`${log} Found ${this.searchResults.length} ${collection}`)
           return this.searchResults
         }
-        throw new Error(response.data.message || 'Search failed')
+        throw new Error(t('storeError.search'))
       } catch (err) {
-        this.error = this._handleError(err, 'Search failed')
+        this.error = this._handleError(err)
         Logger.error(`${log} Error searching ${collection}:`, err)
         if (cfg.clearSearchOnError) this.searchResults = []
         return []
@@ -242,9 +243,9 @@ export function createMediaStore (media) {
           // esperan `result.video` / `result.album` / …
           return { success: true, item: added, [media]: added }
         }
-        throw new Error(response.data.message || `Failed to add ${media}`)
+        throw new Error(t('storeError.add', { que: media }))
       } catch (err) {
-        this.error = this._handleError(err, `Failed to add ${media}`)
+        this.error = this._handleError(err)
         Logger.error(`${log} Error adding ${media}:`, err)
         return { success: false, message: this.error }
       } finally {
@@ -270,9 +271,9 @@ export function createMediaStore (media) {
           Logger.debug(`${log} ${One} deleted successfully`)
           return { success: true }
         }
-        throw new Error(response.data.message || `Failed to delete ${media}`)
+        throw new Error(t('storeError.delete', { que: media }))
       } catch (err) {
-        this.error = this._handleError(err, `Failed to delete ${media}`)
+        this.error = this._handleError(err)
         Logger.error(`${log} Error deleting ${media}:`, err)
         return { success: false, message: this.error }
       } finally {
@@ -293,9 +294,9 @@ export function createMediaStore (media) {
           Logger.debug(`${log} ${One} rating updated successfully`)
           return { success: true }
         }
-        throw new Error(response.data.message || 'Failed to update rating')
+        throw new Error(t('storeError.rating'))
       } catch (err) {
-        this.error = this._handleError(err, 'Failed to update rating')
+        this.error = this._handleError(err)
         Logger.error(`${log} Error updating ${media} rating:`, err)
         return { success: false, message: this.error }
       }
@@ -314,9 +315,9 @@ export function createMediaStore (media) {
           Logger.debug(`${log} ${One} statuses updated successfully`)
           return { success: true }
         }
-        throw new Error(response.data.message || 'Failed to update statuses')
+        throw new Error(t('storeError.statuses'))
       } catch (err) {
-        this.error = this._handleError(err, 'Failed to update statuses')
+        this.error = this._handleError(err)
         Logger.error(`${log} Error updating ${media} statuses:`, err)
         return { success: false, message: this.error }
       }
@@ -340,9 +341,9 @@ export function createMediaStore (media) {
           Logger.debug(`${log} ${One} edited successfully`)
           return { success: true }
         }
-        throw new Error(response.data.message || `Failed to edit ${media}`)
+        throw new Error(t('storeError.edit', { que: media }))
       } catch (err) {
-        this.error = this._handleError(err, `Failed to edit ${media}`)
+        this.error = this._handleError(err)
         Logger.error(`${log} Error editing ${media}:`, err)
         return { success: false, message: this.error }
       }
@@ -360,9 +361,9 @@ export function createMediaStore (media) {
           Logger.debug(`${log} Fetched ${this.allowedStatuses.length} allowed statuses`)
           return this.allowedStatuses
         }
-        throw new Error(response.data.message || 'Failed to fetch allowed statuses')
+        throw new Error(t('storeError.allowedStatuses'))
       } catch (err) {
-        this.error = this._handleError(err, 'Failed to fetch allowed statuses')
+        this.error = this._handleError(err)
         Logger.error(`${log} Error fetching allowed statuses:`, err)
         return []
       }
@@ -380,9 +381,9 @@ export function createMediaStore (media) {
           Logger.debug(`${log} Fetched ${this.userTags.length} user tags`)
           return this.userTags
         }
-        throw new Error(response.data.message || 'Failed to fetch user tags')
+        throw new Error(t('storeError.tags'))
       } catch (err) {
-        this.error = this._handleError(err, 'Failed to fetch user tags')
+        this.error = this._handleError(err)
         Logger.error(`${log} Error fetching user tags:`, err)
         return []
       }
@@ -401,9 +402,9 @@ export function createMediaStore (media) {
           Logger.debug(`${log} Tag created successfully`)
           return { success: true, tag: newTag }
         }
-        throw new Error(response.data.message || 'Failed to create tag')
+        throw new Error(t('storeError.createTag'))
       } catch (err) {
-        this.error = this._handleError(err, 'Failed to create tag')
+        this.error = this._handleError(err)
         Logger.error(`${log} Error creating tag:`, err)
         return { success: false, message: this.error }
       }
@@ -423,9 +424,9 @@ export function createMediaStore (media) {
           Logger.debug(`${log} ${One} tags updated successfully`)
           return { success: true }
         }
-        throw new Error(response.data.message || 'Failed to update tags')
+        throw new Error(t('storeError.updateTags'))
       } catch (err) {
-        this.error = this._handleError(err, 'Failed to update tags')
+        this.error = this._handleError(err)
         Logger.error(`${log} Error updating ${media} tags:`, err)
         return { success: false, message: this.error }
       }
@@ -440,8 +441,10 @@ export function createMediaStore (media) {
       this.error = null
     },
 
-    _handleError (err, defaultMessage = 'Operation failed') {
-      return handleStoreError(err, defaultMessage)
+    // El respaldo ya no es un texto en inglés: `apiError` resuelve por código
+    // y cae a `errors.unknown`, que sí está traducido.
+    _handleError (err) {
+      return handleStoreError(err)
     }
   }
 

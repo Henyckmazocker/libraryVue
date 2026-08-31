@@ -104,7 +104,7 @@ onMounted(async () => {
 const handleSendRequest = async (userId) => {
   try {
     await sendFriendRequest(userId)
-    toast.add({ severity: 'success', summary: 'Solicitud enviada', life: 3000 })
+    toast.add({ severity: 'success', summary: t('toasts.requestSent'), life: 3000 })
     // Mark user as request_sent in results
     const user = searchResults.value.find(u => u.id === userId)
     if (user) user.request_sent = true
@@ -116,7 +116,7 @@ const handleSendRequest = async (userId) => {
 const handleAcceptRequest = async (friendshipId) => {
   try {
     await acceptFriendRequest(friendshipId)
-    toast.add({ severity: 'success', summary: 'Solicitud aceptada', life: 3000 })
+    toast.add({ severity: 'success', summary: t('toasts.requestAccepted'), life: 3000 })
   } catch (err) {
     toast.add({ severity: 'error', summary: 'Error', detail: err.message, life: 4000 })
   }
@@ -133,7 +133,7 @@ const handleRejectRequest = async (friendshipId) => {
 const handleRemoveFriend = async (friendId) => {
   try {
     await removeFriend(friendId)
-    toast.add({ severity: 'info', summary: 'Amigo eliminado', life: 3000 })
+    toast.add({ severity: 'info', summary: t('toasts.friendRemoved'), life: 3000 })
   } catch (err) {
     toast.add({ severity: 'error', summary: 'Error', detail: err.message, life: 4000 })
   }

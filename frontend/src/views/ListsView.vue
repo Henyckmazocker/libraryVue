@@ -115,12 +115,12 @@ const handleCreate = async (form) => {
   const result = await listsStore.createList(form)
 
   if (!result.success) {
-    notifications?.showError?.(result.message || 'No se pudo crear la lista')
+    notifications?.showError?.(result.message || t('toasts.listCreateFailed'))
     return
   }
 
   showCreate.value = false
-  notifications?.showSuccess?.('Lista creada')
+  notifications?.showSuccess?.(t('toasts.listCreated'))
   // Se entra directo a la lista recién creada: lo siguiente que quiere el
   // usuario es meterle algo.
   router.push({ name: 'ListDetail', params: { listId: String(result.listId) } })

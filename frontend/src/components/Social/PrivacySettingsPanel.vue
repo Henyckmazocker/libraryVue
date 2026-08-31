@@ -119,9 +119,9 @@ const save = async () => {
   saving.value = true
   try {
     await updatePrivacySettings(localSettings.value)
-    toast.add({ severity: 'success', summary: 'Guardado', detail: 'Configuración actualizada', life: 3000 })
+    toast.add({ severity: 'success', summary: 'Guardado', detail: t('toasts.privacySaved'), life: 3000 })
   } catch {
-    toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo guardar la configuración', life: 4000 })
+    toast.add({ severity: 'error', summary: 'Error', detail: t('toasts.privacyFailed'), life: 4000 })
   } finally {
     saving.value = false
   }

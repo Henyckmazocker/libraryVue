@@ -91,9 +91,9 @@ const handleAdd = async (recommendation) => {
   const result = await inbox.addToLibrary(recommendation)
 
   if (result.success) {
-    notifications?.showSuccess?.('Añadido a tu biblioteca')
+    notifications?.showSuccess?.(t('inboxActions.added'))
   } else {
-    notifications?.showError?.(result.message || 'No se pudo añadir')
+    notifications?.showError?.(result.message || t('inboxActions.addFailed'))
   }
 }
 
@@ -101,11 +101,11 @@ const handleAccept = async (invitation) => {
   const result = await inbox.acceptCollaboration(invitation)
 
   if (!result.success) {
-    notifications?.showError?.(result.message || 'No se pudo aceptar la invitación')
+    notifications?.showError?.(result.message || t('inboxActions.acceptFailed'))
     return
   }
 
-  notifications?.showSuccess?.('Ya colaboras en la lista')
+  notifications?.showSuccess?.(t('inboxActions.collaborating'))
   // Se entra directo: lo siguiente que quiere quien acepta es verla.
   if (result.listId) {
     router.push({ name: 'ListDetail', params: { listId: String(result.listId) } })
@@ -116,7 +116,7 @@ const handleDismiss = async (recommendation) => {
   const result = await inbox.dismiss(recommendation)
 
   if (!result.success) {
-    notifications?.showError?.(result.message || 'No se pudo descartar')
+    notifications?.showError?.(result.message || t('inboxActions.dismissFailed'))
   }
 }
 </script>

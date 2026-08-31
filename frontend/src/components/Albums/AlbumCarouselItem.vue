@@ -163,7 +163,7 @@ const artistName = computed(() => {
 const albumType = computed(() => {
   const type = props.album.album_type || props.album.albumType;
   if (!type) return null;
-  const labels = { album: 'Álbum', single: 'Single', ep: 'EP', compilation: 'Compilación' };
+  const labels = { album: t('misc.album'), single: t('misc.albumSingle'), ep: t('misc.albumEp'), compilation: t('misc.compilation') };
   return labels[type.toLowerCase()] || type;
 });
 

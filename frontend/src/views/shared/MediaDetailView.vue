@@ -574,10 +574,10 @@ async function handleDelete (payload) {
   if (d.value.deleteConfirm) {
     const { showConfirmation } = useConfirmationModal()
     const confirmado = await showConfirmation({
-      title: 'Eliminar de tu biblioteca',
+      title: t('confirm.deleteFromLibrary'),
       message: d.value.deleteConfirm,
       type: 'danger',
-      confirmText: 'Eliminar'
+      confirmText: t('common.delete')
     })
     if (!confirmado) return
   }

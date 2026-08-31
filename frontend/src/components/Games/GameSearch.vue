@@ -113,11 +113,11 @@ const searchGames = async (query, searchType) => {
         cached_at: response.data.data.cached_at ?? null
       };
     } else {
-      throw new Error(response.data.message || 'Error searching games');
+      throw new Error(t('toasts.gameSearchFailed'));
     }
   } catch (error) {
     Logger.error('Error searching games in IGDB:', error);
-    throw new Error('No se pudo buscar en IGDB. Verifica tus credenciales.');
+    throw new Error(t('toasts.igdbFailed'));
   }
 };
 

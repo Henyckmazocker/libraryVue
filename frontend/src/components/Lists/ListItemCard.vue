@@ -101,7 +101,7 @@ const config = computed(() =>
   mediaKeys.includes(props.item.entity_type) ? getMediaConfig(props.item.entity_type) : null
 )
 
-const mediaLabel = computed(() => config.value?.label ?? 'Ítem')
+const mediaLabel = computed(() => config.value?.label ?? t('misc.item'))
 
 const placeholderIcon = computed(() => config.value?.list?.iconOf?.({}) ?? 'fas fa-star')
 

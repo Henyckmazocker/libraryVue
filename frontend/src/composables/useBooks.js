@@ -3,6 +3,7 @@ import { useAuthStore } from '@/store/auth'
 import { createMediaComposable } from './createMediaComposable'
 import { useConfirmationModal } from './useConfirmationModal'
 import Logger from '@/utils/logger'
+import { t } from '@/config/i18n';
 
 /**
  * Composable de libros.
@@ -49,10 +50,15 @@ export function useBooks() {
           }
           return { success: true, data }
         }
-        throw new Error(response.data.message || 'Error updating progress')
+        // El texto del backend viaja en `causa` y NO se enseña: lo lee el
+        // `catch` de `updateBookStatuses`, que distingue por él el caso de «te
+        // falta marcar la última página». Lo que ve el usuario es la clave.
+        const fallo = new Error(t('books.progressFailed'))
+        fallo.causa = response.data.message
+        throw fallo
       } catch (err) {
         Logger.error('[useBooks] Error updating reading progress:', err)
-        return { success: false, message: err.message }
+        return { success: false, message: err.message, causa: err.causa }
       }
     }
 
@@ -69,7 +75,7 @@ export function useBooks() {
 
         const book = books.value.find(b => b.isbn === isbn)
         if (!book) {
-          throw new Error('Book not found')
+          throw new Error(t('books.notFound'))
         }
 
         const previousStatuses = book.userStatuses || []
@@ -138,19 +144,23 @@ export function useBooks() {
         return result
       } catch (err) {
         // Validación especial para error de página incompleta
-        if (err.message && err.message.includes('Debes marcar la última página')) {
+        // Se compara contra el texto del BACKEND, que no se traduce, y por eso
+        // viaja aparte en `causa`. Compararlo contra `err.message` dejó de
+        // funcionar en cuanto ese mensaje pasó a salir del catálogo.
+        const causa = err.causa || err.message || ''
+        if (causa.includes('Debes marcar la última página')) {
           const { confirm } = useConfirmationModal()
           const currentBook = books.value.find(b => b.isbn === isbn)
 
-          const match = err.message.match(/página \((\d+)\)/)
+          const match = causa.match(/página \((\d+)\)/)
           const lastPage = match ? parseInt(match[1]) : (currentBook?.pages || 0)
 
           const confirmed = await confirm(
-            'Completar última página',
-            `${err.message}\n\n¿Deseas actualizar automáticamente a la página ${lastPage} y marcar el libro como leído?`,
+            t('books.completeLastTitle'),
+            `${causa}\n\n${t('books.completeLastMessage', { page: lastPage })}`,
             {
-              confirmText: 'Sí, actualizar y completar',
-              cancelText: 'Cancelar',
+              confirmText: t('books.completeLastConfirm'),
+              cancelText: t('common.cancel'),
               type: 'warning'
             }
           )

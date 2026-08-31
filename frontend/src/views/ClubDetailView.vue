@@ -271,6 +271,7 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import { useI18n } from '@/composables/useI18n'
 import { detailRouteFor } from '@/config/mediaRegistry'
 import CoverService from '@/services/CoverService'
+import { intlLocale } from '@/config/i18n';
 
 const props = defineProps({
   clubId: { type: [String, Number], required: true }
@@ -343,7 +344,7 @@ const pickRoute = computed(
 const formatDate = (value) => {
   if (!value) return ''
 
-  return new Date(value.replace(' ', 'T')).toLocaleDateString('es-ES', {
+  return new Date(value.replace(' ', 'T')).toLocaleDateString(intlLocale(), {
     day: 'numeric', month: 'short', year: 'numeric'
   })
 }
@@ -356,11 +357,11 @@ const handleFinish = async () => {
   const result = await clubsStore.finishPick(numericId.value)
 
   if (!result.success) {
-    notifications?.showError?.(result.message || 'No se pudo cerrar el ítem')
+    notifications?.showError?.(result.message || t('clubActions.finishFailed'))
     return
   }
 
-  notifications?.showSuccess?.('Ítem terminado')
+  notifications?.showSuccess?.(t('clubActions.finished'))
 }
 
 /**
@@ -373,29 +374,29 @@ const handleVote = async (proposalId) => {
   const result = await clubsStore.voteProposal(numericId.value, proposalId)
 
   if (!result.success) {
-    notifications?.showError?.(result.message || 'No se pudo votar')
+    notifications?.showError?.(result.message || t('clubActions.voteFailed'))
     return
   }
 
-  notifications?.showSuccess?.('Voto registrado')
+  notifications?.showSuccess?.(t('clubActions.voted'))
 }
 
 const handleOpenVote = async () => {
   const result = await clubsStore.openVote(numericId.value)
 
   if (!result.success) {
-    notifications?.showError?.(result.message || 'No se pudo abrir el voto')
+    notifications?.showError?.(result.message || t('clubActions.openVoteFailed'))
     return
   }
 
-  notifications?.showSuccess?.('Voto abierto')
+  notifications?.showSuccess?.(t('clubActions.voteOpened'))
 }
 
 const handleCloseVote = async () => {
   const result = await clubsStore.closeVote(numericId.value)
 
   if (!result.success) {
-    notifications?.showError?.(result.message || 'No se pudo cerrar la votación')
+    notifications?.showError?.(result.message || t('clubActions.closeVoteFailed'))
     return
   }
 
@@ -403,7 +404,7 @@ const handleCloseVote = async () => {
   // ronda pasa al desempate y sigue votándose. La válvula destraba la espera,
   // no la regla.
   notifications?.showSuccess?.(
-    result.pickId ? 'Ya tenéis siguiente ítem' : 'Empate: toca desempatar'
+    result.pickId ? t('clubActions.alreadyNext') : t('clubActions.tie')
   )
 }
 
@@ -411,11 +412,11 @@ const handleLeave = async () => {
   const result = await clubsStore.leaveClub(numericId.value)
 
   if (!result.success) {
-    notifications?.showError?.(result.message || 'No se pudo salir del club')
+    notifications?.showError?.(result.message || t('clubActions.leaveFailed'))
     return
   }
 
-  notifications?.showSuccess?.('Has salido del club')
+  notifications?.showSuccess?.(t('clubActions.left'))
   router.push({ name: 'Clubs' })
 }
 </script>

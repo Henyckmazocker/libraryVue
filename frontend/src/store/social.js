@@ -5,6 +5,7 @@
 import { defineStore } from 'pinia'
 import { useAuthStore } from './auth'
 import Logger from '@/utils/logger'
+import { t } from '@/config/i18n'
 
 export const useSocialStore = defineStore('social', {
   state: () => ({
@@ -60,7 +61,7 @@ export const useSocialStore = defineStore('social', {
       const authStore = useAuthStore()
       const response = await authStore.authenticatedApiCall('send_friend_request', { addresseeId })
       if (response.data.status !== 'success') {
-        throw new Error(response.data.message || 'Error sending friend request')
+        throw new Error(t('friends.sendFailed'))
       }
       return response.data.data
     },
@@ -69,7 +70,7 @@ export const useSocialStore = defineStore('social', {
       const authStore = useAuthStore()
       const response = await authStore.authenticatedApiCall('accept_friend_request', { friendshipId })
       if (response.data.status !== 'success') {
-        throw new Error(response.data.message || 'Error accepting friend request')
+        throw new Error(t('friends.acceptFailed'))
       }
       // Remove from pending, refresh friends
       this.pendingRequests = this.pendingRequests.filter(r => r.friendship_id !== friendshipId)
@@ -81,7 +82,7 @@ export const useSocialStore = defineStore('social', {
       const authStore = useAuthStore()
       const response = await authStore.authenticatedApiCall('reject_friend_request', { friendshipId })
       if (response.data.status !== 'success') {
-        throw new Error(response.data.message || 'Error rejecting friend request')
+        throw new Error(t('friends.rejectFailed'))
       }
       this.pendingRequests = this.pendingRequests.filter(r => r.friendship_id !== friendshipId)
     },
@@ -90,7 +91,7 @@ export const useSocialStore = defineStore('social', {
       const authStore = useAuthStore()
       const response = await authStore.authenticatedApiCall('remove_friend', { friendId })
       if (response.data.status !== 'success') {
-        throw new Error(response.data.message || 'Error removing friend')
+        throw new Error(t('friends.removeFailed'))
       }
       this.friends = this.friends.filter(f => f.id !== friendId)
     },
@@ -172,7 +173,7 @@ export const useSocialStore = defineStore('social', {
       const authStore = useAuthStore()
       const response = await authStore.authenticatedApiCall('update_privacy_settings', settings)
       if (response.data.status !== 'success') {
-        throw new Error(response.data.message || 'Error updating privacy settings')
+        throw new Error(t('friends.privacyFailed'))
       }
       this.privacySettings = response.data.data
       return this.privacySettings

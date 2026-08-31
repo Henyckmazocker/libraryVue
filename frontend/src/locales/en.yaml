@@ -124,6 +124,22 @@ media:
     statusLabel: Status
     emptyText: No book information found
     notesTitle: Edition notes
+    labelPlural: "Books"
+    unit: "pp."
+    back: "Back to search"
+    loading: "Loading book details…"
+    notFound: "No details found for this book."
+    error: "Could not get the book details. Check the ISBN."
+    libraryNew: "Add to my library"
+    libraryExisting: "Edit in my library"
+    saved: "Book updated"
+    deleteConfirm: "Remove this book from your library?"
+    deleted: "Book removed from your library"
+    deleteError: "Could not remove the book"
+    deleteWarning: "Its reading sessions will be removed too"
+    notesHint: "Add notes to remember your thoughts as you read"
+    titleUnavailable: Title unavailable
+    authorUnavailable: Author unavailable
   movie:
     fields:
       seen: Seen
@@ -137,6 +153,19 @@ media:
     statusLabel: Status
     emptyText: No movie information found
     notesTitle: Movie notes
+    labelPlural: "Films"
+    back: "Back to search"
+    loading: "Loading film details…"
+    notFound: "No details found for this film."
+    error: "Could not get the film details. Check the IMDb ID."
+    libraryNew: "Add to my library"
+    libraryExisting: "Edit in my library"
+    saved: "Film updated"
+    deleteConfirm: "Remove this film from your library?"
+    deleted: "Film removed from your library"
+    deleteError: "Could not remove the film"
+    notesHint: "Add notes to remember your thoughts about this film"
+    unknownDirector: Unknown director
   game:
     fields:
       completed: Completed
@@ -158,6 +187,17 @@ media:
     statusLabel: Status
     emptyText: No game information found
     notesTitle: Game notes
+    labelPlural: "Games"
+    back: "Back to search"
+    loading: "Loading game details…"
+    notFound: "No details found for this game."
+    error: "Could not get the game details. Check the ID."
+    libraryNew: "Add to your library"
+    libraryExisting: "Details in your library"
+    deleted: "Game removed from your library"
+    deleteError: "Could not remove the game"
+    notesHint: "Add notes to remember your experience with this game"
+    unknownDeveloper: Unknown developer
   album:
     fields:
       listened: Listened
@@ -178,6 +218,18 @@ media:
     statusLabel: Status
     emptyText: No album information found
     notesTitle: Album notes
+    labelPlural: "Albums"
+    back: "Back to search"
+    loading: "Loading album details…"
+    notFound: "No details found for this album."
+    error: "Could not get the album details."
+    libraryNew: "Add to your library"
+    libraryExisting: "Details in your library"
+    deleteConfirm: "Remove this album from your library?"
+    deleted: "Album removed from your library"
+    deleteError: "Could not remove the album"
+    notesHint: "Add notes to remember your thoughts about this album"
+    unknownArtist: Unknown artist
   video:
     fields:
       seen: Seen
@@ -192,6 +244,16 @@ media:
     statusLabel: Status
     emptyText: No video information found
     notesTitle: Video notes
+    labelPlural: "Videos"
+    back: "Back to search"
+    loading: "Loading video details…"
+    notFound: "Video not found. Go back to the finder and pick it again."
+    error: "Could not get the video details."
+    libraryNew: "Add to your library"
+    libraryExisting: "Details in your library"
+    deleteConfirm: "Are you sure you want to remove this video from your library?"
+    notesHint: "Add notes to remember your thoughts about this video"
+    unknownChannel: Unknown channel
   series:
     fields:
       season: Season
@@ -199,6 +261,18 @@ media:
     statusLabel: Status
     emptyText: No series information found
 
+    labelPlural: "Series"
+    unit: "S"
+    back: "Back to search"
+    loading: "Loading series details…"
+    notFound: "No details found for this series."
+    error: "Could not get the series details."
+    libraryNew: "Add to my library"
+    libraryExisting: "Edit in my library"
+    saved: "Series updated"
+    deleteConfirm: "Remove this series from your library?"
+    deleted: "Series removed from your library"
+    deleteError: "Could not remove the series"
 listening:
   needsUser:
     before: "Set your Last.fm username in your "
@@ -230,6 +304,10 @@ listening:
     artists: Artists
     albums: Albums
     tracks: Tracks
+  noUser: You have no Last.fm username set. Add it in your profile.
+  failed: The Last.fm stats could not be fetched
+  offline: Connection error
+  soon: Analysis coming soon
 
 edit:
   totalPages: Total pages
@@ -344,6 +422,8 @@ brand:
   imdb: IMDb
   lastfm: Last.fm
 
+  tmdb: The Movie Database
+  tmdbNotice: This product uses the TMDB API but is not endorsed or certified by TMDB.
 home:
   helpTitle: Help and documentation
   helpAria: Open help and documentation
@@ -552,6 +632,12 @@ lists:
   cannotOpen: This list could not be opened
   leave: Leave the list
   removePerson: Remove {name}
+  error403: You have no permission over this list
+  error404: This list no longer exists
+  error409: That item is already in the list
+  loadError: Your lists could not be loaded
+  inviteNotFriends: You can only invite your friends
+  inviteAlready: You already invited them, or they already collaborate on this list
 
 reading:
   activeSession: "Active session #{n}"
@@ -660,6 +746,12 @@ clubs:
   memberCount:
     one: "{n} member"
     other: "{n} members"
+  error400: "Could not complete it: the screen may be out of date, reload it"
+  error403: You have no permission over this club
+  error404: This club no longer exists
+  error409: The round has changed phase; reload the screen
+  loadError: Your clubs could not be loaded
+  inviteNotFriends: You can only invite your friends, and only once
 
 clubProgress:
   notStarted: Not started
@@ -703,6 +795,44 @@ importer:
   service: "Choose the service:"
   chooseService: -- Choose a service --
   run: Import
+  palomitacas: Import from a Palomitacas XML file
+  letterboxd: Import from a Letterboxd CSV file
+  goodreads: Import from a Goodreads CSV file
+  serializedName: Serialized data
+  serialized: Import from a serialized JSON file
+  wrongType: "Unsupported file type. Expected: {tipos}"
+  noServiceOrFile: Choose a service and a file before importing
+  processing: Processing the file…
+  processingOmdb: Processing the file and fetching data from OMDb…
+  noValidData: No valid data could be read from the file
+  sending: Sending the data to the server…
+  sendingCount: "Sending {n} {tipo} to the server…"
+  done: Import completed
+  serverError: The server failed during the import
+  unknownError: Unknown error during the import
+  cancelled: Import cancelled
+  importFailed: The data could not be imported.
+  processFailed: "Error processing the file: {detalle}"
+  imported: "{n} {tipo} imported from {servicio}"
+  skipped: " ({n} skipped as duplicates)"
+  pickService: Please choose a service.
+  pickFile: Please choose a file.
+  extensions: "The file must have one of these extensions: {lista}"
+  tooBig: "The file is too big. Maximum size: {n}MB"
+  itemsMovies: films
+  itemsBooks: books
+  itemsGeneric: items
+  unsupportedService: "Unsupported service: {servicio}"
+  unknownTitle: Unknown title
+  xmlError: "Could not read the Palomitacas XML: {detalle}"
+  readError: The file could not be read
+  noMoviesInCsv: No valid films were found in the CSV file
+  letterboxdError: "Error processing the Letterboxd file: {detalle}"
+  noBooksInCsv: No valid books were found in the CSV file
+  goodreadsError: "Error processing the Goodreads file: {detalle}"
+  serializedUnknown: Serialized file format not recognised
+  serializedEmpty: No items were found to import
+  serializedError: "Error processing the serialized file: {detalle}"
 
 progress:
   reading: Reading progress
@@ -869,3 +999,421 @@ inboxBadge:
   pending:
     one: "Recommendations: {n} pending"
     other: "Recommendations: {n} pending"
+  short:
+    one: "Inbox: {n} pending"
+    other: "Inbox: {n} pending"
+  empty: Inbox
+
+confirm:
+  title: Confirm action
+  message: Are you sure you want to continue?
+  confirm: Confirm
+  processing: Working…
+  textLabel: "To confirm, type the exact text:"
+  textPlaceholder: Type here…
+  irreversible: This cannot be undone
+  deleteFromLibrary: Remove from your library
+  sessionAbandoned: The session will be marked as abandoned
+  sessionLabel: "Session #{n}"
+  delete:
+    title: Delete item
+    message: 'Are you sure you want to delete <strong>"{name}"</strong>?<br>{extra}'
+    confirm: Delete
+    word: DELETE
+    placeholder: Type "{word}" to confirm
+    hint: This action is irreversible
+  reset:
+    title: Reset progress
+    message: 'Do you want to reset the progress of <strong>"{name}"</strong>?'
+    confirm: Reset
+    lose: All current progress will be lost
+    keepHistory: The session history is kept
+  session:
+    newTitle: New reading session
+    reReadTitle: New re-read
+    newMessage: 'Do you want to start a new reading session for <strong>"{title}"</strong>?'
+    reReadMessage: 'Do you want to start a re-read of <strong>"{title}"</strong>?'
+    confirm: Start session
+    fromPage: You will start from page {n}
+    willCreate: A new session record will be created
+    keepPrevious: Your previous reading history is kept
+    currentPage: "Current page: {n}"
+    canGoBack: You can go back pages without losing the history
+  complete:
+    title: Finish book
+    message: 'Have you finished reading <strong>"{title}"</strong>?'
+    confirm: Mark as finished
+    finalPage: "Final page: {n}"
+    willClose: The current reading session will be closed
+    willMark: The book will be marked as finished
+  reRead:
+    title: Re-read book
+    message: 'Do you want to read <strong>"{title}"</strong> again?'
+    confirm: Start re-read
+    willCreate: A new reading session will be created
+    keepPrevious: The previous history is kept
+    fromFirst: You will start from page 1
+  status:
+    read:
+      title: Mark as read
+      message: 'Do you want to mark <strong>"{title}"</strong> as read?'
+      confirm: Mark as read
+      action: completed
+    paused:
+      title: Pause reading
+      message: 'Do you want to pause reading <strong>"{title}"</strong>?'
+      confirm: Pause reading
+      action: paused
+    abandoned:
+      title: Abandon book
+      message: 'Do you want to abandon <strong>"{title}"</strong>?'
+      confirm: Abandon
+      action: abandoned
+    toRead:
+      title: Change to "To read"
+      message: 'Do you want to change <strong>"{title}"</strong> to "To read"?'
+      confirm: Confirm change
+      action: abandoned
+    other:
+      title: Change status
+      message: 'Do you want to change the status of <strong>"{title}"</strong>?'
+      confirm: Confirm
+      action: modified
+    sessionMark: "{icon} Current session (#{n}) will be marked as {action}"
+    finalPage: "📖 Final page: {current} of {total}"
+    duration:
+      one: "📅 Session length: {n} day"
+      other: "📅 Session length: {n} days"
+    markedComplete: 📚 The book will be marked as finished in your library
+    nthReading: "🔄 This will be reading #{n} of this book"
+    savedProgress: 💾 Your current progress will be saved
+    canResume: ▶️ You can resume reading whenever you want
+    lostProgress: ⚠️ The current progress will be lost
+    keepHistory: 📋 The session history is kept
+    backToPending: 🔄 The book goes back to your to-read list
+
+errors:
+  "400": "Could not complete it: the screen may be out of date, reload it"
+  "401": Your session has expired. Sign in again.
+  "403": You are not allowed to do that
+  "404": That no longer exists
+  "409": Something changed meanwhile; reload the screen
+  "422": Some data is missing or invalid
+  "429": Too many requests in a row. Wait a few seconds.
+  "500": Something went wrong on the server
+  "503": The service is unavailable right now
+  unknown: The operation could not be completed
+  network: Could not connect. Check your connection.
+
+sessionFeedback:
+  startTitle: 📖 Reading session started
+  reReadTitle: 🔄 Re-read started
+  startFirst: 'You started reading "{title}". Your first reading session has been created.'
+  startAgain: 'You started re-reading "{title}". This is your session #{n}.'
+  completeTitle: ✅ Book finished!
+  complete: 'You finished "{title}" ({percent}% — page {page}/{total}). The reading session is marked as completed.'
+  pauseTitle: ⏸ Reading paused
+  pause: 'You paused "{title}" on page {page}. You can pick the session up again by setting the status back to "Reading".'
+  abandonTitle: ✗ Reading abandoned
+  abandon: 'You abandoned "{title}" ({percent}% read). The session is closed but stays in the history.'
+  milestoneTitle: 📊 {percent}% read
+  milestone: 'You are on page {page} of {total} of "{title}".'
+  milestoneAdvanced: You advanced {n} pages!
+  autoStartTitle: 📖 Session started automatically
+  autoStart: 'Setting the status to "Reading" created a reading session for "{title}" automatically.'
+  autoCompleteTitle: ✅ Session completed automatically
+  autoComplete: 'Setting the status to "Read" completed the reading session of "{title}" automatically.'
+  autoPauseTitle: ⏸ Session paused automatically
+  autoPause: 'Setting the status to "Paused" paused the reading session of "{title}" automatically.'
+  autoAbandonTitle: ✗ Session abandoned automatically
+  autoAbandon: 'Setting the status to "Abandoned" closed the reading session of "{title}" automatically.'
+
+storeError:
+  fetch: Could not load {que}
+  search: The search failed
+  add: Could not add {que}
+  delete: Could not delete {que}
+  rating: The rating could not be saved
+  statuses: The statuses could not be saved
+  edit: Could not edit {que}
+  allowedStatuses: The available statuses could not be loaded
+  tags: Your tags could not be loaded
+  createTag: The tag could not be created
+  updateTags: The tags could not be saved
+  library: The library could not be loaded
+  menu: The menu could not be loaded
+
+session:
+  createFailed: The session could not be created
+  completeFailed: The session could not be completed
+  pauseFailed: The session could not be paused
+  resumeFailed: The session could not be resumed
+  abandonFailed: The session could not be abandoned
+  deleteFailed: The session could not be deleted
+  progressFailed: The progress could not be saved
+  fetchFailed: The active sessions could not be loaded
+  noneActive: There is no active session
+
+friends:
+  sendFailed: The request could not be sent
+  acceptFailed: The request could not be accepted
+  rejectFailed: The request could not be rejected
+  removeFailed: The friend could not be removed
+  privacyFailed: The privacy settings could not be saved
+
+auth:
+  tooManyRequests: Too many requests
+  retryNow: You have made too many requests in a row. Wait a few seconds and try again.
+  retryIn:
+    one: You have made too many requests in a row. Try again in {n} second.
+    other: You have made too many requests in a row. Try again in {n} seconds.
+  loginFailed: Could not sign in
+  notAuthenticated: You are not signed in
+
+ui:
+  confirmTitle: Confirm action
+  confirmMessage: Are you sure?
+  success: Done
+  info: Information
+
+inboxError:
+  load: The inbox could not be loaded
+  send: The recommendation could not be sent
+  unsupportedMedia: This medium cannot be added from the inbox
+  noItem: The item details could not be retrieved
+  add: Could not add it to your library
+  accept: The invitation could not be accepted
+  resolve: The recommendation could not be resolved
+
+authError:
+  init: Your session could not be checked
+  login: Could not sign in
+  loginUnexpected: Something went wrong while signing in
+  logout: Could not sign out
+  expired: Your session has expired. Sign in again.
+  apiFailed: The request could not be completed
+
+books:
+  completeLastTitle: Complete the last page
+  completeLastMessage: 'Do you want to jump to page {page} and mark the book as read?'
+  completeLastConfirm: Yes, update and finish
+  progressFailed: The progress could not be saved
+  notFound: The book was not found
+
+trending:
+  books: Trending books could not be loaded
+  movies: Trending films could not be loaded
+  games: Trending games could not be loaded
+  albums: Trending albums could not be loaded
+  videos: Trending videos could not be loaded
+
+works:
+  searchFailed: The works could not be searched
+  offline: Could not reach the search service
+  detailsFailed: The work details could not be fetched
+  editionsFailed: The editions could not be fetched
+  isbnFailed: The ISBN could not be validated
+
+
+editError:
+  failed: Could not edit {que}
+
+progressError:
+  historyFailed: The progress history could not be fetched
+
+searchError:
+  failed: The search failed
+
+statsError:
+  fetchFailed: The stats could not be loaded
+
+# Los idiomas de una EDICIÓN de libro. `native` se queda en
+# `utils/languageConstants.js` porque es un dato —«Français» es «Français» en
+# cualquier idioma—; lo que se traduce es cómo los nombra la interfaz.
+language:
+  en: English
+  es: Spanish
+  fr: French
+  de: German
+  it: Italian
+  pt: Portuguese
+  ru: Russian
+  ja: Japanese
+  zh: Chinese
+  ar: Arabic
+  hi: Hindi
+  ko: Korean
+  nl: Dutch
+  pl: Polish
+  tr: Turkish
+  sv: Swedish
+  "no": Norwegian
+  da: Danish
+  fi: Finnish
+  el: Greek
+  cs: Czech
+  ro: Romanian
+  hu: Hungarian
+  th: Thai
+  vi: Vietnamese
+  id: Indonesian
+  uk: Ukrainian
+  ca: Catalan
+  he: Hebrew
+  fa: Persian
+
+feed:
+  added: added it to their library
+  rated: rated it {n}
+  statusChanged: 'changed the status to "{estado}"'
+  noteAdded: has a new note
+  readingSession: logged a reading session
+  justNow: just now
+  minutesAgo: '{n} min ago'
+  hoursAgo: '{n} h ago'
+  daysAgo: '{n} d ago'
+
+editItem:
+  tagFailed: The tag could not be created
+  statusesFailed: The statuses could not be saved
+  saved: '{medio} updated'
+  saveFailed: Could not save {medio}
+  nameBook: Book
+  nameMovie: Film
+  nameGame: Game
+  nameAlbum: Album
+  nameVideo: Video
+  theBook: the book
+  theMovie: the film
+  theGame: the game
+  theAlbum: the album
+  theVideo: the video
+
+clubActions:
+  finishFailed: The item could not be closed
+  finished: Item finished
+  voteFailed: The vote could not be cast
+  voted: Vote registered
+  openVoteFailed: The vote could not be opened
+  voteOpened: Vote opened
+  closeVoteFailed: The vote could not be closed
+  alreadyNext: You already have a next item
+  tie: 'A tie: time to break it'
+  leaveFailed: Could not leave the club
+  left: You left the club
+
+listActions:
+  removeFailed: The item could not be removed
+  leaveConfirm: Leave this list? You will no longer be able to edit it.
+  removePersonConfirm: Remove {name} from this list?
+  saveFailed: It could not be saved
+  updated: List updated
+  deleteConfirm: 'Delete the list «{name}»? Its items stay in your library.'
+  deleteFailed: The list could not be deleted
+  deleted: List deleted
+
+noteActions:
+  loadFailed: The notes could not be loaded
+  deleteConfirm: Are you sure you want to delete this note?
+  deleted: Note deleted
+  deleteFailed: The note could not be deleted
+  empty: The note cannot be empty
+  updated: Note updated
+  added: Note added
+  saveFailed: The note could not be saved
+
+stale:
+  offlineNamed: No connection to {proveedor}.
+  offline: No connection to the provider.
+  from: '{cabecera} These results are from {cuando}'
+  maybeOld: '{cabecera} These results may be out of date'
+
+statusHint:
+  reading: It will start a reading session automatically
+  read: It will complete the active session automatically
+  paused: It will pause the current session automatically
+  abandoned: It will close the active session automatically
+  placeholder: Choose statuses
+
+bookSearch:
+  noIsbn: This book has no ISBN available
+  searchFailed: The books could not be searched. Try again.
+  openLibrary: Open Library
+
+recommendDialog:
+  notYet: This item cannot be recommended yet
+  sent: Recommendation sent
+  onlyFriends: You can only recommend items to your friends.
+  notYours: This recommendation is not yours.
+  already: You already recommended this to that person.
+
+inboxActions:
+  added: Added to your library
+  addFailed: Could not add it
+  acceptFailed: The invitation could not be accepted
+  collaborating: You already collaborate on the list
+  dismissFailed: Could not dismiss it
+
+toasts:
+  clubAddFailed: Could not add it to the club
+  clubProposed: Proposal sent to the club
+  clubHasNext: The club already has its next item
+  inviteSent: Invitation sent
+  listAddFailed: Could not add it to the list
+  listAdded: Added to the list
+  clubCreateFailed: The club could not be created
+  clubCreated: Club created
+  listCreateFailed: The list could not be created
+  listCreated: List created
+  requestSent: Request sent
+  requestAccepted: Request accepted
+  friendRemoved: Friend removed
+  privacySaved: Settings updated
+  privacyFailed: The settings could not be saved
+  profileNotFound: Profile not found
+  profileFailed: The profile could not be loaded
+  saveFailed: It could not be saved
+  libSaved: Library saved to the server.
+  libSaveFailed: The library could not be saved to the server.
+  backendOffline: Could not connect to the server
+  imported: 'Data imported from {servicio}. File: {fichero}'
+  editionSelectedSaved: Edition selected. This edition is already in your library.
+  editionSelected: Edition selected. The book details have been updated.
+  searchEmpty: Please enter something to search for.
+  searchFailed: The search failed.
+  noResults: No results found.
+  noImdbId: This film has no IMDb ID available
+  spotifyFailed: Could not search Spotify. Check the configuration.
+  igdbFailed: Could not search IGDB. Check your credentials.
+  youtubeFailed: Could not search YouTube. Check the configuration.
+  statsFailed: The stats could not be loaded. Please try again.
+  videoSearchFailed: The videos could not be searched
+  albumSearchFailed: The albums could not be searched
+  gameSearchFailed: The games could not be searched
+
+misc:
+  album: Album
+  compilation: Compilation
+  item: Item
+  inProgress: In progress
+  unwatched: Unwatched
+  localTrends: Local trends
+  loadingContent: Loading content…
+  stats: Stats
+  officialSite: Official site
+  viewLink: Open link
+  hiddenUntilPage: 'Hidden until you reach page {page}'
+  hiddenUntilDone: Hidden until you finish it
+  wonLastRound: You won the previous round, so this time the others propose.
+  alreadyProposed: 'You already proposed: one per person and round.'
+  seasonViewed: Watched
+  seasonPartial: Partial
+  seasonSkipped: Skipped
+  albumSingle: Single
+  albumEp: EP
+  days:
+    one: "{n} day"
+    other: "{n} days"
+  daysOngoing:
+    one: "{n} day (ongoing)"
+    other: "{n} days (ongoing)"

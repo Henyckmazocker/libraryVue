@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import Logger from '@/utils/logger'
+import { t } from '@/config/i18n'
 
 export const useUIStore = defineStore('ui', {
   state: () => ({
@@ -86,8 +87,8 @@ export const useUIStore = defineStore('ui', {
       return new Promise((resolve) => {
         this.modals.confirmation = {
           isOpen: true,
-          title: options.title || 'Confirmar acción',
-          message: options.message || '¿Estás seguro?',
+          title: options.title || t('ui.confirmTitle'),
+          message: options.message || t('ui.confirmMessage'),
           confirmText: options.confirmText || 'Confirmar',
           cancelText: options.cancelText || 'Cancelar',
           type: options.type || 'default',
@@ -178,7 +179,8 @@ export const useUIStore = defineStore('ui', {
     /**
      * Muestra una notificación de éxito
      */
-    showSuccess(message, title = 'Éxito') {
+    showSuccess(message, title = null) {
+      title = title ?? t('ui.success')
       return this.addNotification({
         type: 'success',
         title,
@@ -214,7 +216,8 @@ export const useUIStore = defineStore('ui', {
     /**
      * Muestra una notificación informativa
      */
-    showInfo(message, title = 'Información') {
+    showInfo(message, title = null) {
+      title = title ?? t('ui.info')
       return this.addNotification({
         type: 'info',
         title,

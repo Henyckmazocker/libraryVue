@@ -8,6 +8,7 @@ import { useVideosStore } from '@/store/videos'
 import { getMediaConfig } from '@/config/mediaRegistry'
 import { useConfirmationModal } from './useConfirmationModal'
 import Logger from '@/utils/logger'
+import { t } from '@/config/i18n'
 
 // Los `useXStore` por medio. Mapa explícito aquí y no una entrada del registry:
 // `mediaRegistry` es lo que importa `createMediaStore`, así que declarar ahí el
@@ -121,7 +122,7 @@ export function createMediaComposable (media, extras = () => ({})) {
       if (!skipConfirmation) {
         const confirmed = await confirmDelete(
           label,
-          comp.deleteWarning || 'Esta acción no se puede deshacer'
+          comp.deleteWarning || t('confirm.irreversible')
         )
 
         if (!confirmed) {
@@ -182,7 +183,7 @@ export function createMediaComposable (media, extras = () => ({})) {
         Logger.debug(`${log} User ${media} edited successfully`)
         return { success: true }
       }
-      throw new Error(response.data.message || `Error editing user_${media}`)
+      throw new Error(t('editError.failed', { que: media }))
     } catch (err) {
       Logger.error(`${log} Error editing user_${media}:`, err)
       return { success: false, message: err.message }
@@ -192,7 +193,7 @@ export function createMediaComposable (media, extras = () => ({})) {
   /** Crea una etiqueta CON validación del nombre. */
   const createUserTag = async (tagName, color = '#1976d2') => {
     if (!tagName || tagName.trim().length === 0) {
-      return { success: false, message: 'Tag name cannot be empty' }
+      return { success: false, message: '[createMediaComposable] Tag name cannot be empty' }
     }
 
     return await createTagStore(tagName, color)
@@ -206,7 +207,7 @@ export function createMediaComposable (media, extras = () => ({})) {
       if (response.data.status === 'success') {
         return { success: true, data: response.data.data || [] }
       }
-      throw new Error(response.data.message || `Error getting ${media} tags`)
+      throw new Error(t('storeError.tags'))
     } catch (err) {
       Logger.error(`${log} Error getting ${media} tags:`, err)
       return { success: false, message: err.message }

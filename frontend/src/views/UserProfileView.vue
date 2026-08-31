@@ -201,7 +201,7 @@ export default {
         saveSuccess.value = true
         setTimeout(() => { saveSuccess.value = false }, 3000)
       } catch (err) {
-        saveError.value = err?.response?.data?.message || err.message || 'Error al guardar'
+        saveError.value = err?.response?.data?.message || err.message || t('toasts.saveFailed')
       } finally {
         isSaving.value = false
       }

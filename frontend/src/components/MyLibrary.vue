@@ -290,7 +290,7 @@ const fetchLibrary = () => {
     // permitidos.
     const anotar = (error) => {
       Logger.error(`[MyLibrary] Error cargando ${key}:`, error);
-      noteError(key, error.message || 'Error de conexión con el backend');
+      noteError(key, error.message || t('toasts.backendOffline'));
     };
     // El store se traga sus propios errores y los deja en `error`.
     const revisar = () => {
@@ -451,7 +451,7 @@ const closeImportModal = () => {
 const handleImportSuccess = async (importData) => {
   // Show success message in the main library
   uiStore.showSuccess(
-    `Datos importados correctamente desde ${importData.service}. Archivo: ${importData.fileName}`
+    t('toasts.imported', { servicio: importData.service, fichero: importData.fileName })
   );
   
   // Refresh the library to show imported items

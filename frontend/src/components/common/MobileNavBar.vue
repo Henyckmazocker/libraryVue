@@ -32,6 +32,9 @@ import { useRoute } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { useBreakpoint } from '@/composables/useBreakpoint';
 import { useInboxStore } from '@/store/inbox';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const route = useRoute();
 
@@ -47,7 +50,7 @@ const { isNativeOrMobile: isVisible } = useBreakpoint();
 // el menú lateral, que en móvil se abre desde la cabecera.
 const tabs = [
   { path: '/library',   icon: 'fas fa-bookmark',  label: 'Biblioteca'   },
-  { path: '/dashboard', icon: 'fas fa-chart-bar', label: 'Estadísticas' },
+  { path: '/dashboard', icon: 'fas fa-chart-bar', get label () { return t('misc.stats') } },
   { path: '/inbox',     icon: 'fas fa-inbox',     label: 'Bandeja'      },
   { path: '/friends',   icon: 'fas fa-users',     label: 'Social'       },
   { path: '/profile',   icon: 'fas fa-user',      label: 'Perfil'       },
@@ -60,11 +63,10 @@ const { pendingCount } = storeToRefs(inboxStore);
 
 // Concuerda en singular, como el de la cabecera: esto lo lee un lector de pantalla.
 const inboxLabel = computed(() => {
-  if (pendingCount.value === 0) return 'Bandeja';
+  if (pendingCount.value === 0) return t('inboxBadge.empty');
 
-  return pendingCount.value === 1
-    ? 'Bandeja: 1 pendiente'
-    : `Bandeja: ${pendingCount.value} pendientes`;
+  // El plural lo resuelve el motor; antes se elegía la rama a mano.
+  return t('inboxBadge.short', { n: pendingCount.value });
 });
 
 const isActive = (path) => route.path.startsWith(path);

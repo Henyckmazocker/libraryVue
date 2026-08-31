@@ -75,7 +75,7 @@ docker compose exec backend composer test:unit   # la rápida: 1272, sin necesit
 docker compose exec backend composer test:integration   # 150, contra una BD desechable
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
-docker compose exec frontend npm test            # 401 tests
+docker compose exec frontend npm test            # 416 tests
 docker compose exec frontend npm run test:watch
 docker compose exec frontend npx vue-cli-service lint --no-fix   # lo corre también ./dev-setup.sh
 docker compose exec frontend npm run lint:styles                 # stylelint; también en ./dev-setup.sh
@@ -675,6 +675,37 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
   `public/config/sidebar-menu.json` y lleva **claves**, no texto—, ni **nada de lo que se pinta en
   `<canvas>`**: los rótulos de Chart.js de `services/StatsService.js` y
   `composables/useDashboardCharts.js` no están en el DOM. Eso solo lo ve una captura.
+- **La regla de lint es la PRIMERA barrera, no la única.** En esta app la mayoría de las cadenas no
+  estaban en la plantilla sino en stores, composables y servicios, y para eso está la segunda:
+  `tests/unit/i18n.spec.js` recorre `src/` con `tests/unit/helpers/cadenas.js`, reparte cada literal
+  en **interfaz / log / identificador** y **falla nombrando fichero y cadena** si aparece uno de
+  interfaz fuera del catálogo. Clasifica por la **forma de la llamada**, no por listas: argumento de
+  `Logger.*`, primer argumento de `apiCall`, argumento de `t()`, un import, el `name:` de una ruta
+  dentro de `router/`, una clave de objeto, un operando de comparación, un `obj['clave']`, o el
+  prefijo `[Módulo]` que el repo usa para los mensajes de quien depura. **Si escribes una cadena que
+  no es interfaz, dale una de esas formas**; no la metas en
+  `tests/unit/i18n-strings.allowlist.json`, que es un candado y no una lista de pendientes.
+- **Los errores del backend se traducen por CÓDIGO, y su `message` no se enseña nunca.**
+  `composables/useApiError.js` es la única copia —antes eran **cuatro**: `_messageFor` en
+  `store/lists.js` y `store/clubs.js`, `handleStoreError` en `utils/storeHelpers.js` y `_handleError`
+  en `store/sessions.js`—. La cadena es `claves[código]` del dominio → `errors.<código>` →
+  `claves.defecto` → `errors.unknown`, y los valores de `claves` son **claves del catálogo, no
+  textos**. El `message` del backend viaja al `Logger`, que es su sitio: llega en inglés y con la
+  redacción de quien escribió el endpoint.
+- **`err.message` SÍ se enseña, en unos veinte sitios.** `FriendsView.vue` lo mete en un toast y los
+  stores lo devuelven como `message`, así que un `throw new Error('Failed to X')` acaba en pantalla:
+  esos mensajes se traducen. Los que no se traducen son los de `Logger.*` y los guardas de
+  programador, y se distinguen por llevar el prefijo `[Módulo]`.
+- **Las fechas y los números van por `intlLocale()`** (`config/i18n.js`), que da la etiqueta
+  **BCP-47** del idioma activo. **No es el código del catálogo**: `Intl` quiere `es-ES` / `en-GB`, y
+  pasarle `'es'` a secas funciona por casualidad. No debe volver a aparecer un `'es-ES'` escrito a
+  mano — con la app en inglés el historial decía «29 de agosto de 2026 a las 15:33», y eso **no lo ve
+  ninguna barrera** porque no es una cadena.
+- **`defineProps()` se iza fuera de `setup()`**, así que el valor por defecto de una prop **no puede
+  leer** el `t` de `useI18n()`: hay que importar `t` de `@/config/i18n`, que sí se iza. Y una clave
+  compuesta con plantilla (`t(\`bloque.${x}\`)`) se escapa de la barrera, que solo ve `t('literal')`.
+- **Ojo con `no`, `yes`, `on` y `off` como claves del catálogo.** YAML 1.1 los lee como booleanos: el
+  código ISO del noruego es `no` y la clave se convertía en `language.False`. Van entrecomillados.
 - **Y si vas a verificar traducciones en el navegador, navega por rutas, no por hash.**
   `router/index.js:189` usa `createWebHistory` salvo en móvil: con `#/library` el documento carga
   pero el router se queda en `/`. Pasó el 2026-08-31 — **32 capturas de la misma pantalla de inicio**
@@ -692,7 +723,7 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
 3. `docker compose exec backend composer test` → verde (1422 tests: 1272 unitarios + 150 de
    integración; estos necesitan `docker compose --profile test up -d mysql-test`).
-4. `docker compose exec frontend npm test` → verde (401 tests) y
+4. `docker compose exec frontend npm test` → verde (416 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
 5. **`docker compose exec frontend npm run build` → `Build complete`.** No es redundante con el paso
    anterior: **ninguno de los tres comandos de arriba compila SCSS**. Los helpers de

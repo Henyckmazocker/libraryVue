@@ -234,12 +234,14 @@ const metadata = computed(() => props.event.metadata ?? {})
 
 const eventDescription = computed(() => {
   switch (props.event.event_type) {
-    case 'item_added': return 'se añadió a la biblioteca'
-    case 'item_rated': return `recibió una valoración de ${metadata.value.rating ?? '—'}`
+    case 'item_added': return t('feed.added')
+    case 'item_rated': return t('feed.rated', { n: metadata.value.rating ?? '—' })
     // El mismo `t('status.' + slug)` que el resto: dos mapas serían dos verdades.
-    case 'status_changed': return `cambió de estado a "${metadata.value.new_status ? statusLabel(metadata.value.new_status) : '—'}"`
-    case 'notes_updated': return 'tiene una nota nueva'
-    case 'reading_session': return 'tiene una sesión de lectura registrada'
+    case 'status_changed': return t('feed.statusChanged', {
+      estado: metadata.value.new_status ? statusLabel(metadata.value.new_status) : '—'
+    })
+    case 'notes_updated': return t('feed.noteAdded')
+    case 'reading_session': return t('feed.readingSession')
     default: return ''
   }
 })
@@ -257,12 +259,12 @@ const noteOpen = ref(false)
 const relativeTime = computed(() => {
   const diff = Date.now() - new Date(props.event.created_at).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'ahora mismo'
-  if (mins < 60) return `hace ${mins} min`
+  if (mins < 1) return t('feed.justNow')
+  if (mins < 60) return t('feed.minutesAgo', { n: mins })
   const hours = Math.floor(mins / 60)
-  if (hours < 24) return `hace ${hours} h`
+  if (hours < 24) return t('feed.hoursAgo', { n: hours })
   const days = Math.floor(hours / 24)
-  return `hace ${days} d`
+  return t('feed.daysAgo', { n: days })
 })
 </script>
 

@@ -197,7 +197,7 @@ const albumTypeIcon = (type) => {
 
 const albumTypeLabel = (type) => {
   if (!type) return '';
-  const labels = { album: 'Álbum', single: 'Single', compilation: 'Compilación', ep: 'EP' };
+  const labels = { album: t('misc.album'), single: t('misc.albumSingle'), compilation: t('misc.compilation'), ep: t('misc.albumEp') };
   return labels[type.toLowerCase()] || type;
 };
 </script>

@@ -54,9 +54,22 @@ describe('storeHelpers', () => {
    * `matchesGameId` se retiró al migrar los stores a `createMediaStore`, pero
    * `handleStoreError` sigue vivo: lo importa `store/createMediaStore.js:5`.
    */
-  it('sigue exportando handleStoreError', () => {
+  it('sigue exportando handleStoreError, y ya traduce por código', () => {
     expect(typeof handleStoreError).toBe('function')
+    // Antes devolvía «Authentication required. Please login again.» en inglés,
+    // pasara lo que pasara con el idioma. Ahora sale del catálogo.
     expect(handleStoreError({ response: { status: 401 } }))
-      .toBe('Authentication required. Please login again.')
+      .toBe('Tu sesión ha caducado. Vuelve a entrar.')
+  })
+
+  it('NO enseña el mensaje del backend', () => {
+    // Es la regla del plan: ese texto viene en inglés y con la redacción de
+    // quien escribió el endpoint; su sitio es el log, no la pantalla.
+    const salida = handleStoreError({
+      response: { status: 500, data: { message: 'An unexpected error occurred.' } }
+    })
+
+    expect(salida).not.toContain('unexpected')
+    expect(salida).toBe('Algo ha ido mal en el servidor')
   })
 })

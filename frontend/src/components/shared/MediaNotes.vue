@@ -189,6 +189,7 @@ import Checkbox from 'primevue/checkbox'
 import InputNumber from 'primevue/inputnumber'
 import Logger from '@/utils/logger'
 import { useI18n } from '@/composables/useI18n';
+import { intlLocale } from '@/config/i18n';
 
 const { t } = useI18n();
 
@@ -268,7 +269,7 @@ async function loadNotes () {
   Logger.info('Loading notes', { media: props.media, itemId: props.itemId })
   const result = await mediaNotes.getNotes(props.itemId)
   if (!result.success && notifications) {
-    notifications.showError(result.error || 'Error al cargar las notas')
+    notifications.showError(result.error || t('noteActions.loadFailed'))
   }
 }
 
@@ -287,7 +288,7 @@ function editNote (note) {
 }
 
 function confirmDeleteNote (note) {
-  if (confirm('¿Estás seguro de que quieres eliminar esta nota?')) {
+  if (confirm(t('noteActions.deleteConfirm'))) {
     deleteNote(note)
   }
 }
@@ -295,15 +296,15 @@ function confirmDeleteNote (note) {
 async function deleteNote (note) {
   const result = await mediaNotes.deleteNote(note.id, props.itemId)
   if (result.success) {
-    if (notifications) notifications.showSuccess('Nota eliminada correctamente')
+    if (notifications) notifications.showSuccess(t('noteActions.deleted'))
   } else {
-    if (notifications) notifications.showError(result.error || 'Error al eliminar la nota')
+    if (notifications) notifications.showError(result.error || t('noteActions.deleteFailed'))
   }
 }
 
 async function saveNote () {
   if (!noteForm.value.noteText.trim()) {
-    if (notifications) notifications.showError('El contenido de la nota no puede estar vacío')
+    if (notifications) notifications.showError(t('noteActions.empty'))
     return
   }
 
@@ -332,16 +333,16 @@ async function saveNote () {
     if (result.success) {
       if (notifications) {
         notifications.showSuccess(
-          editingNote.value ? 'Nota actualizada correctamente' : 'Nota agregada correctamente'
+          editingNote.value ? t('noteActions.updated') : t('noteActions.added')
         )
       }
       closeNoteDialog()
     } else {
-      if (notifications) notifications.showError(result.error || 'Error al guardar la nota')
+      if (notifications) notifications.showError(result.error || t('noteActions.saveFailed'))
     }
   } catch (error) {
     Logger.error('Error saving note', { media: props.media, error })
-    if (notifications) notifications.showError('Error al guardar la nota')
+    if (notifications) notifications.showError(t('noteActions.saveFailed'))
   } finally {
     saving.value = false
   }
@@ -357,7 +358,7 @@ function closeNoteDialog () {
 function formatDate (dateStr) {
   if (!dateStr) return ''
   const date = new Date(dateStr)
-  return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+  return date.toLocaleDateString(intlLocale(), { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 onMounted(loadNotes)

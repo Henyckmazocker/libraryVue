@@ -18,6 +18,21 @@ import { defineStore } from 'pinia'
 import { useAuthStore } from './auth'
 import Logger from '@/utils/logger'
 
+import { apiError } from '@/composables/useApiError'
+import { t } from '@/config/i18n'
+
+/**
+ * Lo que los clubs dicen de cada código. El 409 lo devuelven dos cosas —«ya hay
+ * un ítem activo» y «la ronda no está en esa fase»—, y las dos se arreglan
+ * recargando, así que comparten texto en vez de leer el del backend.
+ */
+const CLAVES = {
+  400: 'clubs.error400',
+  403: 'clubs.error403',
+  404: 'clubs.error404',
+  409: 'clubs.error409'
+}
+
 export const useClubsStore = defineStore('clubs', {
   state: () => ({
     // Las tarjetas de /clubs: cada una con su `member_count` e `is_owner`.
@@ -81,11 +96,11 @@ export const useClubsStore = defineStore('clubs', {
         if (response.data.status === 'success') {
           this.clubs = response.data.data?.clubs ?? []
         } else {
-          this.error = response.data.message || 'No se pudieron cargar tus clubs'
+          this.error = apiError(response.data, { ...CLAVES, defecto: 'clubs.loadError' })
         }
       } catch (err) {
         Logger.error('[ClubsStore] fetchMyClubs error:', err)
-        this.error = 'No se pudieron cargar tus clubs'
+        this.error = t('clubs.loadError')
       } finally {
         this.isLoading = false
       }
@@ -129,12 +144,12 @@ export const useClubsStore = defineStore('clubs', {
           return { success: true }
         }
 
-        this.error = this._messageFor(response.data.http_code)
+        this.error = apiError(response.data, CLAVES)
         return { success: false, code: response.data.http_code ?? null }
       } catch (err) {
         Logger.error('[ClubsStore] fetchClub error:', err)
         const code = err.response?.status ?? err.response?.data?.http_code ?? null
-        this.error = this._messageFor(code)
+        this.error = apiError(code, CLAVES)
         return { success: false, code }
       } finally {
         this.isLoading = false
@@ -261,7 +276,7 @@ export const useClubsStore = defineStore('clubs', {
       const result = await this._write('invite_to_club', { clubId, userId })
 
       if (!result.success && result.code === 400) {
-        this.error = 'Solo puedes invitar a tus amigos, y solo una vez'
+        this.error = t('clubs.inviteNotFriends')
         return { ...result, message: this.error }
       }
 
@@ -378,7 +393,7 @@ export const useClubsStore = defineStore('clubs', {
 
         if (response.data.status !== 'success') {
           const code = response.data.http_code ?? null
-          this.error = this._messageFor(code, response.data.message)
+          this.error = apiError(code, CLAVES)
           return { success: false, message: this.error, code }
         }
 
@@ -386,7 +401,7 @@ export const useClubsStore = defineStore('clubs', {
       } catch (err) {
         Logger.error(`[ClubsStore] ${action} error:`, err)
         const code = err.response?.status ?? err.response?.data?.http_code ?? null
-        this.error = this._messageFor(code, err.response?.data?.message || err.message)
+        this.error = apiError(err, CLAVES)
         return { success: false, message: this.error, code }
       } finally {
         this.isSaving = false
@@ -394,19 +409,5 @@ export const useClubsStore = defineStore('clubs', {
     },
 
     /** Traducción por código. El backend responde en inglés y no se lee su texto. */
-    _messageFor (code, fallback = null) {
-      const messages = {
-        400: 'No se pudo completar: revisa la pantalla, puede estar desfasada',
-        403: 'No tienes permiso sobre este club',
-        404: 'Este club ya no existe',
-        // El 409 lo devuelven dos cosas: «ya hay un ítem activo» y «la ronda no
-        // está en esa fase». Las dos se arreglan igual —recargar—, así que
-        // comparten texto en vez de leer el mensaje del backend, que va en
-        // inglés.
-        409: 'La ronda ha cambiado de fase; recarga la pantalla'
-      }
-
-      return messages[code] ?? fallback ?? 'No se pudo completar la operación'
-    }
   }
 })

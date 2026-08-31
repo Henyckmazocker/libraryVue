@@ -180,8 +180,8 @@ const castVotes = computed(
  */
 const blockedNotice = computed(() => {
   const avisos = {
-    rotation: 'Ganaste la ronda anterior, así que esta vez proponen los demás. Puedes votar igual.',
-    already_proposed: 'Ya has propuesto: es una por persona y ronda.'
+    rotation: t('misc.wonLastRound'),
+    already_proposed: t('misc.alreadyProposed')
   }
 
   return avisos[props.round.reasonBlocked] ?? null

@@ -2,6 +2,7 @@ import { ref, computed } from 'vue';
 import axios from 'axios';
 import { useAuthStore } from '@/store/auth';
 import Logger from '@/utils/logger';
+import { t } from '@/config/i18n';
 
 /**
  * Composable para búsqueda de obras (works) literarias
@@ -75,7 +76,7 @@ export function useWorkSearch() {
 
     } catch (err) {
       Logger.error('[useWorkSearch] Search failed:', err);
-      error.value = err.message || 'Error al buscar obras';
+      error.value = err.message || t('works.searchFailed');
       works.value = [];
 
       // Fallback a OpenLibrary directo
@@ -132,7 +133,7 @@ export function useWorkSearch() {
 
     } catch (fallbackErr) {
       Logger.error('[useWorkSearch] Fallback search also failed:', fallbackErr);
-      error.value = 'No se pudo conectar con el servicio de búsqueda';
+      error.value = t('works.offline');
       return [];
     }
   };
@@ -170,7 +171,7 @@ export function useWorkSearch() {
 
     } catch (err) {
       Logger.error('[useWorkSearch] Failed to get work details:', err);
-      error.value = err.message || 'Error al obtener detalles de la obra';
+      error.value = err.message || t('works.detailsFailed');
       return null;
     } finally {
       isSearching.value = false;
@@ -211,7 +212,7 @@ export function useWorkSearch() {
 
     } catch (err) {
       Logger.error('[useWorkSearch] Failed to get work editions:', err);
-      error.value = err.message || 'Error al obtener ediciones';
+      error.value = err.message || t('works.editionsFailed');
       return [];
     } finally {
       isSearching.value = false;
@@ -249,7 +250,7 @@ export function useWorkSearch() {
 
     } catch (err) {
       Logger.error('[useWorkSearch] ISBN validation error:', err);
-      error.value = err.message || 'Error al validar ISBN';
+      error.value = err.message || t('works.isbnFailed');
       return null;
     } finally {
       isSearching.value = false;

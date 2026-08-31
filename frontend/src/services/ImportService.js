@@ -1,6 +1,7 @@
 import { useAuthStore } from '@/store/auth';
 import FileProcessorService from './FileProcessorService';
 import Logger from '@/utils/logger';
+import { t } from '@/config/i18n';
 
 /**
  * Servicio para manejar la importación de datos al backend
@@ -18,9 +19,9 @@ export class ImportService {
       // Notificar inicio del procesamiento
       if (onProgress) {
         onProgress({
-          message: service === 'palomitacas' 
-            ? 'Procesando archivo y obteniendo datos de OMDb...' 
-            : 'Procesando archivo...',
+          message: service === 'palomitacas'
+            ? t('importer.processingOmdb')
+            : t('importer.processing'),
           type: 'info',
           loading: true
         }, 10);
@@ -33,7 +34,7 @@ export class ImportService {
       if (onProgress) {
         const elementType = this.getElementType(service);
         onProgress({
-          message: `Enviando ${processedData.length} ${elementType} al servidor...`,
+          message: t('importer.sendingCount', { n: processedData.length, tipo: elementType }),
           type: 'info',
           loading: true
         }, 60);
@@ -80,7 +81,7 @@ export class ImportService {
           }
         };
       } else {
-        const errorMessage = response.data?.message || 'Error al importar los datos.';
+        const errorMessage = t('importer.importFailed');
         
         if (onProgress) {
           onProgress({
@@ -98,7 +99,7 @@ export class ImportService {
     } catch (error) {
       Logger.error('Error importing data:', error);
       
-      const errorMessage = `Error procesando archivo: ${error.message}`;
+      const errorMessage = t('importer.processFailed', { detalle: error.message });
       
       if (onProgress) {
         onProgress({
@@ -120,22 +121,24 @@ export class ImportService {
    */
   getElementType(service) {
     const types = {
-      'palomitacas': 'películas',
-      'letterboxd': 'películas',
-      'goodreads': 'libros',
-      'serialized': 'elementos'
+      'palomitacas': 'importer.itemsMovies',
+      'letterboxd': 'importer.itemsMovies',
+      'goodreads': 'importer.itemsBooks',
+      'serialized': 'importer.itemsGeneric'
     };
-    
-    return types[service] || 'elementos';
+
+    return t(types[service] || 'importer.itemsGeneric');
   }
 
   /**
    * Construye el mensaje de éxito
    */
   buildSuccessMessage(importData, elementType, service) {
-    const successMsg = `${importData.imported} ${elementType} importados correctamente de ${service}`;
-    const detailMsg = importData.skipped > 0 ? ` (${importData.skipped} omitidos por duplicado)` : '';
-    
+    const successMsg = t('importer.imported', {
+      n: importData.imported, tipo: elementType, servicio: service
+    });
+    const detailMsg = importData.skipped > 0 ? t('importer.skipped', { n: importData.skipped }) : '';
+
     return successMsg + detailMsg;
   }
 
@@ -146,14 +149,14 @@ export class ImportService {
     if (!service) {
       return {
         valid: false,
-        error: 'Por favor selecciona un servicio.'
+        error: t('importer.pickService')
       };
     }
 
     if (!file) {
       return {
         valid: false,
-        error: 'Por favor selecciona un archivo.'
+        error: t('importer.pickFile')
       };
     }
 
@@ -186,7 +189,7 @@ export class ImportService {
       if (!hasValidExtension) {
         return {
           valid: false,
-          error: `Archivo debe tener una de estas extensiones: ${validation.extensions.join(', ')}`
+          error: t('importer.extensions', { lista: validation.extensions.join(', ') })
         };
       }
 
@@ -195,7 +198,7 @@ export class ImportService {
         const maxSizeMB = Math.round(validation.maxSize / (1024 * 1024));
         return {
           valid: false,
-          error: `El archivo es demasiado grande. Tamaño máximo: ${maxSizeMB}MB`
+          error: t('importer.tooBig', { n: maxSizeMB })
         };
       }
     }

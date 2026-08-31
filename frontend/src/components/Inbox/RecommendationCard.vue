@@ -186,7 +186,7 @@ const entityIcon = computed(() => {
 const relativeTime = computed(() => {
   const diff = Date.now() - new Date(props.recommendation.created_at).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'ahora mismo'
+  if (mins < 1) return t('feed.justNow')
   if (mins < 60) return `hace ${mins} min`
   const hours = Math.floor(mins / 60)
   if (hours < 24) return `hace ${hours} h`

@@ -4,6 +4,7 @@ import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { useAuth } from './useAuth';
 import { useAuthStore } from '@/store/auth';
 import Logger from '@/utils/logger';
+import { t } from '@/config/i18n';
 
 /**
  * Composable para manejar Google OAuth
@@ -49,7 +50,7 @@ export function useGoogleAuth() {
           isGoogleSDKLoaded.value = true;
           resolve(true);
         };
-        existingScript.onerror = () => reject(new Error('Failed to load Google SDK'));
+        existingScript.onerror = () => reject(new Error('[useGoogleAuth] Failed to load Google SDK'));
         return;
       }
 
@@ -66,7 +67,7 @@ export function useGoogleAuth() {
       };
       
       script.onerror = () => {
-        const error = new Error('Failed to load Google SDK');
+        const error = new Error('[useGoogleAuth] Failed to load Google SDK');
         Logger.error('[useGoogleAuth] Failed to load Google SDK:', error);
         reject(error);
       };
@@ -81,7 +82,7 @@ export function useGoogleAuth() {
   const initializeGoogleAuth = async () => {
     try {
       if (!GOOGLE_CLIENT_ID) {
-        throw new Error('Google Client ID not configured');
+        throw new Error('[useGoogleAuth] Google Client ID not configured');
       }
 
       // --- Plataforma nativa (Capacitor) ---
@@ -114,7 +115,7 @@ export function useGoogleAuth() {
         // Timeout después de 10 segundos
         setTimeout(() => {
           clearInterval(checkInterval);
-          reject(new Error('Google SDK initialization timeout'));
+          reject(new Error('[useGoogleAuth] Google SDK initialization timeout'));
         }, 10000);
       });
 
@@ -148,14 +149,14 @@ export function useGoogleAuth() {
       const idToken = googleUser.authentication?.idToken;
 
       if (!idToken) {
-        throw new Error('No idToken received from native Google Sign-In');
+        throw new Error('[useGoogleAuth] No idToken received from native Google Sign-In');
       }
 
       googleCredential.value = idToken;
       const result = await login(idToken);
 
       if (!result.success) {
-        throw new Error(result.message || 'Login failed');
+        throw new Error(result.message || t('authError.login'));
       }
 
       Logger.auth('[useGoogleAuth] Native Google Sign-In successful');
@@ -174,7 +175,7 @@ export function useGoogleAuth() {
       Logger.auth('[useGoogleAuth] Google response received');
       
       if (!response.credential) {
-        throw new Error('No credential received from Google');
+        throw new Error('[useGoogleAuth] No credential received from Google');
       }
 
       googleCredential.value = response.credential;
@@ -183,7 +184,7 @@ export function useGoogleAuth() {
       const result = await login(response.credential);
       
       if (!result.success) {
-        throw new Error(result.message || 'Login failed');
+        throw new Error(result.message || t('authError.login'));
       }
 
       Logger.auth('[useGoogleAuth] Login successful via Google OAuth');

@@ -228,22 +228,22 @@ const handleRemove = async (item) => {
   removingId.value = null
 
   if (!result.success) {
-    notifications?.showError?.(result.message || 'No se pudo quitar el ítem')
+    notifications?.showError?.(result.message || t('listActions.removeFailed'))
   }
 }
 
 const handleRemoveCollaborator = async (person) => {
   const meVoy = person.user_id === myUserId.value
   const pregunta = meVoy
-    ? '¿Salir de esta lista? Dejarás de poder editarla.'
-    : `¿Quitar a ${person.username} de esta lista?`
+    ? t('listActions.leaveConfirm')
+    : t('listActions.removePersonConfirm', { name: person.username })
 
   if (!window.confirm(pregunta)) return
 
   const result = await lists.removeCollaborator(numericId.value, person.user_id)
 
   if (!result.success) {
-    notifications?.showError?.(result.message || 'No se pudo completar la operación')
+    notifications?.showError?.(result.message || t('errors.unknown'))
     return
   }
 
@@ -258,27 +258,27 @@ const handleEdit = async (form) => {
   const result = await lists.updateList(numericId.value, form)
 
   if (!result.success) {
-    notifications?.showError?.(result.message || 'No se pudo guardar')
+    notifications?.showError?.(result.message || t('listActions.saveFailed'))
     return
   }
 
   showEdit.value = false
-  notifications?.showSuccess?.('Lista actualizada')
+  notifications?.showSuccess?.(t('listActions.updated'))
 }
 
 const confirmDelete = async () => {
-  if (!window.confirm(`¿Borrar la lista «${current.value.name}»? Los ítems seguirán en tu biblioteca.`)) {
+  if (!window.confirm(t('listActions.deleteConfirm', { name: current.value.name }))) {
     return
   }
 
   const result = await lists.deleteList(numericId.value)
 
   if (!result.success) {
-    notifications?.showError?.(result.message || 'No se pudo borrar la lista')
+    notifications?.showError?.(result.message || t('listActions.deleteFailed'))
     return
   }
 
-  notifications?.showSuccess?.('Lista borrada')
+  notifications?.showSuccess?.(t('listActions.deleted'))
   router.push({ name: 'Lists' })
 }
 </script>

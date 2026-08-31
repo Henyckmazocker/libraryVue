@@ -79,11 +79,11 @@ const searchAlbums = async (query) => {
     if (response.data.status === 'success') {
       return response.data.data?.albums || response.data.data || [];
     } else {
-      throw new Error(response.data.message || 'Error searching albums');
+      throw new Error(t('toasts.albumSearchFailed'));
     }
   } catch (error) {
     Logger.error('Error searching albums via Spotify:', error);
-    throw new Error('No se pudo buscar en Spotify. Verifica la configuración.');
+    throw new Error(t('toasts.spotifyFailed'));
   }
 };
 

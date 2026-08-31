@@ -1,6 +1,7 @@
 import { ref } from 'vue';
 import { useAuthStore } from '@/store/auth';
 import Logger from '@/utils/logger';
+import { t } from '@/config/i18n';
 
 /**
  * Composable para gestión de contenido trending (libros, películas y juegos)
@@ -46,10 +47,10 @@ export function useTrending() {
         trendingBooks.value = response.data.data;
         Logger.info(`Trending books loaded: ${trendingBooks.value.length} items`);
       } else {
-        throw new Error('Invalid response format');
+        throw new Error('[useTrending] Invalid response format');
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.message || error.message || 'Error al cargar libros trending';
+      const errorMessage = error.response?.data?.message || error.message || t('trending.books');
       errorBooks.value = errorMessage;
       Logger.error('Error fetching trending books:', error);
       trendingBooks.value = [];
@@ -79,10 +80,10 @@ export function useTrending() {
         trendingMovies.value = response.data.data;
         Logger.info(`Trending movies loaded: ${trendingMovies.value.length} items`);
       } else {
-        throw new Error('Invalid response format');
+        throw new Error('[useTrending] Invalid response format');
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.message || error.message || 'Error al cargar películas trending';
+      const errorMessage = error.response?.data?.message || error.message || t('trending.movies');
       errorMovies.value = errorMessage;
       Logger.error('Error fetching trending movies:', error);
       trendingMovies.value = [];
@@ -112,10 +113,10 @@ export function useTrending() {
         trendingGames.value = response.data.data;
         Logger.info(`Trending games loaded: ${trendingGames.value.length} items`);
       } else {
-        throw new Error('Invalid response format');
+        throw new Error('[useTrending] Invalid response format');
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.message || error.message || 'Error al cargar juegos trending';
+      const errorMessage = error.response?.data?.message || error.message || t('trending.games');
       errorGames.value = errorMessage;
       Logger.error('Error fetching trending games:', error);
       trendingGames.value = [];
@@ -161,10 +162,10 @@ export function useTrending() {
         trendingAlbums.value = response.data.data;
         Logger.info(`Trending albums loaded: ${trendingAlbums.value.length} items`);
       } else {
-        throw new Error('Invalid response format');
+        throw new Error('[useTrending] Invalid response format');
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.message || error.message || 'Error al cargar álbumes trending';
+      const errorMessage = error.response?.data?.message || error.message || t('trending.albums');
       errorAlbums.value = errorMessage;
       Logger.error('Error fetching trending albums:', error);
       trendingAlbums.value = [];
@@ -204,10 +205,10 @@ export function useTrending() {
         trendingVideos.value = response.data.data;
         Logger.info(`Trending videos loaded: ${trendingVideos.value.length} items`);
       } else {
-        throw new Error('Invalid response format');
+        throw new Error('[useTrending] Invalid response format');
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.message || error.message || 'Error al cargar vídeos trending';
+      const errorMessage = error.response?.data?.message || error.message || t('trending.videos');
       errorVideos.value = errorMessage;
       Logger.error('Error fetching trending videos:', error);
       trendingVideos.value = [];

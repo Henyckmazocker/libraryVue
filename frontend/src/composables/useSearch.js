@@ -1,5 +1,6 @@
 import { ref, computed, watch } from 'vue';
 import Logger from '@/utils/logger';
+import { t } from '@/config/i18n';
 
 /**
  * Composable para gestión de búsquedas con debouncing y caché
@@ -54,7 +55,7 @@ export function useSearch(options = {}) {
    */
   const setSearchFunction = (searchFn) => {
     if (typeof searchFn !== 'function') {
-      throw new Error('Search function must be a function');
+      throw new Error('[useSearch] Search function must be a function');
     }
     searchFunction = searchFn;
   };
@@ -65,7 +66,7 @@ export function useSearch(options = {}) {
    */
   const search = async (searchQuery = query.value) => {
     if (!searchFunction) {
-      error.value = 'No search function configured';
+      error.value = '[useSearch] No search function configured';
       Logger.error('[useSearch] No search function configured');
       return;
     }
@@ -95,7 +96,7 @@ export function useSearch(options = {}) {
       
       // Validar resultados
       if (!Array.isArray(searchResults)) {
-        throw new Error('Search function must return an array');
+        throw new Error('[useSearch] Search function must return an array');
       }
 
       results.value = searchResults;
@@ -109,7 +110,7 @@ export function useSearch(options = {}) {
       Logger.debug(`[useSearch] Search completed. Found ${searchResults.length} results`);
       
     } catch (err) {
-      error.value = err.message || 'Error durante la búsqueda';
+      error.value = err.message || t('searchError.failed');
       Logger.error('[useSearch] Search error:', err);
       results.value = [];
     } finally {

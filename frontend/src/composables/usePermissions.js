@@ -108,7 +108,7 @@ export function usePermissions() {
 
     // Verificar autenticación para rutas protegidas
     if (!isAuthenticated.value) {
-      accessDeniedReason.value = 'Authentication required';
+      accessDeniedReason.value = '[usePermissions] Authentication required';
       return false;
     }
 
@@ -120,7 +120,7 @@ export function usePermissions() {
       );
       
       if (!hasAllPermissions) {
-        accessDeniedReason.value = `Missing required permissions: ${requiredPermissions.join(', ')}`;
+        accessDeniedReason.value = `[usePermissions] Missing required permissions: ${requiredPermissions.join(', ')}`;
         return false;
       }
     }
@@ -197,7 +197,7 @@ export function usePermissions() {
    * @param {string} reason - Razón del acceso denegado
    */
   const handleAccessDenied = (reason = null) => {
-    accessDeniedReason.value = reason || 'Access denied';
+    accessDeniedReason.value = reason || '[usePermissions] Access denied';
     
     if (!isAuthenticated.value) {
       // Guardar la ruta actual para redirección después del login
@@ -247,7 +247,7 @@ export function usePermissions() {
     );
 
     if (!hasAllPermissions) {
-      handleAccessDenied(`Missing permissions: ${permissions.join(', ')}`);
+      handleAccessDenied(`[usePermissions] Missing permissions: ${permissions.join(', ')}`);
       return false;
     }
 

@@ -2,6 +2,7 @@ import { storeToRefs } from 'pinia';
 import { useSessionsStore } from '@/store/sessions';
 import { useConfirmationModal } from './useConfirmationModal';
 import Logger from '@/utils/logger';
+import { t } from '@/config/i18n'
 
 /**
  * Composable para gestión de sesiones de lectura
@@ -94,7 +95,7 @@ export function useReadingSessions(bookId) {
   const complete = async (bookInfo, endPage, reason = 'completed') => {
     try {
       if (!hasActiveSession) {
-        throw new Error('No active session found');
+        throw new Error(t('session.noneActive'));
       }
 
       // Confirmar completación
@@ -136,12 +137,12 @@ export function useReadingSessions(bookId) {
   const abandon = async (bookInfo) => {
     try {
       if (!hasActiveSession) {
-        throw new Error('No active session found');
+        throw new Error(t('session.noneActive'));
       }
 
       const confirmed = await confirmReset(
         bookInfo.title,
-        'La sesión se marcará como abandonada'
+        t('confirm.sessionAbandoned')
       );
       
       if (!confirmed) {
@@ -163,11 +164,11 @@ export function useReadingSessions(bookId) {
     const { confirmDelete } = useConfirmationModal();
     
     try {
-      const sessionLabel = `Sesión #${sessionInfo.session_number || sessionId}`;
+      const sessionLabel = t('confirm.sessionLabel', { n: sessionInfo.session_number || sessionId });
       
       const confirmed = await confirmDelete(
         sessionLabel,
-        'Esta acción no se puede deshacer'
+        t('confirm.irreversible')
       );
       
       if (!confirmed) {

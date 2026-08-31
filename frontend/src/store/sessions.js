@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { useAuthStore } from './auth'
 import Logger from '@/utils/logger'
+import { handleStoreError } from '@/utils/storeHelpers'
+import { t } from '@/config/i18n'
 
 export const useSessionsStore = defineStore('sessions', {
   state: () => ({
@@ -196,10 +198,10 @@ export const useSessionsStore = defineStore('sessions', {
           }
         } else {
           Logger.error('[SessionsStore] API returned error:', response.data.message)
-          throw new Error(response.data.message || 'Failed to create session')
+          throw new Error(t('session.createFailed'))
         }
       } catch (err) {
-        this.error = this._handleError(err, 'Failed to create session')
+        this.error = this._handleError(err)
         Logger.error('[SessionsStore] Error creating session:', err)
         return { success: false, message: this.error }
       } finally {
@@ -217,7 +219,7 @@ export const useSessionsStore = defineStore('sessions', {
       try {
         const activeSession = this.activeSessions[bookId]
         if (!activeSession) {
-          throw new Error('No active session found')
+          throw new Error(t('session.noneActive'))
         }
 
         Logger.debug('[SessionsStore] Completing session:', activeSession.id)
@@ -249,10 +251,10 @@ export const useSessionsStore = defineStore('sessions', {
           Logger.debug('[SessionsStore] Session completed successfully')
           return { success: true }
         } else {
-          throw new Error(response.data.message || 'Failed to complete session')
+          throw new Error(t('session.completeFailed'))
         }
       } catch (err) {
-        this.error = this._handleError(err, 'Failed to complete session')
+        this.error = this._handleError(err)
         Logger.error('[SessionsStore] Error completing session:', err)
         return { success: false, message: this.error }
       } finally {
@@ -267,7 +269,7 @@ export const useSessionsStore = defineStore('sessions', {
       try {
         const activeSession = this.activeSessions[bookId]
         if (!activeSession) {
-          throw new Error('No active session found')
+          throw new Error(t('session.noneActive'))
         }
 
         Logger.debug('[SessionsStore] Pausing session:', activeSession.id)
@@ -286,10 +288,10 @@ export const useSessionsStore = defineStore('sessions', {
           Logger.debug('[SessionsStore] Session paused successfully')
           return { success: true }
         } else {
-          throw new Error(response.data.message || 'Failed to pause session')
+          throw new Error(t('session.pauseFailed'))
         }
       } catch (err) {
-        this.error = this._handleError(err, 'Failed to pause session')
+        this.error = this._handleError(err)
         Logger.error('[SessionsStore] Error pausing session:', err)
         return { success: false, message: this.error }
       }
@@ -302,7 +304,7 @@ export const useSessionsStore = defineStore('sessions', {
       try {
         const activeSession = this.activeSessions[bookId]
         if (!activeSession) {
-          throw new Error('No active session found')
+          throw new Error(t('session.noneActive'))
         }
 
         Logger.debug('[SessionsStore] Resuming session:', activeSession.id)
@@ -321,10 +323,10 @@ export const useSessionsStore = defineStore('sessions', {
           Logger.debug('[SessionsStore] Session resumed successfully')
           return { success: true }
         } else {
-          throw new Error(response.data.message || 'Failed to resume session')
+          throw new Error(t('session.resumeFailed'))
         }
       } catch (err) {
-        this.error = this._handleError(err, 'Failed to resume session')
+        this.error = this._handleError(err)
         Logger.error('[SessionsStore] Error resuming session:', err)
         return { success: false, message: this.error }
       }
@@ -337,7 +339,7 @@ export const useSessionsStore = defineStore('sessions', {
       try {
         const activeSession = this.activeSessions[bookId]
         if (!activeSession) {
-          throw new Error('No active session found')
+          throw new Error(t('session.noneActive'))
         }
 
         Logger.debug('[SessionsStore] Abandoning session:', activeSession.id)
@@ -367,10 +369,10 @@ export const useSessionsStore = defineStore('sessions', {
           Logger.debug('[SessionsStore] Session abandoned successfully')
           return { success: true }
         } else {
-          throw new Error(response.data.message || 'Failed to abandon session')
+          throw new Error(t('session.abandonFailed'))
         }
       } catch (err) {
-        this.error = this._handleError(err, 'Failed to abandon session')
+        this.error = this._handleError(err)
         Logger.error('[SessionsStore] Error abandoning session:', err)
         return { success: false, message: this.error }
       }
@@ -404,10 +406,10 @@ export const useSessionsStore = defineStore('sessions', {
           Logger.debug('[SessionsStore] Session deleted successfully')
           return { success: true }
         } else {
-          throw new Error(response.data.message || 'Failed to delete session')
+          throw new Error(t('session.deleteFailed'))
         }
       } catch (err) {
-        this.error = this._handleError(err, 'Failed to delete session')
+        this.error = this._handleError(err)
         Logger.error('[SessionsStore] Error deleting session:', err)
         return { success: false, message: this.error }
       }
@@ -421,7 +423,7 @@ export const useSessionsStore = defineStore('sessions', {
         const activeSession = this.activeSessions[bookId]
         if (!activeSession) {
           Logger.warn('[SessionsStore] No active session, cannot update progress')
-          return { success: false, message: 'No active session' }
+          return { success: false, message: t('session.noneActive') }
         }
 
         Logger.debug('[SessionsStore] Updating progress:', { bookId, currentPage })
@@ -455,10 +457,10 @@ export const useSessionsStore = defineStore('sessions', {
           Logger.debug('[SessionsStore] Progress updated successfully')
           return { success: true, data: result }
         } else {
-          throw new Error(response.data.message || 'Failed to update progress')
+          throw new Error(t('session.progressFailed'))
         }
       } catch (err) {
-        this.error = this._handleError(err, 'Failed to update progress')
+        this.error = this._handleError(err)
         Logger.error('[SessionsStore] Error updating progress:', err)
         return { success: false, message: this.error }
       }
@@ -486,10 +488,10 @@ export const useSessionsStore = defineStore('sessions', {
           Logger.debug(`[SessionsStore] Fetched ${sessions.length} active sessions`)
           return { success: true, sessions }
         } else {
-          throw new Error(response.data.message || 'Failed to fetch active sessions')
+          throw new Error(t('session.fetchFailed'))
         }
       } catch (err) {
-        this.error = this._handleError(err, 'Failed to fetch active sessions')
+        this.error = this._handleError(err)
         Logger.error('[SessionsStore] Error fetching active sessions:', err)
         return { success: false, message: this.error }
       }
@@ -503,30 +505,13 @@ export const useSessionsStore = defineStore('sessions', {
     },
 
     /**
-     * Manejo centralizado de errores
+     * Manejo centralizado de errores. Era la cuarta copia de lo mismo; ahora
+     * delega en `apiError`, que resuelve por código y no enseña el texto del
+     * backend.
      * @private
      */
-    _handleError(err, defaultMessage = 'Operation failed') {
-      if (err.response) {
-        const status = err.response.status
-        const data = err.response.data
-        
-        if (status === 401) {
-          return 'Authentication required. Please login again.'
-        } else if (status === 403) {
-          return 'Invalid CSRF token. Please refresh the page and try again.'
-        } else if (data && data.message) {
-          return data.message
-        } else {
-          return `Server error (${status})`
-        }
-      } else if (err.request) {
-        return 'Network error. Please check your connection.'
-      } else if (err.message) {
-        return err.message
-      }
-      
-      return defaultMessage
+    _handleError (err) {
+      return handleStoreError(err)
     }
   }
 })

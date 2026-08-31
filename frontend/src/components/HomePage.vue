@@ -109,13 +109,13 @@ const saveBooksToBackend = async () => {
       books
     });
     if (saveResponse.data && saveResponse.data.status === 'success') {
-      alert('Biblioteca guardada correctamente en el backend.');
+      alert(t('toasts.libSaved'));
     } else {
-      alert('Error al guardar la biblioteca en el backend.');
+      alert(t('toasts.libSaveFailed'));
     }
   } catch (error) {
     Logger.error("Error al guardar libros en backend:", error);
-    alert("No se pudo guardar la biblioteca en el backend.");
+    alert(t('toasts.libSaveFailed'));
   }
 };
 

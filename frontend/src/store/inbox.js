@@ -18,6 +18,8 @@ import { useAuthStore } from './auth'
 import { mediaStores } from '@/composables/createMediaComposable'
 import { getMediaConfig, storeMediaKeys } from '@/config/mediaRegistry'
 import Logger from '@/utils/logger'
+import { apiError } from '@/composables/useApiError'
+import { t } from '@/config/i18n'
 
 export const useInboxStore = defineStore('inbox', {
   state: () => ({
@@ -102,11 +104,11 @@ export const useInboxStore = defineStore('inbox', {
             this.pendingCount = this.total
           }
         } else {
-          this.error = response.data.message || 'No se pudo cargar la bandeja'
+          this.error = apiError(response.data, { defecto: 'inboxError.load' })
         }
       } catch (err) {
         Logger.error('[InboxStore] fetchInbox error:', err)
-        this.error = 'No se pudo cargar la bandeja'
+        this.error = t('inboxError.load')
       } finally {
         this.isLoading = false
       }
@@ -138,7 +140,7 @@ export const useInboxStore = defineStore('inbox', {
           // Si el cliente no lanzó, el código está en el sobre del backend.
           return {
             success: false,
-            message: response.data.message || 'No se pudo enviar la recomendación',
+            message: apiError(response.data, { defecto: 'inboxError.send' }),
             code: response.data.http_code ?? null
           }
         }
@@ -151,7 +153,7 @@ export const useInboxStore = defineStore('inbox', {
         // repo, y acoplar la interfaz a sus cadenas se rompería al reescribir
         // una. El HTTP real ES el del dominio —un duplicado responde 409—, así
         // que basta con no perderlo por el camino.
-        const message = err.response?.data?.message || err.message || 'No se pudo enviar la recomendación'
+        const message = apiError(err, { defecto: 'inboxError.send' })
         const code = err.response?.status ?? err.response?.data?.http_code ?? null
         this.error = message
         return { success: false, message, code }
@@ -180,7 +182,7 @@ export const useInboxStore = defineStore('inbox', {
       const media = recommendation.entity_type
 
       if (!storeMediaKeys.includes(media) || !mediaStores[media]) {
-        this.error = 'Este medio no se puede añadir desde la bandeja'
+        this.error = t('inboxError.unsupportedMedia')
         return { success: false, message: this.error }
       }
 
@@ -192,12 +194,12 @@ export const useInboxStore = defineStore('inbox', {
         const enrich = config.detail?.enrich
 
         if (!enrich) {
-          throw new Error(`El medio ${media} no sabe rehidratar su ficha`)
+          throw new Error(`[InboxStore] El medio "${media}" no declara \`detail.enrich\` en mediaRegistry`)
         }
 
         const result = await enrich(recommendation.entity_id, authStore.apiCall.bind(authStore))
         if (!result?.item) {
-          throw new Error('No se pudo recuperar la ficha del ítem')
+          throw new Error(t('inboxError.noItem'))
         }
 
         const store = mediaStores[media]()
@@ -205,13 +207,13 @@ export const useInboxStore = defineStore('inbox', {
         const added = await store.add(result.item, defaultStatus ? [defaultStatus] : [])
 
         if (!added?.success) {
-          throw new Error(added?.message || 'No se pudo añadir a la biblioteca')
+          throw new Error(added?.message || t('inboxError.add'))
         }
 
         return this._resolve(recommendation, 'added')
       } catch (err) {
         Logger.error('[InboxStore] addToLibrary error:', err)
-        this.error = err.message || 'No se pudo añadir a la biblioteca'
+        this.error = err.message || t('inboxError.add')
         return { success: false, message: this.error }
       } finally {
         this.resolvingId = null
@@ -237,7 +239,7 @@ export const useInboxStore = defineStore('inbox', {
         })
 
         if (response.data.status !== 'success') {
-          throw new Error(response.data.message || 'No se pudo aceptar la invitación')
+          throw new Error(t('inboxError.accept'))
         }
 
         this._forget(invitation.id)
@@ -245,7 +247,7 @@ export const useInboxStore = defineStore('inbox', {
         return { success: true, listId: response.data.data?.listId }
       } catch (err) {
         Logger.error('[InboxStore] acceptCollaboration error:', err)
-        this.error = err.response?.data?.message || err.message || 'No se pudo aceptar la invitación'
+        this.error = err.message || t('inboxError.accept')
         return { success: false, message: this.error }
       } finally {
         this.resolvingId = null
@@ -273,7 +275,7 @@ export const useInboxStore = defineStore('inbox', {
         })
 
         if (response.data.status !== 'success') {
-          throw new Error(response.data.message || 'No se pudo resolver la recomendación')
+          throw new Error(t('inboxError.resolve'))
         }
 
         this._forget(recommendation.id)
@@ -281,7 +283,7 @@ export const useInboxStore = defineStore('inbox', {
         return { success: true }
       } catch (err) {
         Logger.error('[InboxStore] resolve error:', err)
-        this.error = err.message || 'No se pudo resolver la recomendación'
+        this.error = err.message || t('inboxError.resolve')
         return { success: false, message: this.error }
       } finally {
         this.resolvingId = null

@@ -1,5 +1,6 @@
 import { useAuthStore } from '@/store/auth';
 import Logger from '@/utils/logger';
+import { t } from '@/config/i18n';
 
 /**
  * Servicio para procesar archivos de diferentes servicios de importación
@@ -16,7 +17,7 @@ export class FileProcessorService {
       case 'serialized':
         return await this.processSerializedFile(file);
       default:
-        throw new Error(`Servicio no soportado: ${service}`);
+        throw new Error(t('importer.unsupportedService', { servicio: service }));
     }
   }
 
@@ -76,7 +77,7 @@ export class FileProcessorService {
                   const movieData = {
                     // Campos requeridos por nuestro modelo Movie
                     id: imdbID,
-                    title: omdbData.Title || 'Título desconocido',
+                    title: omdbData.Title || t('importer.unknownTitle'),
                     originalTitle: omdbData.Title || null,
                     director: omdbData.Director !== 'N/A' ? omdbData.Director : null,
                     coverUrl: omdbData.Poster !== 'N/A' ? omdbData.Poster : null,
@@ -93,6 +94,9 @@ export class FileProcessorService {
                     // Campos adicionales de Palomitacas
                     palomitacasId: movie.querySelector('id')?.textContent || '',
                     viewedDate: movie.querySelector('fecha_vista')?.textContent || null,
+                    // DATO del formato de Palomitacas, no interfaz: es el valor por
+                    // defecto de su campo `<tipo>` y viaja tal cual al backend.
+                    // Traducirlo corrompería lo importado.
                     tipo: movie.querySelector('tipo')?.textContent || 'película'
                   };
                   
@@ -128,11 +132,11 @@ export class FileProcessorService {
           Logger.debug(`Procesadas ${processedMovies.length} películas de Palomitacas con datos completos de OMDb`);
           resolve(processedMovies);
         } catch (error) {
-          reject(new Error(`Error parsing Palomitacas XML: ${error.message}`));
+          reject(new Error(t('importer.xmlError', { detalle: error.message })));
         }
       };
       
-      reader.onerror = () => reject(new Error('Error reading file'));
+      reader.onerror = () => reject(new Error(t('importer.readError')));
       reader.readAsText(file, 'UTF-8');
     });
   }
@@ -180,17 +184,17 @@ export class FileProcessorService {
           }
           
           if (processedMovies.length === 0) {
-            throw new Error('No se encontraron películas válidas en el archivo CSV');
+            throw new Error(t('importer.noMoviesInCsv'));
           }
           
           resolve(processedMovies);
         } catch (error) {
-          reject(new Error(`Error al procesar archivo de Letterboxd: ${error.message}`));
+          reject(new Error(t('importer.letterboxdError', { detalle: error.message })));
         }
       };
       
       reader.onerror = () => {
-        reject(new Error('Error al leer el archivo'));
+        reject(new Error(t('importer.readError')));
       };
       
       reader.readAsText(file);
@@ -282,17 +286,17 @@ export class FileProcessorService {
           }
 
           if (processedBooks.length === 0) {
-            throw new Error('No se encontraron libros válidos en el archivo CSV');
+            throw new Error(t('importer.noBooksInCsv'));
           }
 
           resolve(processedBooks);
         } catch (error) {
-          reject(new Error(`Error al procesar archivo de Goodreads: ${error.message}`));
+          reject(new Error(t('importer.goodreadsError', { detalle: error.message })));
         }
       };
 
       reader.onerror = () => {
-        reject(new Error('Error al leer el archivo'));
+        reject(new Error(t('importer.readError')));
       };
 
       reader.readAsText(file);
@@ -357,21 +361,21 @@ export class FileProcessorService {
           } else if (jsonData.data && Array.isArray(jsonData.data)) {
             processedData = jsonData.data;
           } else {
-            throw new Error('Formato de archivo serializado no reconocido');
+            throw new Error(t('importer.serializedUnknown'));
           }
           
           if (processedData.length === 0) {
-            throw new Error('No se encontraron elementos para importar');
+            throw new Error(t('importer.serializedEmpty'));
           }
           
           resolve(processedData);
         } catch (error) {
-          reject(new Error(`Error al procesar archivo serializado: ${error.message}`));
+          reject(new Error(t('importer.serializedError', { detalle: error.message })));
         }
       };
       
       reader.onerror = () => {
-        reject(new Error('Error al leer el archivo'));
+        reject(new Error(t('importer.readError')));
       };
       
       reader.readAsText(file);

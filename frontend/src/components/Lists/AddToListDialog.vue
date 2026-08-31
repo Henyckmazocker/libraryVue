@@ -135,12 +135,12 @@ const submit = async () => {
 
   if (!result.success) {
     // El 409 del ítem repetido ya viene traducido por código desde el store.
-    notifications?.showError?.(result.message || 'No se pudo añadir a la lista')
+    notifications?.showError?.(result.message || t('toasts.listAddFailed'))
     return
   }
 
   visible.value = false
-  notifications?.showSuccess?.('Añadido a la lista')
+  notifications?.showSuccess?.(t('toasts.listAdded'))
   // El contador de la tarjeta cambió; se relee para no dejarlo desfasado.
   lists.fetchMyLists()
 }

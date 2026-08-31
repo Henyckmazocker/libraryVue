@@ -1,104 +1,180 @@
+import { t } from '@/config/i18n'
+
 /**
- * ISO 639-1 (2-letter) and ISO 639-2/T (3-letter) language codes
- * with native names and Spanish translations for display
+ * Códigos ISO 639-1 (dos letras) y ISO 639-2/T (tres) con su nombre **nativo**.
+ *
+ * El nombre nativo es un DATO: «Français» se escribe igual en español y en
+ * inglés. Lo que sí cambia es cómo la interfaz llama a ese idioma —«Francés» /
+ * «French»—, y eso vive en el bloque `language:` del catálogo, no aquí. Hasta el
+ * 2026-08-31 este fichero tenía un campo `es:` con esa traducción: era un
+ * catálogo paralelo, y una segunda fuente de la misma verdad.
  */
+/**
+ * Del código que llega al del catálogo: `spa` y `es` son el mismo idioma y
+ * comparten rótulo, así que comparten clave.
+ */
+const CLAVE_DE_CATALOGO = {
+  'ar': 'ar',
+  'ara': 'ar',
+  'ca': 'ca',
+  'cat': 'ca',
+  'chi': 'zh',
+  'cs': 'cs',
+  'cze': 'cs',
+  'da': 'da',
+  'dan': 'da',
+  'de': 'de',
+  'dut': 'nl',
+  'el': 'el',
+  'en': 'en',
+  'eng': 'en',
+  'es': 'es',
+  'fa': 'fa',
+  'fi': 'fi',
+  'fin': 'fi',
+  'fr': 'fr',
+  'fre': 'fr',
+  'ger': 'de',
+  'gre': 'el',
+  'he': 'he',
+  'heb': 'he',
+  'hi': 'hi',
+  'hin': 'hi',
+  'hu': 'hu',
+  'hun': 'hu',
+  'id': 'id',
+  'ind': 'id',
+  'it': 'it',
+  'ita': 'it',
+  'ja': 'ja',
+  'jpn': 'ja',
+  'ko': 'ko',
+  'kor': 'ko',
+  'nl': 'nl',
+  'no': 'no',
+  'nor': 'no',
+  'per': 'fa',
+  'pl': 'pl',
+  'pol': 'pl',
+  'por': 'pt',
+  'pt': 'pt',
+  'ro': 'ro',
+  'ru': 'ru',
+  'rum': 'ro',
+  'rus': 'ru',
+  'spa': 'es',
+  'sv': 'sv',
+  'swe': 'sv',
+  'th': 'th',
+  'tha': 'th',
+  'tr': 'tr',
+  'tur': 'tr',
+  'uk': 'uk',
+  'ukr': 'uk',
+  'vi': 'vi',
+  'vie': 'vi',
+  'zh': 'zh'
+}
+
 export const LANGUAGE_CODES = {
   // Major languages
-  'en': { native: 'English', es: 'Inglés', code3: 'eng' },
-  'eng': { native: 'English', es: 'Inglés', code2: 'en' },
+  'en': { native: 'English', code3: 'eng' },
+  'eng': { native: 'English', code2: 'en' },
   
-  'es': { native: 'Español', es: 'Español', code3: 'spa' },
-  'spa': { native: 'Español', es: 'Español', code2: 'es' },
+  'es': { native: 'Español', code3: 'spa' },
+  'spa': { native: 'Español', code2: 'es' },
   
-  'fr': { native: 'Français', es: 'Francés', code3: 'fre' },
-  'fre': { native: 'Français', es: 'Francés', code2: 'fr' },
+  'fr': { native: 'Français', code3: 'fre' },
+  'fre': { native: 'Français', code2: 'fr' },
   
-  'de': { native: 'Deutsch', es: 'Alemán', code3: 'ger' },
-  'ger': { native: 'Deutsch', es: 'Alemán', code2: 'de' },
+  'de': { native: 'Deutsch', code3: 'ger' },
+  'ger': { native: 'Deutsch', code2: 'de' },
   
-  'it': { native: 'Italiano', es: 'Italiano', code3: 'ita' },
-  'ita': { native: 'Italiano', es: 'Italiano', code2: 'it' },
+  'it': { native: 'Italiano', code3: 'ita' },
+  'ita': { native: 'Italiano', code2: 'it' },
   
-  'pt': { native: 'Português', es: 'Portugués', code3: 'por' },
-  'por': { native: 'Português', es: 'Portugués', code2: 'pt' },
+  'pt': { native: 'Português', code3: 'por' },
+  'por': { native: 'Português', code2: 'pt' },
   
-  'ru': { native: 'Русский', es: 'Ruso', code3: 'rus' },
-  'rus': { native: 'Русский', es: 'Ruso', code2: 'ru' },
+  'ru': { native: 'Русский', code3: 'rus' },
+  'rus': { native: 'Русский', code2: 'ru' },
   
-  'ja': { native: '日本語', es: 'Japonés', code3: 'jpn' },
-  'jpn': { native: '日本語', es: 'Japonés', code2: 'ja' },
+  'ja': { native: '日本語', code3: 'jpn' },
+  'jpn': { native: '日本語', code2: 'ja' },
   
-  'zh': { native: '中文', es: 'Chino', code3: 'chi' },
-  'chi': { native: '中文', es: 'Chino', code2: 'zh' },
+  'zh': { native: '中文', code3: 'chi' },
+  'chi': { native: '中文', code2: 'zh' },
   
-  'ar': { native: 'العربية', es: 'Árabe', code3: 'ara' },
-  'ara': { native: 'العربية', es: 'Árabe', code2: 'ar' },
+  'ar': { native: 'العربية', code3: 'ara' },
+  'ara': { native: 'العربية', code2: 'ar' },
   
-  'hi': { native: 'हिन्दी', es: 'Hindi', code3: 'hin' },
-  'hin': { native: 'हिन्दी', es: 'Hindi', code2: 'hi' },
+  'hi': { native: 'हिन्दी', code3: 'hin' },
+  'hin': { native: 'हिन्दी', code2: 'hi' },
   
-  'ko': { native: '한국어', es: 'Coreano', code3: 'kor' },
-  'kor': { native: '한국어', es: 'Coreano', code2: 'ko' },
+  'ko': { native: '한국어', code3: 'kor' },
+  'kor': { native: '한국어', code2: 'ko' },
   
-  'nl': { native: 'Nederlands', es: 'Neerlandés', code3: 'dut' },
-  'dut': { native: 'Nederlands', es: 'Neerlandés', code2: 'nl' },
+  'nl': { native: 'Nederlands', code3: 'dut' },
+  'dut': { native: 'Nederlands', code2: 'nl' },
   
-  'pl': { native: 'Polski', es: 'Polaco', code3: 'pol' },
-  'pol': { native: 'Polski', es: 'Polaco', code2: 'pl' },
+  'pl': { native: 'Polski', code3: 'pol' },
+  'pol': { native: 'Polski', code2: 'pl' },
   
-  'tr': { native: 'Türkçe', es: 'Turco', code3: 'tur' },
-  'tur': { native: 'Türkçe', es: 'Turco', code2: 'tr' },
+  'tr': { native: 'Türkçe', code3: 'tur' },
+  'tur': { native: 'Türkçe', code2: 'tr' },
   
-  'sv': { native: 'Svenska', es: 'Sueco', code3: 'swe' },
-  'swe': { native: 'Svenska', es: 'Sueco', code2: 'sv' },
+  'sv': { native: 'Svenska', code3: 'swe' },
+  'swe': { native: 'Svenska', code2: 'sv' },
   
-  'no': { native: 'Norsk', es: 'Noruego', code3: 'nor' },
-  'nor': { native: 'Norsk', es: 'Noruego', code2: 'no' },
+  'no': { native: 'Norsk', code3: 'nor' },
+  'nor': { native: 'Norsk', code2: 'no' },
   
-  'da': { native: 'Dansk', es: 'Danés', code3: 'dan' },
-  'dan': { native: 'Dansk', es: 'Danés', code2: 'da' },
+  'da': { native: 'Dansk', code3: 'dan' },
+  'dan': { native: 'Dansk', code2: 'da' },
   
-  'fi': { native: 'Suomi', es: 'Finlandés', code3: 'fin' },
-  'fin': { native: 'Suomi', es: 'Finlandés', code2: 'fi' },
+  'fi': { native: 'Suomi', code3: 'fin' },
+  'fin': { native: 'Suomi', code2: 'fi' },
   
-  'el': { native: 'Ελληνικά', es: 'Griego', code3: 'gre' },
-  'gre': { native: 'Ελληνικά', es: 'Griego', code2: 'el' },
+  'el': { native: 'Ελληνικά', code3: 'gre' },
+  'gre': { native: 'Ελληνικά', code2: 'el' },
   
-  'cs': { native: 'Čeština', es: 'Checo', code3: 'cze' },
-  'cze': { native: 'Čeština', es: 'Checo', code2: 'cs' },
+  'cs': { native: 'Čeština', code3: 'cze' },
+  'cze': { native: 'Čeština', code2: 'cs' },
   
-  'ro': { native: 'Română', es: 'Rumano', code3: 'rum' },
-  'rum': { native: 'Română', es: 'Rumano', code2: 'ro' },
+  'ro': { native: 'Română', code3: 'rum' },
+  'rum': { native: 'Română', code2: 'ro' },
   
-  'hu': { native: 'Magyar', es: 'Húngaro', code3: 'hun' },
-  'hun': { native: 'Magyar', es: 'Húngaro', code2: 'hu' },
+  'hu': { native: 'Magyar', code3: 'hun' },
+  'hun': { native: 'Magyar', code2: 'hu' },
   
-  'th': { native: 'ไทย', es: 'Tailandés', code3: 'tha' },
-  'tha': { native: 'ไทย', es: 'Tailandés', code2: 'th' },
+  'th': { native: 'ไทย', code3: 'tha' },
+  'tha': { native: 'ไทย', code2: 'th' },
   
-  'vi': { native: 'Tiếng Việt', es: 'Vietnamita', code3: 'vie' },
-  'vie': { native: 'Tiếng Việt', es: 'Vietnamita', code2: 'vi' },
+  'vi': { native: 'Tiếng Việt', code3: 'vie' },
+  'vie': { native: 'Tiếng Việt', code2: 'vi' },
   
-  'id': { native: 'Bahasa Indonesia', es: 'Indonesio', code3: 'ind' },
-  'ind': { native: 'Bahasa Indonesia', es: 'Indonesio', code2: 'id' },
+  'id': { native: 'Bahasa Indonesia', code3: 'ind' },
+  'ind': { native: 'Bahasa Indonesia', code2: 'id' },
   
-  'uk': { native: 'Українська', es: 'Ucraniano', code3: 'ukr' },
-  'ukr': { native: 'Українська', es: 'Ucraniano', code2: 'uk' },
+  'uk': { native: 'Українська', code3: 'ukr' },
+  'ukr': { native: 'Українська', code2: 'uk' },
   
-  'ca': { native: 'Català', es: 'Catalán', code3: 'cat' },
-  'cat': { native: 'Català', es: 'Catalán', code2: 'ca' },
+  'ca': { native: 'Català', code3: 'cat' },
+  'cat': { native: 'Català', code2: 'ca' },
   
-  'he': { native: 'עברית', es: 'Hebreo', code3: 'heb' },
-  'heb': { native: 'עברית', es: 'Hebreo', code2: 'he' },
+  'he': { native: 'עברית', code3: 'heb' },
+  'heb': { native: 'עברית', code2: 'he' },
   
-  'fa': { native: 'فارسی', es: 'Persa', code3: 'per' },
-  'per': { native: 'فارسی', es: 'Persa', code2: 'fa' }
+  'fa': { native: 'فارسی', code3: 'per' },
+  'per': { native: 'فارسی', code2: 'fa' }
 };
 
 /**
  * Get language display name
  * @param {string|object} code - ISO 639-1 or 639-2 code, or object with 'key' property, or OpenLibrary path
- * @param {string} displayLang - Language for display ('native', 'es')
+ * @param {string} displayLang - `'native'` para el nombre del propio idioma, o
+ *   `'ui'` para cómo lo llama la interfaz. Antes el segundo valor era un código
+ *   de idioma (`'es'`); con catálogo eso ya no es un parámetro, es el activo.
  * @returns {string} Display name or uppercase code if not found
  */
 export function getLanguageName(code, displayLang = 'native') {
@@ -123,8 +199,16 @@ export function getLanguageName(code, displayLang = 'native') {
   if (!langData) {
     return normalizedCode.toUpperCase();
   }
-  
-  return langData[displayLang] || langData.native;
+
+  if (displayLang === 'ui') {
+    // Cae al nombre nativo si el catálogo no conoce ese idioma, igual que
+    // `statusLabel` cae al slug: son 60 códigos y el catálogo cubre 30.
+    const clave = `language.${CLAVE_DE_CATALOGO[normalizedCode] ?? normalizedCode}`
+    const traducido = t(clave)
+    return traducido === clave ? langData.native : traducido
+  }
+
+  return langData.native;
 }
 
 /**

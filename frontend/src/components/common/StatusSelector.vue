@@ -94,6 +94,9 @@ import { ref, computed, defineProps, defineEmits, watch, onMounted } from 'vue';
 import MultiSelect from 'primevue/multiselect';
 import Dropdown from 'primevue/dropdown';
 import { useI18n } from '@/composables/useI18n';
+// `t` del módulo y no del composable: el valor por defecto de una prop se iza
+// fuera de `setup()` y no puede leer una variable local.
+import { t } from '@/config/i18n';
 import Logger from '@/utils/logger';
 
 // Props
@@ -121,7 +124,7 @@ const props = defineProps({
   },
   placeholder: {
     type: String,
-    default: 'Selecciona estados'
+    default: () => t('statusHint.placeholder')
   },
   showBadges: {
     type: Boolean,
@@ -182,7 +185,7 @@ const onStatusChange = () => {
   onStatusesChange();
 };
 
-const { t, statusLabel } = useI18n();
+const { statusLabel } = useI18n();
 
 /**
  * El slug de una opción. Cuatro de los cinco medios devuelven cadenas planas y
@@ -241,10 +244,10 @@ const getSessionIcon = (status) => {
 
 const getSessionTooltip = (status) => {
   const tooltips = {
-    'reading': 'Iniciará una sesión de lectura automáticamente',
-    'read': 'Completará la sesión activa automáticamente',
-    'paused': 'Pausará la sesión actual automáticamente',
-    'abandoned': 'Cerrará la sesión activa automáticamente'
+    'reading': t('statusHint.reading'),
+    'read': t('statusHint.read'),
+    'paused': t('statusHint.paused'),
+    'abandoned': t('statusHint.abandoned')
   };
   return tooltips[status] || '';
 };

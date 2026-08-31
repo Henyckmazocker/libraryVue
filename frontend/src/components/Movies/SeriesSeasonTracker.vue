@@ -258,8 +258,8 @@ function seasonIcon(n) {
 
 function seasonLabel(n) {
   const d = getSeasonData(n);
-  if (!d) return 'Sin ver';
-  return { viewed: 'Vista', partial: 'Parcial', skipped: 'Saltada' }[d.status] ?? 'Sin ver';
+  if (!d) return t('misc.unwatched');
+  return { viewed: t('misc.seasonViewed'), partial: t('misc.seasonPartial'), skipped: t('misc.seasonSkipped') }[d.status] ?? t('misc.unwatched');
 }
 
 // ── Interacciones ─────────────────────────────────────────

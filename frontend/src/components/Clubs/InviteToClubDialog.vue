@@ -156,7 +156,7 @@ const submit = async () => {
   }
 
   visible.value = false
-  notifications?.showSuccess?.('Invitación enviada')
+  notifications?.showSuccess?.(t('toasts.inviteSent'))
   emit('invited')
 }
 </script>

@@ -83,11 +83,11 @@ const searchVideos = async (query) => {
         cached_at: response.data.data?.cached_at ?? null
       };
     } else {
-      throw new Error(response.data.message || 'Error searching videos');
+      throw new Error(t('toasts.videoSearchFailed'));
     }
   } catch (error) {
     Logger.error('Error searching videos via YouTube:', error);
-    throw new Error('No se pudo buscar en YouTube. Verifica la configuración.');
+    throw new Error(t('toasts.youtubeFailed'));
   }
 };
 

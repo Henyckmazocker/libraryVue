@@ -52,9 +52,9 @@ import { defineProps, defineEmits } from 'vue';
 import EmptyState from '@/components/common/EmptyState.vue'
 import HorizontalCarousel from '@/components/shared/HorizontalCarousel.vue';
 import MediaSkeleton from '@/components/shared/MediaSkeleton.vue';
-import { useI18n } from '@/composables/useI18n';
-
-const { t } = useI18n();
+// `t` del módulo y no de `useI18n()`: los valores por defecto de `defineProps`
+// se izan fuera de `setup()` y no pueden leer una variable local.
+import { t } from '@/config/i18n';
 
 const props = defineProps({
   // Datos
@@ -89,7 +89,7 @@ const props = defineProps({
   // Personalización
   title: {
     type: String,
-    default: 'Tendencias Locales'
+    default: () => t('misc.localTrends')
   },
   
   subtitle: {

@@ -4,6 +4,7 @@ import { useGames } from './useGames'
 import { useAlbums } from './useAlbums'
 import { useVideos } from './useVideos'
 import Logger from '@/utils/logger'
+import { t } from '@/config/i18n';
 
 /**
  * Edición unificada de los cinco medios.
@@ -38,7 +39,7 @@ export function useItemEdit() {
       } else if (itemType === 'video') {
         result = await videosComposable.editUserVideo(id, data.userId || data.user_id, data, tags, notes)
       } else {
-        throw new Error(`Tipo de item no soportado: ${itemType}`)
+        throw new Error(`[useItemEdit] Tipo de item no soportado: ${itemType}`)
       }
       
       return result
@@ -46,7 +47,7 @@ export function useItemEdit() {
       Logger.error(`[useItemEdit] Error editando ${itemType}:`, error)
       return { 
         success: false, 
-        message: error.message || `Error al editar ${itemType}` 
+        message: error.message || t('editError.failed', { que: itemType })
       }
     }
   }

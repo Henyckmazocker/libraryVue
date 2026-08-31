@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { useAuthStore } from '@/store/auth'
 import { getMediaConfig } from '@/config/mediaRegistry'
 import Logger from '@/utils/logger'
+import { t } from '@/config/i18n';
 
 /**
  * Composable único de notas para los cinco medios.
@@ -42,7 +43,7 @@ export function useMediaNotes (media) {
         return onSuccess(response.data)
       }
 
-      error.value = response.data?.message || `Failed to ${what}`
+      error.value = t('storeError.fetch', { que: what })
       Logger.error(`Failed to ${what}`, { media, error: error.value })
       return { success: false, error: error.value }
     } catch (err) {
@@ -65,7 +66,7 @@ export function useMediaNotes (media) {
     if (noteType) payload.noteType = noteType
     if (config.notes.hasPageNumber && pageNumber) payload.pageNumber = pageNumber
 
-    return call(actions.list, payload, 'load notes', (data) => {
+    return call(actions.list, payload, '[useMediaNotes] load notes', (data) => {
       notes.value = data.data || []
       Logger.info('Notes loaded', { media, count: notes.value.length })
       return { success: true, data: notes.value }
@@ -81,7 +82,7 @@ export function useMediaNotes (media) {
     if (!actions.get) {
       throw new Error(`[useMediaNotes] "${media}" no tiene acción para leer una nota suelta`)
     }
-    return call(actions.get, { noteId }, 'load note', (data) => ({ success: true, data: data.data }))
+    return call(actions.get, { noteId }, '[useMediaNotes] load note', (data) => ({ success: true, data: data.data }))
   }
 
   /**
@@ -95,7 +96,7 @@ export function useMediaNotes (media) {
   async function addNote (itemId, noteText, noteType = 'note', isPrivate = true, extra = {}) {
     const payload = { [idKey]: itemId, noteText, noteType, isPrivate, ...extra }
 
-    return call(actions.add, payload, 'add note', async (data) => {
+    return call(actions.add, payload, '[useMediaNotes] add note', async (data) => {
       Logger.info('Note added', { media, noteType })
       await getNotes(itemId)
       return { success: true, data: data.data }
@@ -114,7 +115,7 @@ export function useMediaNotes (media) {
   async function updateNote (noteId, itemId, noteText, noteType, isPrivate, extra = {}) {
     const payload = { noteId, noteText, noteType, isPrivate, ...extra }
 
-    return call(actions.update, payload, 'update note', async () => {
+    return call(actions.update, payload, '[useMediaNotes] update note', async () => {
       Logger.info('Note updated', { media, noteId })
       await getNotes(itemId)
       return { success: true }
@@ -127,7 +128,7 @@ export function useMediaNotes (media) {
    * @param {number|string} itemId
    */
   async function deleteNote (noteId, itemId) {
-    return call(actions.delete, { noteId }, 'delete note', async () => {
+    return call(actions.delete, { noteId }, '[useMediaNotes] delete note', async () => {
       Logger.info('Note deleted', { media, noteId })
       await getNotes(itemId)
       return { success: true }

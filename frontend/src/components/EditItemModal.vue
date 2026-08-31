@@ -313,6 +313,35 @@ import { useI18n } from '@/composables/useI18n';
 
 const { t } = useI18n();
 
+/**
+ * El nombre del medio en las dos formas que piden los avisos: «Libro» para el
+ * de éxito y «el libro» para el de fallo. Antes eran dos ternarios de cinco
+ * ramas repetidos tres veces.
+ */
+const nombreDelMedio = (forma) => {
+  // Claves literales y no compuestas: una clave construida con plantilla se
+  // escapa de la barrera, que solo ve `t('literal')`, y habría que declarar
+  // `editItem.` como prefijo dinámico — perdiendo de paso la vigilancia sobre el
+  // resto del bloque.
+  const nombres = {
+    book: () => t('editItem.nameBook'),
+    movie: () => t('editItem.nameMovie'),
+    game: () => t('editItem.nameGame'),
+    album: () => t('editItem.nameAlbum'),
+    video: () => t('editItem.nameVideo')
+  }
+  const articulos = {
+    book: () => t('editItem.theBook'),
+    movie: () => t('editItem.theMovie'),
+    game: () => t('editItem.theGame'),
+    album: () => t('editItem.theAlbum'),
+    video: () => t('editItem.theVideo')
+  }
+  const mapa = forma === 'name' ? nombres : articulos
+  return (mapa[props.itemType] ?? mapa.game)()
+}
+
+
 const props = defineProps({
   item: {
     type: Object,
@@ -497,13 +526,13 @@ const handleAddTag = async (tagName) => {
       localTags.value.push(result.data.id)
     } else {
       if (notifications) {
-        notifications.showError(result?.message || 'Error al crear el tag')
+        notifications.showError(result?.message || t('editItem.tagFailed'))
       }
     }
   } catch (error) {
     Logger.error('Error creating tag:', error)
     if (notifications) {
-      notifications.showError('Error al crear el tag')
+      notifications.showError(t('editItem.tagFailed'))
     }
   }
 }
@@ -619,7 +648,7 @@ const handleSave = async () => {
           return
         }
         if (!cambio.success) {
-          throw new Error(cambio.message || 'Error al actualizar los estados')
+          throw new Error(t('editItem.statusesFailed'))
         }
       }
 
@@ -646,9 +675,8 @@ const handleSave = async () => {
       }
 
       // Show success message
-      const itemTypeName = props.itemType === 'book' ? 'Libro' : props.itemType === 'movie' ? 'Película' : props.itemType === 'album' ? 'Álbum' : props.itemType === 'video' ? 'Vídeo' : 'Juego'
       if (notifications) {
-        notifications.showSuccess(`${itemTypeName} actualizado correctamente`)
+        notifications.showSuccess(t('editItem.saved', { medio: nombreDelMedio('name') }))
       }
       
       // Emit updated item
@@ -702,16 +730,14 @@ const handleSave = async () => {
       emit('close')
     } else {
       // Show error message
-      const itemTypeName = props.itemType === 'book' ? 'el libro' : props.itemType === 'movie' ? 'la película' : props.itemType === 'album' ? 'el álbum' : props.itemType === 'video' ? 'el vídeo' : 'el juego'
       if (notifications) {
-        notifications.showError(result.message || `Error al guardar ${itemTypeName}`)
+        notifications.showError(result.message || t('editItem.saveFailed', { medio: nombreDelMedio('the') }))
       }
     }
   } catch (error) {
     Logger.error('Error saving item:', error)
-    const itemTypeName = props.itemType === 'book' ? 'el libro' : props.itemType === 'movie' ? 'la película' : props.itemType === 'album' ? 'el álbum' : props.itemType === 'video' ? 'el vídeo' : 'el juego'
     if (notifications) {
-      notifications.showError(`Error al guardar ${itemTypeName}`)
+      notifications.showError(t('editItem.saveFailed', { medio: nombreDelMedio('the') }))
     }
   } finally {
     isSaving.value = false

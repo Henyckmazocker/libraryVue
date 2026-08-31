@@ -202,6 +202,7 @@ import Logger from '@/utils/logger'
 import Accordion from 'primevue/accordion'
 import AccordionTab from 'primevue/accordiontab'
 import { useI18n } from '@/composables/useI18n';
+import { intlLocale } from '@/config/i18n';
 
 const { t } = useI18n();
 
@@ -372,7 +373,7 @@ const calculateStatistics = () => {
     }, 0)
 
     const avgDays = Math.round(totalDays / completedSessions.length)
-    averageDuration = `${avgDays} día${avgDays !== 1 ? 's' : ''}`
+    averageDuration = t('misc.days', { n: avgDays })
   }
 
   // Calculate total pages read using the actual final pages from timeline events
@@ -397,11 +398,11 @@ const calculateDurationInDays = (startDate, endDate) => {
 const calculateDuration = (startDate, endDate) => {
   if (!endDate) {
     const days = calculateDurationInDays(startDate, new Date())
-    return `${days} día${days !== 1 ? 's' : ''} (en curso)`
+    return t('misc.daysOngoing', { n: days })
   }
   
   const days = calculateDurationInDays(startDate, endDate)
-  return `${days} día${days !== 1 ? 's' : ''}`
+  return t('misc.days', { n: days })
 }
 
 const calculateProgressPercentage = (finalPage) => {
@@ -422,7 +423,7 @@ const calculateProgressPercentage = (finalPage) => {
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A'
   const date = new Date(dateString)
-  return date.toLocaleDateString('es-ES', {
+  return date.toLocaleDateString(intlLocale(), {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -473,7 +474,7 @@ const getProgressTypeBadgeClass = (progressType) => {
 const getStatusLabel = (status) => {
   const labels = {
     'completed': 'Completada',
-    'active': 'En curso',
+    'active': t('misc.inProgress'),
     'paused': 'Pausada',
     'abandoned': 'Abandonada'
   }

@@ -8,6 +8,7 @@
  */
 import { useAuthStore } from './auth'
 import Logger from '@/utils/logger'
+import { t } from '@/config/i18n'
 
 let _pendingRequest = null
 
@@ -40,7 +41,7 @@ async function _doFetch() {
   const response = await authStore.authenticatedApiCall('get_library_items')
 
   if (response.data.status !== 'success') {
-    throw new Error(response.data.message || 'Failed to fetch library items')
+    throw new Error(t('storeError.library'))
   }
 
   const data = response.data.data || {}

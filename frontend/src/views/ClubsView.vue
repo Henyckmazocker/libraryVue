@@ -107,12 +107,12 @@ const handleCreate = async (form) => {
   const result = await clubsStore.createClub(form)
 
   if (!result.success) {
-    notifications?.showError?.(result.message || 'No se pudo crear el club')
+    notifications?.showError?.(result.message || t('toasts.clubCreateFailed'))
     return
   }
 
   showCreate.value = false
-  notifications?.showSuccess?.('Club creado')
+  notifications?.showSuccess?.(t('toasts.clubCreated'))
   // Se entra directo al club recién creado: lo siguiente que quiere el usuario
   // es invitar a alguien y elegir el primer ítem.
   router.push({ name: 'ClubDetail', params: { clubId: String(result.clubId) } })

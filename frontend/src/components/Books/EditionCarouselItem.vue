@@ -81,7 +81,7 @@
         class="edition-language"
       >
         <i class="fas fa-globe" />
-        <span>{{ getLanguageName(edition.languages[0], 'es') }}</span>
+        <span>{{ getLanguageName(edition.languages[0], 'ui') }}</span>
       </div>
 
       <div

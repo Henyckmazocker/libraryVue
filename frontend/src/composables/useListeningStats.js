@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { useAuthStore } from '@/store/auth'
 import { storeToRefs } from 'pinia'
+import { t } from '@/config/i18n';
 
 /**
  * Composable for fetching Last.fm listening statistics.
@@ -38,7 +39,7 @@ export function useListeningStats() {
   async function fetchStats({ statsType = 'user_info', period = 'overall', limit = 20, artist = '', album = '' } = {}) {
     // album_info works without a lastfm_username (shows global stats without personal playcount)
     if (statsType !== 'album_info' && !hasLastFmUsername.value) {
-      error.value = 'No tienes un usuario de Last.fm configurado. Ve a tu perfil para añadirlo.'
+      error.value = t('listening.noUser')
       return
     }
 
@@ -60,10 +61,10 @@ export function useListeningStats() {
         stale.value = response.data.data?.stale === true
         cachedAt.value = response.data.data?.cached_at ?? null
       } else {
-        error.value = response.data.message || 'Error al obtener estadísticas de Last.fm'
+        error.value = t('listening.failed')
       }
     } catch (err) {
-      error.value = err?.response?.data?.message || err.message || 'Error de conexión'
+      error.value = t('listening.offline')
     } finally {
       isLoading.value = false
     }

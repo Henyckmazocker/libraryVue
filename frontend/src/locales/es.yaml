@@ -135,6 +135,22 @@ media:
     statusLabel: Estado
     emptyText: No se encontró información del libro
     notesTitle: Notas de Edición
+    labelPlural: "Libros"
+    unit: "pág."
+    back: "Volver a búsqueda"
+    loading: "Cargando información del libro..."
+    notFound: "No se encontró información del libro."
+    error: "No se pudo obtener información del libro. Verifica el ISBN."
+    libraryNew: "Añadir a Mi Biblioteca"
+    libraryExisting: "Editar en Mi Biblioteca"
+    saved: "Libro actualizado correctamente"
+    deleteConfirm: "¿Eliminar este libro de tu biblioteca?"
+    deleted: "Libro eliminado de tu biblioteca"
+    deleteError: "Error al eliminar el libro"
+    deleteWarning: "También se eliminarán todas las sesiones de lectura asociadas"
+    notesHint: "Agrega notas para recordar tus pensamientos mientras lees"
+    titleUnavailable: Título no disponible
+    authorUnavailable: Autor no disponible
   movie:
     fields:
       seen: Vista
@@ -148,6 +164,19 @@ media:
     statusLabel: Estado
     emptyText: No se encontró información de la película
     notesTitle: Notas de la Película
+    labelPlural: "Películas"
+    back: "Volver a búsqueda"
+    loading: "Cargando información de la película..."
+    notFound: "No se encontró información de la película."
+    error: "No se pudo obtener información de la película. Verifica el IMDb ID."
+    libraryNew: "Añadir a Mi Biblioteca"
+    libraryExisting: "Editar en Mi Biblioteca"
+    saved: "Película actualizada correctamente"
+    deleteConfirm: "¿Eliminar esta película de tu biblioteca?"
+    deleted: "Película eliminada de tu biblioteca"
+    deleteError: "Error al eliminar la película"
+    notesHint: "Agrega notas para recordar tus opiniones sobre esta película"
+    unknownDirector: Director desconocido
   game:
     fields:
       completed: Completado
@@ -169,6 +198,17 @@ media:
     statusLabel: Estado
     emptyText: No se encontró información del juego
     notesTitle: Notas del Juego
+    labelPlural: "Juegos"
+    back: "Volver"
+    loading: "Cargando información del juego..."
+    notFound: "No se encontró información del juego."
+    error: "No se pudo obtener información del juego. Verifica el ID."
+    libraryNew: "Añadir a tu Biblioteca"
+    libraryExisting: "Detalles en tu Biblioteca"
+    deleted: "Juego eliminado de tu biblioteca"
+    deleteError: "Error al eliminar el juego"
+    notesHint: "Agrega notas para recordar tus experiencias con este juego"
+    unknownDeveloper: Desarrollador desconocido
   album:
     fields:
       listened: Escuchado
@@ -189,6 +229,18 @@ media:
     statusLabel: Estado
     emptyText: No se encontró información del álbum
     notesTitle: Notas del Álbum
+    labelPlural: "Álbumes"
+    back: "Volver"
+    loading: "Cargando información del álbum..."
+    notFound: "No se encontró información del álbum."
+    error: "No se pudo obtener información del álbum."
+    libraryNew: "Añadir a tu Biblioteca"
+    libraryExisting: "Detalles en tu Biblioteca"
+    deleteConfirm: "¿Eliminar este álbum de tu biblioteca?"
+    deleted: "Álbum eliminado de tu biblioteca"
+    deleteError: "Error al eliminar el álbum"
+    notesHint: "Agrega notas para recordar tus opiniones sobre este álbum"
+    unknownArtist: Artista desconocido
   video:
     fields:
       seen: Visto
@@ -203,6 +255,16 @@ media:
     statusLabel: Estado
     emptyText: No se encontró información del vídeo
     notesTitle: Notas del Vídeo
+    labelPlural: "Vídeos"
+    back: "Volver"
+    loading: "Cargando información del vídeo..."
+    notFound: "No se encontró el vídeo. Vuelve al buscador y selecciónalo de nuevo."
+    error: "No se pudo obtener información del vídeo."
+    libraryNew: "Añadir a tu Biblioteca"
+    libraryExisting: "Detalles en tu Biblioteca"
+    deleteConfirm: "¿Seguro que quieres eliminar este vídeo de tu biblioteca?"
+    notesHint: "Agrega notas para recordar tus opiniones sobre este vídeo"
+    unknownChannel: Canal desconocido
   series:
     fields:
       season: Temporada
@@ -210,6 +272,18 @@ media:
     statusLabel: Estado
     emptyText: No se encontró información de la serie
 
+    labelPlural: "Series"
+    unit: "T"
+    back: "Volver"
+    loading: "Cargando información de la serie..."
+    notFound: "No se encontró información de la serie."
+    error: "No se pudo obtener información de la serie."
+    libraryNew: "Añadir a Mi Biblioteca"
+    libraryExisting: "Editar en Mi Biblioteca"
+    saved: "Serie actualizada correctamente"
+    deleteConfirm: "¿Eliminar esta serie de tu biblioteca?"
+    deleted: "Serie eliminada de tu biblioteca"
+    deleteError: "Error al eliminar la serie"
 listening:
   needsUser:
     before: "Configura tu usuario de Last.fm en tu "
@@ -241,6 +315,10 @@ listening:
     artists: Artistas
     albums: Álbumes
     tracks: Canciones
+  noUser: No tienes un usuario de Last.fm configurado. Ve a tu perfil para añadirlo.
+  failed: No se pudieron obtener las estadísticas de Last.fm
+  offline: Error de conexión
+  soon: Análisis en desarrollo
 
 edit:
   totalPages: Total de páginas
@@ -354,7 +432,8 @@ series:
 brand:
   imdb: IMDb
   lastfm: Last.fm
-
+  tmdb: The Movie Database
+  tmdbNotice: Este producto usa la API de TMDB, pero no está avalado ni certificado por TMDB.
 home:
   helpTitle: Ayuda y documentación
   helpAria: Abrir la ayuda y documentación
@@ -565,6 +644,12 @@ lists:
   cannotOpen: No se pudo abrir esta lista
   leave: Salir de la lista
   removePerson: Quitar a {name}
+  error403: No tienes permiso sobre esta lista
+  error404: Esta lista ya no existe
+  error409: Ese ítem ya está en la lista
+  loadError: No se pudieron cargar tus listas
+  inviteNotFriends: Solo puedes invitar a tus amigos
+  inviteAlready: Ya le has invitado, o ya colabora en esta lista
 
 reading:
   activeSession: "Sesión activa #{n}"
@@ -673,6 +758,12 @@ clubs:
   memberCount:
     one: "{n} miembro"
     other: "{n} miembros"
+  error400: "No se pudo completar: revisa la pantalla, puede estar desfasada"
+  error403: No tienes permiso sobre este club
+  error404: Este club ya no existe
+  error409: La ronda ha cambiado de fase; recarga la pantalla
+  loadError: No se pudieron cargar tus clubs
+  inviteNotFriends: Solo puedes invitar a tus amigos, y solo una vez
 
 clubProgress:
   notStarted: Sin empezar
@@ -716,6 +807,47 @@ importer:
   service: "Selecciona el servicio:"
   chooseService: -- Selecciona un servicio --
   run: Importar
+  # Los cuatro formatos que se pueden importar. `name` es la marca y no se
+  # traduce; la descripción sí.
+  palomitacas: Importar desde archivo XML de Palomitacas
+  letterboxd: Importar desde archivo CSV de Letterboxd
+  goodreads: Importar desde archivo CSV de Goodreads
+  serializedName: Datos Serializados
+  serialized: Importar desde archivo JSON serializado
+  wrongType: "Tipo de archivo no compatible. Se esperaba: {tipos}"
+  noServiceOrFile: Elige un servicio y un archivo antes de importar
+  processing: Procesando archivo...
+  processingOmdb: Procesando archivo y obteniendo datos de OMDb...
+  noValidData: No se pudieron extraer datos válidos del archivo
+  sending: Enviando datos al servidor...
+  sendingCount: "Enviando {n} {tipo} al servidor..."
+  done: Importación completada exitosamente
+  serverError: Error en el servidor durante la importación
+  unknownError: Error desconocido durante la importación
+  cancelled: Importación cancelada por el usuario
+  importFailed: Error al importar los datos.
+  processFailed: "Error procesando archivo: {detalle}"
+  imported: "{n} {tipo} importados correctamente de {servicio}"
+  skipped: " ({n} omitidos por duplicado)"
+  pickService: Por favor selecciona un servicio.
+  pickFile: Por favor selecciona un archivo.
+  extensions: "Archivo debe tener una de estas extensiones: {lista}"
+  tooBig: "El archivo es demasiado grande. Tamaño máximo: {n}MB"
+  # Lo que se importa, para las frases de arriba.
+  itemsMovies: películas
+  itemsBooks: libros
+  itemsGeneric: elementos
+  unsupportedService: "Servicio no soportado: {servicio}"
+  unknownTitle: Título desconocido
+  xmlError: "Error al leer el XML de Palomitacas: {detalle}"
+  readError: Error al leer el archivo
+  noMoviesInCsv: No se encontraron películas válidas en el archivo CSV
+  letterboxdError: "Error al procesar archivo de Letterboxd: {detalle}"
+  noBooksInCsv: No se encontraron libros válidos en el archivo CSV
+  goodreadsError: "Error al procesar archivo de Goodreads: {detalle}"
+  serializedUnknown: Formato de archivo serializado no reconocido
+  serializedEmpty: No se encontraron elementos para importar
+  serializedError: "Error al procesar archivo serializado: {detalle}"
 
 progress:
   reading: Progreso de lectura
@@ -891,3 +1023,434 @@ inboxBadge:
   pending:
     one: "Recomendaciones: {n} pendiente"
     other: "Recomendaciones: {n} pendientes"
+  short:
+    one: "Bandeja: {n} pendiente"
+    other: "Bandeja: {n} pendientes"
+  empty: Bandeja
+
+# Los diálogos de confirmación. Dos capas: los valores por defecto de
+# `showConfirmation()` y lo que pone cada método de conveniencia encima.
+confirm:
+  title: Confirmar acción
+  message: ¿Estás seguro de que deseas continuar?
+  confirm: Confirmar
+  processing: Procesando...
+  textLabel: "Para confirmar, escribe el texto exacto:"
+  textPlaceholder: Escribe aquí...
+  irreversible: Esta acción no se puede deshacer
+  deleteFromLibrary: Eliminar de tu biblioteca
+  sessionAbandoned: La sesión se marcará como abandonada
+  sessionLabel: "Sesión #{n}"
+  delete:
+    title: Eliminar elemento
+    message: '¿Estás seguro de que deseas eliminar <strong>"{name}"</strong>?<br>{extra}'
+    confirm: Eliminar
+    word: ELIMINAR
+    placeholder: Escribe "{word}" para confirmar
+    hint: Esta acción es irreversible
+  reset:
+    title: Reiniciar progreso
+    message: '¿Deseas reiniciar el progreso de <strong>"{name}"</strong>?'
+    confirm: Reiniciar
+    lose: Se perderá todo el progreso actual
+    keepHistory: Se mantendrá el historial de sesiones
+  session:
+    newTitle: Nueva sesión de lectura
+    reReadTitle: Nueva re-lectura
+    newMessage: '¿Deseas iniciar una nueva sesión de lectura para <strong>"{title}"</strong>?'
+    reReadMessage: '¿Deseas iniciar una re-lectura para <strong>"{title}"</strong>?'
+    confirm: Iniciar sesión
+    fromPage: Comenzarás desde la página {n}
+    willCreate: Se creará un nuevo registro de sesión
+    keepPrevious: Tu historial de lecturas anteriores se mantendrá
+    currentPage: "Página actual: {n}"
+    canGoBack: Podrás retroceder en páginas sin perder el historial
+  complete:
+    title: Completar libro
+    message: '¿Has terminado de leer <strong>"{title}"</strong>?'
+    confirm: Marcar como completado
+    finalPage: "Página final: {n}"
+    willClose: Se cerrará la sesión actual de lectura
+    willMark: El libro se marcará como completado
+  reRead:
+    title: Releer libro
+    message: '¿Deseas volver a leer <strong>"{title}"</strong>?'
+    confirm: Iniciar re-lectura
+    willCreate: Se creará una nueva sesión de lectura
+    keepPrevious: Se mantendrá el historial anterior
+    fromFirst: Comenzarás desde la página 1
+  status:
+    read:
+      title: Marcar como leído
+      message: '¿Deseas marcar <strong>"{title}"</strong> como leído?'
+      confirm: Marcar como leído
+      action: completada
+    paused:
+      title: Pausar lectura
+      message: '¿Deseas pausar la lectura de <strong>"{title}"</strong>?'
+      confirm: Pausar lectura
+      action: pausada
+    abandoned:
+      title: Abandonar libro
+      message: '¿Deseas abandonar <strong>"{title}"</strong>?'
+      confirm: Abandonar
+      action: abandonada
+    toRead:
+      title: Cambiar a "Para leer"
+      message: '¿Deseas cambiar <strong>"{title}"</strong> a "Para leer"?'
+      confirm: Confirmar cambio
+      action: abandonada
+    other:
+      title: Cambiar estado
+      message: '¿Deseas cambiar el estado de <strong>"{title}"</strong>?'
+      confirm: Confirmar
+      action: modificada
+    sessionMark: "{icon} Sesión actual (#{n}) se marcará como {action}"
+    finalPage: "📖 Página final: {current} de {total}"
+    duration:
+      one: "📅 Duración de la sesión: {n} día"
+      other: "📅 Duración de la sesión: {n} días"
+    markedComplete: 📚 El libro se marcará como completado en tu biblioteca
+    nthReading: "🔄 Esta será tu lectura #{n} de este libro"
+    savedProgress: 💾 Se guardará tu progreso actual
+    canResume: ▶️ Podrás reanudar la lectura cuando quieras
+    lostProgress: ⚠️ El progreso actual se perderá
+    keepHistory: 📋 El historial de sesiones se mantendrá
+    backToPending: 🔄 El libro volverá a tu lista de pendientes
+
+# Los errores del backend, por CÓDIGO. Su `message` no se enseña nunca: va al
+# Logger. Las claves van entrecomilladas o YAML las leería como números.
+errors:
+  "400": "No se pudo completar: revisa la pantalla, puede estar desfasada"
+  "401": Tu sesión ha caducado. Vuelve a entrar.
+  "403": No tienes permiso para hacer eso
+  "404": Eso ya no existe
+  "409": Algo ha cambiado mientras tanto; recarga la pantalla
+  "422": Faltan datos o no son válidos
+  "429": Demasiadas peticiones seguidas. Espera unos segundos.
+  "500": Algo ha ido mal en el servidor
+  "503": El servicio no está disponible ahora mismo
+  unknown: No se pudo completar la operación
+  network: No se pudo conectar. Revisa tu conexión.
+
+# Los avisos de sesión de lectura. Cada mensaje es UNA clave, no un montaje de
+# trozos: la frase «Has comenzado a leer X» y «Has comenzado tu re-lectura de X»
+# se escriben enteras porque en inglés no se parten por el mismo sitio.
+sessionFeedback:
+  startTitle: 📖 Sesión de lectura iniciada
+  reReadTitle: 🔄 Re-lectura iniciada
+  startFirst: 'Has comenzado a leer "{title}". Se ha creado tu primera sesión de lectura.'
+  startAgain: 'Has comenzado tu re-lectura de "{title}". Esta es tu sesión #{n}.'
+  completeTitle: ✅ ¡Libro completado!
+  complete: 'Has terminado "{title}" ({percent}% - página {page}/{total}). La sesión de lectura se ha marcado como completada.'
+  pauseTitle: ⏸ Lectura pausada
+  pause: 'Has pausado "{title}" en la página {page}. Podrás retomar la sesión cuando desees cambiando el estado a "Leyendo".'
+  abandonTitle: ✗ Lectura abandonada
+  abandon: 'Has abandonado "{title}" ({percent}% completado). La sesión se ha cerrado pero se mantiene en el historial.'
+  milestoneTitle: 📊 {percent}% completado
+  milestone: 'Llevas {page} de {total} páginas de "{title}".'
+  milestoneAdvanced: ¡Has avanzado {n} páginas!
+  autoStartTitle: 📖 Sesión iniciada automáticamente
+  autoStart: 'Al cambiar el estado a "Leyendo", se ha creado automáticamente una sesión de lectura para "{title}".'
+  autoCompleteTitle: ✅ Sesión completada automáticamente
+  autoComplete: 'Al cambiar el estado a "Leído", se ha completado automáticamente la sesión de lectura de "{title}".'
+  autoPauseTitle: ⏸ Sesión pausada automáticamente
+  autoPause: 'Al cambiar el estado a "Pausado", se ha pausado automáticamente la sesión de lectura de "{title}".'
+  autoAbandonTitle: ✗ Sesión abandonada automáticamente
+  autoAbandon: 'Al cambiar el estado a "Abandonado", se ha cerrado automáticamente la sesión de lectura de "{title}".'
+
+# Los mensajes que los stores lanzan con `throw new Error(...)`. Se traducen
+# porque **se enseñan**: una veintena de sitios pinta `err.message` en un toast o
+# en `this.error`. Lo que NO se traduce es lo que va dentro de `Logger.*`.
+storeError:
+  fetch: No se pudo cargar {que}
+  search: La búsqueda ha fallado
+  add: No se pudo añadir {que}
+  delete: No se pudo eliminar {que}
+  rating: No se pudo guardar la valoración
+  statuses: No se pudieron guardar los estados
+  edit: No se pudo editar {que}
+  allowedStatuses: No se pudieron cargar los estados disponibles
+  tags: No se pudieron cargar tus etiquetas
+  createTag: No se pudo crear la etiqueta
+  updateTags: No se pudieron guardar las etiquetas
+  library: No se pudo cargar la biblioteca
+  menu: No se pudo cargar el menú
+
+session:
+  createFailed: No se pudo crear la sesión
+  completeFailed: No se pudo completar la sesión
+  pauseFailed: No se pudo pausar la sesión
+  resumeFailed: No se pudo reanudar la sesión
+  abandonFailed: No se pudo abandonar la sesión
+  deleteFailed: No se pudo borrar la sesión
+  progressFailed: No se pudo guardar el progreso
+  fetchFailed: No se pudieron cargar las sesiones activas
+  noneActive: No hay ninguna sesión activa
+
+friends:
+  sendFailed: No se pudo enviar la solicitud
+  acceptFailed: No se pudo aceptar la solicitud
+  rejectFailed: No se pudo rechazar la solicitud
+  removeFailed: No se pudo eliminar al amigo
+  privacyFailed: No se pudieron guardar los ajustes de privacidad
+
+auth:
+  tooManyRequests: Demasiadas peticiones
+  retryNow: Has hecho demasiadas peticiones seguidas. Espera unos segundos y vuelve a intentarlo.
+  retryIn:
+    one: Has hecho demasiadas peticiones seguidas. Vuelve a intentarlo en {n} segundo.
+    other: Has hecho demasiadas peticiones seguidas. Vuelve a intentarlo en {n} segundos.
+  loginFailed: No se pudo iniciar sesión
+  notAuthenticated: No has iniciado sesión
+
+ui:
+  confirmTitle: Confirmar acción
+  confirmMessage: ¿Estás seguro?
+  success: Éxito
+  info: Información
+
+inboxError:
+  load: No se pudo cargar la bandeja
+  send: No se pudo enviar la recomendación
+  unsupportedMedia: Este medio no se puede añadir desde la bandeja
+  noItem: No se pudo recuperar la ficha del ítem
+  add: No se pudo añadir a la biblioteca
+  accept: No se pudo aceptar la invitación
+  resolve: No se pudo resolver la recomendación
+
+authError:
+  init: No se pudo comprobar tu sesión
+  login: No se pudo iniciar sesión
+  loginUnexpected: Algo ha fallado al iniciar sesión
+  logout: No se pudo cerrar la sesión
+  expired: Tu sesión ha caducado. Vuelve a entrar.
+  apiFailed: La petición no se pudo completar
+
+books:
+  completeLastTitle: Completar última página
+  completeLastMessage: '¿Deseas actualizar automáticamente a la página {page} y marcar el libro como leído?'
+  completeLastConfirm: Sí, actualizar y completar
+  progressFailed: No se pudo guardar el progreso
+  notFound: No se encontró el libro
+
+trending:
+  books: No se pudieron cargar los libros del momento
+  movies: No se pudieron cargar las películas del momento
+  games: No se pudieron cargar los juegos del momento
+  albums: No se pudieron cargar los álbumes del momento
+  videos: No se pudieron cargar los vídeos del momento
+
+works:
+  searchFailed: No se pudieron buscar las obras
+  offline: No se pudo conectar con el servicio de búsqueda
+  detailsFailed: No se pudieron obtener los detalles de la obra
+  editionsFailed: No se pudieron obtener las ediciones
+  isbnFailed: No se pudo validar el ISBN
+
+
+editError:
+  failed: No se pudo editar {que}
+
+progressError:
+  historyFailed: No se pudo obtener el historial de progreso
+
+searchError:
+  failed: La búsqueda ha fallado
+
+statsError:
+  fetchFailed: No se pudieron cargar las estadísticas
+
+# Los idiomas de una EDICIÓN de libro. `native` se queda en
+# `utils/languageConstants.js` porque es un dato —«Français» es «Français» en
+# cualquier idioma—; lo que se traduce es cómo los nombra la interfaz.
+language:
+  en: Inglés
+  es: Español
+  fr: Francés
+  de: Alemán
+  it: Italiano
+  pt: Portugués
+  ru: Ruso
+  ja: Japonés
+  zh: Chino
+  ar: Árabe
+  hi: Hindi
+  ko: Coreano
+  nl: Neerlandés
+  pl: Polaco
+  tr: Turco
+  sv: Sueco
+  "no": Noruego
+  da: Danés
+  fi: Finlandés
+  el: Griego
+  cs: Checo
+  ro: Rumano
+  hu: Húngaro
+  th: Tailandés
+  vi: Vietnamita
+  id: Indonesio
+  uk: Ucraniano
+  ca: Catalán
+  he: Hebreo
+  fa: Persa
+
+feed:
+  added: se añadió a la biblioteca
+  rated: recibió una valoración de {n}
+  statusChanged: 'cambió de estado a "{estado}"'
+  noteAdded: tiene una nota nueva
+  readingSession: tiene una sesión de lectura registrada
+  # Tiempo relativo. Las abreviaturas se quedan cortas a propósito: van en una
+  # línea que ya lleva nombre, título y medio.
+  justNow: ahora mismo
+  minutesAgo: hace {n} min
+  hoursAgo: hace {n} h
+  daysAgo: hace {n} d
+
+editItem:
+  tagFailed: No se pudo crear la etiqueta
+  statusesFailed: No se pudieron guardar los estados
+  saved: '{medio} actualizado correctamente'
+  saveFailed: No se pudo guardar {medio}
+  # El nombre del medio, en las dos formas que piden esas dos frases.
+  nameBook: Libro
+  nameMovie: Película
+  nameGame: Juego
+  nameAlbum: Álbum
+  nameVideo: Vídeo
+  theBook: el libro
+  theMovie: la película
+  theGame: el juego
+  theAlbum: el álbum
+  theVideo: el vídeo
+
+clubActions:
+  finishFailed: No se pudo cerrar el ítem
+  finished: Ítem terminado
+  voteFailed: No se pudo votar
+  voted: Voto registrado
+  openVoteFailed: No se pudo abrir el voto
+  voteOpened: Voto abierto
+  closeVoteFailed: No se pudo cerrar la votación
+  alreadyNext: Ya tenéis siguiente ítem
+  tie: 'Empate: toca desempatar'
+  leaveFailed: No se pudo salir del club
+  left: Has salido del club
+
+listActions:
+  removeFailed: No se pudo quitar el ítem
+  leaveConfirm: ¿Salir de esta lista? Dejarás de poder editarla.
+  removePersonConfirm: ¿Quitar a {name} de esta lista?
+  saveFailed: No se pudo guardar
+  updated: Lista actualizada
+  deleteConfirm: '¿Borrar la lista «{name}»? Los ítems seguirán en tu biblioteca.'
+  deleteFailed: No se pudo borrar la lista
+  deleted: Lista borrada
+
+noteActions:
+  loadFailed: No se pudieron cargar las notas
+  deleteConfirm: ¿Estás seguro de que quieres eliminar esta nota?
+  deleted: Nota eliminada correctamente
+  deleteFailed: No se pudo eliminar la nota
+  empty: El contenido de la nota no puede estar vacío
+  updated: Nota actualizada correctamente
+  added: Nota agregada correctamente
+  saveFailed: No se pudo guardar la nota
+
+stale:
+  offlineNamed: Sin conexión con {proveedor}.
+  offline: Sin conexión con el proveedor.
+  from: '{cabecera} Estos resultados son de {cuando}'
+  maybeOld: '{cabecera} Estos resultados pueden no estar actualizados'
+
+statusHint:
+  reading: Iniciará una sesión de lectura automáticamente
+  read: Completará la sesión activa automáticamente
+  paused: Pausará la sesión actual automáticamente
+  abandoned: Cerrará la sesión activa automáticamente
+  placeholder: Selecciona estados
+
+bookSearch:
+  noIsbn: Este libro no tiene ISBN disponible
+  searchFailed: No se pudieron buscar libros. Inténtalo de nuevo.
+  openLibrary: Open Library
+
+recommendDialog:
+  notYet: Todavía no se puede recomendar este ítem
+  sent: Recomendación enviada
+  onlyFriends: Solo puedes recomendar ítems a tus amigos.
+  notYours: Esta recomendación no es tuya.
+  already: Ya le recomendaste esto a esta persona.
+
+inboxActions:
+  added: Añadido a tu biblioteca
+  addFailed: No se pudo añadir
+  acceptFailed: No se pudo aceptar la invitación
+  collaborating: Ya colaboras en la lista
+  dismissFailed: No se pudo descartar
+
+toasts:
+  clubAddFailed: No se pudo añadir al club
+  clubProposed: Propuesta enviada al club
+  clubHasNext: El club ya tiene su siguiente ítem
+  inviteSent: Invitación enviada
+  listAddFailed: No se pudo añadir a la lista
+  listAdded: Añadido a la lista
+  clubCreateFailed: No se pudo crear el club
+  clubCreated: Club creado
+  listCreateFailed: No se pudo crear la lista
+  listCreated: Lista creada
+  requestSent: Solicitud enviada
+  requestAccepted: Solicitud aceptada
+  friendRemoved: Amigo eliminado
+  privacySaved: Configuración actualizada
+  privacyFailed: No se pudo guardar la configuración
+  profileNotFound: Perfil no encontrado
+  profileFailed: No se pudo cargar el perfil
+  saveFailed: No se pudo guardar
+  libSaved: Biblioteca guardada correctamente en el backend.
+  libSaveFailed: No se pudo guardar la biblioteca en el backend.
+  backendOffline: Error de conexión con el backend
+  imported: 'Datos importados correctamente desde {servicio}. Archivo: {fichero}'
+  editionSelectedSaved: Edición seleccionada. Esta edición ya está en tu biblioteca.
+  editionSelected: Edición seleccionada. Los datos del libro se han actualizado.
+  searchEmpty: Por favor introduce un valor para buscar.
+  searchFailed: Error al realizar la búsqueda.
+  noResults: No se encontraron resultados.
+  noImdbId: Esta película no tiene IMDb ID disponible
+  spotifyFailed: No se pudo buscar en Spotify. Verifica la configuración.
+  igdbFailed: No se pudo buscar en IGDB. Verifica tus credenciales.
+  youtubeFailed: No se pudo buscar en YouTube. Verifica la configuración.
+  statsFailed: Error al cargar las estadísticas. Por favor, intenta de nuevo.
+  videoSearchFailed: No se pudieron buscar vídeos
+  albumSearchFailed: No se pudieron buscar álbumes
+  gameSearchFailed: No se pudieron buscar juegos
+
+misc:
+  album: Álbum
+  compilation: Compilación
+  item: Ítem
+  inProgress: En curso
+  unwatched: Sin ver
+  localTrends: Tendencias Locales
+  loadingContent: Cargando contenido…
+  stats: Estadísticas
+  officialSite: Sitio Oficial
+  viewLink: Ver enlace
+  hiddenUntilPage: 'Oculta hasta que llegues a la {page}'
+  hiddenUntilDone: Oculta hasta que lo termines
+  wonLastRound: Ganaste la ronda anterior, así que esta vez proponen los demás.
+  alreadyProposed: 'Ya has propuesto: es una por persona y ronda.'
+  seasonViewed: Vista
+  seasonPartial: Parcial
+  seasonSkipped: Saltada
+  albumSingle: Single
+  albumEp: EP
+  days:
+    one: "{n} día"
+    other: "{n} días"
+  daysOngoing:
+    one: "{n} día (en curso)"
+    other: "{n} días (en curso)"

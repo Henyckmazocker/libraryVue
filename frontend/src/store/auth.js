@@ -3,6 +3,7 @@ import axios from 'axios'
 import Logger from '@/utils/logger'
 import { RateLimitError } from '@/utils/errors'
 import { useUIStore } from './ui'
+import { t } from '@/config/i18n'
 
 // Espera máxima que se absorbe con un reintento silencioso. Por encima de esto se
 // avisa al usuario en vez de dejar la interfaz colgada.
@@ -90,7 +91,7 @@ export const useAuthStore = defineStore('auth', {
           return { success: true }
         } else {
           Logger.error('Login failed - backend error:', response.data.message)
-          throw new Error(response.data.message || 'Login failed')
+          throw new Error(t('auth.loginFailed'))
         }
       } catch (error) {
         Logger.error('Login error details:', {
@@ -102,7 +103,7 @@ export const useAuthStore = defineStore('auth', {
         await this.logout()
         return { 
           success: false, 
-          message: error.response?.data?.message || error.message || 'Login failed' 
+          message: t('auth.loginFailed')
         }
       } finally {
         this.isLoading = false
@@ -225,21 +226,20 @@ export const useAuthStore = defineStore('auth', {
           }
           // El segundo 429 ya no se reintenta: se avisa con la espera actualizada
           const secondRetryAfter = parseInt(retryError.response.headers['retry-after'], 10) || retryAfter
-          uiStore.showWarning(this.rateLimitMessage(secondRetryAfter), 'Demasiadas peticiones')
+          uiStore.showWarning(this.rateLimitMessage(secondRetryAfter), t('auth.tooManyRequests'))
           throw new RateLimitError(secondRetryAfter)
         }
       }
 
-      uiStore.showWarning(this.rateLimitMessage(retryAfter), 'Demasiadas peticiones')
+      uiStore.showWarning(this.rateLimitMessage(retryAfter), t('auth.tooManyRequests'))
       throw new RateLimitError(retryAfter)
     },
 
     rateLimitMessage(seconds) {
-      if (seconds <= 0) {
-        return 'Has hecho demasiadas peticiones seguidas. Espera unos segundos y vuelve a intentarlo.'
-      }
-      const unidad = seconds === 1 ? 'segundo' : 'segundos'
-      return `Has hecho demasiadas peticiones seguidas. Vuelve a intentarlo en ${seconds} ${unidad}.`
+      if (seconds <= 0) return t('auth.retryNow')
+
+      // El singular lo resuelve el motor; antes se elegía «segundo/segundos» a mano.
+      return t('auth.retryIn', { n: seconds })
     },
 
     updateCSRFToken(token) {
@@ -249,7 +249,7 @@ export const useAuthStore = defineStore('auth', {
     // Helper method for components to make authenticated API calls
     async authenticatedApiCall(action, data = {}) {
       if (!this.isAuthenticated) {
-        throw new Error('User not authenticated')
+        throw new Error(t('auth.notAuthenticated'))
       }
       
       return await this.apiCall(action, data)
@@ -271,7 +271,7 @@ export const useAuthStore = defineStore('auth', {
 
     async updateProfile(profileData) {
       if (!this.isAuthenticated || !this.user?.id) {
-        throw new Error('User not authenticated')
+        throw new Error(t('auth.notAuthenticated'))
       }
       const response = await this.authenticatedApiCall('update_user_profile', {
         userId: this.user.id,

@@ -15,6 +15,19 @@ import { defineStore } from 'pinia'
 import { useAuthStore } from './auth'
 import Logger from '@/utils/logger'
 
+import { apiError } from '@/composables/useApiError'
+import { t } from '@/config/i18n'
+
+/**
+ * Lo que las listas dicen de cada código. Lo genérico —y el respaldo— lo pone
+ * `apiError`; aquí solo va lo que cambia por ser una lista y no otra cosa.
+ */
+const CLAVES = {
+  403: 'lists.error403',
+  404: 'lists.error404',
+  409: 'lists.error409'
+}
+
 export const useListsStore = defineStore('lists', {
   state: () => ({
     // Las tarjetas de /lists: cada una con su `item_count` e `is_owner`.
@@ -52,11 +65,11 @@ export const useListsStore = defineStore('lists', {
         if (response.data.status === 'success') {
           this.lists = response.data.data?.lists ?? []
         } else {
-          this.error = response.data.message || 'No se pudieron cargar tus listas'
+          this.error = apiError(response.data, { ...CLAVES, defecto: 'lists.loadError' })
         }
       } catch (err) {
         Logger.error('[ListsStore] fetchMyLists error:', err)
-        this.error = 'No se pudieron cargar tus listas'
+        this.error = t('lists.loadError')
       } finally {
         this.isLoading = false
       }
@@ -85,12 +98,12 @@ export const useListsStore = defineStore('lists', {
           return { success: true }
         }
 
-        this.error = this._messageFor(response.data.http_code)
+        this.error = apiError(response.data, CLAVES)
         return { success: false, code: response.data.http_code ?? null }
       } catch (err) {
         Logger.error('[ListsStore] fetchList error:', err)
         const code = err.response?.status ?? err.response?.data?.http_code ?? null
-        this.error = this._messageFor(code)
+        this.error = apiError(code, CLAVES)
         return { success: false, code }
       } finally {
         this.isLoading = false
@@ -119,12 +132,12 @@ export const useListsStore = defineStore('lists', {
           return { success: true }
         }
 
-        this.error = this._messageFor(response.data.http_code)
+        this.error = apiError(response.data, CLAVES)
         return { success: false, code: response.data.http_code ?? null }
       } catch (err) {
         Logger.error('[ListsStore] fetchUserLists error:', err)
         const code = err.response?.status ?? err.response?.data?.http_code ?? null
-        this.error = this._messageFor(code)
+        this.error = apiError(code, CLAVES)
         return { success: false, code }
       } finally {
         this.isLoading = false
@@ -199,11 +212,11 @@ export const useListsStore = defineStore('lists', {
       // El 400 solo significa «no sois amigos» AQUÍ; en las demás escrituras es
       // un fallo de validación, así que no puede vivir en el mapa compartido.
       if (!result.success && result.code === 400) {
-        this.error = 'Solo puedes invitar a tus amigos'
+        this.error = t('lists.inviteNotFriends')
         return { ...result, message: this.error }
       }
       if (!result.success && result.code === 409) {
-        this.error = 'Ya le has invitado, o ya colabora en esta lista'
+        this.error = t('lists.inviteAlready')
         return { ...result, message: this.error }
       }
 
@@ -233,7 +246,7 @@ export const useListsStore = defineStore('lists', {
 
         if (response.data.status !== 'success') {
           const code = response.data.http_code ?? null
-          this.error = this._messageFor(code, response.data.message)
+          this.error = apiError(code, CLAVES)
           return { success: false, message: this.error, code }
         }
 
@@ -241,22 +254,12 @@ export const useListsStore = defineStore('lists', {
       } catch (err) {
         Logger.error(`[ListsStore] ${action} error:`, err)
         const code = err.response?.status ?? err.response?.data?.http_code ?? null
-        this.error = this._messageFor(code, err.response?.data?.message || err.message)
+        this.error = apiError(err, CLAVES)
         return { success: false, message: this.error, code }
       } finally {
         this.isSaving = false
       }
     },
 
-    /** Traducción por código. El backend responde en inglés y no se lee su texto. */
-    _messageFor (code, fallback = null) {
-      const messages = {
-        403: 'No tienes permiso sobre esta lista',
-        404: 'Esta lista ya no existe',
-        409: 'Ese ítem ya está en la lista'
-      }
-
-      return messages[code] ?? fallback ?? 'No se pudo completar la operación'
-    }
   }
 })

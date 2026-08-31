@@ -125,8 +125,8 @@ const searchBooks = async (query, searchType) => {
         cached_at: worksCachedAt.value,
         results: works.map(work => ({
           isbn: work.sample_isbn || work.work_key,
-          title: work.title || 'Title not available',
-          author: Array.isArray(work.authors) ? work.authors : [work.authors_display || 'Author not available'],
+          title: work.title || t('media.book.titleUnavailable'),
+          author: Array.isArray(work.authors) ? work.authors : [work.authors_display || t('media.book.authorUnavailable')],
           cover_i: work.cover_url || work.cover_id || '', // Use cover_url (Google Books) or cover_id (OpenLibrary)
           coverUrl: work.cover_url || '',
           publisher: [],
@@ -143,7 +143,7 @@ const searchBooks = async (query, searchType) => {
 
     } catch (error) {
       Logger.error("Work search failed:", error);
-      throw new Error("Error searching books. Please try again.");
+      throw new Error(t('bookSearch.searchFailed'));
     }
   }
   
@@ -155,8 +155,8 @@ const transformResult = (result) => {
   const isbn = Array.isArray(result.isbn) ? result.isbn[0] : result.isbn;
   return {
     isbn: isbn,
-    title: result.title || 'Título no disponible',
-    author: Array.isArray(result.author) ? result.author.join(', ') : (result.author || 'Autor desconocido'),
+    title: result.title || t('media.book.titleUnavailable'),
+    author: Array.isArray(result.author) ? result.author.join(', ') : (result.author || t('book.unknownAuthor')),
     coverUrl: getBookCoverUrl(result.cover_i),
     cover_i: result.cover_i,
     publisher: result.publisher,
@@ -173,7 +173,7 @@ const navigateToDetail = (router, book) => {
   
   if (!isbn) {
     Logger.warn('[BookSearch] Book has no ISBN, cannot navigate to detail');
-    uiStore.showError('Este libro no tiene ISBN disponible');
+    uiStore.showError(t('bookSearch.noIsbn'));
     return;
   }
   
@@ -181,8 +181,8 @@ const navigateToDetail = (router, book) => {
   
   const bookData = {
     isbn: isbn,
-    title: book.title || 'Título no disponible',
-    authors: Array.isArray(book.author) ? book.author : (book.author ? [book.author] : ['Autor desconocido']),
+    title: book.title || t('media.book.titleUnavailable'),
+    authors: Array.isArray(book.author) ? book.author : (book.author ? [book.author] : [t('book.unknownAuthor')]),
     publicationDate: book.publicationDate || '',
     coverUrl: getBookCoverUrl(book.cover_i),
     pages: book.pages || null,
@@ -257,7 +257,7 @@ const searchConfig = computed(() => ({
   carouselItemComponent: BookCarouselItem,
   itemProp: 'book',
   media: 'book',
-  staleProvider: 'Open Library',
+  staleProvider: t('bookSearch.openLibrary'),
   searchHandler: searchBooks,
   transformResult: transformResult,
   navigateToDetail: navigateToDetail,

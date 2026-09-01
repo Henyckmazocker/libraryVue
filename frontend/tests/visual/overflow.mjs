@@ -13,6 +13,16 @@
  * POR QUÉ NO CORRE EN DOCKER: necesita Firefox y geckodriver, que están en el host
  * (snap). Los tests de Vitest sí van dentro del contenedor; este no.
  *
+ * POR QUÉ MIDE CON EL MOVIMIENTO APAGADO: una animación que desplaza la caja de un
+ * elemento lo mete y lo saca del viewport varias veces por segundo, y como aquí se
+ * mide `getBoundingClientRect()` —que incluye el desplazamiento— el resultado dependía
+ * del fotograma. Pasó de verdad: `.progress-bar-shine` animaba `left: -100% → 100%` y
+ * `/books/:isbn` salía `right=366` en una pasada y `ok` en la siguiente (Roadmap #21).
+ * La sesión arranca con `ui.prefersReducedMotion: 1`, que dispara el bloque de
+ * `assets/styles/base/_globals.scss`: la app se queda quieta y la barrera repite.
+ * Es la MISMA preferencia que respeta la app para quien la pide al sistema, no un
+ * truco del test — y el iframe la hereda, comprobado.
+ *
  * POR QUÉ UN IFRAME POR DEBAJO DE 500px: Firefox no acepta ventanas de menos de 500px
  * CSS — `POST /window/rect` con `width: 360` devuelve 200 y deja la ventana en 500, y
  * `MOZ_HEADLESS_WIDTH` tampoco sirve. La página va dentro de un iframe del ancho pedido,
@@ -344,9 +354,13 @@ const main = async () => {
         browserName: 'firefox',
         'moz:firefoxOptions': {
           args: ['-headless', '-width', '1400', '-height', '1300'],
-          // Sin esto, Firefox particiona el localStorage del iframe y las rutas con
-          // `requiresAuth` redirigen a Home sin dar error: la barrera mediría la Home.
-          prefs: { 'privacy.partition.always_partition_third_party_non_cookie_storage': false },
+          prefs: {
+            // Sin esto, Firefox particiona el localStorage del iframe y las rutas con
+            // `requiresAuth` redirigen a Home sin dar error: la barrera mediría la Home.
+            'privacy.partition.always_partition_third_party_non_cookie_storage': false,
+            // Movimiento reducido: ver el tercer POR QUÉ de la cabecera.
+            'ui.prefersReducedMotion': 1,
+          },
         },
       },
     },

@@ -484,6 +484,17 @@ se cachean en `mb_track` (ver abajo).
   con el helper `tests/unit/helpers/mount.js`, no con `mount` a pelo: registra PrimeVue y provee el
   `notifications` del `inject`. `tests/unit/setup.js` trae el polyfill de `matchMedia` sin el cual no
   se puede montar nada que lleve un `Dropdown`.
+- **Ningún `@keyframes` puede animar `left`, `right`, `top` ni `bottom`.** Anima con `transform`, o
+  mueve el fondo con `background-position` como hace `@keyframes shine` en
+  `components/common/ReadingProgressBar.vue`. Lo defiende `tests/unit/animaciones.spec.js`, que lee
+  los `@keyframes` de `src/**/*.{scss,vue}` contando llaves y **no tiene fichero de excepciones**. El
+  motivo no es estético: `tests/visual/overflow.mjs` mide `getBoundingClientRect().right`, que
+  incluye el desplazamiento, así que una caja animada entra y sale del viewport varias veces por
+  segundo y el veredicto depende del fotograma. Prohíbe **offsets, no `transform`s**.
+- **La app respeta `prefers-reduced-motion`** desde `assets/styles/base/_globals.scss`, y
+  `tests/visual/overflow.mjs` arranca Firefox con esa misma preferencia para medir una página quieta.
+  El bloque usa `animation-duration: 0.01ms`, **no** `animation: none`: así una animación de entrada
+  termina en su estado final en vez de quedarse en el inicial.
 
 ### Base de datos
 Esquema y seed en `docker/database/init.sql` (solo en BD virgen). Cambios posteriores → archivos
@@ -737,6 +748,10 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
    ruta no se pudo medir. No mide `scrollWidth`: `base/_reset.scss:15` pone
    `html, body { overflow-x: hidden }`, así que el documento nunca genera scroll horizontal y ese
    criterio daba verde con `/library` dejando 24 elementos fuera.
+   **Lee la salida, no solo el exit code**, y separa sus dos cuentas: la de *elementos fuera* es la
+   que juzga tu cambio; la de *rutas saltadas* la gobierna el rate limit de 60 req/min —un recorrido
+   gasta ~44 peticiones—, así que dos pasadas seguidas dejan a la segunda sin cuota y sus rutas
+   privadas salen como saltadas sin que nada esté roto. Espacia las pasadas.
 7. **Si el cambio se ve en pantalla, ábrelo en el navegador**, y no solo por las capturas: hay una
    clase entera de fallos que **solo aparece en la consola**. `v-tooltip` estuvo sin registrar en
    `main.js` desde el 2026-05-13 y nadie lo vio en tres meses, porque un

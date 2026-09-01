@@ -40,3 +40,20 @@ body {
 .page-fade-leave-to {
   opacity: 0;
 }
+
+// Movimiento reducido. Quien lo pide al sistema no quiere que la interfaz se mueva,
+// y aquí se mueve en 12 animaciones y 79 transiciones. Los `!important` son los del
+// patrón estándar y son necesarios: hay animaciones declaradas en reglas de mayor
+// especificidad (`.btn.is-error`, `components/_buttons.scss:182`) que si no ganarían.
+// No se pone `animation: none`: eso descartaría el estado final de las que animan
+// una entrada, y un `slideInLeft` cancelado dejaría la tarjeta en `translateX(-20px)`.
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

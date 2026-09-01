@@ -15,12 +15,7 @@
         :class="progressBarClass"
         :style="{ width: progressPercentage + '%' }"
         :title="`${progressPercentage}% completado`"
-      >
-        <div
-          v-if="progressPercentage > 0"
-          class="progress-bar-shine"
-        />
-      </div>
+      />
       
       <!-- Slider overlay for interaction -->
       <input 
@@ -228,6 +223,26 @@ defineExpose({
   position: relative;
   transition: width 0.3s ease, background-color 0.3s ease;
   overflow: hidden;
+
+  // El brillo va clavado a la caja de la barra y lo que viaja es el fondo. Con el
+  // `left` animado que había antes, la caja salía del viewport en parte de cada
+  // ciclo y `npm run test:responsive` medía según el fotograma (Roadmap #21).
+  // No necesita el `v-if="progressPercentage > 0"` que llevaba el <div>: con
+  // `width: 0%` en `.progress-bar`, un `inset: 0` mide cero y no pinta nada.
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    background-repeat: no-repeat;
+    animation: shine 2s infinite;
+  }
 }
 
 .progress-slider {
@@ -329,24 +344,14 @@ defineExpose({
   cursor: not-allowed;
 }
 
-.progress-bar-shine {
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    transparent
-  );
-  animation: shine 2s infinite;
-}
-
+// Con `background-size: 200%` la imagen mide 2W y `background-position: p%` deja el
+// brillo —que está en su centro— en `x = W - p%·W`. Con 150% queda en -0,5W (fuera
+// por la izquierda) y con -50% en 1,5W (fuera por la derecha): el mismo recorrido de
+// entrada y salida que hacía el `left: -100% -> 100%`. Con `100% -> 0%` aparecería y
+// desaparecería de golpe en los bordes.
 @keyframes shine {
-  0% { left: -100%; }
-  100% { left: 100%; }
+  from { background-position: 150% 0; }
+  to   { background-position: -50% 0; }
 }
 
 /* Temas de color */

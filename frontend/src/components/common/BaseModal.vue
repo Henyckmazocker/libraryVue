@@ -145,7 +145,11 @@ useFocusTrap(dialogRef, {
   display: flex;
   flex-direction: column;
   padding: 0;
-  animation: modalSlideIn transition(medium) ease-out;
+  // Sin easing extra: `transition(medium)` ya vale `0.3s ease` y con un segundo
+  // el atajo es inválido en tiempo de valor computado, así que `animation` caía
+  // entera a su inicial y el modal no se deslizaba. Es como lo usan las otras dos
+  // animaciones con token, en `Books/EditionCarouselItem.vue:227` y `:243`.
+  animation: modalSlideIn transition(medium);
 
   // Los cuatro anchos, acotados al viewport: un ancho fijo desborda en móvil.
   &--sm   { width: min(380px, 90vw); }

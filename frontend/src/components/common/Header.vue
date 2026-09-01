@@ -51,6 +51,24 @@
       </template>
       
       <template v-if="isLoggedIn">
+        <!-- El buscador general: una consulta, los seis catálogos. Va el primero
+             de los cuatro porque es lo que más se usa, y sin contador como los
+             otros tres: es un destino, no un aviso. `MobileNavBar` NO lo lleva,
+             a propósito: sus cinco destinos se decidieron en el plan de nivelar
+             clubs, listas y bandeja, y meter un sexto obligaría a sacar otro. -->
+        <router-link
+          to="/search"
+          class="app-header__inbox"
+        >
+          <i
+            class="fas fa-magnifying-glass"
+            aria-hidden="true"
+          />
+          <!-- El texto va en .u-sr-only y no en un aria-label: es la convención
+               del proyecto para lo que solo existe como icono. -->
+          <span class="u-sr-only">{{ t('header.search') }}</span>
+        </router-link>
+
         <!-- Las listas. Sin contador: no hay nada que avisar, solo un destino. -->
         <router-link
           to="/lists"

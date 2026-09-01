@@ -154,6 +154,7 @@ const buildRoutes = async () => {
   ].map(([path, nombre]) => ({ path, nombre, auth: false }));
 
   const privadas = [
+    ['/search', 'Buscador general'],
     ['/library', 'Mi biblioteca'],
     ['/dashboard?tab=books', 'Dashboard · libros'],
     ['/dashboard?tab=movies', 'Dashboard · películas'],

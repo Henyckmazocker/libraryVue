@@ -30,6 +30,7 @@ import { useTrending } from '@/composables/useTrending';
 import { storeToRefs } from 'pinia';
 import Logger from '@/utils/logger';
 import { useI18n } from '@/composables/useI18n';
+import { mediaRegistry } from '@/config/mediaRegistry';
 
 const { t } = useI18n();
 
@@ -122,43 +123,6 @@ const searchGames = async (query, searchType) => {
 };
 
 // Transformar resultado de IGDB al formato interno
-const transformResult = (result) => {
-  // Extraer desarrolladores y publishers de involved_companies
-  const developers = result.involved_companies
-    ?.filter(ic => ic.developer)
-    .map(ic => ({ name: ic.company?.name || 'Unknown' })) || [];
-  
-  const publishers = result.involved_companies
-    ?.filter(ic => ic.publisher)
-    .map(ic => ({ name: ic.company?.name || 'Unknown' })) || [];
-  
-  // Formatear fecha de lanzamiento
-  const releaseDate = result.first_release_date 
-    ? new Date(result.first_release_date * 1000).toISOString().split('T')[0]
-    : null;
-  
-  return {
-    id: result.id,
-    igdbId: result.id,
-    gameId: result.id,
-    title: result.name,
-    name: result.name,
-    originalTitle: result.name,
-    releaseDate: releaseDate,
-    released: releaseDate,
-    coverUrl: result.cover?.url ? `https:${result.cover.url.replace('t_thumb', 't_cover_big')}` : null,
-    background_image: result.cover?.url ? `https:${result.cover.url.replace('t_thumb', 't_cover_big')}` : null,
-    rating: result.rating ? Math.round(result.rating / 20) : null, // IGDB usa 0-100, convertir a 0-5
-    platforms: result.platforms || [],
-    genres: result.genres || [],
-    developers: developers,
-    publishers: publishers,
-    description: result.summary || '',
-    user_rating: null,
-    userStatuses: [],
-    itemType: 'game'
-  };
-};
 
 // Navegar al detalle del juego
 const navigateToDetail = (router, game) => {
@@ -249,7 +213,9 @@ const searchConfig = computed(() => ({
   media: 'game',
   staleProvider: 'IGDB',
   searchHandler: searchGames,
-  transformResult: transformResult,
+  // La transformación vive en el registry desde el M1: la comparte con
+  // el buscador general en vez de existir dos veces.
+  transformResult: mediaRegistry.game.api.search.transform,
   navigateToDetail: navigateToDetail,
   getResultKey: getResultKey,
   fetchAllowedStatuses: fetchAllowedStatuses,

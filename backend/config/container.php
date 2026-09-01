@@ -323,6 +323,9 @@ return function (): ContainerInterface {
         // USE CASES - Auth
         // ===========================
         
+        // Buscador general: una consulta, los seis medios.
+        \App\Domain\UseCases\Search\SearchCatalogLocalUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Search\SearchCatalogRemoteUseCase::class => DI\autowire(),
         \App\Domain\UseCases\Auth\LoginUserUseCase::class => DI\autowire(),
         \App\Domain\UseCases\Auth\UpdateUserProfileUseCase::class => DI\autowire(),
         
@@ -491,6 +494,7 @@ return function (): ContainerInterface {
         \App\Controllers\FeedController::class => DI\autowire(),
         \App\Controllers\ListController::class => DI\autowire(),
         \App\Controllers\ClubController::class => DI\autowire(),
+        \App\Controllers\SearchController::class => DI\autowire(),
         
         // ===========================
         // ROUTER

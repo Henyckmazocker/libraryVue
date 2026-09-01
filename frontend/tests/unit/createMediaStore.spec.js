@@ -120,11 +120,16 @@ describe('createMediaStore — cada acción llama a la acción correcta del back
     expect(authenticatedApiCall).toHaveBeenCalledWith('get_videos', { filters: {} })
   })
 
-  it('searchVideos manda search_youtube_videos con la clave `q`', async () => {
+  it('searchVideos manda search_youtube_videos con el payload que dicta el registry', async () => {
+    // Antes este test fijaba `{ q: 'vue' }`, que salía del `searchKey` del
+    // registry. Desde el M1 el payload entero lo construye `api.search.payload`,
+    // y vídeos es el ÚNICO medio que no llama `limit` al límite: `maxResults`
+    // es lo que lee `VideoController.php:111`. Mandar `limit` lo dejaba en su
+    // valor por defecto sin dar ningún error.
     authenticatedApiCall.mockResolvedValue(ok([]))
     await useVideosStore().searchVideos('vue')
 
-    expect(authenticatedApiCall).toHaveBeenCalledWith('search_youtube_videos', { q: 'vue' })
+    expect(authenticatedApiCall).toHaveBeenCalledWith('search_youtube_videos', { query: 'vue', maxResults: 20 })
   })
 
   it('searchVideos acepta la forma nueva: los resultados anidados bajo su colección', async () => {
@@ -308,15 +313,26 @@ describe('createMediaStore — los cinco medios', () => {
     expect(authenticatedApiCall).toHaveBeenCalledWith(action, { filters: {} })
   })
 
-  it('la búsqueda de libros elige entre ISBN y título', async () => {
+  it('la búsqueda de libros va a la acción que existe, y es una sola', async () => {
+    // Este test afirmaba que el store elegía entre `search_book_isbn` y
+    // `search_book_name` según la forma del query. **Ninguna de las dos existe
+    // en `backend/config/routes.php`**, así que lo que fijaba era una llamada
+    // que el backend habría rechazado; no se notaba porque nada del `src/`
+    // llama al `searchBooks` del store. Desde el M1 la acción es `search_works`
+    // (`routes.php:175`), que lee `q` (`BookController.php:477`) y sirve para
+    // las dos formas.
+    //
+    // La distinción ISBN/título NO se pierde: vive donde siempre estuvo viva,
+    // en el `detectSearchType` de `BookSearch.vue`, que es el camino que la app
+    // recorre de verdad.
     authenticatedApiCall.mockResolvedValue(ok([]))
     const store = useBooksStore()
 
     await store.searchBooks('9788445071410')
-    expect(authenticatedApiCall).toHaveBeenLastCalledWith('search_book_isbn', { isbn: '9788445071410' })
+    expect(authenticatedApiCall).toHaveBeenLastCalledWith('search_works', { q: '9788445071410', limit: 20 })
 
     await store.searchBooks('Dune')
-    expect(authenticatedApiCall).toHaveBeenLastCalledWith('search_book_name', { name: 'Dune' })
+    expect(authenticatedApiCall).toHaveBeenLastCalledWith('search_works', { q: 'Dune', limit: 20 })
   })
 
   it.each([

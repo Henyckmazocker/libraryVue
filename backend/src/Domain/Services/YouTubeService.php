@@ -6,6 +6,9 @@ namespace App\Domain\Services;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Promise\PromiseInterface;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 use App\Infrastructure\Cache\CacheService;
 use App\Infrastructure\Cache\ResilientCall;
@@ -111,6 +114,54 @@ class YouTubeService
     }
 
     /**
+     * La misma búsqueda, sin esperarla: devuelve la promesa
+     *
+     * La usa el buscador general, que consulta tres proveedores a la vez. El
+     * cliente llega de fuera **a propósito**: la concurrencia solo aparece si las
+     * tres promesas salen del mismo `Client` de Guzzle, porque cada uno trae su
+     * handler de cURL y `wait()` solo hace avanzar el suyo.
+     *
+     * Devuelve `null` sin clave configurada, que es lo mismo que hace
+     * `searchVideosResilient()`: el medio se queda fuera de la tanda en vez de
+     * fallar. No cachea ni degrada; de eso se encarga
+     * `ResilientCall::aroundMany()`.
+     *
+     * @param ClientInterface $http Cliente COMPARTIDO por los tres proveedores
+     */
+    public function searchVideosPromise(ClientInterface $http, string $query, int $maxResults = 20): ?PromiseInterface
+    {
+        if (empty($this->apiKey)) {
+            return null;
+        }
+
+        return $http->requestAsync('GET', self::BASE_URL . '/search', [
+            'query' => [
+                'key'        => $this->apiKey,
+                'q'          => $query,
+                'part'       => 'snippet',
+                'type'       => 'video',
+                'maxResults' => min(50, max(1, $maxResults)),
+            ],
+            'timeout' => 10.0,
+            'connect_timeout' => 3.0,
+        ]);
+    }
+
+    /**
+     * Lee la respuesta de la promesa de arriba, normalizando como siempre
+     *
+     * Reutiliza `normalizeSearchItem()`, que es la misma que usa el camino
+     * síncrono: la forma de un vídeo se decide en un solo sitio.
+     */
+    public function parseSearchResponse(ResponseInterface $response): array
+    {
+        $data  = json_decode((string) $response->getBody(), true);
+        $items = $data['items'] ?? [];
+
+        return array_map(fn ($item) => $this->normalizeSearchItem($item), $items);
+    }
+
+    /**
      * Get detailed metadata for a single video by YouTube ID
      *
      * @param string $videoId 11-char YouTube video ID
@@ -160,6 +211,26 @@ class YouTubeService
 
     // ─── Private helpers ─────────────────────────────────────────────────────
 
+    /**
+     * El texto de YouTube viene ESCAPADO como HTML, y hay que deshacerlo aquí
+     *
+     * La API devuelve `snippet.title` con entidades —`Hunger Games&#39; Best
+     * Scenes`, `Tom &amp; Jerry`—, y todo lo que consume esto lo pinta con
+     * interpolación de Vue, que vuelve a escapar: el usuario lee `&#39;` tal
+     * cual. Se veía en `/videos` desde siempre y en `/search` desde que existe.
+     *
+     * Va en los DOS normalizadores a propósito. El de detalle es el que alimenta
+     * `add_video`, así que sin esto el título entra **escapado en la base** y ya
+     * no hay dónde arreglarlo.
+     *
+     * Devuelve texto plano, nunca marcado: quien lo pinta lo escapa, así que
+     * decodificar aquí no abre ninguna vía de inyección.
+     */
+    private function texto(?string $valor): string
+    {
+        return html_entity_decode($valor ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
+
     private function normalizeSearchItem(array $item): array
     {
         $snippet   = $item['snippet']   ?? [];
@@ -168,12 +239,12 @@ class YouTubeService
 
         return [
             'youtube_id'   => $videoId,
-            'title'        => $snippet['title']       ?? '',
-            'channel_name' => $snippet['channelTitle'] ?? '',
+            'title'        => $this->texto($snippet['title']       ?? ''),
+            'channel_name' => $this->texto($snippet['channelTitle'] ?? ''),
             'channel_id'   => $snippet['channelId']   ?? '',
             'cover_url'    => $this->getBestThumbnail($thumbnails),
             'published_at' => $snippet['publishedAt'] ?? null,
-            'description'  => $snippet['description'] ?? '',
+            'description'  => $this->texto($snippet['description'] ?? ''),
         ];
     }
 
@@ -188,8 +259,8 @@ class YouTubeService
 
         return [
             'youtube_id'       => $item['id'] ?? '',
-            'title'            => $snippet['title']        ?? '',
-            'channel_name'     => $snippet['channelTitle'] ?? '',
+            'title'            => $this->texto($snippet['title']        ?? ''),
+            'channel_name'     => $this->texto($snippet['channelTitle'] ?? ''),
             'channel_id'       => $snippet['channelId']   ?? '',
             'cover_url'        => $this->getBestThumbnail($thumbnails),
             // Legible, no el ISO 8601 que manda YouTube: esto se pinta en la
@@ -199,7 +270,7 @@ class YouTubeService
             'view_count'       => isset($statistics['viewCount'])  ? (int)$statistics['viewCount']  : null,
             'like_count'       => isset($statistics['likeCount'])  ? (int)$statistics['likeCount']  : null,
             'published_at'     => $snippet['publishedAt'] ?? null,
-            'description'      => $snippet['description'] ?? '',
+            'description'      => $this->texto($snippet['description'] ?? ''),
             'categories'       => $snippet['tags']        ?? [],
         ];
     }

@@ -30,6 +30,7 @@ import { useTrending } from '@/composables/useTrending';
 import { storeToRefs } from 'pinia';
 import Logger from '@/utils/logger';
 import { useI18n } from '@/composables/useI18n';
+import { mediaRegistry } from '@/config/mediaRegistry';
 
 const { t } = useI18n();
 
@@ -92,28 +93,6 @@ const searchVideos = async (query) => {
 };
 
 // Transform YouTube result to internal format
-const transformResult = (result) => {
-  return {
-    id: result.id || result.youtube_id || result.youtubeId,
-    youtube_id: result.id || result.youtube_id || result.youtubeId,
-    youtubeId: result.id || result.youtube_id || result.youtubeId,
-    title: result.title || result.name || '',
-    channel_name: result.channel_name || result.channelName || '',
-    channel_id: result.channel_id || result.channelId || '',
-    cover_url: result.thumbnail || result.cover_url || result.coverUrl || null,
-    coverUrl: result.thumbnail || result.cover_url || result.coverUrl || null,
-    duration: result.duration || '',
-    duration_seconds: result.duration_seconds || result.durationSeconds || 0,
-    view_count: result.view_count || result.viewCount || 0,
-    like_count: result.like_count || result.likeCount || 0,
-    published_at: result.published_at || result.publishedAt || '',
-    description: result.description || '',
-    categories: result.categories || [],
-    user_rating: null,
-    userStatuses: [],
-    itemType: 'video'
-  };
-};
 
 // Navigate to video detail
 const navigateToDetail = (router, video) => {
@@ -160,7 +139,9 @@ const searchConfig = computed(() => ({
   media: 'video',
   staleProvider: 'YouTube',
   searchHandler: searchVideos,
-  transformResult: transformResult,
+  // La transformación vive en el registry desde el M1: la comparte con
+  // el buscador general en vez de existir dos veces.
+  transformResult: mediaRegistry.video.api.search.transform,
   navigateToDetail: navigateToDetail,
   getResultKey: getResultKey,
   fetchAllowedStatuses: fetchAllowedStatuses

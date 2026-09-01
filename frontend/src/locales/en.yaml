@@ -603,6 +603,7 @@ recommend:
 header:
   appName: Personal Library
   signInGoogle: Sign in with Google
+  search: Search every catalogue
   lists: My lists
   clubs: My clubs
   avatarAlt: User
@@ -952,6 +953,13 @@ dashboardCharts:
   pagesSeries: Pages read
   addedSeries: Added per month
   months: Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec
+
+generalSearch:
+  title: Search every catalogue
+  placeholder: Type once and search books, films, series, games, albums and videos...
+  loadingRemote: Searching books, games and videos...
+  failed: Could not reach {medios}. The rest of the results are here.
+  empty: Nothing matches “{query}”.
 
 searchPage:
   books:

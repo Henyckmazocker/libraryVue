@@ -42,6 +42,7 @@ import { useUIStore } from '@/store/ui';
 import { storeToRefs } from 'pinia';
 import Logger from '@/utils/logger';
 import { useI18n } from '@/composables/useI18n';
+import { mediaRegistry } from '@/config/mediaRegistry';
 
 const { t } = useI18n();
 
@@ -132,22 +133,6 @@ const searchMovies = async (query, searchType) => {
   return [];
 };
 
-// Transformar resultado de búsqueda
-const transformResult = (result) => {
-  return {
-    isbn: result.imdbID,
-    imdbID: result.imdbID,
-    title: result.Title,
-    Title: result.Title,
-    year: result.Year,
-    Year: result.Year,
-    coverUrl: result.Poster !== 'N/A' ? result.Poster : null,
-    Poster: result.Poster,
-    user_rating: 0,
-    userStatuses: [],
-    type: result.Type || 'movie'   // 'movie' | 'series' | 'episode'
-  };
-};
 
 // Navegación a detalle
 const navigateToDetail = (router, movie) => {
@@ -238,7 +223,9 @@ const searchConfig = computed(() => ({
   carouselItemComponent: MovieCarouselItem,
   itemProp: 'movie',
   searchHandler: searchMovies,
-  transformResult: transformResult,
+  // La transformación vive en el registry desde el M1: la comparte con
+  // el buscador general en vez de existir dos veces.
+  transformResult: mediaRegistry.movie.api.search.transform,
   navigateToDetail: navigateToDetail,
   getResultKey: getResultKey,
   fetchAllowedStatuses: fetchAllowedStatuses,

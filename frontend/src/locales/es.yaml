@@ -615,6 +615,7 @@ recommend:
 header:
   appName: Biblioteca Personal
   signInGoogle: Iniciar sesión con Google
+  search: Buscar en todos los catálogos
   lists: Mis listas
   clubs: Mis clubs
   avatarAlt: Usuario
@@ -977,6 +978,13 @@ dashboardCharts:
 
 # La configuración de los cinco `*Search.vue`, que viaja a `GenericSearch` como
 # objeto y no como plantilla: la regla del lint no la ve.
+generalSearch:
+  title: Buscar en todos los catálogos
+  placeholder: Escribe una vez y busca en libros, películas, series, juegos, discos y vídeos...
+  loadingRemote: Buscando en libros, juegos y vídeos...
+  failed: No se pudo consultar {medios}. El resto de resultados sí está.
+  empty: No hay nada que case con «{query}».
+
 searchPage:
   books:
     title: Buscador de Libros (Google Books + OpenLibrary)

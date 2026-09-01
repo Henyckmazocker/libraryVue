@@ -70,12 +70,12 @@ docker compose up --build   # equivalente crudo: NO migra ni arranca el mirror
 
 # Tests backend (PHPUnit 11, dentro del contenedor backend)
 docker compose --profile test up -d mysql-test   # lo necesita la suite de integración
-docker compose exec backend composer test        # las DOS suites: 1422 tests
+docker compose exec backend composer test        # las DOS suites: 1430 tests
 docker compose exec backend composer test:unit   # la rápida: 1272, sin necesitar mysql-test
-docker compose exec backend composer test:integration   # 150, contra una BD desechable
+docker compose exec backend composer test:integration   # 158, contra una BD desechable
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
-docker compose exec frontend npm test            # 416 tests
+docker compose exec frontend npm test            # 440 tests
 docker compose exec frontend npm run test:watch
 docker compose exec frontend npx vue-cli-service lint --no-fix   # lo corre también ./dev-setup.sh
 docker compose exec frontend npm run lint:styles                 # stylelint; también en ./dev-setup.sh
@@ -141,6 +141,15 @@ se cachean en `mb_track` (ver abajo).
   `search_works`, `search_igdb_games`, `search_youtube_videos` y `get_listening_stats` lo sacan en
   `data`. **`stale` nunca falta** y **`cached_at` puede ser `null` con `stale: true`**, así que jamás
   se pasa por `date('c', …)` sin comprobarlo: con `null` daría hoy y el aviso mentiría.
+- **Para varias llamadas a la vez está `ResilientCall::aroundMany()`, no un bucle de `around()`.**
+  Dos fases: la caché de todas primero, y luego una sola tanda con `Utils::settle`. **La concurrencia
+  de Guzzle solo aparece si las promesas salen del MISMO `Client`** —cada uno trae su handler de cURL
+  y `wait()` solo hace avanzar el suyo—: medido, tres clientes distintos dan una ventana igual a la
+  suma y uno compartido igual a la petición más larga. No es el reintento del perfil `web`, que era
+  lo que se sospechaba. Por eso `SearchCatalogRemoteUseCase` crea uno y se lo presta a los tres
+  servicios, que exponen `*Promise()` + `parse*Response()`, con el timeout **por petición**. Y a
+  diferencia de `around()`, **no lanza**: un medio sin caché sale con `failed: true` y lista vacía,
+  porque un proveedor caído no puede tumbar la búsqueda de los otros dos.
 - **Un 404 no es una degradación**, y eso llega hasta el aviso. `GetListeningStatsUseCase` captura la
   excepción de un álbum que Last.fm no tiene y devuelve `data: null` con `stale: false`: marcarlo
   rancio pintaría un aviso de proveedor caído sobre una respuesta.
@@ -456,6 +465,44 @@ se cachean en `mb_track` (ver abajo).
   para un medio desconocido o un id vacío, en vez de reventar como `getMediaConfig`, porque quien
   llama es la tarjeta del feed y `feed_events.entity_type` es NULLable. Si añades una ruta de
   detalle, no le pongas un campo nuevo al registry: rellena esos dos.
+- **Lo que sabe buscar un medio vive en `api.search` del registry, y antes MENTÍA.** Cuatro campos:
+  `action`, `payload(query, limit)`, `transform` y `titleOf`. Hasta el 2026-09-01 el registry
+  declaraba **cuatro acciones que no existen** en `config/routes.php` —`search_book_isbn`,
+  `search_book_name`, `search_movie_name`, `search_game_name`—; las reales son `search_works`,
+  `search_movies_omdb` y `search_igdb_games`. No lo vio nadie porque su único consumidor,
+  `createMediaStore.search()`, **no lo llamaba nadie**, y un test llegó a fijar la llamada imposible.
+  **Verifica contra `routes.php` cualquier acción que escribas ahí.** El `payload` existe porque los
+  seis llaman distinto al mismo parámetro —`q`, `title`, `query`— y **vídeos no llama `limit` al
+  límite**: lee `maxResults` (`VideoController.php:111`), y mandar `limit` lo dejaba en su defecto sin
+  error.
+- **`MediaListItem` pinta los SEIS medios, pero está pensado para lo GUARDADO.** Necesita el bloque
+  `list` del registry, y `series` lo estrenó el 2026-09-01 tomándolo de `movie` —le vale verbatim,
+  salen de la misma respuesta OMDb—; sin él revienta con `config.value.list is undefined` en cuanto
+  una serie entra en una lista mezclada, cosa que en `/library` no pasa porque ahí una serie se
+  guarda como película. Y como pregunta por la copia **local** y si no hay pinta `list.coverOf`,
+  quien enseñe **catálogo** debe rellenar la portada con `CoverService.catalogCoverUrl()`: el mirror
+  devuelve `Poster: null` en las búsquedas de película y serie, también en `search_movies_omdb`.
+- **Las píldoras de filtro por medio son UNA, en `components/_filter-pills.scss`.** Las comparten
+  `/library` y `/search`. El mixin **no impone la disposición de la fila** —ni `display`, ni `gap`, ni
+  márgenes—: eso lo pone cada consumidor, y es lo que permitió sacarlo de `MyLibrary` sin moverle un
+  píxel.
+- **Al abrir una ficha, pásale el ítem en `state`, no solo la ruta.** `MediaDetailView` arranca de
+  `history.state?.[stateKey]` (`:348`) y solo si no hay nada depende de reconstruirlo. En libros eso
+  significa `search_google_books_isbn`, o sea `q=isbn:…`, y **Google no indexa por ISBN todos los
+  volúmenes que devuelve en una búsqueda**: medido, 13 de 19 ISBN válidos no se encontraban. Sin el
+  `state`, la ficha no abre.
+- **De Google Books se devuelven FILAS, no volúmenes.** `parseVolumesResponse()` mapea a
+  `{isbn, title, author, cover_i, …}`, que es lo que espera `searchTransformBook`; devolver el volumen
+  crudo dejó el buscador general **sin un solo libro** durante horas, sin ningún error a la vista. Su
+  namespace de caché lleva versión por eso. Y los volúmenes **sin ISBN se descartan**: la ficha vive en
+  `/books/:isbn` y una fila que no abre es peor que una que falta.
+- **El buscador general son DOS acciones, partidas por velocidad y no por dominio.**
+  `search_catalog_local` (película, serie, álbum: mirror, ~300 ms, `limit: 120` declarado como
+  `search_movies_omdb`) y `search_catalog_remote` (libros, juegos, vídeos: red, los tres a la vez).
+  `/search` las lanza **a la vez**, pinta lo local con `MediaSkeleton` reservando el hueco y reordena
+  al llegar la red. El orden lo decide `utils/searchRelevance.js`, función pura de cinco escalones que
+  **normaliza sin acentos ni signos** y desempata por `mediaKeys`; el escalón de palabra entera existe
+  por los títulos cortos («it», «up»), que sin él llenan la primera pantalla de coincidencias casuales.
 - **Cuando la búsqueda sirve caché caducada, se dice, y una vez.**
   `components/shared/StaleNotice.vue` es la franja, y la gobierna un `supportsStale` del bloque `api`
   del registry: lo declaran **`book`, `game` y `video`**, y películas y álbumes **no**, que es lo que
@@ -732,9 +779,9 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 
 1. `docker compose up --build`; `POST http://localhost:8888/index.php` con `{"action":"ping"}`.
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
-3. `docker compose exec backend composer test` → verde (1422 tests: 1272 unitarios + 150 de
+3. `docker compose exec backend composer test` → verde (1430 tests: 1272 unitarios + 158 de
    integración; estos necesitan `docker compose --profile test up -d mysql-test`).
-4. `docker compose exec frontend npm test` → verde (416 tests) y
+4. `docker compose exec frontend npm test` → verde (440 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
 5. **`docker compose exec frontend npm run build` → `Build complete`.** No es redundante con el paso
    anterior: **ninguno de los tres comandos de arriba compila SCSS**. Los helpers de

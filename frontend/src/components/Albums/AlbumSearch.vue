@@ -30,6 +30,7 @@ import { useTrending } from '@/composables/useTrending';
 import { storeToRefs } from 'pinia';
 import Logger from '@/utils/logger';
 import { useI18n } from '@/composables/useI18n';
+import { mediaRegistry } from '@/config/mediaRegistry';
 
 const { t } = useI18n();
 
@@ -88,32 +89,6 @@ const searchAlbums = async (query) => {
 };
 
 // Transform Spotify result to internal format
-const transformResult = (result) => {
-  return {
-    id: result.id,
-    spotify_id: result.id || result.spotify_id,
-    spotifyId: result.id || result.spotify_id,
-    title: result.name || result.title,
-    name: result.name || result.title,
-    artist: result.artists?.[0]?.name || result.artist || '',
-    artist_id: result.artists?.[0]?.id || result.artist_id || '',
-    release_date: result.release_date || result.releaseDate || '',
-    release_date_precision: result.release_date_precision || 'year',
-    cover_url: result.images?.[0]?.url || result.cover_url || result.coverUrl || null,
-    coverUrl: result.images?.[0]?.url || result.cover_url || result.coverUrl || null,
-    genres: result.genres || [],
-    label: result.label || '',
-    total_tracks: result.total_tracks || result.totalTracks || 0,
-    album_type: result.album_type || result.albumType || 'album',
-    duration_ms: result.duration_ms || result.durationMs || 0,
-    popularity: result.popularity || 0,
-    external_url: result.external_urls?.spotify || result.external_url || '',
-    upc: result.upc || '',
-    user_rating: null,
-    userStatuses: [],
-    itemType: 'album'
-  };
-};
 
 // Navigate to album detail
 const navigateToDetail = (router, album) => {
@@ -174,7 +149,9 @@ const searchConfig = computed(() => ({
   carouselItemComponent: AlbumCarouselItem,
   itemProp: 'album',
   searchHandler: searchAlbums,
-  transformResult: transformResult,
+  // La transformación vive en el registry desde el M1: la comparte con
+  // el buscador general en vez de existir dos veces.
+  transformResult: mediaRegistry.album.api.search.transform,
   navigateToDetail: navigateToDetail,
   getResultKey: getResultKey,
   fetchAllowedStatuses: fetchAllowedStatuses

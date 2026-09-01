@@ -481,6 +481,7 @@ const searchQuery = searchSystem.query;
 
 <style lang="scss">
 @use '@/assets/styles/abstracts' as *;
+@use '@/assets/styles/components/filter-pills' as *;
 
 .library-container {
   display: flex;
@@ -649,6 +650,11 @@ const searchQuery = searchSystem.query;
 
 /* Checkboxes para filtro de tipo */
 .filter-checkboxes {
+  // El aspecto de la píldora sale de `components/_filter-pills.scss`, que se
+  // compartió con el buscador general el 2026-09-01. La disposición de la fila
+  // —el gap, los márgenes— se queda aquí a propósito: el mixin no la impone.
+  @include filter-pills;
+
   display: flex;
   flex-wrap: wrap;
   gap: spacing(md);
@@ -659,35 +665,6 @@ const searchQuery = searchSystem.query;
 
 .filter-checkboxes-row {
   justify-content: flex-start;
-}
-
-.filter-checkbox-pill {
-  display: flex;
-  align-items: center;
-  background: var(--color-background-soft);
-  border: 1.5px solid var(--color-border);
-  border-radius: radius(full);
-  padding: spacing(xs) spacing(md) spacing(xs) spacing(sm);
-  font-size: var(--font-size-base);
-  color: var(--color-text);
-  box-shadow: var(--shadow-light);
-  transition: var(--transition-fast);
-  cursor: pointer;
-  user-select: none;
-}
-
-.filter-checkbox-pill input[type="checkbox"] {
-  accent-color: var(--color-primary);
-  margin-right: spacing(xs);
-  width: 18px;
-  height: 18px;
-}
-
-.filter-checkboxes label {
-  color: var(--color-text);
-  font-size: var(--font-size-base);
-  cursor: pointer;
-  user-select: none;
 }
 
 .filter-checkboxes input[type="checkbox"] {

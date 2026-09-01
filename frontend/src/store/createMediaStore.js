@@ -166,8 +166,10 @@ export function createMediaStore (media) {
     },
 
     /**
-     * Busca en la API externa del medio. `api.search` es el nombre de la acción,
-     * o una función cuando el medio elige entre varias (libros: ISBN o título).
+     * Busca en la API externa del medio. Todo lo que distingue a un medio de
+     * otro —la acción, cómo se llama su parámetro, cómo se transforma cada
+     * resultado— sale de `api.search`, el bloque del registry. Antes se
+     * construía aquí a mano, contra acciones que no existían.
      */
     async search (query) {
       if (!query || query.trim() === '') {
@@ -182,20 +184,20 @@ export function createMediaStore (media) {
       try {
         Logger.debug(`${log} Searching ${collection}: "${query}"`)
         const authStore = useAuthStore()
-        const [action, payload] = typeof api.search === 'function'
-          ? api.search(query)
-          : [api.search, { [api.searchKey || 'name']: query }]
-
-        const response = await authStore.authenticatedApiCall(action, payload)
+        const response = await authStore.authenticatedApiCall(
+          api.search.action,
+          api.search.payload(query)
+        )
 
         if (response.data.status === 'success') {
           // La mayoría de búsquedas devuelven la lista pelada en `data`; las que
           // avisan de degradación (vídeos) la anidan bajo su colección para poder
           // mandar `stale`/`cached_at` al lado. Se aceptan las dos formas.
           const payload = response.data.data
-          this.searchResults = Array.isArray(payload)
+          const crudos = Array.isArray(payload)
             ? payload
             : (payload?.[collection] || [])
+          this.searchResults = crudos.map(api.search.transform)
           Logger.debug(`${log} Found ${this.searchResults.length} ${collection}`)
           return this.searchResults
         }

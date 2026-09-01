@@ -31,6 +31,7 @@ import { useUIStore } from '@/store/ui';
 import { storeToRefs } from 'pinia';
 import Logger from '@/utils/logger';
 import { useI18n } from '@/composables/useI18n';
+import { mediaRegistry, bookCoverUrl } from '@/config/mediaRegistry';
 
 const { t } = useI18n();
 
@@ -92,18 +93,6 @@ const detectSearchType = (query) => {
 };
 
 // Función para obtener URL de portada
-const getBookCoverUrl = (cover_i) => {
-  if (!cover_i) return '';
-  
-  // Convertir a string si es número
-  const coverStr = String(cover_i);
-  
-  if (coverStr.startsWith('https://') || coverStr.startsWith('http://')) {
-    return coverStr; // Google Books URL
-  } else {
-    return `https://covers.openlibrary.org/b/id/${coverStr}-L.jpg`; // OpenLibrary ID
-  }
-};
 // Handler de búsqueda para libros usando el composable
 const searchBooks = async (query, searchType) => {
   if (searchType === 'name') {
@@ -150,22 +139,6 @@ const searchBooks = async (query, searchType) => {
   return [];
 };
 
-// Transformar resultado de búsqueda
-const transformResult = (result) => {
-  const isbn = Array.isArray(result.isbn) ? result.isbn[0] : result.isbn;
-  return {
-    isbn: isbn,
-    title: result.title || t('media.book.titleUnavailable'),
-    author: Array.isArray(result.author) ? result.author.join(', ') : (result.author || t('book.unknownAuthor')),
-    coverUrl: getBookCoverUrl(result.cover_i),
-    cover_i: result.cover_i,
-    publisher: result.publisher,
-    pages: result.pages,
-    genres: result.genres,
-    user_rating: 0,
-    userStatuses: []
-  };
-};
 
 // Navegación a detalle
 const navigateToDetail = (router, book) => {
@@ -184,7 +157,7 @@ const navigateToDetail = (router, book) => {
     title: book.title || t('media.book.titleUnavailable'),
     authors: Array.isArray(book.author) ? book.author : (book.author ? [book.author] : [t('book.unknownAuthor')]),
     publicationDate: book.publicationDate || '',
-    coverUrl: getBookCoverUrl(book.cover_i),
+    coverUrl: bookCoverUrl(book.cover_i),
     pages: book.pages || null,
     description: book.description || '',
     publishers: Array.isArray(book.publisher) ? book.publisher : (book.publisher ? [book.publisher] : []),
@@ -259,7 +232,9 @@ const searchConfig = computed(() => ({
   media: 'book',
   staleProvider: t('bookSearch.openLibrary'),
   searchHandler: searchBooks,
-  transformResult: transformResult,
+  // La transformación vive en el registry desde el M1: la comparte con
+  // el buscador general en vez de existir dos veces.
+  transformResult: mediaRegistry.book.api.search.transform,
   navigateToDetail: navigateToDetail,
   getResultKey: getResultKey,
   fetchAllowedStatuses: fetchAllowedStatuses,

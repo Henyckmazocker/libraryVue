@@ -250,6 +250,156 @@ function openLibraryFields (olData, edition) {
   return fields
 }
 
+// ─── Búsqueda: de la forma del proveedor a la que pinta la lista ────────────
+//
+// Estas seis viven aquí y no dentro de cada `*Search.vue` porque el buscador
+// general las necesita todas a la vez, y tenerlas en los SFC obligaría a
+// escribirlas dos veces. Son las mismas que estaban en los `transformResult` de
+// los cinco wrappers, movidas sin cambiarlas.
+//
+// NO se fusionan con `transformOmdb` ni con `transformIgdbGame`, que son las de
+// la FICHA: aquellas devuelven la forma rica del detalle y `transformOmdb`
+// además fija `itemType: 'movie'`, con lo que perdería el `type` de OMDb
+// —`movie` | `series` | `episode`— que es justo por donde se separan películas
+// y series.
+
+/**
+ * La portada de un libro llega como URL de Google Books o como id de OpenLibrary.
+ * Se exporta porque `BookSearch.vue` la necesita también para navegar a la ficha,
+ * y tener dos copias de la misma regla es cómo se desincronizan.
+ */
+export function bookCoverUrl (coverI) {
+  if (!coverI) return ''
+  const s = String(coverI)
+  return s.startsWith('http') ? s : `https://covers.openlibrary.org/b/id/${s}-L.jpg`
+}
+
+function searchTransformBook (result) {
+  const isbn = Array.isArray(result.isbn) ? result.isbn[0] : result.isbn
+  return {
+    isbn,
+    title: result.title || t('media.book.titleUnavailable'),
+    author: Array.isArray(result.author) ? result.author.join(', ') : (result.author || t('book.unknownAuthor')),
+    coverUrl: bookCoverUrl(result.cover_i),
+    cover_i: result.cover_i,
+    publisher: result.publisher,
+    pages: result.pages,
+    genres: result.genres,
+    user_rating: 0,
+    userStatuses: []
+  }
+}
+
+/** Películas y series salen de la MISMA respuesta; `type` es lo que las separa. */
+function searchTransformOmdb (result) {
+  return {
+    isbn: result.imdbID,
+    imdbID: result.imdbID,
+    title: result.Title,
+    Title: result.Title,
+    year: result.Year,
+    Year: result.Year,
+    coverUrl: result.Poster !== 'N/A' ? result.Poster : null,
+    Poster: result.Poster,
+    user_rating: 0,
+    userStatuses: [],
+    type: result.Type || 'movie'   // 'movie' | 'series' | 'episode'
+  }
+}
+
+function searchTransformGame (result) {
+  const developers = result.involved_companies
+    ?.filter((ic) => ic.developer)
+    .map((ic) => ({ name: ic.company?.name || 'Unknown' })) || []
+
+  const publishers = result.involved_companies
+    ?.filter((ic) => ic.publisher)
+    .map((ic) => ({ name: ic.company?.name || 'Unknown' })) || []
+
+  const releaseDate = result.first_release_date
+    ? new Date(result.first_release_date * 1000).toISOString().split('T')[0]
+    : null
+
+  const cover = result.cover?.url
+    ? `https:${result.cover.url.replace('t_thumb', 't_cover_big')}`
+    : null
+
+  return {
+    id: result.id,
+    igdbId: result.id,
+    gameId: result.id,
+    title: result.name,
+    name: result.name,
+    originalTitle: result.name,
+    releaseDate,
+    released: releaseDate,
+    coverUrl: cover,
+    background_image: cover,
+    rating: result.rating ? Math.round(result.rating / 20) : null, // IGDB va de 0 a 100
+    platforms: result.platforms || [],
+    genres: result.genres || [],
+    developers,
+    publishers,
+    description: result.summary || '',
+    user_rating: null,
+    userStatuses: [],
+    itemType: 'game'
+  }
+}
+
+function searchTransformAlbum (result) {
+  const cover = result.images?.[0]?.url || result.cover_url || result.coverUrl || null
+  return {
+    id: result.id,
+    spotify_id: result.id || result.spotify_id,
+    spotifyId: result.id || result.spotify_id,
+    title: result.name || result.title,
+    name: result.name || result.title,
+    artist: result.artists?.[0]?.name || result.artist || '',
+    artist_id: result.artists?.[0]?.id || result.artist_id || '',
+    release_date: result.release_date || result.releaseDate || '',
+    release_date_precision: result.release_date_precision || 'year',
+    cover_url: cover,
+    coverUrl: cover,
+    genres: result.genres || [],
+    label: result.label || '',
+    total_tracks: result.total_tracks || result.totalTracks || 0,
+    album_type: result.album_type || result.albumType || 'album',
+    duration_ms: result.duration_ms || result.durationMs || 0,
+    popularity: result.popularity || 0,
+    external_url: result.external_urls?.spotify || result.external_url || '',
+    upc: result.upc || '',
+    user_rating: null,
+    userStatuses: [],
+    itemType: 'album'
+  }
+}
+
+function searchTransformVideo (result) {
+  const id = result.id || result.youtube_id || result.youtubeId
+  const cover = result.thumbnail || result.cover_url || result.coverUrl || null
+  return {
+    id,
+    youtube_id: id,
+    youtubeId: id,
+    title: result.title || result.name || '',
+    channel_name: result.channel_name || result.channelName || '',
+    channel_id: result.channel_id || result.channelId || '',
+    cover_url: cover,
+    coverUrl: cover,
+    duration: result.duration || '',
+    duration_seconds: result.duration_seconds || result.durationSeconds || 0,
+    view_count: result.view_count || result.viewCount || 0,
+    like_count: result.like_count || result.likeCount || 0,
+    published_at: result.published_at || result.publishedAt || '',
+    description: result.description || '',
+    categories: result.categories || [],
+    user_rating: null,
+    userStatuses: [],
+    itemType: 'video'
+  }
+}
+
 export const mediaRegistry = {
   book: {
     key: 'book',
@@ -513,12 +663,17 @@ export const mediaRegistry = {
       // fetchBooks no llama al backend: get_library_items lo comparte con
       // películas a través de _libraryCache.js, y de ahí sale `data.books`.
       list: { fromLibraryCache: 'books', stamp: { itemType: 'book' } },
-      // ⚠ Único medio con DOS acciones de búsqueda: elige por forma del query.
-      search: (query) => {
-        const isISBN = /^\d{10}(\d{3})?$/.test(query.replace(/[-\s]/g, ''))
-        return isISBN
-          ? ['search_book_isbn', { isbn: query }]
-          : ['search_book_name', { name: query }]
+      search: {
+        // La acción REAL, verificada contra `backend/config/routes.php:175`.
+        // Lo que había antes eran dos acciones inventadas que nunca existieron
+        // en el backend, y nadie lo notó porque su único consumidor
+        // —`createMediaStore.search()`— no lo llamaba nadie.
+        action: 'search_works',
+        // Los seis medios llaman distinto al mismo parámetro; aquí es donde esa
+        // diferencia deja de propagarse. `q` lo lee `BookController.php:477`.
+        payload: (query, limit = 20) => ({ q: query, limit }),
+        transform: searchTransformBook,
+        titleOf: (item) => item.title
       },
       // Su búsqueda depende de una API viva sin dump abierto, así que el
       // backend puede servir caché caducada y `GenericSearch` tiene que
@@ -755,8 +910,14 @@ export const mediaRegistry = {
     },
     api: {
       list: { fromLibraryCache: 'movies', stamp: { itemType: 'movie' } },
-      search: 'search_movie_name',
-      searchKey: 'name',
+      search: {
+        // `search_movies_omdb` se llama así por historia: OMDb se retiró y hoy
+        // sirve el mirror local vía `FallbackMovieCatalog`. `routes.php:399`.
+        action: 'search_movies_omdb',
+        payload: (query, limit = 20) => ({ title: query, limit }),  // `title`: MovieController.php:347
+        transform: searchTransformOmdb,
+        titleOf: (item) => item.title
+      },
       add: 'add_movie',
       remove: 'delete_movie',
       rating: 'update_movie_rating',
@@ -988,8 +1149,12 @@ export const mediaRegistry = {
     api: {
       list: 'get_games',
       listPayload: { filters: {} },
-      search: 'search_game_name',
-      searchKey: 'name',
+      search: {
+        action: 'search_igdb_games',                                 // routes.php:1013
+        payload: (query, limit = 20) => ({ query, limit }),          // GameController.php:350
+        transform: searchTransformGame,
+        titleOf: (item) => item.title
+      },
       // Su búsqueda depende de una API viva sin dump abierto, así que el
       // backend puede servir caché caducada y `GenericSearch` tiene que
       // decirlo. Películas y álbumes NO lo declaran: los sirve el mirror
@@ -1275,8 +1440,12 @@ export const mediaRegistry = {
       // contrario de lo que decía el snippet de arquitectura de este plan.
       list: 'get_albums',
       listPayload: { filters: {} },
-      search: 'search_spotify_albums',
-      searchKey: 'name',
+      search: {
+        action: 'search_spotify_albums',                             // routes.php:1210
+        payload: (query, limit = 20) => ({ query, limit }),          // AlbumController.php:260
+        transform: searchTransformAlbum,
+        titleOf: (item) => item.title
+      },
       add: 'add_album',
       remove: 'delete_album',
       rating: 'update_album_rating',
@@ -1474,8 +1643,15 @@ export const mediaRegistry = {
     api: {
       list: 'get_videos',
       listPayload: { filters: {} },
-      search: 'search_youtube_videos',
-      searchKey: 'q',
+      search: {
+        action: 'search_youtube_videos',                             // routes.php:1429
+        // ⚠ El único que NO llama `limit` al límite: `VideoController.php:111`
+        // lee `maxResults`. Mandar `limit` aquí lo dejaría en su valor por
+        // defecto de 10 sin dar ningún error.
+        payload: (query, limit = 20) => ({ query, maxResults: limit }),
+        transform: searchTransformVideo,
+        titleOf: (item) => item.title
+      },
       // Su búsqueda depende de una API viva sin dump abierto, así que el
       // backend puede servir caché caducada y `GenericSearch` tiene que
       // decirlo. Películas y álbumes NO lo declaran: los sirve el mirror
@@ -1572,6 +1748,25 @@ export const mediaRegistry = {
       get unit () { return t('media.series.unit') },
       completedStatuses: ['viewed']
     },
+    api: {
+      // El sexto bloque, y el que se olvida: `series` no tiene store ni acción
+      // propia, pero SÍ sale de una búsqueda. Comparte respuesta con películas
+      // —la misma `search_movies_omdb`— y se separan en el cliente con
+      // `isSeries()`, que mira el `type` que `searchTransformOmdb` conserva.
+      // Quien itere esto tiene que recorrer `mediaKeys` (los seis) y NO
+      // `storeMediaKeys` (los cinco): es el error fácil que avisa este fichero.
+      search: {
+        action: 'search_movies_omdb',
+        payload: (query, limit = 20) => ({ title: query, limit }),
+        transform: searchTransformOmdb,
+        titleOf: (item) => item.title,
+        // Marca que esta entrada NO añade una petición: se sirve de la de
+        // películas. El buscador general tiene que deduplicar por aquí o pedirá
+        // dos veces lo mismo.
+        sharesActionWith: 'movie',
+        belongsHere: (item) => isSeries(item)
+      }
+    },
     detail: {
       // Dimensiones intrínsecas de la portada en esta familia, en px: el navegador las usa
       // para reservar la caja antes de que cargue la imagen. Salen de los mixins SCSS de la
@@ -1635,8 +1830,19 @@ export const mediaRegistry = {
   }
 }
 
-/** Los medios que el registry conoce, en el orden en que se declararon. */
+// `series` toma de `movie` los dos bloques que no declara, y fuera del literal
+// porque dentro no puede referirse a otra entrada del mismo objeto. Le valen
+// **verbatim**: las series salen de la MISMA respuesta que las películas
+// —`search_movies_omdb`, forma OMDb— y se separan por su `Type`, así que
+// `titleOf: i.Title`, `coverOf: i.Poster` e `idOf: i.imdbID` leen lo mismo.
+//
+// `list` se añadió el 2026-09-01 al meter series en el buscador general: sin él,
+// `MediaListItem` revienta con «config.value.list is undefined» en cuanto una
+// serie entra en una lista mezclada.
 mediaRegistry.series.libraryItem = mediaRegistry.movie.libraryItem
+mediaRegistry.series.list = mediaRegistry.movie.list
+
+/** Los medios que el registry conoce, en el orden en que se declararon. */
 
 export const mediaKeys = Object.keys(mediaRegistry)
 

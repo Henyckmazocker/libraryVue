@@ -177,13 +177,23 @@ const getStatusLabel = (status) => statusLabel(status);
 }
 
 // `list-item($entity, $aspect, $width)` se resuelve al compilar: se emiten las
-// cinco variantes y `:class` elige la del medio, igual que en MediaNotes.
+// variantes y `:class` elige la del medio, igual que en MediaNotes.
 .list-item--book  { @include list-item('book',  '2/3',  75px); }
 .list-item--game  { @include list-item('game',  '1/1',  60px); }
 .list-item--album { @include list-item('album', '1/1',  56px); }
 .list-item--video { @include list-item('video', '16/9', 56px); }
 
-.list-item--movie {
+// **`series` va aquí y no aparte**, con el acento de `movie`, porque es el que
+// declara en el registry (`accentVar: '--color-card-movie-accent'`), y porque las
+// dos comparten el badge que las distingue.
+//
+// Faltaba hasta el 2026-09-01, y no se notaba: en `/library` una serie se guarda
+// con `AddMovieUseCase` y su fila llega con `itemType: 'movie'`, así que siempre
+// se pintaba como película. Solo el buscador general pasa `media="series"` de
+// verdad, y sin esta variante la fila salía **sin una sola regla**: el icono, el
+// título, el badge y el chevron apilados en vertical.
+.list-item--movie,
+.list-item--series {
   @include list-item('movie', '2/3', 75px);
 
   .list-item__type-badge {

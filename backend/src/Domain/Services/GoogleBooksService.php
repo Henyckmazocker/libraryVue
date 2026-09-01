@@ -6,6 +6,9 @@ namespace App\Domain\Services;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Promise\PromiseInterface;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 use App\Infrastructure\Cache\CacheService;
 use App\Infrastructure\Cache\ResilientCall;
@@ -156,6 +159,114 @@ class GoogleBooksService
         return $merged;
     }
     
+    /**
+     * La búsqueda amplia, sin esperarla: devuelve la promesa
+     *
+     * La usa el buscador general (`/search`), que consulta tres proveedores a la
+     * vez. El cliente llega de fuera **a propósito**: la concurrencia solo
+     * aparece si las tres promesas salen del mismo `Client` de Guzzle, porque
+     * cada uno trae su handler de cURL y `wait()` solo hace avanzar el suyo.
+     *
+     * **Una petición y no dos, a diferencia de `runSearchStrategy()`.** Aquella
+     * pide primero `intitle:"query"` exacta y complementa con la amplia si no
+     * llena el cupo, que es lo que hace falta para llenar 40 resultados en la
+     * página de libros. En una lista mezclada con otros cinco medios se enseñan
+     * un puñado, la amplia da más variedad, y encadenar dos peticiones dentro de
+     * la promesa alargaría al proveedor que ya es el lento de los tres. `/books`
+     * sigue usando la estrategia de dos pasos y no cambia.
+     *
+     * No cachea ni degrada: de eso se encarga `ResilientCall::aroundMany()`.
+     *
+     * @param ClientInterface $http Cliente COMPARTIDO por los tres proveedores
+     */
+    public function searchBooksPromise(ClientInterface $http, string $query, int $maxResults = 20): PromiseInterface
+    {
+        $queryParams = $this->addApiKey([
+            'q' => "intitle:{$query}",
+            'maxResults' => min($maxResults, 40),   // el tope de Google Books
+            'printType' => 'books',
+            'orderBy' => 'relevance',
+        ]);
+
+        return $http->requestAsync('GET', self::BASE_URL . '/volumes', [
+            'query' => $queryParams,
+            // Los 5 s que este servicio lleva desde su constructor, ahora por
+            // petición: es lo que permite compartir cliente sin perder el suyo.
+            'timeout' => 5.0,
+            'connect_timeout' => 2.0,
+        ]);
+    }
+
+    /**
+     * Lee la respuesta de la promesa de arriba y la deja en la forma de una FILA
+     *
+     * **No devuelve los volúmenes crudos, y esa fue la causa de un bug real.** El
+     * `search.transform` del registry (`searchTransformBook`) espera
+     * `{isbn, title, author, cover_i, …}`, que es lo que en `/books` produce el
+     * `searchHandler` del SFC a partir de las obras agrupadas. Devolviendo el
+     * volumen crudo de Google —`{kind, id, etag, volumeInfo:{…}}`— la
+     * transformación no encontraba ni `title` ni `isbn`, cada libro salía como
+     * «título no disponible», puntuaba **0** contra la consulta y la relevancia
+     * lo descartaba: el buscador general **no enseñaba un solo libro** aunque el
+     * endpoint devolviera veinte.
+     *
+     * Se mapea aquí y no en el cliente para que la forma de un libro sea **una
+     * sola** en toda la app.
+     */
+    public function parseVolumesResponse(ResponseInterface $response): array
+    {
+        $data = json_decode((string) $response->getBody(), true);
+
+        $filas = array_map(
+            fn (array $volumen): array => $this->volumenAFila($volumen),
+            $data['items'] ?? []
+        );
+
+        // Fuera los volúmenes sin ISBN. La ficha vive en `/books/:isbn` y se
+        // enriquece con `search_google_books_isbn`: sin un ISBN de verdad, la fila
+        // se pinta pero **no lleva a ninguna parte**, y una fila que no abre es
+        // peor que una fila que falta. Suele ser 1 de cada 20 (medido con «harry
+        // potter»): ediciones antiguas que Google no publica con ISBN.
+        return array_values(array_filter($filas, fn (array $f): bool => $f['isbn'] !== ''));
+    }
+
+    /** Un volumen de Google Books en la forma que pinta la fila de resultado. */
+    private function volumenAFila(array $volumen): array
+    {
+        $info = $volumen['volumeInfo'] ?? [];
+
+        return [
+            // El ISBN es lo que la ficha necesita para resolverse (`/books/:isbn`).
+            // Se prefiere el de 13. **No se cae al id de Google**: no es un ISBN,
+            // la ficha no lo resuelve y la fila quedaría muerta; quien lea esto
+            // arriba la descarta.
+            'isbn' => $this->isbnDe($info) ?? '',
+            'title' => $info['title'] ?? '',
+            'author' => $info['authors'] ?? [],
+            // La miniatura de Google llega a veces en http; forzarla a https evita
+            // que producción la bloquee por contenido mixto.
+            'cover_i' => isset($info['imageLinks']['thumbnail'])
+                ? str_replace('http://', 'https://', $info['imageLinks']['thumbnail'])
+                : '',
+            'publisher' => $info['publisher'] ?? '',
+            'pages' => $info['pageCount'] ?? null,
+            'genres' => $info['categories'] ?? [],
+        ];
+    }
+
+    /** El ISBN-13 del volumen, o el de 10, o `null` si no publica ninguno. */
+    private function isbnDe(array $info): ?string
+    {
+        $porTipo = [];
+        foreach ($info['industryIdentifiers'] ?? [] as $id) {
+            if (isset($id['type'], $id['identifier'])) {
+                $porTipo[$id['type']] = $id['identifier'];
+            }
+        }
+
+        return $porTipo['ISBN_13'] ?? $porTipo['ISBN_10'] ?? null;
+    }
+
     /**
      * Perform actual search against Google Books API
      *

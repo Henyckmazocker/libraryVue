@@ -1,0 +1,46 @@
+// components/_filter-pills.scss
+// La fila de píldoras con checkbox que filtran por medio.
+//
+// Provee:
+//   - @mixin filter-pills
+//
+// Nació dentro de `MyLibrary.vue` y se sacó aquí el 2026-09-01, al necesitarla
+// también el buscador general: son dos pantallas que filtran por los mismos
+// medios y tenían que verse igual. Es la misma razón por la que `_buttons.scss`
+// existe — una copia en el segundo consumidor es como empiezan a divergir.
+
+@use '../abstracts' as *;
+
+// **El mixin NO decide la disposición de la fila** —ni `display`, ni `gap`, ni
+// márgenes—: eso lo pone cada consumidor, que es lo que permitió sacarlo de
+// `MyLibrary` sin moverle un píxel. Aquí vive solo el aspecto de la píldora.
+@mixin filter-pills {
+  .filter-checkbox-pill {
+    display: flex;
+    align-items: center;
+    background: var(--color-background-soft);
+    border: 1.5px solid var(--color-border);
+    border-radius: radius(full);
+    padding: spacing(xs) spacing(md) spacing(xs) spacing(sm);
+    font-size: var(--font-size-base);
+    color: var(--color-text);
+    box-shadow: var(--shadow-light);
+    transition: var(--transition-fast);
+    cursor: pointer;
+    user-select: none;
+
+    input[type='checkbox'] {
+      accent-color: var(--color-primary);
+      margin-right: spacing(xs);
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  label {
+    color: var(--color-text);
+    font-size: var(--font-size-base);
+    cursor: pointer;
+    user-select: none;
+  }
+}

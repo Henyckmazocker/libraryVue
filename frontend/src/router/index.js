@@ -31,6 +31,14 @@ const routes = [
     component: () => import('../components/Albums/AlbumSearch.vue')
   },
   {
+    // El buscador general: una caja, los seis medios. Nace conviviendo con las
+    // cinco páginas por medio de arriba, que no se tocan.
+    path: '/search',
+    name: 'GeneralSearch',
+    component: () => import('../views/SearchView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/library',
     name: 'MyLibrary',
     component: () => import('../components/MyLibrary.vue'),

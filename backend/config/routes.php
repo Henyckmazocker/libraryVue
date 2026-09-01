@@ -1016,6 +1016,33 @@ return [
         'validation' => ['query']
     ],
 
+    // ─── Buscador general: una consulta, los seis medios ────────────────────
+    //
+    // Dos acciones y no una, partidas por VELOCIDAD y no por medio: la local
+    // sale del mirror en milisegundos y la remota depende de internet. El
+    // frontend lanza las dos a la vez y pinta la local sin esperar a la otra.
+
+    'search_catalog_local' => [
+        'controller' => ['SearchController', 'searchCatalogLocal'],
+        'middleware' => [
+            // El mismo límite generoso que `search_movies_omdb` (:399), y por el
+            // mismo motivo: sale del mirror local y es barata. Sin esto caería en
+            // el de por defecto —60/min por IP, `RateLimitMiddleware:40`—, que
+            // con dos peticiones por búsqueda se agota en 30 búsquedas.
+            [RateLimitMiddleware::class, ['limit' => 120, 'window' => 60, 'by' => 'ip']],
+            LoggingMiddleware::class
+        ],
+        'validation' => ['query']
+    ],
+
+    'search_catalog_remote' => [
+        'controller' => ['SearchController', 'searchCatalogRemote'],
+        // Se queda con el rate limit por defecto: cada llamada sale a tres
+        // proveedores externos y ahí el techo protege a ellos, no a nosotros.
+        'middleware' => [LoggingMiddleware::class],
+        'validation' => ['query']
+    ],
+
     'get_igdb_game_by_id' => [
         'controller' => ['GameController', 'getIGDBGameById'],
         'middleware' => [LoggingMiddleware::class],

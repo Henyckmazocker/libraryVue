@@ -14,6 +14,7 @@ use App\Controllers\GameController;
 use App\Controllers\LibraryController;
 use App\Controllers\LibraryXController;
 use App\Controllers\ClubController;
+use App\Controllers\SearchController;
 use App\Controllers\ListController;
 use App\Controllers\StatsController;
 use App\Controllers\VideoController;
@@ -138,6 +139,7 @@ class ActionRouter
     private ?FeedController $feedController = null;
     private ?ListController $listController = null;
     private ?ClubController $clubController = null;
+    private ?SearchController $searchController = null;
 
     public function __construct(
         array $routes,
@@ -458,6 +460,11 @@ class ActionRouter
             'get_igdb_config' => $controller->getIGDBConfig(),
             'get_igdb_token' => $controller->getIGDBToken(),
             'search_igdb_games' => $controller->searchIGDBGames($data),
+
+            // BUSCADOR GENERAL — una consulta, los seis medios. Dos acciones
+            // partidas por velocidad: la local sale del mirror, la remota de red.
+            'search_catalog_local' => $controller->searchCatalogLocal($data),
+            'search_catalog_remote' => $controller->searchCatalogRemote($data),
             'get_igdb_game_by_id' => $controller->getIGDBGameById($data),
             'get_igdb_game_details' => $controller->getIGDBGameDetails($data),
 
@@ -780,6 +787,7 @@ class ActionRouter
             'FeedController' => $this->feedController ??= $this->container->get(FeedController::class),
             'ListController' => $this->listController ??= $this->container->get(ListController::class),
             'ClubController' => $this->clubController ??= $this->container->get(ClubController::class),
+            'SearchController' => $this->searchController ??= $this->container->get(SearchController::class),
             default => throw new \RuntimeException("Unknown controller: {$controllerName}")
         };
     }

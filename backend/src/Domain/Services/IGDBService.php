@@ -6,6 +6,9 @@ namespace App\Domain\Services;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Promise\PromiseInterface;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 use App\Infrastructure\Cache\CacheService;
 use App\Infrastructure\Cache\ResilientCall;
@@ -204,6 +207,55 @@ class IGDBService
             self::CACHE_TTL_SEARCH,
             fn() => $this->runGameSearch($query, $limit)
         );
+    }
+
+    /**
+     * La misma búsqueda, pero sin esperarla: devuelve la promesa
+     *
+     * La usa el buscador general, que consulta tres proveedores a la vez. El
+     * cliente llega de fuera **a propósito**: la concurrencia solo aparece si las
+     * tres promesas salen del mismo `Client` de Guzzle, porque cada uno trae su
+     * handler de cURL y `wait()` solo hace avanzar el suyo. Medido el 2026-09-01:
+     * tres clientes distintos tardan la suma, uno compartido tarda el máximo.
+     *
+     * El `timeout` viaja en la petición y no en el cliente, que es lo que permite
+     * que los tres compartan transporte sin perder el suyo — aquí, los 10 s que
+     * este servicio lleva puestos desde su constructor.
+     *
+     * No cachea ni degrada: de eso se encarga `ResilientCall::aroundMany()`, que
+     * es quien tiene el par clave/namespace. Aquí solo se construye la petición.
+     *
+     * @param ClientInterface $http Cliente COMPARTIDO por los tres proveedores
+     */
+    public function searchGamesPromise(ClientInterface $http, string $query, int $limit = 20): PromiseInterface
+    {
+        $body = "search \"{$query}\"; fields name, cover.url, first_release_date, summary, rating, platforms.name, genres.name, involved_companies.company.name, involved_companies.developer, involved_companies.publisher; limit {$limit};";
+
+        return $http->requestAsync('POST', self::BASE_URL . '/games', [
+            'headers' => [
+                'Client-ID' => $this->clientId,
+                // El token se resuelve AQUÍ y no dentro de la promesa: es otra
+                // llamada de red y meterla dentro la serializaría con las demás.
+                // Sale de caché 60 días de cada 60 (`CACHE_TTL_TOKEN`).
+                'Authorization' => 'Bearer ' . $this->getAccessToken(),
+                'Content-Type' => 'text/plain',
+            ],
+            'body' => $body,
+            'timeout' => 10.0,
+            'connect_timeout' => 3.0,
+        ]);
+    }
+
+    /** Lee la respuesta de la promesa de arriba. El par de `searchGamesPromise`. */
+    public function parseGamesResponse(ResponseInterface $response): array
+    {
+        return json_decode((string) $response->getBody(), true) ?? [];
+    }
+
+    /** La clave de caché de la búsqueda, para que quien orqueste use la misma. */
+    public function searchCacheKey(string $query, int $limit): string
+    {
+        return 'search_' . md5($query . '_' . $limit);
     }
 
     /**

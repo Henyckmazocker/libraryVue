@@ -147,7 +147,7 @@
             class="external-link"
           >
             <i class="fas fa-link" />
-            {{ websiteName(website.category) }}
+            {{ websiteName(website) }}
           </a>
         </div>
       </div>
@@ -246,14 +246,33 @@ const formatDate = (dateStr) => {
 
 const formatNumber = (num) => num.toLocaleString(intlLocale());
 
-// Casi todas las categorías de IGDB son nombres de marca y se quedan tal cual;
-// las dos que son texto salen del catálogo.
-const websiteName = (category) => ({
-  1: t('misc.officialSite'), 2: 'Wikia', 3: 'Wikipedia', 4: 'Facebook', 5: 'Twitter',
-  6: 'Twitch', 8: 'Instagram', 9: 'YouTube', 10: 'iPhone', 11: 'iPad',
-  12: 'Android', 13: 'Steam', 14: 'Reddit', 15: 'Discord', 16: 'Google+',
-  17: 'Tumblr', 18: 'LinkedIn'
-}[category] || t('misc.viewLink'));
+// El nombre del enlace lo pone IGDB, que manda el tipo ya legible ("Steam",
+// "GOG", "Bluesky"…). Aquí solo se traduce lo que es genérico: el resto son
+// marcas y en ningún idioma se dicen de otra forma.
+//
+// Antes había un mapa de 18 entradas indexado por `website.category`, y estaba
+// doblemente roto: IGDB retiró ese campo —así que los quince enlaces caían al
+// rótulo genérico y se llamaban todos igual— y además **renumeró los tipos**,
+// de modo que reutilizar el mapa contra el `id` nuevo habría etiquetado Epic
+// como «Google+», GOG como «Tumblr» y Discord como «LinkedIn». Un rótulo
+// genérico se ignora; uno falso se cree.
+const TIPOS_TRADUCIBLES = {
+  1: () => t('misc.officialSite'),   // Official Website
+  2: () => t('game.communityWiki'),  // Community Wiki
+  14: () => t('game.subreddit')      // Subreddit
+};
+
+/** El dominio, como último recurso: distingue un enlace de otro, que es lo mínimo. */
+const hostName = (url) => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
+};
+
+const websiteName = (website) =>
+  TIPOS_TRADUCIBLES[website?.type?.id]?.() || website?.type?.type || hostName(website?.url ?? '');
 
 </script>
 

@@ -484,7 +484,13 @@ async function enrich (isBackground) {
   error.value = null
 
   try {
-    const result = await d.value.enrich(routeId.value, authStore.apiCall.bind(authStore), item.value)
+    // El store va como cuarto argumento porque un medio puede necesitar resolver
+    // su id de catálogo contra lo que ya está guardado: la ruta de álbum admite el
+    // entero de la tabla `albums` (llega así desde trending) y el catálogo solo
+    // entiende MBID o base62. Los otros cinco medios lo ignoran.
+    const result = await d.value.enrich(
+      routeId.value, authStore.apiCall.bind(authStore), item.value, props.store
+    )
     if (result?.item) {
       item.value = result.item
       context.value = result.context ?? {}

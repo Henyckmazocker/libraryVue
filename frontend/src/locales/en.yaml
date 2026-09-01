@@ -207,7 +207,7 @@ media:
       label: Label
       tracks: Tracks
       duration: Duration
-      spotifyId: Spotify ID
+      catalogId: Catalog ID
       favouriteTrack: Favourite track
       firstListen: First listen
       lastListen: Last listen
@@ -557,6 +557,8 @@ game:
   screenshots: Screenshots
   description: Description
   links: External links
+  communityWiki: Community wiki
+  subreddit: Subreddit
   additional: Additional information
   ratingsCountLabel: "Number of ratings:"
   playtimeLabel: "Average playtime:"
@@ -1399,6 +1401,17 @@ toasts:
   albumSearchFailed: The albums could not be searched
   gameSearchFailed: The games could not be searched
 
+# Los rótulos de la barra inferior de móvil (`MobileNavBar.vue`). Son propios y no
+# los del sidebar a propósito: ahí caben «Mi Perfil» y «Amigos y Feed», y en cinco
+# pestañas de 390 px no caben. `stats` vivía en `misc` y se ha traído aquí, que era
+# su único consumidor.
+nav:
+  library: Library
+  stats: Stats
+  inbox: Inbox
+  social: Social
+  profile: Profile
+
 misc:
   album: Album
   compilation: Compilation
@@ -1407,9 +1420,7 @@ misc:
   unwatched: Unwatched
   localTrends: Local trends
   loadingContent: Loading content…
-  stats: Stats
   officialSite: Official site
-  viewLink: Open link
   hiddenUntilPage: 'Hidden until you reach page {page}'
   hiddenUntilDone: Hidden until you finish it
   wonLastRound: You won the previous round, so this time the others propose.

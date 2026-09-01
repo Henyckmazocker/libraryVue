@@ -310,7 +310,12 @@ class IGDBService
         try {
             $token = $this->getAccessToken();
 
-            $body = "where id = {$gameId}; fields name, cover.url, first_release_date, summary, rating, platforms.name, genres.name, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, screenshots.url, videos.video_id, websites.url, websites.category; limit 1;";
+            // `websites.type.type` y no `websites.category`: IGDB retiró `category` y el
+            // campo volvia SIEMPRE vacio, asi que el frontend no podia nombrar ni un
+            // enlace y los pintaba todos con el mismo rotulo generico. Pedir el sub-campo
+            // trae ademas su `id` (IGDB siempre incluye el id del sub-objeto), que es lo
+            // que permite traducir los tipos genericos sin tocar los nombres de marca.
+            $body = "where id = {$gameId}; fields name, cover.url, first_release_date, summary, rating, platforms.name, genres.name, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, screenshots.url, videos.video_id, websites.url, websites.type.type; limit 1;";
 
             $this->logger->info("IGDB: Getting game by ID", [
                 'game_id' => $gameId
@@ -393,7 +398,16 @@ class IGDBService
             ]);
 
             // Get game details
-            $gameBody = "fields name, cover.url, first_release_date, summary, rating, rating_count, platforms.name, genres.name, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, screenshots.url, age_ratings.category, age_ratings.rating, websites.url, websites.category; where id = {$gameId};";
+            // Misma correccion que en `getGameById()`: `websites.category` esta retirado
+            // en IGDB. Esta es la consulta que alimenta la ficha de detalle del juego.
+            //
+            // `age_ratings` tiene el MISMO problema: `category` y `rating` estan
+            // retirados y los sustituyen `organization` y `rating_category`, que son
+            // referencias y hay que expandir. Ojo con mezclarlos: mientras la proyeccion
+            // pedia tambien los dos campos muertos, IGDB devolvia las clasificaciones
+            // **solo con su `id`** y las expansiones validas se perdian con ellos, asi
+            // que parecia que tampoco existian. Pedirlas solas es lo que las trae.
+            $gameBody = "fields name, cover.url, first_release_date, summary, rating, rating_count, platforms.name, genres.name, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, screenshots.url, age_ratings.organization.name, age_ratings.rating_category.rating, websites.url, websites.type.type; where id = {$gameId};";
             
             $gameResponse = $this->client->post(self::BASE_URL . '/games', [
                 'headers' => [

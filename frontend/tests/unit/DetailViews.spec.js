@@ -216,7 +216,13 @@ describe('GameDetailView', () => {
     genres: [{ name: 'Metroidvania' }, { name: 'Acción' }],
     platforms: [{ platform: { name: 'PC' } }, { platform: { name: 'Nintendo Switch' } }],
     description: '<p>Un metroidvania</p><script>alert(1)</script>',
-    websites: [{ url: 'https://hollowknight.com', category: 1 }],
+    // La forma que devuelve IGDB desde que retiró `websites.category`: el tipo
+    // llega como objeto, con su id y su nombre ya legible.
+    websites: [
+      { url: 'https://hollowknight.com', type: { id: 1, type: 'Official Website' } },
+      { url: 'https://store.steampowered.com/app/367520', type: { id: 13, type: 'Steam' } },
+      { url: 'https://team-cherry.itch.io/hollow-knight' }
+    ],
     playtime: 30
   }
 
@@ -259,12 +265,23 @@ describe('GameDetailView', () => {
     expect(html).not.toContain('alert(1)')
   })
 
-  it('los enlaces externos traducen la categoría de IGDB', async () => {
+  it('cada enlace externo lleva su propio nombre, por las tres vías', async () => {
     conEstado('game', GAME)
     const wrapper = montar(GameDetailView)
     await flushPromises()
 
-    expect(wrapper.find('.external-link').text()).toContain('Sitio Oficial')
+    const enlaces = wrapper.findAll('.external-link').map((e) => e.text())
+
+    // 1. Tipo genérico → traducido desde el catálogo.
+    expect(enlaces[0]).toContain('Sitio Oficial')
+    // 2. Marca → el nombre que manda IGDB, sin traducir.
+    expect(enlaces[1]).toContain('Steam')
+    // 3. Sin tipo → el dominio, nunca un rótulo genérico.
+    expect(enlaces[2]).toContain('team-cherry.itch.io')
+
+    // Lo que motivó el cambio: quince enlaces distintos que se llamaban todos igual.
+    expect(new Set(enlaces).size).toBe(enlaces.length)
+
     expect(wrapper.find('.game-additional-info').text()).toContain('30 horas')
   })
 

@@ -70,12 +70,12 @@ docker compose up --build   # equivalente crudo: NO migra ni arranca el mirror
 
 # Tests backend (PHPUnit 11, dentro del contenedor backend)
 docker compose --profile test up -d mysql-test   # lo necesita la suite de integración
-docker compose exec backend composer test        # las DOS suites: 1430 tests
-docker compose exec backend composer test:unit   # la rápida: 1272, sin necesitar mysql-test
+docker compose exec backend composer test        # las DOS suites: 1437 tests
+docker compose exec backend composer test:unit   # la rápida: 1279, sin necesitar mysql-test
 docker compose exec backend composer test:integration   # 158, contra una BD desechable
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
-docker compose exec frontend npm test            # 440 tests
+docker compose exec frontend npm test            # 455 tests
 docker compose exec frontend npm run test:watch
 docker compose exec frontend npx vue-cli-service lint --no-fix   # lo corre también ./dev-setup.sh
 docker compose exec frontend npm run lint:styles                 # stylelint; también en ./dev-setup.sh
@@ -125,6 +125,22 @@ De Spotify solo quedan vivas tres acciones —pistas, artista y novedades—, ca
 Las **pistas** de los álbumes del mirror ya no salen de Spotify: se piden a la API de MusicBrainz y
 se cachean en `mb_track` (ver abajo).
 
+- **🪤 IGDB IGNORA EN SILENCIO LOS CAMPOS QUE NO CONOCE, y eso ya ha costado dos defectos de meses.**
+  Comprobado el 2026-09-01 pidiéndole un campo literalmente inventado: la respuesta fue **`success`**
+  con el resto de datos correctos. No hay error, no hay aviso y no hay log — el campo deja de venir
+  y lo que lo consume degrada a su rama por defecto. Así vivieron sin que nadie los viera
+  `websites.category` (retirado: los quince enlaces externos de una ficha de juego se llamaban todos
+  «Open link») y `age_ratings.category` (retirado: el badge de clasificación por edad **no se pintó
+  nunca**). Los reemplazos son `websites.type.type` y
+  `age_ratings.organization.name` + `age_ratings.rating_category.rating`, y son **referencias que hay
+  que expandir**. Tres consecuencias prácticas: **(1)** una proyección de IGDB no se puede verificar
+  leyéndola ni ejecutando la suite, solo consultando la API y mirando la respuesta; **(2)** al
+  corregir una, **quita los campos muertos antes de probar los nuevos** — mientras conviven, IGDB
+  devuelve la relación entera **solo con su `id`** y las expansiones válidas parecen no existir
+  tampoco; **(3)** IGDB **renumeró** los tipos de website, así que reutilizar un mapa viejo contra
+  los ids nuevos etiqueta Epic como «Google+» y GOG como «Tumblr»: un rótulo genérico se ignora, uno
+  falso se cree. Lo único que lo defiende es
+  `tests/Unit/Domain/Services/IGDBProjectionTest.php`, que fija el texto de las proyecciones.
 - **Ningún servicio construye su propio cliente HTTP.** `Infrastructure/Http/HttpClientFactory` es la
   única fábrica, y `grep -rn "new Client(" backend/src` debe seguir devolviendo **solo** ese fichero.
   Da un `HandlerStack` con reintento en **dos perfiles**: `PROFILE_WEB` (2 intentos, 250 ms de
@@ -779,9 +795,9 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 
 1. `docker compose up --build`; `POST http://localhost:8888/index.php` con `{"action":"ping"}`.
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
-3. `docker compose exec backend composer test` → verde (1430 tests: 1272 unitarios + 158 de
+3. `docker compose exec backend composer test` → verde (1437 tests: 1279 unitarios + 158 de
    integración; estos necesitan `docker compose --profile test up -d mysql-test`).
-4. `docker compose exec frontend npm test` → verde (440 tests) y
+4. `docker compose exec frontend npm test` → verde (455 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
 5. **`docker compose exec frontend npm run build` → `Build complete`.** No es redundante con el paso
    anterior: **ninguno de los tres comandos de arriba compila SCSS**. Los helpers de

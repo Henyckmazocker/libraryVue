@@ -48,12 +48,16 @@ const { isNativeOrMobile: isVisible } = useBreakpoint();
 // funcionalidades sociales de agosto —listas, clubs y bandeja— no tenían entrada
 // ninguna. Las búsquedas y `/lists` y `/clubs` viven donde ya vivían en escritorio:
 // el menú lateral, que en móvil se abre desde la cabecera.
+// Los cinco rótulos van por getter, como el resto de lo que se evalúa al importarse:
+// un valor se congelaría con el catálogo aún vacío, y además así la barra cambia de
+// idioma sin recargar. Cuatro de los cinco estaban escritos en español a pelo, y con
+// la app en inglés la barra inferior salía en español bajo una interfaz en inglés.
 const tabs = [
-  { path: '/library',   icon: 'fas fa-bookmark',  label: 'Biblioteca'   },
-  { path: '/dashboard', icon: 'fas fa-chart-bar', get label () { return t('misc.stats') } },
-  { path: '/inbox',     icon: 'fas fa-inbox',     label: 'Bandeja'      },
-  { path: '/friends',   icon: 'fas fa-users',     label: 'Social'       },
-  { path: '/profile',   icon: 'fas fa-user',      label: 'Perfil'       },
+  { path: '/library',   icon: 'fas fa-bookmark',  get label () { return t('nav.library') } },
+  { path: '/dashboard', icon: 'fas fa-chart-bar', get label () { return t('nav.stats')   } },
+  { path: '/inbox',     icon: 'fas fa-inbox',     get label () { return t('nav.inbox')   } },
+  { path: '/friends',   icon: 'fas fa-users',     get label () { return t('nav.social')  } },
+  { path: '/profile',   icon: 'fas fa-user',      get label () { return t('nav.profile') } },
 ];
 
 // El MISMO contador que pinta la campanita de `Header.vue:95`, no uno nuevo: es el

@@ -16,6 +16,7 @@ import tmdbLogo from '@/assets/tmdbLogo.svg'
 // con el catálogo vacío. Un getter se evalúa al leerlo y además queda suscrito, así
 // que la interfaz cambia de idioma sin recargar.
 import { t } from '@/config/i18n'
+import { formatDate } from '@/utils/dates'
 
 const NOTE_TYPES_DEFAULT = [
   { get label() { return t('media.noteTypes.note'); }, value: 'note' },
@@ -129,7 +130,7 @@ function metacriticClass (score) {
 }
 
 /** Pasa la respuesta de IGDB a la forma que usa la ficha de juego. */
-function transformIgdbGame (igdbGame) {
+export function transformIgdbGame (igdbGame) {
   const developers = igdbGame.involved_companies
     ?.filter((ic) => ic.developer)
     .map((ic) => ({ name: ic.company?.name || 'Unknown' })) || []
@@ -141,6 +142,25 @@ function transformIgdbGame (igdbGame) {
   const releaseDate = igdbGame.first_release_date
     ? new Date(igdbGame.first_release_date * 1000).toISOString().split('T')[0]
     : null
+
+  // La clasificación por edad. Se prefiere PEGI, que es la que aplica en España, y se
+  // cae a ESRB si el juego no la tiene; las demás organizaciones de IGDB (3 CERO,
+  // 4 USK, 5 GRAC, 6 CLASS_IND, 7 ACB) no se usan. No se elige por idioma activo:
+  // `en` no dice si es Reino Unido (PEGI) o Estados Unidos (ESRB).
+  //
+  // Antes se filtraba por `r.category === 1`, y `category` es un campo que IGDB retiró:
+  // como la API **ignora en silencio** lo que no conoce, la clasificación llegaba
+  // siempre sin él, el `find` no encontraba nada y el badge de
+  // `GameDetailView.vue:31-35` no se pintaba nunca.
+  const ORGANISMOS_EDAD = [2, 1] // PEGI primero, ESRB de reserva
+  const clasificacion = ORGANISMOS_EDAD
+    .map((id) => igdbGame.age_ratings?.find((r) => r.organization?.id === id))
+    .find(Boolean)
+  // Con el organismo delante: el valor de PEGI es un número desnudo («16») y solo no
+  // significa nada. `organization.name` viene en la misma respuesta.
+  const esrbRating = clasificacion?.rating_category?.rating
+    ? `${clasificacion.organization?.name ?? ''} ${clasificacion.rating_category.rating}`.trim()
+    : ''
 
   return {
     id: igdbGame.id,
@@ -157,9 +177,11 @@ function transformIgdbGame (igdbGame) {
     description_raw: igdbGame.summary || '',
     rating: igdbGame.rating ? Math.round(igdbGame.rating / 20) : null,
     ratings_count: igdbGame.rating_count || 0,
-    // category === 1 es ESRB.
-    esrb_rating: igdbGame.age_ratings?.find((r) => r.category === 1),
-    esrbRating: igdbGame.age_ratings?.find((r) => r.category === 1)?.rating,
+    // Los dos llevan la CADENA («E10+», «M»), no el objeto: es lo que guarda la columna
+    // `games.esrb_rating` (varchar) y lo que el badge sabe pintar. La rama de objeto que
+    // queda en `GameDetailView.vue:35` es tolerancia a lo guardado antes, no a esto.
+    esrb_rating: esrbRating,
+    esrbRating,
     platforms: igdbGame.platforms || [],
     genres: igdbGame.genres || [],
     developers,
@@ -842,8 +864,12 @@ export const mediaRegistry = {
           get label() { return t('media.movie.fields.originalTitle'); },
           value: (i) => (i.originalTitle && i.originalTitle !== i.title ? i.originalTitle : '')
         },
+        // `i.author` NO va aquí: es la misma persona que `i.director`. La tabla `movie`
+        // heredó del esquema de libros una columna `author`, y el mapeo de OMDb rellena
+        // las dos con `omdb.Director` (`:187-188`), así que declararlas las dos pintaba
+        // la fila «Director» dos veces seguidas. La columna se queda: atraviesa mappers,
+        // DTOs y stores. Lo que se va es enseñarla.
         { cls: 'movie-director', get label() { return t('media.movie.fields.director'); }, value: (i) => i.director },
-        { cls: 'movie-author', get label() { return t('media.movie.fields.director'); }, value: (i) => i.author },
         { cls: 'movie-year', get label() { return t('media.movie.fields.year'); }, value: (i) => i.year },
         // Sin `v-if`: la ficha de película siempre pinta el IMDb ID.
         { cls: 'movie-isbn', get label() { return t('media.movie.fields.imdbId'); }, value: (i) => i.isbn, always: true }
@@ -1275,8 +1301,18 @@ export const mediaRegistry = {
       // trending), por eso se prefiere el spotify_id del ítem ya cargado.
       existingOf: (store, item, routeId) => store.getAlbumBySpotifyId(item.spotify_id || item.id || routeId) ||
         store.getAlbumById(Number(item.id ?? routeId)),
-      enrich: async (routeId, apiCall, current) => {
-        const spotifyId = current?.spotify_id || current?.id || routeId
+      enrich: async (routeId, apiCall, current, store) => {
+        // El parámetro de ruta puede ser el entero de la tabla `albums` —llega así
+        // desde trending—, y el catálogo enruta por la FORMA del id: MBID al mirror,
+        // base62 a Spotify (`AlbumController::getSpotifyAlbum`). Un entero no es
+        // ninguno de los dos y devolvía 404 con la ficha entera en estado de error.
+        // Cuando la ruta trae un entero, el id bueno sale de la fila que ya está en
+        // el store.
+        const guardado = /^\d+$/.test(String(routeId))
+          ? store?.getAlbumById?.(Number(routeId))
+          : null
+        const spotifyId = current?.spotify_id || current?.id ||
+          guardado?.mb_release_group_gid || guardado?.spotify_id || routeId
         const response = await apiCall('get_spotify_album', { spotifyId })
         if (response.data.status !== 'success' || !response.data.data) return null
 
@@ -1384,7 +1420,11 @@ export const mediaRegistry = {
         { cls: 'album-label', get label() { return t('media.album.fields.label'); }, value: (i) => i.label },
         { cls: 'album-tracks', get label() { return t('media.album.fields.tracks'); }, value: (i) => i.total_tracks || i.totalTracks },
         { cls: 'album-duration', get label() { return t('media.album.fields.duration'); }, value: albumDuration },
-        { cls: 'album-id', get label() { return t('media.album.fields.spotifyId'); }, value: (i) => i.spotify_id }
+        // No se llama «Spotify ID» porque muy a menudo no lo es: `:1418` rellena
+        // `spotify_id` con `album.id` cuando no hay id de Spotify, y en un álbum del
+        // mirror de MusicBrainz eso es un MBID. El rótulo dice de dónde sale el id sin
+        // mentir sobre cuál de los dos catálogos lo emitió.
+        { cls: 'album-id', get label() { return t('media.album.fields.catalogId'); }, value: (i) => i.spotify_id }
       ],
       extrasWrapped: true,
       extras: [
@@ -1584,7 +1624,9 @@ export const mediaRegistry = {
       fields: [
         { cls: 'video-channel', get label() { return t('media.video.fields.channel'); }, value: (i) => i.channel_name || i.channelName },
         { cls: 'video-duration', get label() { return t('media.video.fields.duration'); }, value: (i) => i.duration },
-        { cls: 'video-published', get label() { return t('media.video.fields.published'); }, value: (i) => i.published_at || i.publishedAt },
+        // YouTube manda la fecha en ISO-8601 con hora y zona, y sin esto se pintaba
+        // tal cual: «2026-08-10T20:54:12Z».
+        { cls: 'video-published', get label() { return t('media.video.fields.published'); }, value: (i) => formatDate(i.published_at || i.publishedAt) },
         { cls: 'video-id', get label() { return t('media.video.fields.youtubeId'); }, value: (i) => i.youtube_id || i.youtubeId }
       ],
       extrasWrapped: true,

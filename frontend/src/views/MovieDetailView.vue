@@ -32,28 +32,28 @@
       <div class="movie-metadata">
         <span
           v-if="item.year"
-          class="metadata-item"
+          class="meta-pill"
         >
           <i class="fas fa-calendar" />
           {{ item.year }}
         </span>
         <span
           v-if="item.rated"
-          class="metadata-item"
+          class="meta-pill"
         >
           <i class="fas fa-certificate" />
           {{ item.rated }}
         </span>
         <span
           v-if="item.runtime"
-          class="metadata-item"
+          class="meta-pill"
         >
           <i class="fas fa-clock" />
           {{ item.type === 'series' ? item.runtime + ' / ep.' : item.runtime }}
         </span>
         <span
           v-if="item.country"
-          class="metadata-item"
+          class="meta-pill"
         >
           <i class="fas fa-globe" />
           {{ item.country }}
@@ -71,7 +71,7 @@
       <div class="movie-ratings">
         <div
           v-if="item.imdbRating && item.imdbRating !== 'N/A'"
-          class="rating-item"
+          class="meta-pill"
         >
           <i class="fab fa-imdb" />
           <strong>{{ t('movie.imdb') }}</strong> {{ t('movie.imdbScore', { n: item.imdbRating }) }}
@@ -82,7 +82,7 @@
         </div>
         <div
           v-if="item.metascore && item.metascore !== 'N/A'"
-          class="rating-item"
+          class="meta-pill"
         >
           <i class="fas fa-star" />
           <strong>{{ t('movie.metascore') }}</strong> {{ t('movie.metaScore', { n: item.metascore }) }}
@@ -94,7 +94,7 @@
           <div
             v-for="(rating, index) in item.ratings"
             :key="index"
-            class="rating-item"
+            class="meta-pill"
           >
             <i class="fas fa-star-half-alt" />
             <strong>{{ rating.Source }}:</strong> {{ rating.Value }}
@@ -102,7 +102,7 @@
         </div>
       </div>
 
-      <div class="movie-imdb-id">
+      <div class="meta-identifier">
         <strong>{{ t('movie.imdbId') }}</strong> {{ item.imdbID }}
       </div>
 
@@ -277,7 +277,7 @@ const moviesStore = useMoviesStore();
   .movie-awards-section,
   .movie-production-section,
   .movie-links-section,
-  .library-form-section {
+  .library-section {
     @include detail-section-card;
   }
 
@@ -370,47 +370,32 @@ const moviesStore = useMoviesStore();
     i { color: var(--color-card-movie-accent); }
   }
 
+  // Las notas externas ya no son una caja aparte: cada una es una `.meta-pill` más
+  // y el contenedor solo las agrupa en la misma fila que el resto de metadatos.
   .movie-ratings {
     display: flex;
-    flex-direction: column;
-    gap: spacing(sm);
-    margin: spacing(sm) 0;
-    padding: spacing(sm);
-    background: var(--color-background-soft);
-    border-radius: radius(md);
-
-    @include responsive-below(md) {
-      flex-direction: column;
-      gap: spacing(xs);
-      padding: spacing(xs);
-    }
-  }
-
-  .additional-ratings {
-    display: flex;
     flex-wrap: wrap;
-    gap: spacing(sm);
-    padding-top: spacing(xs);
-    border-top: 1px solid var(--color-border);
+    gap: spacing(xs);
+    margin: spacing(sm) 0;
   }
 
-  .rating-item {
-    display: flex;
-    align-items: center;
-    gap: spacing(xs);
-    font-size: var(--font-size-base);
+  // `contents` y no `flex`: así las notas adicionales fluyen en la MISMA fila que
+  // las dos primeras en vez de formar un grupo aparte. Hoy el mirror solo devuelve
+  // `imdbRating`, pero el marcado admite varias y con esto se comportan igual.
+  .additional-ratings {
+    display: contents;
+  }
 
-    i {
-      font-size: var(--font-size-lg);
-      /* stylelint-disable-next-line color-no-hex -- IMDb: color de marca, drift intencional (styles.md) */
-      color: #f5c518;
-    }
-
+  .movie-ratings .meta-pill {
     .votes {
       color: var(--color-text-muted);
-      font-size: var(--font-size-sm);
+      font-size: var(--font-size-xs);
       margin-left: spacing(2xs);
     }
+
+    // El oro de IMDb gana al acento del medio que la pastilla pone por defecto.
+    /* stylelint-disable-next-line color-no-hex -- IMDb: color de marca, drift intencional (styles.md) */
+    i { color: #f5c518; }
   }
 
   .movie-genres {

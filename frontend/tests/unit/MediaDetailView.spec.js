@@ -167,13 +167,28 @@ describe('MediaDetailView — formulario de biblioteca', () => {
     expect(wrapper.find('.notes-section').exists()).toBe(true)
   })
 
-  it('vídeo, álbum y juego usan `.library-section` sin icono en el encabezado', async () => {
-    conEstado('game', { name: 'Hollow Knight', id: 7 })
-    const wrapper = montar('game', crearStore())
+  // Este test afirmaba lo contrario hasta el 2026-09-02: que vídeo, álbum y juego
+  // usaban `.library-section` **sin** icono mientras libro, película y serie usaban
+  // `.library-form-section` **con** icono. Esa bifurcación la declaraban tres banderas
+  // del registry que nadie había decidido —venían de respetar la divergencia existente
+  // al unificar las seis vistas—, y se retiraron. Ahora la sección es la misma para los
+  // seis, y eso es lo que se fija aquí.
+  it.each([
+    ['game', { name: 'Hollow Knight', id: 7 }],
+    ['album', { title: 'Graduation', id: 3 }],
+    ['video', { title: 'Charla', youtube_id: 'abc' }],
+    ['book', { title: 'Dune', isbn: '9788466342667' }],
+    ['movie', { title: 'The Matrix', imdbID: 'tt0133093' }]
+  ])('%s usa `.library-section` con su encabezado con icono', async (media, item) => {
+    conEstado(media, item)
+    const wrapper = montar(media, crearStore())
     await wrapper.vm.$nextTick()
 
     expect(wrapper.find('.library-section').exists()).toBe(true)
-    expect(wrapper.find('.library-section .section-title').exists()).toBe(false)
+    expect(wrapper.find('.library-section .section-title').exists()).toBe(true)
+    expect(wrapper.find('.library-section .section-title i').exists()).toBe(true)
+    // La clase que se retiró no puede volver por la puerta de atrás.
+    expect(wrapper.find('.library-form-section').exists()).toBe(false)
   })
 })
 

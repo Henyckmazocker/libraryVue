@@ -33,28 +33,28 @@
       <div class="video-metadata">
         <span
           v-if="item.duration"
-          class="metadata-item"
+          class="meta-pill"
         >
           <i class="fas fa-clock" />
           {{ item.duration }}
         </span>
         <span
           v-if="publishedYear(item)"
-          class="metadata-item"
+          class="meta-pill"
         >
           <i class="fas fa-calendar" />
           {{ publishedYear(item) }}
         </span>
         <span
           v-if="item.view_count || item.viewCount"
-          class="metadata-item"
+          class="meta-pill"
         >
           <i class="fas fa-eye" />
           {{ t('video.views', { n: formatCount(item.view_count || item.viewCount) }) }}
         </span>
         <span
           v-if="item.like_count || item.likeCount"
-          class="metadata-item"
+          class="meta-pill"
         >
           <i class="fas fa-thumbs-up" />
           {{ formatCount(item.like_count || item.likeCount) }}

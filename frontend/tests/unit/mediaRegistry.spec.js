@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { detailRouteFor, mediaKeys } from '@/config/mediaRegistry'
+import { detailRouteFor, getMediaConfig, mediaKeys } from '@/config/mediaRegistry'
 import router from '@/router'
 
 /**
@@ -65,5 +65,33 @@ describe('detailRouteFor — lo que no se puede enlazar', () => {
   // `!entityId` se lo comería junto con la cadena vacía.
   it('un entityId 0 sí es un destino', () => {
     expect(detailRouteFor('game', 0)).toEqual({ name: 'GameDetail', params: { gameId: 0 } })
+  })
+})
+
+/**
+ * La estructura de la ficha es UNA, no dos.
+ *
+ * Hasta el 2026-09-02, el bloque `detail` de cada medio traía tres banderas
+ * —`librarySectionClass`, `libraryTitleIcon` y `divider`— que partían los seis en
+ * dos grupos idénticos: libro, película y serie con icono y filete; juego, álbum y
+ * vídeo con un `<h2>` pelado. Nadie lo había decidido: venía de respetar la
+ * divergencia que ya existía al unificar las seis vistas en `MediaDetailView`.
+ *
+ * Este test es la única barrera posible contra que reaparezca, y el momento en que
+ * reaparecería es al añadir un medio nuevo copiando el bloque del de al lado.
+ */
+describe('el bloque `detail` no bifurca la estructura por medio', () => {
+  const BANDERAS_PROHIBIDAS = ['librarySectionClass', 'libraryTitleIcon', 'divider']
+
+  it.each(mediaKeys)('%s no declara ninguna bandera de estructura', (media) => {
+    const detail = getMediaConfig(media).detail
+
+    for (const bandera of BANDERAS_PROHIBIDAS) {
+      expect(
+        Object.prototype.hasOwnProperty.call(detail, bandera),
+        `\`${media}.detail.${bandera}\` volvió: la sección de biblioteca es la misma `
+        + 'para los seis medios y su forma se decide en la plantilla, no en el registry.'
+      ).toBe(false)
+    }
   })
 })

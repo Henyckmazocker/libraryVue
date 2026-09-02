@@ -29,28 +29,28 @@
       <div class="series-metadata">
         <span
           v-if="item.year"
-          class="metadata-item"
+          class="meta-pill"
         >
           <i class="fas fa-calendar" />
           {{ item.year }}
         </span>
         <span
           v-if="item.rated"
-          class="metadata-item"
+          class="meta-pill"
         >
           <i class="fas fa-certificate" />
           {{ item.rated }}
         </span>
         <span
           v-if="item.runtime"
-          class="metadata-item"
+          class="meta-pill"
         >
           <i class="fas fa-clock" />
           {{ t('series.runtimePerEpisode', { n: item.runtime }) }}
         </span>
         <span
           v-if="item.country"
-          class="metadata-item"
+          class="meta-pill"
         >
           <i class="fas fa-globe" />
           {{ item.country }}
@@ -68,7 +68,7 @@
       <div class="series-ratings">
         <div
           v-if="item.imdbRating && item.imdbRating !== 'N/A'"
-          class="rating-item"
+          class="meta-pill"
         >
           <i class="fab fa-imdb" />
           <strong>{{ t('movie.imdb') }}</strong> {{ t('movie.imdbScore', { n: item.imdbRating }) }}
@@ -79,14 +79,14 @@
         </div>
         <div
           v-if="item.metascore && item.metascore !== 'N/A'"
-          class="rating-item"
+          class="meta-pill"
         >
           <i class="fas fa-star" />
           <strong>{{ t('movie.metascore') }}</strong> {{ t('movie.metaScore', { n: item.metascore }) }}
         </div>
       </div>
 
-      <div class="series-imdb-id">
+      <div class="meta-identifier">
         <strong>{{ t('movie.imdbId') }}</strong> {{ item.imdbID }}
       </div>
 
@@ -259,7 +259,7 @@ watch(() => detalle.value?.item?.imdbID, (imdbId) => {
   .series-awards-section,
   .series-links-section,
   .season-tracker-section,
-  .library-form-section {
+  .library-section {
     @include detail-section-card;
   }
 
@@ -334,24 +334,16 @@ watch(() => detalle.value?.item?.imdbID, (imdbId) => {
     margin: spacing(xs) 0;
   }
 
-  .rating-item {
-    display: flex;
-    align-items: center;
-    gap: spacing(2xs);
-    font-size: var(--font-size-sm);
-
-    /* stylelint-disable-next-line color-no-hex -- IMDb: color de marca, drift intencional (styles.md) */
-    i { color: #f5c518; }
-
+  // Como en la ficha de película: la nota es una pastilla más, con el oro de IMDb
+  // ganando al acento del medio.
+  .series-ratings .meta-pill {
     .votes {
       color: var(--color-text-secondary);
       font-size: var(--font-size-xs);
     }
-  }
 
-  .series-imdb-id {
-    font-size: var(--font-size-sm);
-    color: var(--color-text-secondary);
+    /* stylelint-disable-next-line color-no-hex -- IMDb: color de marca, drift intencional (styles.md) */
+    i { color: #f5c518; }
   }
 
   .series-genres {

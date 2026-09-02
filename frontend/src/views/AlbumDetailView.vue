@@ -22,28 +22,28 @@
       <div class="album-metadata">
         <span
           v-if="releaseYear(item)"
-          class="metadata-item"
+          class="meta-pill"
         >
           <i class="fas fa-calendar" />
           {{ releaseYear(item) }}
         </span>
         <span
           v-if="item.total_tracks || item.totalTracks"
-          class="metadata-item"
+          class="meta-pill"
         >
           <i class="fas fa-music" />
           {{ t('album.tracks', { n: item.total_tracks || item.totalTracks }) }}
         </span>
         <span
           v-if="item.label"
-          class="metadata-item"
+          class="meta-pill"
         >
           <i class="fas fa-building" />
           {{ item.label }}
         </span>
         <span
           v-if="formattedDuration(item)"
-          class="metadata-item"
+          class="meta-pill"
         >
           <i class="fas fa-clock" />
           {{ formattedDuration(item) }}
@@ -253,7 +253,7 @@ const albumTypeLabel = (type) => {
     padding: spacing(3xs) spacing(sm);
     border-radius: radius(full);
     background: var(--color-card-album-accent);
-    color: white;
+    color: var(--color-on-overlay);
     font-size: var(--font-size-xs);
     font-weight: 600;
     text-transform: uppercase;

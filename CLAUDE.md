@@ -75,7 +75,7 @@ docker compose exec backend composer test:unit   # la rápida: 1279, sin necesit
 docker compose exec backend composer test:integration   # 158, contra una BD desechable
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
-docker compose exec frontend npm test            # 455 tests
+docker compose exec frontend npm test            # 465 tests
 docker compose exec frontend npm run test:watch
 docker compose exec frontend npx vue-cli-service lint --no-fix   # lo corre también ./dev-setup.sh
 docker compose exec frontend npm run lint:styles                 # stylelint; también en ./dev-setup.sh
@@ -797,7 +797,7 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
 3. `docker compose exec backend composer test` → verde (1437 tests: 1279 unitarios + 158 de
    integración; estos necesitan `docker compose --profile test up -d mysql-test`).
-4. `docker compose exec frontend npm test` → verde (455 tests) y
+4. `docker compose exec frontend npm test` → verde (465 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
 5. **`docker compose exec frontend npm run build` → `Build complete`.** No es redundante con el paso
    anterior: **ninguno de los tres comandos de arriba compila SCSS**. Los helpers de

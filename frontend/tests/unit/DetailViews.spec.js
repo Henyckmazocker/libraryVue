@@ -238,8 +238,13 @@ describe('GameDetailView', () => {
     expect(meta).toContain('2017')
     expect(meta).toContain('E10+')
 
-    expect(wrapper.find('.game-ratings').text()).toContain('5 / 5')
-    expect(wrapper.find('.rating-count').text()).toContain('12.345 valoraciones')
+    // Las dos notas son `.meta-pill` desde el 2026-09-02, como el resto de los
+    // metadatos: se afirma sobre el contenedor y no sobre la clase de cada una,
+    // que es lo que ató este test a la forma anterior.
+    const notas = wrapper.find('.game-ratings')
+    expect(notas.text()).toContain('5 / 5')
+    expect(notas.text()).toContain('12.345 valoraciones')
+    expect(notas.findAll('.meta-pill')).toHaveLength(2)
   })
 
   it('pinta géneros y plataformas como etiquetas, con su icono de marca', async () => {

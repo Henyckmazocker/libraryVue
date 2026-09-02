@@ -130,22 +130,15 @@
         :existing="existing"
       />
 
-      <div
-        v-if="d.divider"
-        class="section-divider"
-      />
-
-      <!-- Vídeo, álbum y juego usan `.library-section` con un `<h2>` pelado;
-           película, serie y libro, `.library-form-section` con icono. -->
-      <div :class="d.librarySectionClass">
-        <h2
-          v-if="d.libraryTitleIcon"
-          class="section-title"
-        >
+      <!-- Una sola forma para los seis medios. Hasta el 2026-09-02 esto se bifurcaba
+           con tres banderas del registry —`librarySectionClass`, `libraryTitleIcon` y
+           `divider`— que partían los medios en dos grupos idénticos sin que nadie lo
+           hubiera decidido: venían de respetar la divergencia que ya había al unificar
+           las seis vistas. Se queda la variante con icono porque el icono conmuta con
+           el acento del medio y es lo único de la sección que dice de qué ficha es. -->
+      <div class="library-section">
+        <h2 class="section-title">
           <i :class="['fas', existing ? 'fa-edit' : 'fa-save']" />
-          {{ existing ? d.libraryTitleExisting : d.libraryTitleNew }}
-        </h2>
-        <h2 v-else>
           {{ existing ? d.libraryTitleExisting : d.libraryTitleNew }}
         </h2>
         <LibraryMediaItem
@@ -675,7 +668,6 @@ defineExpose({ item, context, existing, reload: loadData, setItem })
 
 // Las secciones que pinta este componente, no el wrapper.
 .library-section,
-.library-form-section,
 .notes-section {
   @include detail-section-card;
 }
@@ -812,7 +804,7 @@ defineExpose({ item, context, existing, reload: loadData, setItem })
     aspect-ratio: 3 / 4;
     background: linear-gradient(135deg, var(--color-card-movie-accent) 0%, var(--color-card-movie-accent) 100%);
     border: none;
-    color: white;
+    color: var(--color-on-overlay);
     font-size: 4rem;
   }
 }

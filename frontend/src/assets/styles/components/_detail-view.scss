@@ -7,7 +7,7 @@
 //
 //     .book-description-section,
 //     .book-subjects-section,
-//     .library-form-section {
+//     .library-section {
 //       @include detail-section-card;
 //     }
 //   }
@@ -53,12 +53,12 @@
     gap: spacing(md);
 
     i {
-      font-size: 3rem;
+      font-size: var(--font-size-4xl);
       color: var(--color-text-muted);
     }
 
     p {
-      font-size: 1.1rem;
+      font-size: var(--font-size-md);
       color: var(--color-text-muted);
       margin: 0;
     }
@@ -116,6 +116,10 @@
     border: 2px dashed var(--color-border);
 
     i {
+      // El único `font-size` literal que queda en este fichero, y a propósito: este
+      // icono no es texto, es lo que RELLENA la caja de la portada ausente (220×330
+      // en película y serie), así que su tamaño es una medida y no tipografía. La
+      // escala acaba en `4xl` (48px) y bajar ahí lo encogería un 25 %.
       font-size: 4rem;
       color: var(--color-text-muted);
     }
@@ -123,35 +127,44 @@
 
   // ─── Título y autor (selectors entity-prefixed) ──────────────────────────
   .#{$entity}-title-large {
-    font-size: 2.2rem;
+    font-size: var(--font-size-3xl);
     font-weight: 700;
     color: var(--color-heading);
     margin: 0 0 spacing(sm) 0;
     line-height: 1.3;
 
     @include responsive-below(md) {
-      font-size: 1.6rem;
+      font-size: var(--font-size-xl);
     }
   }
 
-  // ─── Metadata pills ──────────────────────────────────────────────────────
-  .metadata-item {
-    display: flex;
+  // ─── Metadato de catálogo: UNA sola forma ────────────────────────────────
+  // Año, duración, editorial, pistas, nota externa… todo lo que es un dato del
+  // catálogo se pinta igual. Hasta el 2026-09-02 convivían tres pesos visuales en
+  // la misma cabecera: esta pastilla, la caja de las notas externas y la caja con
+  // filete lateral de los identificadores. Ahora hay dos, y la segunda solo se
+  // distingue por ser monoespaciada y más pequeña, que es lo que de verdad la
+  // diferencia: no es un dato que se lea, es una clave que se copia.
+  //
+  // `radius(full)` y no `radius(sm)`: iguala la pastilla con `.genre-tag`, que ya
+  // lo usaba, y es lo que hace que la cabecera se lea como una sola familia.
+  .meta-pill {
+    display: inline-flex;
     align-items: center;
     gap: spacing(2xs);
     padding: spacing(2xs) spacing(sm);
     background: var(--color-background-soft);
-    border-radius: radius(sm);
-    font-size: 0.9rem;
+    border-radius: radius(full);
+    font-size: var(--font-size-sm);
     color: var(--color-text);
 
     i {
       color: var(--color-card-#{$entity}-accent);
-      font-size: 0.85rem;
+      font-size: var(--font-size-sm);
     }
 
     @include responsive-below(md) {
-      font-size: 0.85rem;
+      font-size: var(--font-size-sm);
       padding: 5px spacing(2xs);
     }
   }
@@ -161,7 +174,7 @@
     display: flex;
     align-items: center;
     gap: spacing(xs);
-    font-size: 1.4rem;
+    font-size: var(--font-size-xl);
     font-weight: 600;
     color: var(--color-heading);
     margin-bottom: spacing(sm);
@@ -173,7 +186,7 @@
     }
 
     @include responsive-below(md) {
-      font-size: 1.2rem;
+      font-size: var(--font-size-lg);
     }
   }
 
@@ -191,11 +204,11 @@
     );
     color: var(--color-on-overlay);
     border-radius: radius(full);
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
     font-weight: 500;
 
     @include responsive-below(md) {
-      font-size: 0.8rem;
+      font-size: var(--font-size-xs);
       padding: 4px spacing(2xs);
     }
   }
@@ -211,19 +224,19 @@
     color: var(--color-text);
     border: 1px solid var(--color-border);
     border-radius: radius(sm);
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
     text-decoration: none;
     transition: all transition(fast);
 
     &:hover {
       background: var(--color-card-#{$entity}-accent);
-      color: white;
+      color: var(--color-on-overlay);
       border-color: var(--color-card-#{$entity}-accent);
       transform: translateY(-2px);
     }
 
     @include responsive-below(md) {
-      font-size: 0.8rem;
+      font-size: var(--font-size-xs);
       padding: 4px spacing(2xs);
     }
   }
@@ -239,18 +252,18 @@
     border: 1px solid var(--color-border);
     border-radius: radius(md);
     text-decoration: none;
-    font-size: 0.95rem;
+    font-size: var(--font-size-base);
     transition: all transition(fast);
     max-width: fit-content;
 
     &:hover {
       background: var(--color-card-#{$entity}-accent);
-      color: white;
+      color: var(--color-on-overlay);
       border-color: var(--color-card-#{$entity}-accent);
       transform: translateX(4px);
     }
 
-    i { font-size: 1.1rem; }
+    i { font-size: var(--font-size-md); }
   }
 
   // ─── Botones de acción ───────────────────────────────────────────────────
@@ -258,11 +271,11 @@
   .retry-button {
     padding: spacing(sm) spacing(lg);
     background-color: var(--color-primary);
-    color: white;
+    color: var(--color-on-overlay);
     border: none;
     border-radius: radius(md);
     cursor: pointer;
-    font-size: 1rem;
+    font-size: var(--font-size-base);
     transition: background-color transition(fast);
 
     &:hover {
@@ -282,16 +295,18 @@
     margin: spacing(xl) 0;
   }
 
-  // ─── Display de identificadores (ISBN, IMDb id, etc.) ────────────────────
-  .#{$selector}-isbn-display,
-  .#{$selector}-imdb-id {
-    margin-bottom: spacing(md);
-    padding: spacing(sm) spacing(md);
-    background: var(--color-background-soft);
-    border-left: 3px solid var(--color-card-#{$entity}-accent);
-    border-radius: radius(sm);
-    font-size: 0.9rem;
-    font-family: 'Courier New', monospace;
+  // ─── Identificador (ISBN, IMDb id, id de catálogo) ───────────────────────
+  // Deja de tener caja propia y filete de acento: competía con el título estando
+  // un escalón por debajo del año o la duración. Se queda discreto —monoespaciado
+  // y pequeño— porque es lo que es: una clave que se copia, no un dato que se lee.
+  .meta-identifier {
+    display: inline-flex;
+    align-items: center;
+    gap: spacing(2xs);
+    margin-bottom: spacing(sm);
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
   }
 }
 

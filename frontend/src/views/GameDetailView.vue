@@ -15,21 +15,21 @@
       <div class="game-metadata">
         <span
           v-if="item.publisher || (item.publishers && item.publishers.length > 0)"
-          class="metadata-item"
+          class="meta-pill"
         >
           <i class="fas fa-building" />
           {{ joinNames(item.publishers) || item.publisher }}
         </span>
         <span
           v-if="item.releaseDate || item.released"
-          class="metadata-item"
+          class="meta-pill"
         >
           <i class="fas fa-calendar" />
           {{ formatDate(item.releaseDate || item.released) }}
         </span>
         <span
           v-if="item.esrbRating || item.esrb_rating"
-          class="metadata-item"
+          class="meta-pill"
         >
           <i class="fas fa-certificate" />
           {{ typeof item.esrb_rating === 'object' ? item.esrb_rating.name : (item.esrbRating || item.esrb_rating) }}
@@ -42,14 +42,14 @@
       >
         <div
           v-if="item.rating"
-          class="rating-display"
+          class="meta-pill"
         >
           <i class="fas fa-star" />
           <span>{{ t('game.ratingOutOf', { n: item.rating }) }}</span>
         </div>
         <div
           v-if="item.ratings_count"
-          class="rating-count"
+          class="meta-pill"
         >
           <i class="fas fa-users" />
           <span>{{ t('game.ratingsCount', { n: formatNumber(item.ratings_count) }) }}</span>
@@ -300,7 +300,7 @@ const websiteName = (website) =>
     aspect-ratio: 3 / 4;
     background: linear-gradient(135deg, var(--color-card-movie-accent) 0%, var(--color-card-movie-accent) 100%);
     border: none;
-    color: white;
+    color: var(--color-on-overlay);
     font-size: 4rem;
   }
 
@@ -342,19 +342,6 @@ const websiteName = (website) =>
     gap: spacing(sm);
     flex-wrap: wrap;
     margin-bottom: spacing(xs);
-  }
-
-  .rating-display,
-  .rating-count {
-    display: flex;
-    align-items: center;
-    gap: spacing(2xs);
-    padding: spacing(xs) spacing(md);
-    background: var(--color-background-soft);
-    border-radius: radius(sm);
-    font-size: var(--font-size-base);
-
-    i { color: var(--color-card-game-accent); }
   }
 
   .game-categories,

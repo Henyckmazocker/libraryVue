@@ -464,11 +464,8 @@ export const mediaRegistry = {
       get errorText () { return t('media.book.error') },
       get emptyText() { return t('media.book.emptyText'); },
       placeholderIcon: 'fas fa-book',
-      librarySectionClass: 'library-form-section',
-      libraryTitleIcon: true,
       get libraryTitleNew () { return t('media.book.libraryNew') },
       get libraryTitleExisting () { return t('media.book.libraryExisting') },
-      divider: true,
       hasNotes: false,
       statusesAsNames: false,
       // Google Books puede devolver un ISBN-13 distinto del guardado, por eso
@@ -815,11 +812,8 @@ export const mediaRegistry = {
       coverClass: 'movie-poster-large',
       coverImageClass: 'poster-image-large',
       placeholderClass: 'poster-placeholder',
-      librarySectionClass: 'library-form-section',
-      libraryTitleIcon: true,
       get libraryTitleNew () { return t('media.movie.libraryNew') },
       get libraryTitleExisting () { return t('media.movie.libraryExisting') },
-      divider: true,
       hasNotes: false,
       statusesAsNames: false,
       // Las películas esconden los estados que solo tienen sentido en series.
@@ -1024,8 +1018,6 @@ export const mediaRegistry = {
       // familia y tienen que ir sincronizadas con ellos.
       coverAspect: { width: 280, height: 373 },
       stateKey: 'game',
-      librarySectionClass: 'library-section',
-      libraryTitleIcon: false,
       routeParam: 'gameId',
       get backText () { return t('media.game.back') },
       backRoute: 'Games',
@@ -1037,7 +1029,6 @@ export const mediaRegistry = {
       coverOf: (i) => i.coverUrl || i.background_image,
       get libraryTitleNew () { return t('media.game.libraryNew') },
       get libraryTitleExisting () { return t('media.game.libraryExisting') },
-      divider: false,
       hasNotes: true,
       statusesAsNames: false,
       existingOf: (store, item, routeId) => store.getGameById(
@@ -1282,8 +1273,6 @@ export const mediaRegistry = {
       // familia y tienen que ir sincronizadas con ellos.
       coverAspect: { width: 240, height: 240 },
       stateKey: 'album',
-      librarySectionClass: 'library-section',
-      libraryTitleIcon: false,
       routeParam: 'albumId',
       get backText () { return t('media.album.back') },
       backRoute: 'Albums',
@@ -1294,7 +1283,6 @@ export const mediaRegistry = {
       placeholderIcon: 'fas fa-music',
       get libraryTitleNew () { return t('media.album.libraryNew') },
       get libraryTitleExisting () { return t('media.album.libraryExisting') },
-      divider: false,
       hasNotes: true,
       statusesAsNames: false,
       // ⚠ El id de la ruta puede ser el entero de la BD (viene así desde
@@ -1573,8 +1561,6 @@ export const mediaRegistry = {
       // familia y tienen que ir sincronizadas con ellos.
       coverAspect: { width: 320, height: 180 },
       stateKey: 'video',
-      librarySectionClass: 'library-section',
-      libraryTitleIcon: false,
       routeParam: 'youtubeId',
       get backText () { return t('media.video.back') },
       backRoute: 'Videos',
@@ -1585,7 +1571,6 @@ export const mediaRegistry = {
       placeholderIcon: 'fab fa-youtube',
       get libraryTitleNew () { return t('media.video.libraryNew') },
       get libraryTitleExisting () { return t('media.video.libraryExisting') },
-      divider: false,
       hasNotes: true,
       // El selector de estados de los vídeos trabaja con nombres, no con los
       // objetos que devuelve el backend.
@@ -1836,11 +1821,8 @@ export const mediaRegistry = {
       coverClass: 'series-poster-large',
       coverImageClass: 'poster-image-large',
       placeholderClass: 'poster-placeholder',
-      librarySectionClass: 'library-form-section',
-      libraryTitleIcon: true,
       get libraryTitleNew () { return t('media.series.libraryNew') },
       get libraryTitleExisting () { return t('media.series.libraryExisting') },
-      divider: false,
       hasNotes: false,
       statusesAsNames: false,
       // La ficha de biblioteca y el modal son los de películas.

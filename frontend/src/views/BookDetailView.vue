@@ -22,21 +22,21 @@
         <div class="book-metadata">
           <span
             v-if="item.publisher"
-            class="metadata-item"
+            class="meta-pill"
           >
             <i class="fas fa-building" />
             {{ item.publisher }}
           </span>
           <span
             v-if="item.publicationDate"
-            class="metadata-item"
+            class="meta-pill"
           >
             <i class="fas fa-calendar" />
             {{ item.publicationDate }}
           </span>
           <span
             v-if="item.pages"
-            class="metadata-item"
+            class="meta-pill"
           >
             <i class="fas fa-file-alt" />
             {{ t('book.pages', { n: item.pages }) }}
@@ -53,7 +53,7 @@
 
         <div
           v-if="item.isbn"
-          class="book-isbn-display"
+          class="meta-identifier"
         >
           <strong>{{ t('book.isbn') }}</strong> {{ item.isbn }}
           <span
@@ -355,7 +355,7 @@ const seleccionarEdicion = (book, edition) => {
   .book-subjects-section,
   .book-links-section,
   .book-classifications-section,
-  .library-form-section {
+  .library-section {
     @include detail-section-card;
   }
 

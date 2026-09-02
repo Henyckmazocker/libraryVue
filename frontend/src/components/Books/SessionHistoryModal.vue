@@ -187,7 +187,8 @@
         class="btn btn--ghost"
         @click="handleClose"
       >
-        <i class="fas fa-times" /> {{ t('sessions.close') }}
+        <!-- Sin icono: la ✕ de la cabecera de `BaseModal` ya dice lo mismo. -->
+        {{ t('sessions.close') }}
       </button>
     </template>
   </BaseModal>

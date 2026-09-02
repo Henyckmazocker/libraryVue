@@ -13,9 +13,14 @@
   >
     <!-- Sección: valoración y progreso -->
     <section class="edit-modal__section">
+      <h3 class="edit-modal__section-title">
+        {{ t('edit.sectionRating') }}
+      </h3>
+
       <RatingComponent
         v-model:rating="localRating"
         :editable="true"
+        :label="t('edit.rating')"
       />
 
       <ReadingProgressBar
@@ -29,7 +34,7 @@
 
       <div
         v-if="itemType === 'book'"
-        class="edit-modal__field"
+        class="form-field"
       >
         <label for="total-pages-input">{{ t('edit.totalPages') }}</label>
         <input
@@ -45,6 +50,10 @@
 
     <!-- Sección: estado, tags y propiedad -->
     <section class="edit-modal__section">
+      <h3 class="edit-modal__section-title">
+        {{ t('edit.sectionLibrary') }}
+      </h3>
+
       <StatusSelector
         v-model="localStatuses"
         :allowed-statuses="allowedStatuses"
@@ -57,12 +66,13 @@
         v-model="localTags"
         :tags="userTags"
         :readonly="false"
+        :label="t('edit.tags')"
         @add-tag="handleAddTag"
       />
 
       <div
         v-if="ownershipFormats.length > 0"
-        class="edit-modal__field"
+        class="form-field"
       >
         <label for="ownership-format">{{ t('edit.ownershipFormat') }}</label>
         <select
@@ -94,7 +104,7 @@
       </h3>
 
       <div class="edit-modal__grid">
-        <div class="edit-modal__field">
+        <div class="form-field">
           <label for="hours-played">{{ t('edit.hoursPlayed') }}</label>
           <input
             id="hours-played"
@@ -107,7 +117,7 @@
           >
         </div>
 
-        <div class="edit-modal__field">
+        <div class="form-field">
           <label for="platform-played">{{ t('edit.platform') }}</label>
           <input
             id="platform-played"
@@ -118,7 +128,7 @@
           >
         </div>
 
-        <div class="edit-modal__field">
+        <div class="form-field">
           <label for="date-started">{{ t('edit.startedOn') }}</label>
           <input
             id="date-started"
@@ -128,7 +138,7 @@
           >
         </div>
 
-        <div class="edit-modal__field">
+        <div class="form-field">
           <label for="date-finished">{{ t('edit.finishedOn') }}</label>
           <input
             id="date-finished"
@@ -139,7 +149,7 @@
         </div>
       </div>
 
-      <div class="edit-modal__field">
+      <div class="form-field">
         <label for="personal-notes">{{ t('edit.personalNotes') }}</label>
         <textarea
           id="personal-notes"
@@ -160,7 +170,7 @@
         {{ t('edit.videoDetails') }}
       </h3>
 
-      <div class="edit-modal__field">
+      <div class="form-field">
         <label for="video-personal-notes">{{ t('edit.personalNotes') }}</label>
         <textarea
           id="video-personal-notes"
@@ -181,7 +191,7 @@
         {{ t('edit.albumDetails') }}
       </h3>
 
-      <div class="edit-modal__field">
+      <div class="form-field">
         <label for="favorite-track">{{ t('edit.favouriteTrack') }}</label>
         <select
           v-if="albumTracks && albumTracks.length > 0"
@@ -210,7 +220,7 @@
         >
       </div>
 
-      <div class="edit-modal__field">
+      <div class="form-field">
         <label for="album-date-started">{{ t('edit.firstListen') }}</label>
         <input
           id="album-date-started"
@@ -220,7 +230,7 @@
         >
       </div>
 
-      <div class="edit-modal__field">
+      <div class="form-field">
         <label for="album-personal-notes">{{ t('edit.personalNotes') }}</label>
         <textarea
           id="album-personal-notes"
@@ -237,6 +247,10 @@
       v-if="hasNotesSection"
       class="edit-modal__section"
     >
+      <h3 class="edit-modal__section-title">
+        {{ t('edit.sectionNotes') }}
+      </h3>
+
       <ReadingStatusWidget
         v-if="itemType === 'book' && item?.isbn && !isNewItem"
         :book="item"
@@ -807,10 +821,6 @@ const hasNotesSection = computed(() => {
     color: var(--color-text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.04em;
-  }
-
-  &__field {
-    @include form-group;
   }
 
   &__grid {

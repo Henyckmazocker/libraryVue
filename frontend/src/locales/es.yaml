@@ -325,6 +325,9 @@ edit:
   totalPagesPlaceholder: Nº total de páginas del libro
   ownershipFormat: Formato de propiedad
   unspecified: — Sin especificar —
+  sectionRating: Tu valoración
+  sectionLibrary: Cómo lo tienes
+  sectionNotes: Notas y seguimiento
   gameDetails: Detalles del juego
   videoDetails: Detalles del vídeo
   albumDetails: Detalles del álbum
@@ -349,6 +352,8 @@ edit:
   editMedia: Editar {media}
   deleteMedia: Eliminar {media}
   status: Estado
+  rating: Valoración
+  tags: Etiquetas
 
 movie:
   seasons:

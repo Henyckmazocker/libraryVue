@@ -31,6 +31,44 @@
   }
 }
 
+// Cuerpo de formulario dentro de un `BaseModal`.
+//
+// ⚠️ **Se incluye SIN anidar bajo la clase raíz del componente.** `BaseModal` es un
+// `<Teleport to="body">`: el `data-v-*` del `scoped` viaja con los elementos, pero la
+// relación de ascendencia no, así que un `.mi-componente .form-field` no casa con nada
+// en el DOM final y el formulario se pinta desnudo. Es lo que le pasó al diálogo de
+// notas, y no lo detecta ninguna barrera del proyecto: jsdom no evalúa CSS, ESLint no
+// mira los `<style>`, stylelint no resuelve ascendencia y el build compila sin quejarse
+// porque el SCSS es válido. Solo se ve con una captura.
+//
+// Sustituye a `notes-dialog-form` de `_notes.scss` y al `edit-modal__field` de
+// `EditItemModal`, que hacían lo mismo con dos nombres.
+@mixin dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: spacing(md);
+
+  .form-field {
+    @include form-group;
+
+    // Casilla y etiqueta en la misma línea: aquí el bloque sería peor.
+    &--inline {
+      flex-direction: row;
+      align-items: center;
+      gap: spacing(2xs);
+
+      label { margin: 0; }
+    }
+  }
+
+  input,
+  select,
+  textarea {
+    @include form-control;
+  }
+
+}
+
 // Fila de ajuste: etiqueta a la izquierda, control a la derecha.
 //
 // El `responsive-below(sm)` no es una concesión: en un móvil estrecho, etiqueta y

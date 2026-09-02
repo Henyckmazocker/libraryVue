@@ -1,5 +1,11 @@
 <template>
   <div class="rating-section">
+    <!-- Etiqueta opcional. Sin la prop, el componente no cambia: los sitios que hoy
+         lo usan sin título siguen igual. -->
+    <span
+      v-if="label"
+      class="field-label"
+    >{{ label }}</span>
     <div
       v-if="editable"
       class="stars-input"
@@ -65,9 +71,14 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
+  // Esta prop existía desde siempre y **no se pintaba en ningún sitio**, igual que las
+  // de `StatusSelector`. Su default era además `'Rating'`, un literal inglés fuera del
+  // catálogo: con la app en español habría salido en inglés, y no lo veía ninguna
+  // barrera porque el componente nunca lo renderizaba. Pasa a cadena vacía, así que
+  // quien no la pase no ve ningún cambio.
   label: {
     type: String,
-    default: 'Rating'
+    default: ''
   },
   size: {
     type: String,
@@ -246,5 +257,13 @@ watch(() => props.rating, (newValue) => {
 
 .rating-section.large {
   --star-size: 1.5rem;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: spacing(2xs);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
 }
 </style>

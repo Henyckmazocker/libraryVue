@@ -222,5 +222,17 @@ useFocusTrap(dialogRef, {
   gap: spacing(sm);
   padding: spacing(md) spacing(lg);
   border-top: 1px solid var(--color-border-light);
+
+  // En un móvil estrecho los botones se apilan a ancho completo, y `column-reverse`
+  // deja arriba la acción principal: el pie se escribe [Cancelar][Acción], así que
+  // invertirlo pone la acción donde llega antes el pulgar. Con `wrap` a secas se
+  // partían en dos líneas, en orden normal y sin ancho completo.
+  @include responsive-below(sm) {
+    flex-direction: column-reverse;
+    flex-wrap: nowrap;
+
+    :deep(.p-button),
+    .btn { width: 100%; }
+  }
 }
 </style>

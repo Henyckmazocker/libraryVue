@@ -190,52 +190,10 @@
 }
 
 // ─── Formulario del diálogo de nota ──────────────────────────────────────────
-@mixin notes-dialog-form {
-  .note-form {
-    display: flex;
-    flex-direction: column;
-    gap: spacing(md);
-  }
-
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: spacing(2xs);
-
-    label {
-      font-weight: 500;
-      color: var(--color-text);
-      font-size: 0.9rem;
-    }
-
-    &.checkbox {
-      flex-direction: row;
-      align-items: center;
-
-      label {
-        margin: 0 0 0 spacing(2xs);
-      }
-    }
-  }
-
-  .dialog-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: spacing(2xs);
-    margin-top: spacing(md);
-  }
-
-  @include responsive-below(sm) {
-    .dialog-actions {
-      flex-direction: column-reverse;
-
-      :deep(.p-button),
-      .btn {
-        width: 100%;
-      }
-    }
-  }
-}
+// `notes-dialog-form` vivía aquí y se retiró el 2026-09-02: hacía lo mismo que el
+// `edit-modal__field` de `EditItemModal` con otro nombre. Los dos los sustituye
+// `dialog-form` en `components/_forms.scss`, que además documenta por qué un
+// formulario dentro de un `BaseModal` no puede incluirse anidado.
 
 // ─── Mixins legacy (compat) ──────────────────────────────────────────────────
 @mixin notes-container { @include notes-panel('book'); }

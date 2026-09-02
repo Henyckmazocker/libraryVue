@@ -115,7 +115,7 @@
       <div class="note-form">
         <div
           v-if="config.notes.hasPageNumber"
-          class="form-group"
+          class="form-field"
         >
           <label for="pageNumber">{{ t('notes.pageLabel') }}</label>
           <InputNumber
@@ -127,7 +127,7 @@
           />
         </div>
 
-        <div class="form-group">
+        <div class="form-field">
           <label for="noteType">{{ t('notes.typeLabel') }}</label>
           <Dropdown
             id="noteType"
@@ -140,7 +140,7 @@
           />
         </div>
 
-        <div class="form-group">
+        <div class="form-field">
           <label for="noteText">{{ t('notes.contentLabel') }}</label>
           <Textarea
             id="noteText"
@@ -150,7 +150,7 @@
           />
         </div>
 
-        <div class="form-group checkbox">
+        <div class="form-field form-field--inline">
           <Checkbox
             id="isPrivate"
             v-model="noteForm.isPrivate"
@@ -158,20 +158,23 @@
           />
           <label for="isPrivate">{{ t('notes.privateLabel') }}</label>
         </div>
-
-        <div class="dialog-actions">
-          <Button
-            :label="t('common.cancel')"
-            severity="secondary"
-            @click="closeNoteDialog"
-          />
-          <Button
-            :label="editingNote ? t('notes.update') : t('common.save')"
-            :loading="saving"
-            @click="saveNote"
-          />
-        </div>
       </div>
+
+      <!-- Por el `#footer`, como los otros seis diálogos: es lo que pone el filete y
+           lo que apila los botones a ancho completo en un móvil estrecho. Hasta el
+           2026-09-02 vivían en el cuerpo, dentro de un `.dialog-actions` propio. -->
+      <template #footer>
+        <Button
+          :label="t('common.cancel')"
+          severity="secondary"
+          @click="closeNoteDialog"
+        />
+        <Button
+          :label="editingNote ? t('notes.update') : t('common.save')"
+          :loading="saving"
+          @click="saveNote"
+        />
+      </template>
     </BaseModal>
   </div>
 </template>
@@ -369,13 +372,24 @@ watch(() => props.itemId, loadNotes)
 @use '@/assets/styles/abstracts' as *;
 
 @use '@/assets/styles/components/notes' as *;
+@use '@/assets/styles/components/forms' as *;
+
+// El formulario del diálogo va SIN anidar, y no es un descuido: vive dentro de un
+// `BaseModal`, cuya raíz es `<Teleport to="body">`. El `data-v-*` del `scoped` sí
+// viaja con el teleport, pero la relación de ascendencia NO: anidado bajo
+// `.media-notes` el selector quedaba en `.media-notes .note-form`, que en el DOM
+// final no casa con nada, y el formulario se pintaba sin un solo estilo —etiqueta
+// debajo del textarea, checkbox descolocado y botones sin pie—.
+//
+// Y no hay barrera que lo detecte: jsdom no evalúa CSS, ESLint no mira los
+// `<style>`, `stylelint` no resuelve ascendencia y el build compila sin quejarse
+// porque el SCSS es válido. Solo se ve con una captura.
+.note-form { @include dialog-form; }
 
 // `notes-panel($entity)` se resuelve al compilar —el `$entity` solo alimenta
 // `var(--color-card-#{$entity}-accent)`—, así que no se puede parametrizar en
 // runtime: se emiten las cinco variantes y `:class` elige la del medio.
 .media-notes {
-  @include notes-dialog-form;
-
   &--book  { @include notes-panel('book');  }
   &--movie { @include notes-panel('movie'); }
   &--game  { @include notes-panel('game');  }

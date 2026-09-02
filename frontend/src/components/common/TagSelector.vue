@@ -1,5 +1,11 @@
 <template>
   <div class="tag-selector">
+    <!-- Etiqueta opcional. Sin la prop, el componente no cambia: los sitios que hoy
+         lo usan sin título siguen igual. -->
+    <span
+      v-if="label"
+      class="field-label"
+    >{{ label }}</span>
     <div class="tag-list">
       <!-- En modo readonly la pastilla no es un control: se queda como <span>.
            El v-if envuelve al v-for porque Vue 3 no admite los dos en el mismo nodo. -->
@@ -55,6 +61,12 @@ import { useI18n } from '@/composables/useI18n';
 const { t } = useI18n();
 
 const props = defineProps({
+  // Etiqueta visible, opcional. Se pinta como la de un campo de formulario para que
+  // el control no quede huérfano en un diálogo lleno de campos con título.
+  label: {
+    type: String,
+    default: ''
+  },
   tags: {
     type: Array,
     default: () => [] // [{ id, name }]
@@ -144,5 +156,13 @@ function addTag() {
   border-radius: radius(md);
   border: 1px solid var(--color-border);
   font-size: var(--font-size-base);
+}
+
+.field-label {
+  display: block;
+  margin-bottom: spacing(2xs);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
 }
 </style>

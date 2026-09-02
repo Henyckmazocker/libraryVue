@@ -3,6 +3,27 @@
     v-if="allowedStatuses && allowedStatuses.length > 0"
     class="status-selector-container"
   >
+    <!-- El encabezado. Las props `label` y `subtitle` existían desde siempre y
+         **no se pintaban en ningún sitio**: los dos consumidores las pasaban
+         —`LibraryMediaItem.vue:53-54` y `EditItemModal.vue:51-52`— y ese texto se
+         tiraba, así que el selector de estado no tenía título en ninguna pantalla.
+         No es un `<label for>` porque el control real es un componente de PrimeVue
+         y no un `<input>` al que apuntar: por eso el nombre accesible se ata con
+         `aria-labelledby`. -->
+    <div
+      v-if="label"
+      class="status-selector__header"
+    >
+      <span
+        :id="labelId"
+        class="status-selector__label"
+      >{{ label }}</span>
+      <span
+        v-if="subtitle"
+        class="status-selector__subtitle"
+      >{{ subtitle }}</span>
+    </div>
+
     <!-- Readonly mode - always show badges -->
     <div
       v-if="readonly"
@@ -35,6 +56,7 @@
       :display="'chip'"
       :placeholder="placeholder"
       :style="containerStyle"
+      :aria-labelledby="label ? labelId : undefined"
       append-to="body"
       @change="onStatusesChange"
     >
@@ -68,6 +90,7 @@
       :option-value="slugDe"
       :placeholder="placeholder"
       :style="containerStyle"
+      :aria-labelledby="label ? labelId : undefined"
       append-to="body"
       @change="onStatusChange"
     />
@@ -90,7 +113,7 @@
 </template>
 
 <script setup>
-import { ref, computed, defineProps, defineEmits, watch, onMounted } from 'vue';
+import { ref, computed, defineProps, defineEmits, watch, onMounted, useId } from 'vue';
 import MultiSelect from 'primevue/multiselect';
 import Dropdown from 'primevue/dropdown';
 import { useI18n } from '@/composables/useI18n';
@@ -98,6 +121,9 @@ import { useI18n } from '@/composables/useI18n';
 // fuera de `setup()` y no puede leer una variable local.
 import { t } from '@/config/i18n';
 import Logger from '@/utils/logger';
+
+// El id con el que el control se ata a su etiqueta visible, como en `BaseModal.vue:107`.
+const labelId = `status-selector-label-${useId()}`
 
 // Props
 const props = defineProps({
@@ -114,13 +140,17 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
+  // Los dos van a cadena vacía a propósito. Un default visible obligaría a repasar
+  // cada consumidor para apagarlo, y el de `subtitle` era además un literal español
+  // fuera del catálogo: con la app en inglés habría salido en español, y no lo veía
+  // ninguna barrera porque el componente nunca lo pintaba.
   label: {
     type: String,
-    default: 'Status'
+    default: ''
   },
   subtitle: {
     type: String,
-    default: '(selecciona uno o más)'
+    default: ''
   },
   placeholder: {
     type: String,
@@ -280,10 +310,25 @@ watch(() => props.allowedStatuses, (newValue) => {
   overflow: visible;
 }
 
-.status-selector-title {
-  margin: 0 0 spacing(xs) 0;
-  font-weight: 500;
+// Sustituye a `.status-selector-title`, que era CSS muerto: la regla existía desde
+// siempre y **ningún marcado la usaba**, porque el título nunca llegó a pintarse.
+.status-selector__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: spacing(2xs);
+  margin-bottom: spacing(2xs);
+}
+
+.status-selector__label {
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
   color: var(--color-text);
+}
+
+.status-selector__subtitle {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
 }
 
 .status-badges {

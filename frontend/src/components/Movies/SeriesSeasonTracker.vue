@@ -1,10 +1,9 @@
 <template>
   <div class="series-season-tracker">
     <div class="tracker-header">
-      <h3 class="tracker-title">
-        <i class="fas fa-layer-group" />
-        {{ t('seasons.title') }}
-      </h3>
+      <!-- Sin título propio: desde el 2026-09-03 esto vive dentro de un `BaseModal`
+           que ya lo pone. Lo que queda de la cabecera —el recuento, «marcar todas» y
+           la barra de progreso— sí es contenido, y se queda. -->
       <div class="tracker-summary">
         <span class="progress-text">
           {{ t('seasons.watched', { done: watchedCount, total: totalSeasons }) }}

@@ -8,7 +8,10 @@
       ref="detalle"
       media="book"
       :store="booksStore"
+      :on-status="booksComposable.updateBookStatuses"
+      :on-rate="guardarValoracion"
       @show-history="abrirHistorial"
+      @show-editions="abrirEdiciones"
     >
       <template #meta="{ item }">
         <div
@@ -50,7 +53,10 @@
           <i class="fas fa-globe" />
           <span>{{ getLanguageName(item.language) }}</span>
         </div>
+      </template>
 
+      <!-- El ISBN se copia, no se lee: baja al plegable del final. -->
+      <template #technical="{ item }">
         <div
           v-if="item.isbn"
           class="meta-identifier"
@@ -63,7 +69,7 @@
         </div>
       </template>
 
-      <template #extra="{ item, existing }">
+      <template #extra="{ item }">
         <div
           v-if="item.description"
           class="book-description-section"
@@ -80,14 +86,6 @@
           <!-- eslint-enable vue/no-v-html -->
         </div>
 
-        <!-- Selector de ediciones: al elegir otra, cambia el ítem de la ficha. -->
-        <EditionSelector
-          v-if="item.work_key"
-          :work-key="item.work_key"
-          :initial-selected-edition="item"
-          :saved-isbn="existing ? existing.isbn : null"
-          @edition-selected="(edicion) => seleccionarEdicion(item, edicion)"
-        />
 
         <div
           v-if="item.subjects && item.subjects.length > 0"
@@ -207,6 +205,25 @@
       :book="historial.book"
       @close="cerrarHistorial"
     />
+
+    <!-- 763 líneas que ocupaban media ficha para una decisión que se toma una vez.
+         Con `v-if` y no solo con `v-model`: monta un composable de búsqueda y pide
+         las ediciones de la obra al aparecer, así que instanciarlo siempre haría esa
+         llamada en cada libro que se visita. -->
+    <BaseModal
+      v-if="ediciones.isVisible"
+      v-model="ediciones.isVisible"
+      :title="t('editions.title')"
+      size="lg"
+      accent="var(--color-card-book-accent)"
+    >
+      <EditionSelector
+        :work-key="ediciones.item.work_key"
+        :initial-selected-edition="ediciones.item"
+        :saved-isbn="detalle?.existing ? detalle.existing.isbn : null"
+        @edition-selected="(edicion) => elegirEdicion(edicion)"
+      />
+    </BaseModal>
   </div>
 </template>
 
@@ -215,9 +232,11 @@ import { ref } from 'vue';
 import MediaDetailView from '@/views/shared/MediaDetailView.vue';
 import EditionSelector from '@/components/Books/EditionSelector.vue';
 import SessionHistoryModal from '@/components/Books/SessionHistoryModal.vue';
+import BaseModal from '@/components/common/BaseModal.vue';
 import ReadingProgressBar from '@/components/common/ReadingProgressBar.vue';
 import ReadingStatusWidget from '@/components/Books/ReadingStatusWidget.vue';
 import { useBooksStore } from '@/store/books';
+import { useBooks } from '@/composables/useBooks';
 import { useUIStore } from '@/store/ui';
 import { getLanguageName } from '@/utils/languageConstants';
 import Logger from '@/utils/logger';
@@ -237,10 +256,34 @@ const { t } = useI18n();
  * historial de sesiones.
  */
 const booksStore = useBooksStore();
+const booksComposable = useBooks();
+
+/**
+ * La valoración se guarda por donde la guarda el modal de edición, que acaba en este
+ * mismo `editUserBook` (`useItemEdit.js:26` solo despacha por medio). NO se
+ * usa `updateBookRating`: esas cinco acciones no las llama nadie y dos están rotas.
+ *
+ * Y no se pasa por `useItemEdit` a propósito: instancia los cinco composables, así que
+ * cada ficha levantaría los cinco stores de Pinia para guardar una valoración.
+ */
+const guardarValoracion = (id, valor) =>
+  booksComposable.editUserBook(id, null, { personalRating: valor });
 const uiStore = useUIStore();
 const detalle = ref(null);
 
 const historial = ref({ isVisible: false, book: {} });
+const ediciones = ref({ isVisible: false, item: null });
+
+const abrirEdiciones = (book) => {
+  Logger.debug('[BookDetailView] Showing editions for book:', book?.title);
+  ediciones.value = { isVisible: true, item: book };
+};
+
+/** Elegir una edición cambia el ítem de la ficha y cierra el modal. */
+const elegirEdicion = (edicion) => {
+  seleccionarEdicion(ediciones.value.item, edicion);
+  ediciones.value = { isVisible: false, item: null };
+};
 
 const abrirHistorial = (book) => {
   Logger.debug('[BookDetailView] Showing session history for book:', book?.title);
@@ -359,15 +402,6 @@ const seleccionarEdicion = (book, edition) => {
     @include detail-section-card;
   }
 
-  .book-cover-large {
-    flex-shrink: 0;
-    width: 220px;
-  }
-
-  .book-main-info {
-    flex: 1;
-    min-width: 0;
-  }
 
   .book-author-large {
     display: flex;
@@ -450,14 +484,6 @@ const seleccionarEdicion = (book, edition) => {
     margin-left: spacing(2xs);
   }
 
-  @include responsive-below(md) {
-    .book-cover-large,
-    .cover-placeholder {
-      width: 100%;
-      max-width: 250px;
-      margin: 0 auto;
-    }
-  }
 }
 </style>
 

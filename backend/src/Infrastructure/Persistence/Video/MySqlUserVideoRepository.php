@@ -151,17 +151,50 @@ final class MySqlUserVideoRepository implements UserVideoRepositoryInterface
         }
     }
 
+    /**
+     * Quitar un vídeo de la biblioteca se lleva TODO lo del usuario sobre él.
+     *
+     * Hasta el 2026-09-03 esto borraba **solo** la fila de `user_videos`: ni los
+     * estados ni las notas, que era la fuga más ancha de los cinco medios —los otros
+     * cuatro al menos limpiaban los estados—. Las dos tablas tienen la FK apuntando a
+     * `videos(id)`, la tabla de CATÁLOGO, que es compartida y no se borra por esta
+     * vía, así que su `ON DELETE CASCADE` no salta nunca; `user_video_tag_assignments`
+     * sí cuelga de `user_videos` (`init.sql:1142`) y se va sola.
+     *
+     * Y va en una transacción, que tampoco tenía: tres borrados sueltos pueden dejar
+     * la mitad del rastro si el segundo falla.
+     */
     public function remove(int $userId, int $videoId): bool
     {
         try {
+            $this->db->beginTransaction();
+
+            $stmtStatuses = $this->db->prepare(
+                "DELETE FROM user_video_statuses WHERE user_id = :userId AND video_id = :videoId"
+            );
+            $stmtStatuses->execute([':userId' => $userId, ':videoId' => $videoId]);
+
+            $stmtNotes = $this->db->prepare(
+                "DELETE FROM user_video_notes WHERE user_id = :userId AND video_id = :videoId"
+            );
+            $stmtNotes->execute([':userId' => $userId, ':videoId' => $videoId]);
+
             $stmt = $this->db->prepare(
                 "DELETE FROM user_videos WHERE user_id = :userId AND video_id = :videoId"
             );
             $stmt->execute([':userId' => $userId, ':videoId' => $videoId]);
-            return $stmt->rowCount() > 0;
+
+            $deleted = $stmt->rowCount() > 0;
+            $this->db->commit();
+
+            return $deleted;
         } catch (PDOException $e) {
+            $this->db->rollBack();
             $this->logError('DB remove Error', $e, ['user_id' => $userId, 'video_id' => $videoId]);
             throw new RuntimeException('Could not remove video: ' . $e->getMessage(), 0, $e);
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
         }
     }
 

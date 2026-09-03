@@ -181,9 +181,34 @@ final class MySqlUserMovieRepository implements UserMovieRepositoryInterface
         try {
             $this->db->beginTransaction();
 
-            // Remove user-specific statuses
+            // Lo del usuario se va con la película, y son TRES tablas, no una.
+            //
+            // La FK de estas tres apunta a `movie(isbn)` —el catálogo, que es
+            // compartido y no se borra al sacar algo de una biblioteca—, así que su
+            // `ON DELETE CASCADE` no salta nunca por esta vía y hay que limpiarlas a
+            // mano. `user_movie_tag_assignments` sí cuelga de `user_movies`
+            // (`init.sql:575`) y se va sola.
+            //
+            // Hasta el 2026-09-03 solo se borraban los estados: las notas y el
+            // seguimiento por temporadas quedaban huérfanos, y volver a guardar la
+            // misma película o serie los resucitaba como si nunca se hubiera ido.
+            // Lo destapó retirar `tt0903747` tras probar el tracker. Los libros ya lo
+            // hacían bien (`MySqlUserBookEditionRepository.php:505-511`).
             $stmtStatuses = $this->db->prepare("DELETE FROM user_movie_statuses WHERE user_id = :userId AND movie_isbn = :movieId");
             $stmtStatuses->execute([
+                ':userId' => $userId,
+                ':movieId' => $movieId
+            ]);
+
+            $stmtNotes = $this->db->prepare("DELETE FROM user_movie_notes WHERE user_id = :userId AND movie_isbn = :movieId");
+            $stmtNotes->execute([
+                ':userId' => $userId,
+                ':movieId' => $movieId
+            ]);
+
+            // Solo tienen filas las series, pero la consulta no necesita saberlo.
+            $stmtSeasons = $this->db->prepare("DELETE FROM user_series_seasons WHERE user_id = :userId AND series_isbn = :movieId");
+            $stmtSeasons->execute([
                 ':userId' => $userId,
                 ':movieId' => $movieId
             ]);

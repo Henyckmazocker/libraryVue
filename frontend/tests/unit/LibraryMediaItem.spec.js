@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import LibraryMediaItem from '@/components/shared/LibraryMediaItem.vue'
-import { mediaKeys } from '@/config/mediaRegistry'
+import { getMediaConfig, mediaKeys } from '@/config/mediaRegistry'
 import { mountComponent } from './helpers/mount'
 
 const mount = (media, item, options = {}) => mountComponent(LibraryMediaItem, {
@@ -8,12 +8,29 @@ const mount = (media, item, options = {}) => mountComponent(LibraryMediaItem, {
     media,
     item,
     allowedStatuses: options.allowedStatuses ?? ['owned', 'wishlist'],
-    isNew: options.isNew ?? false,
-    canDelete: options.canDelete ?? true
+    isNew: options.isNew ?? false
   }
 })
 
 const texto = (wrapper) => wrapper.text().replace(/\s+/g, ' ')
+
+/**
+ * Los campos declarados por medio dejaron de pintarse en el panel el 2026-09-02: la
+ * cabecera de la ficha ya los enseña y repetirlos era el defecto que arregló el
+ * rediseño. Pero `libraryItem.fields` **se conserva en el registry** —el `<details>`
+ * de datos técnicos los necesita— y esta era su única cobertura, así que los tests
+ * se conservan también, ejercitando el resolutor en vez del componente.
+ *
+ * Es el mismo `resolve` que tenía `LibraryMediaItem`: un campo se pinta si tiene
+ * valor, salvo los marcados `always`.
+ */
+const campos = (media, item) => getMediaConfig(media).libraryItem.fields
+  .map((def) => ({ ...def, text: def.value(item) }))
+  .filter((def) => def.always || (def.text !== null && def.text !== undefined && def.text !== '' && def.text !== 0))
+
+const rotulados = (media, item) => campos(media, item)
+  .map((c) => `${c.label}: ${c.text}`)
+  .join(' | ')
 
 describe('LibraryMediaItem — clases por medio', () => {
   it.each(mediaKeys)('%s pinta las clases que espera el mixin library-item', (media) => {
@@ -21,8 +38,16 @@ describe('LibraryMediaItem — clases por medio', () => {
 
     expect(wrapper.classes()).toContain(`library-${media}-item-container`)
     expect(wrapper.find(`.${media}-details`).exists()).toBe(true)
-    expect(wrapper.find(`.${media}-title`).exists()).toBe(true)
-    expect(wrapper.find(`.${media}-actions`).exists()).toBe(true)
+
+    // El panel ya NO repite el catálogo: ni portada, ni título, ni los campos.
+    // Los pinta la cabecera de la ficha, dos dedos más arriba.
+    expect(wrapper.find(`.${media}-title`).exists()).toBe(false)
+    expect(wrapper.find('.cover-image-container').exists()).toBe(false)
+
+    // Y desde el 2026-09-02 tampoco pinta los botones de la barra: guardar,
+    // editar y eliminar viven en `MediaDetailView`, que es quien tiene el store.
+    expect(wrapper.find('.btn--primary').exists()).toBe(false)
+    expect(wrapper.find('.btn--danger').exists()).toBe(false)
   })
 })
 
@@ -31,34 +56,33 @@ describe('LibraryMediaItem — clases por medio', () => {
 // vídeos, y estaba escrito que era a propósito. Ya no.
 describe('LibraryMediaItem — campos declarados en el registry', () => {
   it('el libro pinta autor, editorial y fecha con sus rótulos', () => {
-    const wrapper = mount('book', {
+    const r = rotulados('book', {
       title: 'Dune', author: 'Frank Herbert', publisher: 'Ace', publicationDate: '1965'
     })
 
-    expect(wrapper.find('.book-title').text()).toBe('Dune')
-    expect(texto(wrapper)).toContain('Autor: Frank Herbert')
-    expect(texto(wrapper)).toContain('Editorial: Ace')
-    expect(texto(wrapper)).toContain('Fecha de publicación: 1965')
+    expect(r).toContain('Autor: Frank Herbert')
+    expect(r).toContain('Editorial: Ace')
+    expect(r).toContain('Fecha de publicación: 1965')
   })
 
   it('el libro prefiere la lista `publishers` a `publisher`', () => {
-    const wrapper = mount('book', { title: 'X', publishers: ['Ace', 'Gollancz'], publisher: 'Otra' })
-    expect(texto(wrapper)).toContain('Editorial: Ace, Gollancz')
+    expect(rotulados('book', { title: 'X', publishers: ['Ace', 'Gollancz'], publisher: 'Otra' }))
+      .toContain('Editorial: Ace, Gollancz')
   })
 
   it('la película oculta el título original si coincide con el título', () => {
-    expect(texto(mount('movie', { title: 'Alien', originalTitle: 'Alien', isbn: 'tt1' })))
-      .not.toContain('Original Title')
-    expect(texto(mount('movie', { title: 'Alien', originalTitle: 'Xenomorph', isbn: 'tt1' })))
+    expect(rotulados('movie', { title: 'Alien', originalTitle: 'Alien', isbn: 'tt1' }))
+      .not.toContain('Título original')
+    expect(rotulados('movie', { title: 'Alien', originalTitle: 'Xenomorph', isbn: 'tt1' }))
       .toContain('Título original: Xenomorph')
   })
 
   it('la película siempre pinta el IMDb ID, aunque el resto falte', () => {
-    expect(texto(mount('movie', { title: 'Alien', isbn: 'tt0078748' }))).toContain('IMDb ID: tt0078748')
+    expect(rotulados('movie', { title: 'Alien', isbn: 'tt0078748' })).toContain('IMDb ID: tt0078748')
   })
 
   it('el juego une desarrolladores, plataformas y géneros vengan como vengan', () => {
-    const wrapper = mount('game', {
+    const r = rotulados('game', {
       name: 'Hollow Knight',
       developers: [{ name: 'Team Cherry' }],
       platforms: [{ platform: { name: 'PC' } }, 'Switch'],
@@ -66,31 +90,34 @@ describe('LibraryMediaItem — campos declarados en el registry', () => {
       id: 7
     })
 
-    expect(texto(wrapper)).toContain('Desarrollador: Team Cherry')
-    expect(texto(wrapper)).toContain('Plataformas: PC, Switch')
-    expect(texto(wrapper)).toContain('Géneros: Metroidvania, Acción')
-    expect(texto(wrapper)).toContain('RAWG ID: 7')
+    expect(r).toContain('Desarrollador: Team Cherry')
+    expect(r).toContain('Plataformas: PC, Switch')
+    expect(r).toContain('Géneros: Metroidvania, Acción')
+    expect(r).toContain('RAWG ID: 7')
   })
 
   it('el juego colorea el Metacritic por tramos', () => {
-    expect(mount('game', { name: 'A', id: 1, metacritic: 90 }).find('.score-high').exists()).toBe(true)
-    expect(mount('game', { name: 'A', id: 1, metacritic: 60 }).find('.score-medium').exists()).toBe(true)
-    expect(mount('game', { name: 'A', id: 1, metacritic: 20 }).find('.score-low').exists()).toBe(true)
+    const clase = (metacritic) => campos('game', { name: 'A', id: 1, metacritic })
+      .find((c) => c.valueClass)?.valueClass({ metacritic })
+
+    expect(clase(90)).toBe('score-high')
+    expect(clase(60)).toBe('score-medium')
+    expect(clase(20)).toBe('score-low')
   })
 
   it('el álbum formatea la duración en horas o en minutos:segundos', () => {
-    expect(texto(mount('album', { name: 'A', duration_ms: 4_500_000 }))).toContain('Duración: 1h 15m')
-    expect(texto(mount('album', { name: 'A', duration_ms: 2_587_000 }))).toContain('Duración: 43:07')
+    expect(rotulados('album', { name: 'A', duration_ms: 4_500_000 })).toContain('Duración: 1h 15m')
+    expect(rotulados('album', { name: 'A', duration_ms: 2_587_000 })).toContain('Duración: 43:07')
   })
 
   it('el vídeo pinta canal, duración y su id de YouTube', () => {
-    const wrapper = mount('video', {
+    const r = rotulados('video', {
       title: 'Charla', channel_name: 'Canal X', duration: '12:04', youtube_id: 'abc'
     })
 
-    expect(texto(wrapper)).toContain('Canal: Canal X')
-    expect(texto(wrapper)).toContain('Duración: 12:04')
-    expect(texto(wrapper)).toContain('YouTube ID: abc')
+    expect(r).toContain('Canal: Canal X')
+    expect(r).toContain('Duración: 12:04')
+    expect(r).toContain('YouTube ID: abc')
   })
 })
 
@@ -133,9 +160,13 @@ describe('LibraryMediaItem — estado por defecto al añadir', () => {
   })
 })
 
+/**
+ * El botón de guardar subió a la barra de la ficha el 2026-09-02, pero el payload se
+ * sigue armando aquí —lleva los estados y la valoración de este panel—, así que el
+ * disparo es ahora el método expuesto que el CTA llama.
+ */
 describe('LibraryMediaItem — payloads de los eventos', () => {
-  const guardar = (wrapper) => wrapper.find('.btn--primary').trigger('click')
-  const borrar = (wrapper) => wrapper.find('.btn--danger').trigger('click')
+  const guardar = (wrapper) => wrapper.vm.guardar()
 
   it.each([
     ['book', { title: 'X', isbn: '1' }, 'book'],
@@ -164,21 +195,22 @@ describe('LibraryMediaItem — payloads de los eventos', () => {
     expect(payload.title || payload.name).toBe('X')
   })
 
-  it('el borrado de película manda `imdbID` con el valor de `isbn`', async () => {
-    const wrapper = mount('movie', { title: 'X', isbn: 'tt1', imdbID: 'OTRO' })
-    await borrar(wrapper)
+  // `deletePayload` ya no lo emite este panel: lo llama `MediaDetailView` al armar
+  // la entrada «Eliminar» del menú `⋯`. Se conservan los dos casos porque la forma
+  // del payload es del registry y sigue importando; que el menú la use de verdad lo
+  // fija `MediaDetailView.spec.js`.
+  it('el borrado de película manda `imdbID` con el valor de `isbn`', () => {
+    const payload = getMediaConfig('movie').libraryItem
+      .deletePayload({ title: 'X', isbn: 'tt1', imdbID: 'OTRO' })
 
-    expect(wrapper.emitted('delete')[0][0]).toEqual({ isbn: 'tt1', imdbID: 'tt1', itemType: 'movie' })
+    expect(payload).toEqual({ isbn: 'tt1', imdbID: 'tt1', itemType: 'movie' })
   })
 
   it.each([
     ['album', { name: 'X', id: 9, spotify_id: 'sp' }, 9],
     ['video', { title: 'X', youtube_id: 'abc' }, 'abc']
-  ])('%s borra con un identificador escalar, no con un objeto', async (media, item, esperado) => {
-    const wrapper = mount(media, item)
-    await borrar(wrapper)
-
-    expect(wrapper.emitted('delete')[0][0]).toBe(esperado)
+  ])('%s borra con un identificador escalar, no con un objeto', (media, item, esperado) => {
+    expect(getMediaConfig(media).libraryItem.deletePayload(item)).toBe(esperado)
   })
 
   it('el juego añade sus campos propios al guardar y al editar', async () => {
@@ -189,40 +221,9 @@ describe('LibraryMediaItem — payloads de los eventos', () => {
   })
 })
 
-describe('LibraryMediaItem — el feedback lo confirma el padre', () => {
-  it('el botón de guardar no se pone en verde solo', async () => {
-    const wrapper = mount('video', { title: 'X' }, { isNew: true })
-    await wrapper.find('.btn--primary').trigger('click')
-
-    // Antes, álbumes y vídeos pasaban a `success` en el acto (1500 ms).
-    // En reposo el botón no lleva ninguna clase de estado: `is-idle` no existe.
-    const clases = wrapper.find('.btn--primary').classes()
-    expect(clases).not.toContain('is-success')
-    expect(clases).not.toContain('is-error')
-  })
-
-  it('setSaveSuccess y setSaveError los llama el padre', async () => {
-    const wrapper = mount('video', { title: 'X' }, { isNew: true })
-
-    wrapper.vm.setSaveSuccess()
-    await wrapper.vm.$nextTick()
-    expect(wrapper.find('.btn--primary').classes()).toContain('is-success')
-
-    wrapper.vm.setSaveError()
-    await wrapper.vm.$nextTick()
-    expect(wrapper.find('.btn--primary').classes()).toContain('is-error')
-  })
-
-  it('los cinco medios exponen los cuatro métodos', () => {
-    mediaKeys.forEach((media) => {
-      const wrapper = mount(media, { title: 'X', name: 'X', id: 1 })
-      expect(typeof wrapper.vm.setSaveSuccess).toBe('function')
-      expect(typeof wrapper.vm.setSaveError).toBe('function')
-      expect(typeof wrapper.vm.setEditSuccess).toBe('function')
-      expect(typeof wrapper.vm.setEditError).toBe('function')
-    })
-  })
-})
+// El bloque «el feedback lo confirma el padre» se fue con los botones: el acuse en
+// verde o en rojo lo pinta ahora el CTA de la barra, y lo prueba
+// `MediaDetailView.spec.js` → «el CTA de la barra».
 
 describe('LibraryMediaItem — acciones propias de un medio', () => {
   it('solo el libro trae el botón de historial, y solo si ya está en la biblioteca', () => {
@@ -238,9 +239,43 @@ describe('LibraryMediaItem — acciones propias de un medio', () => {
     expect(wrapper.emitted('show-history')[0][0].isbn).toBe('1')
   })
 
-  it('sin `canDelete` no hay botón de borrar, y estando nuevo tampoco', () => {
-    expect(mount('album', { name: 'A' }, { canDelete: false }).find('.btn--danger').exists()).toBe(false)
-    expect(mount('album', { name: 'A' }, { isNew: true }).find('.btn--danger').exists()).toBe(false)
+  // `when` es el segundo filtro, y mira el ÍTEM en vez del estado en la biblioteca:
+  // un libro sin `work_key` no tiene ediciones que ofrecer aunque esté guardado.
+  it('las ediciones solo se ofrecen si el libro tiene `work_key`', () => {
+    const con = mount('book', { title: 'X', isbn: '1', work_key: '/works/OL1W' })
+    const sin = mount('book', { title: 'X', isbn: '1' })
+
+    const rotulos = (w) => w.findAll('.btn--secondary').map((b) => b.text())
+    expect(rotulos(con)).toContain('Ver ediciones')
+    expect(rotulos(sin)).not.toContain('Ver ediciones')
+  })
+
+  it('elegir ediciones emite `show-editions` con el ítem', async () => {
+    const wrapper = mount('book', { title: 'X', isbn: '1', work_key: '/works/OL1W' })
+    const boton = wrapper.findAll('.btn--secondary').find((b) => b.text().includes('Ver ediciones'))
+    await boton.trigger('click')
+
+    expect(wrapper.emitted('show-editions')[0][0].work_key).toBe('/works/OL1W')
+  })
+
+  it('la serie ofrece las temporadas, y la película NO se las hereda', () => {
+    // `series.libraryItem` sale de `movie.libraryItem` por prototipo. Con la
+    // referencia compartida que había antes, este `extraActions` habría aparecido
+    // también en la ficha de películas, que no tienen temporadas.
+    const serie = mount('series', { title: 'GoT', isbn: 'tt9', totalSeasons: 8 })
+    const peli = mount('movie', { title: 'Matrix', isbn: 'tt1', totalSeasons: 8 })
+
+    expect(serie.findAll('.btn--secondary').map((b) => b.text())).toContain('Temporadas')
+    expect(peli.findAll('.btn--secondary')).toHaveLength(0)
+  })
+
+  it('sin `totalSeasons` la serie tampoco ofrece temporadas', () => {
+    expect(mount('series', { title: 'X', isbn: 'tt9' }).findAll('.btn--secondary')).toHaveLength(0)
+  })
+
+  it('y estando sin guardar tampoco: el seguimiento necesita el ítem en la biblioteca', () => {
+    const w = mount('series', { title: 'X', isbn: 'tt9', totalSeasons: 8 }, { isNew: true })
+    expect(w.findAll('.btn--secondary')).toHaveLength(0)
   })
 })
 
@@ -274,38 +309,9 @@ describe('LibraryMediaItem — resincronización con el ítem', () => {
   })
 })
 
-describe('LibraryMediaItem — portada servida por el backend', () => {
-  it('apunta al endpoint local, no al CDN del proveedor', () => {
-    const wrapper = mount('movie', {
-      imdbID: 'tt0068646', title: 'El Padrino', coverUrl: 'https://image.tmdb.org/t/p/w500/a.jpg'
-    })
-
-    expect(wrapper.find('img.cover-image').attributes('src'))
-      .toBe('http://127.0.0.1:8888/index.php?cover=movie/tt0068646')
-  })
-
-  it('cae a la URL remota cuando la imagen local no carga', async () => {
-    const wrapper = mount('movie', {
-      imdbID: 'tt0068646', title: 'El Padrino', coverUrl: 'https://image.tmdb.org/t/p/w500/a.jpg'
-    })
-
-    // Un 404 del endpoint = el ítem no tiene fila en cover_file (guardado antes
-    // de que esto existiera y sin sembrar). No puede verse un icono roto.
-    await wrapper.find('img.cover-image').trigger('error')
-
-    expect(wrapper.find('img.cover-image').attributes('src'))
-      .toBe('https://image.tmdb.org/t/p/w500/a.jpg')
-  })
-
-  it('usa la URL remota directamente si el ítem no tiene clave', () => {
-    const wrapper = mount('movie', { title: 'Sin id', coverUrl: 'https://cdn.test/a.jpg' })
-
-    expect(wrapper.find('img.cover-image').attributes('src')).toBe('https://cdn.test/a.jpg')
-  })
-
-  it('sin portada de ningún tipo no pinta img', () => {
-    const wrapper = mount('movie', { imdbID: 'tt1', title: 'Sin portada' })
-
-    expect(wrapper.find('img.cover-image').exists()).toBe(false)
-  })
-})
+// El bloque «portada servida por el backend» vivía aquí y se retiró el 2026-09-02:
+// el panel dejó de pintar la portada —la cabecera de la ficha ya la enseña— así que
+// sus cuatro tests se quedaron sin sujeto. **La cobertura no se pierde**: la misma
+// cadena local → remota → placeholder la prueban `MediaDetailView.spec.js:251-307`
+// con cinco casos, incluido el de la serie que pide la clave de película, y
+// `CoverService.spec.js` la composición de la URL.

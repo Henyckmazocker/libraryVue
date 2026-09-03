@@ -2,6 +2,8 @@
   <MediaDetailView
     media="video"
     :store="videosStore"
+    :on-status="videosComposable.updateVideoStatuses"
+    :on-rate="guardarValoracion"
   >
     <!-- Botón de reproducción superpuesto a la miniatura. -->
     <template #cover-overlay="{ item }">
@@ -121,6 +123,7 @@
 import { ref } from 'vue';
 import MediaDetailView from '@/views/shared/MediaDetailView.vue';
 import { useVideosStore } from '@/store/videos';
+import { useVideos } from '@/composables/useVideos';
 import { useI18n } from '@/composables/useI18n';
 
 const { t } = useI18n();
@@ -132,6 +135,18 @@ const { t } = useI18n();
  * plegable y el botón de reproducción sobre la miniatura.
  */
 const videosStore = useVideosStore();
+const videosComposable = useVideos();
+
+/**
+ * La valoración se guarda por donde la guarda el modal de edición, que acaba en este
+ * mismo `editUserVideo` (`useItemEdit.js:26` solo despacha por medio). NO se
+ * usa `updateVideoRating`: esas cinco acciones no las llama nadie y dos están rotas.
+ *
+ * Y no se pasa por `useItemEdit` a propósito: instancia los cinco composables, así que
+ * cada ficha levantaría los cinco stores de Pinia para guardar una valoración.
+ */
+const guardarValoracion = (id, valor) =>
+  videosComposable.editUserVideo(id, null, { personalRating: valor });
 const showFullDesc = ref(false);
 
 const youtubeIdOf = (video) => video?.youtube_id || video?.youtubeId;
@@ -222,13 +237,6 @@ function truncateDescription(text, maxLen) {
   }
 
   // ── Info principal ────────────────────────────────────────────────────────
-  .video-main-info {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: spacing(sm);
-  }
 
   .video-channel-large {
     display: flex;

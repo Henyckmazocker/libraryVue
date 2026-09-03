@@ -216,6 +216,17 @@ final class MySqlUserGameRepository implements UserGameRepositoryInterface
             ]);
 
             // Remove user-game relationship
+            // Las notas van con el ítem, y hay que borrarlas a mano: su FK apunta a
+            // la tabla de CATÁLOGO —compartida y que no se borra por esta vía—, no a
+            // la del usuario, así que su `ON DELETE CASCADE` no salta nunca. Las
+            // etiquetas sí cuelgan de `user_games` (`init.sql:828`) y se van
+            // solas. Mismo arreglo que en películas el 2026-09-03.
+            $stmtNotes = $this->db->prepare("DELETE FROM user_game_notes WHERE user_id = :userId AND game_id = :gameId");
+            $stmtNotes->execute([
+                ':userId' => $userId,
+                ':gameId' => $gameId
+            ]);
+
             $stmt = $this->db->prepare("DELETE FROM user_games WHERE user_id = :userId AND game_id = :gameId");
             $stmt->execute([
                 ':userId' => $userId,

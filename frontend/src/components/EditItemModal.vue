@@ -242,45 +242,13 @@
       </div>
     </section>
 
-    <!-- Sección: widgets/notas asociadas -->
-    <section
-      v-if="hasNotesSection"
-      class="edit-modal__section"
-    >
-      <h3 class="edit-modal__section-title">
-        {{ t('edit.sectionNotes') }}
-      </h3>
-
-      <ReadingStatusWidget
-        v-if="itemType === 'book' && item?.isbn && !isNewItem"
-        :book="item"
-      />
-
-      <EditionNotes
-        v-if="itemType === 'book' && userEditionId"
-        :user-edition-id="userEditionId"
-      />
-
-      <MovieNotes
-        v-if="itemType === 'movie' && item?.isbn"
-        :imdb-id="item.isbn"
-      />
-
-      <GameNotes
-        v-if="itemType === 'game' && item?.id"
-        :game-id="item.id"
-      />
-
-      <AlbumNotes
-        v-if="itemType === 'album' && item?.id"
-        :album-id="item.id"
-      />
-
-      <VideoNotes
-        v-if="itemType === 'video' && (item?.youtube_id || item?.youtubeId)"
-        :youtube-id="item.youtube_id || item.youtubeId"
-      />
-    </section>
+    <!-- Aquí vivía «Notas y seguimiento»: el widget de lectura y los cinco
+         paneles de notas. Se fue el 2026-09-02 porque era el segundo sitio donde
+         escribir la misma nota —en juego, álbum y vídeo el panel estaba a la vez
+         aquí dentro y en la página—, y porque una nota es de leer, no de rellenar
+         en un formulario que se guarda con «Guardar». Ahora vive en la ficha, a
+         ancho completo, y el `ReadingStatusWidget` en el panel de biblioteca
+         (`BookDetailView.vue:199-204`). -->
 
     <template #footer>
       <button
@@ -310,12 +278,6 @@ import RatingComponent from '@/components/common/RatingComponent.vue'
 import ReadingProgressBar from '@/components/common/ReadingProgressBar.vue'
 import StatusSelector from '@/components/common/StatusSelector.vue'
 import TagSelector from '@/components/common/TagSelector.vue'
-import EditionNotes from '@/components/Books/EditionNotes.vue'
-import ReadingStatusWidget from '@/components/Books/ReadingStatusWidget.vue'
-import MovieNotes from '@/components/Movies/MovieNotes.vue'
-import GameNotes from '@/components/Games/GameNotes.vue'
-import AlbumNotes from '@/components/Albums/AlbumNotes.vue'
-import VideoNotes from '@/components/Videos/VideoNotes.vue'
 import { useBooks } from '@/composables/useBooks'
 import { useMovies } from '@/composables/useMovies'
 import { useGames } from '@/composables/useGames'
@@ -437,19 +399,13 @@ const resetLocalState = (item) => {
 // Keep local state in sync whenever the item prop changes
 watch(() => props.item, resetLocalState, { immediate: true })
 
-// Determine if this is a new item (not yet saved in library)
-const isNewItem = computed(() => {
-  if (props.itemType === 'book') {
-    return !props.item?.user_edition_id && !props.item?.userEditionId && !props.item?.editable
-  }
-  return false
-})
+// `isNewItem` se fue con la sección de notas, que era su único consumidor: solo
+// servía para no pintarle el widget de lectura a un libro que aún no estaba en la
+// biblioteca. En la ficha esa pregunta ya la responde `existing`.
 
-// User Edition ID for books (needed for edition notes)
-const userEditionId = computed(() => {
-  if (props.itemType !== 'book') return null
-  return props.item?.user_edition_id || props.item?.userEditionId || props.item?.id || null
-})
+// `userEditionId` se fue con la sección de notas: la cadena que resolvía vive ahora
+// en `mediaRegistry` como `book.detail.notesIdOf`, que es quien se la da a
+// `MediaNotes` desde la ficha.
 
 // Get user tags based on item type
 const userTags = computed(() => {
@@ -759,15 +715,6 @@ const handleSave = async () => {
 }
 
 // Whether the bottom "notes / widgets" section should render
-const hasNotesSection = computed(() => {
-  if (props.itemType === 'book') {
-    return Boolean(props.item?.isbn) || Boolean(userEditionId.value)
-  }
-  if (props.itemType === 'movie') return Boolean(props.item?.isbn)
-  if (props.itemType === 'game' || props.itemType === 'album') return Boolean(props.item?.id)
-  if (props.itemType === 'video') return Boolean(props.item?.youtube_id || props.item?.youtubeId)
-  return false
-})
 </script>
 
 <style scoped lang="scss">

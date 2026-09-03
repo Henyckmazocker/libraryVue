@@ -1,12 +1,8 @@
 <template>
   <div class="edition-selector">
-    <div class="section-header">
-      <h2 class="section-title">
-        <i class="fas fa-layer-group" />
-        {{ t('editions.title') }}
-      </h2>
-    </div>
-
+    <!-- Sin cabecera propia: desde el 2026-09-03 esto vive dentro de un `BaseModal`
+         que ya pone el título en su `__title`, y repetirlo daba dos «Ediciones
+         disponibles» seguidos. Su único consumidor es ese modal. -->
     <!-- Filtros -->
     <div class="filters-section">
       <button 

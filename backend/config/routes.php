@@ -328,9 +328,19 @@ return [
             LoggingMiddleware::class,
             AuthenticationMiddleware::class,
             CSRFMiddleware::class,
-            [ValidationMiddleware::class, ['required' => ['imdbID', 'id']]] // Either imdbID or id required
+            // ⚠ Antes pedía `['imdbID', 'id']` con el comentario «either imdbID or
+            // id required». `ValidationMiddleware` exige **todas** las de la lista,
+            // no una, así que cualquier llamada con un solo identificador salía por
+            // VALIDATION_FAILED. Y el cliente no manda ninguna de las dos: manda
+            // `isbn`, que es lo que `createMediaStore.remove` saca del
+            // `store.idPayloadKey` de películas —y que el registry avisa en
+            // `mediaRegistry.js:890` que NO es `movieIsbn`, al revés que el alta y los
+            // estados—. Resultado: borrar una película o una serie desde la ficha
+            // respondía 400 siempre. Se exige la clave que se manda de verdad, igual
+            // que `delete_book` exige `isbn`.
+            [ValidationMiddleware::class, ['required' => ['isbn']]]
         ],
-        'validation' => [] // Handled in controller logic
+        'validation' => ['isbn']
     ],
     
     'update_movie_rating' => [

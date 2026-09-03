@@ -102,7 +102,7 @@
              salto cada vez que llega o se resuelve una recomendación. -->
         <router-link
           to="/inbox"
-          class="app-header__inbox"
+          class="app-header__inbox app-header__inbox--tray"
         >
           <i
             class="fas fa-inbox"
@@ -500,13 +500,50 @@ const handleLogout = async () => {
 // botón de cerrar sesión quedaba fuera de la pantalla. Aquí no se quita ningún
 // destino —se llega a todos—, solo se aprieta lo que no es contenido: el padding
 // de la barra, los huecos entre iconos y el acolchado de la píldora de usuario.
+//
+// ⚠ Y no bastaba. Medido el 2026-09-03 a 360 px con sesión abierta: `.app-header__right`
+// seguía llegando a `right: 376` con el viewport en 360, o sea **24 px fuera**, y se
+// llevaba por delante la píldora de usuario y el botón de salir. La cuenta no daba:
+// 8 de padding + 42 del logo + 5 círculos de 40 + 4 huecos de 8 + 82 de píldora = 376
+// contra 352 de sitio. Faltaba apretar lo único que quedaba sin tocar —el tamaño de
+// los cinco círculos— porque los cuatro destinos y el conmutador de tema **no se
+// quitan**: son la única vía a búsqueda, listas, clubs y bandeja desde aquí.
+//
+// 36 px sigue por encima del mínimo de 24×24 de WCAG 2.5.8 y solo aplica por debajo
+// de 480 px; a partir de ahí vuelven los 40 de siempre. Medido después: cero
+// desbordados a 360, 390 y 479, con 8 px de margen, y 16 px a 480 con los círculos
+// grandes ya puestos.
+//
+// A **320 px sigue saliéndose 15 px**, y se deja así a propósito: la escala no tiene
+// un escalón por debajo de `sm` y apretar más los círculos empezaría a comerse el
+// área de pulsación. Está apuntado en el Roadmap.
 @include responsive-below(sm) {
   .app-header {
     padding: 0 spacing(xs);
   }
 
   .app-header__right {
-    gap: spacing(xs);
+    gap: spacing(2xs);
+  }
+
+  .app-header__theme-toggle,
+  .app-header__inbox {
+    width: 36px;
+    height: 36px;
+  }
+
+  // La bandeja se retira **solo aquí**, y no es quitar un destino: `MobileNavBar`
+  // ya lleva `/inbox` entre sus cinco pestañas y se pinta por debajo de `md`
+  // (`useBreakpoint.isNativeOrMobile`), **con su propio contador de pendientes**
+  // (`MobileNavBar.vue:19`). O sea que en esta franja el icono era una segunda copia
+  // del mismo destino y del mismo aviso, ocupando 40 px de una barra que no llegaba.
+  // Los otros tres —búsqueda, listas y clubs— NO están en la barra inferior, y por
+  // eso se quedan.
+  //
+  // Esto es lo que cierra los 320 px: con los círculos a 36 seguían sobrando 15, y
+  // recortarlos más se comía el área de pulsación. Ahora sobran 25.
+  .app-header__inbox--tray {
+    display: none;
   }
 
   .app-header__user-menu {

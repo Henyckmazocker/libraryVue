@@ -2,6 +2,8 @@
   <MediaDetailView
     media="album"
     :store="albumsStore"
+    :on-status="albumsComposable.updateAlbumStatuses"
+    :on-rate="guardarValoracion"
   >
     <template #meta-top="{ item }">
       <div
@@ -140,6 +142,7 @@
 import MediaDetailView from '@/views/shared/MediaDetailView.vue';
 import AlbumLastFmCard from '@/components/Albums/AlbumLastFmCard.vue';
 import { useAlbumsStore } from '@/store/albums';
+import { useAlbums } from '@/composables/useAlbums';
 import { useI18n } from '@/composables/useI18n';
 
 const { t } = useI18n();
@@ -151,6 +154,18 @@ const { t } = useI18n();
  * la tarjeta de Last.fm y la lista de pistas, que llega por `context`.
  */
 const albumsStore = useAlbumsStore();
+const albumsComposable = useAlbums();
+
+/**
+ * La valoración se guarda por donde la guarda el modal de edición, que acaba en este
+ * mismo `editUserAlbum` (`useItemEdit.js:26` solo despacha por medio). NO se
+ * usa `updateAlbumRating`: esas cinco acciones no las llama nadie y dos están rotas.
+ *
+ * Y no se pasa por `useItemEdit` a propósito: instancia los cinco composables, así que
+ * cada ficha levantaría los cinco stores de Pinia para guardar una valoración.
+ */
+const guardarValoracion = (id, valor) =>
+  albumsComposable.editUserAlbum(id, null, { personalRating: valor });
 
 const artistName = (album) => album?.artist || album?.artists?.[0]?.name || '';
 
@@ -241,10 +256,6 @@ const albumTypeLabel = (type) => {
     color: var(--color-text-muted);
   }
 
-  .album-main-info {
-    flex: 1;
-    min-width: 0;
-  }
 
   .album-type-badge {
     display: inline-flex;

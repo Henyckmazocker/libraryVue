@@ -2,6 +2,8 @@
   <MediaDetailView
     media="game"
     :store="gamesStore"
+    :on-status="gamesComposable.updateGameStatuses"
+    :on-rate="guardarValoracion"
   >
     <template #meta="{ item }">
       <div
@@ -188,6 +190,7 @@
 <script setup>
 import MediaDetailView from '@/views/shared/MediaDetailView.vue';
 import { useGamesStore } from '@/store/games';
+import { useGames } from '@/composables/useGames';
 import { sanitizeRich } from '@/utils/sanitize';
 import { useI18n } from '@/composables/useI18n';
 import { intlLocale } from '@/config/i18n';
@@ -201,6 +204,18 @@ const { t } = useI18n();
  * descripción de IGDB y la rejilla de capturas, que llega por `context`.
  */
 const gamesStore = useGamesStore();
+const gamesComposable = useGames();
+
+/**
+ * La valoración se guarda por donde la guarda el modal de edición, que acaba en este
+ * mismo `editUserGame` (`useItemEdit.js:26` solo despacha por medio). NO se
+ * usa `updateGameRating`: esas cinco acciones no las llama nadie y dos están rotas.
+ *
+ * Y no se pasa por `useItemEdit` a propósito: instancia los cinco composables, así que
+ * cada ficha levantaría los cinco stores de Pinia para guardar una valoración.
+ */
+const guardarValoracion = (id, valor) =>
+  gamesComposable.editUserGame(id, null, { personalRating: valor });
 
 const joinNames = (value) => (Array.isArray(value)
   ? value.map(v => (typeof v === 'string' ? v : v.name)).filter(Boolean).join(', ')
@@ -304,12 +319,6 @@ const websiteName = (website) =>
     font-size: 4rem;
   }
 
-  .game-main-info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: spacing(sm);
-  }
 
   .game-developer-large {
     display: flex;

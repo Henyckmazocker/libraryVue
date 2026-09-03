@@ -1,57 +1,33 @@
 <template>
   <div :class="`library-${media}-item-container`">
+    <!-- Aquí NO se pinta nada del catálogo. Hasta el 2026-09-02 este componente
+         repetía la portada, el título y los 4-6 campos de `libraryItem.fields` que
+         la cabecera ya enseña dos dedos más arriba. `fields` sigue en el registry:
+         lo usa `MediaListItem` para `/library` y `/search`; lo que se fue es su uso
+         aquí. Este panel es solo lo TUYO. -->
     <div :class="`${media}-details`">
-      <div
-        v-if="coverUrl"
-        class="cover-image-container"
-      >
-        <img
-          :src="coverUrl"
-          :alt="cfg.coverAlt"
-          class="cover-image"
-          :width="cfg.coverAspect.width"
-          :height="cfg.coverAspect.height"
-          loading="lazy"
-          decoding="async"
-          @error="onCoverError"
-        >
-      </div>
-
       <div class="info-text">
-        <h3 :class="`${media}-title`">
-          {{ title }}
-        </h3>
-
-        <p
-          v-for="field in visibleFields"
-          :key="field.cls"
-          :class="field.cls"
-        >
-          <strong>{{ field.label }}:</strong>
-          <span
-            v-if="field.valueClass"
-            :class="field.valueClass(item)"
-          >{{ field.text }}</span>
-          <template v-else>
-            {{ ' ' + field.text }}
-          </template>
-        </p>
-
         <RatingComponent
           :rating="rating"
-          :editable="false"
+          :editable="editable"
+          :label="editable ? t('edit.rating') : ''"
+          @update:rating="alValorar"
         />
 
         <!-- Libros meten aquí su barra de progreso de lectura. -->
         <slot name="after-rating" />
 
+        <!-- Editable siempre que el consumidor sepa guardar. Antes era `!isNew`:
+             con el ítem ya en tu biblioteca el estado era de solo lectura y había
+             que abrir el modal para cambiarlo, que es el paso más frecuente. -->
         <StatusSelector
           v-model="selectedUserStatuses"
           :allowed-statuses="allowedStatuses"
           :multiple="true"
-          :readonly="!isNew"
+          :readonly="!isNew && !editable"
           :label="isNew ? t('edit.addWithStatus') : cfg.statusLabel"
-          :subtitle="isNew ? '' : t('edit.readOnlyHint')"
+          :subtitle="isNew || editable ? '' : t('edit.readOnlyHint')"
+          @update:model-value="alCambiarEstados"
         />
 
         <!-- Libros meten aquí su widget de estado de lectura. -->
@@ -95,33 +71,14 @@
           </p>
         </div>
 
-        <div :class="`${media}-actions`">
-          <button
-            v-if="isNew"
-            :class="['btn', 'btn--primary', 'action-button', {
-              'is-success': saveButtonState === 'success',
-              'is-error': saveButtonState === 'error'
-            }]"
-            :disabled="!canSave"
-            :title="t('edit.saveMedia', { media: config.label.toLowerCase() })"
-            @click="onSave"
-          >
-            <i
-              v-if="saveButtonState === 'idle'"
-              class="fas fa-save"
-            />
-            <i
-              v-else-if="saveButtonState === 'success'"
-              class="fas fa-check"
-            />
-            <i
-              v-else-if="saveButtonState === 'error'"
-              class="fas fa-times"
-            />
-            <span>{{ t('common.save') }}</span>
-          </button>
-
-          <!-- Acciones propias de un medio: hoy solo el historial de libros. -->
+        <!-- Guardar, editar y eliminar se fueron a la barra de la ficha el
+             2026-09-02: eran la acción principal escondida al final del panel,
+             debajo de la sinopsis. Aquí queda lo que es propio de un medio y no
+             de la barra: hoy solo el historial de libros. -->
+        <div
+          v-if="visibleExtraActions.length > 0"
+          :class="`${media}-actions`"
+        >
           <button
             v-for="action in visibleExtraActions"
             :key="action.event"
@@ -131,41 +88,6 @@
           >
             <i :class="action.icon" />
             <span>{{ action.label }}</span>
-          </button>
-
-          <button
-            v-if="!isNew"
-            :class="['btn', 'btn--primary', 'action-button', {
-              'is-success': editButtonState === 'success',
-              'is-error': editButtonState === 'error'
-            }]"
-            :disabled="editButtonState !== 'idle'"
-            :title="t('edit.editMedia', { media: config.label.toLowerCase() })"
-            @click="onEdit"
-          >
-            <i
-              v-if="editButtonState === 'idle'"
-              class="fas fa-pencil-alt"
-            />
-            <i
-              v-else-if="editButtonState === 'success'"
-              class="fas fa-check"
-            />
-            <i
-              v-else-if="editButtonState === 'error'"
-              class="fas fa-times"
-            />
-            <span>{{ t('common.edit') }}</span>
-          </button>
-
-          <button
-            v-if="!isNew && canDelete"
-            class="btn btn--danger action-button"
-            :title="t('edit.deleteMedia', { media: config.label.toLowerCase() })"
-            @click="onDelete"
-          >
-            <i class="fas fa-trash" />
-            <span>{{ t('common.delete') }}</span>
           </button>
         </div>
       </div>
@@ -178,7 +100,6 @@ import { ref, computed, watch } from 'vue'
 import RatingComponent from '@/components/common/RatingComponent.vue'
 import StatusSelector from '@/components/common/StatusSelector.vue'
 import { getMediaConfig, mediaKeys } from '@/config/mediaRegistry'
-import CoverService from '@/services/CoverService'
 import Logger from '@/utils/logger'
 import { useI18n } from '@/composables/useI18n';
 
@@ -192,10 +113,10 @@ const { t } = useI18n();
  * contrato viejo. Todo lo que cambiaba entre ellos —los campos, los textos, el
  * estado por defecto, la forma de los payloads— sale de `mediaRegistry`.
  *
- * **El guardado va siempre en modo «el padre confirma»**: el componente expone
- * setSaveSuccess/setSaveError/setEditSuccess/setEditError y el padre los llama
- * tras la respuesta del backend. Antes, álbumes y vídeos se daban el guardado
- * por bueno solos y los otros tres esperaban al padre.
+ * **Aquí no hay ni un botón de la barra**: guardar, editar y eliminar viven en
+ * `MediaDetailView`, que es quien tiene el store. De guardar solo queda `guardar()`,
+ * expuesto para que el CTA lo dispare, porque el payload necesita los estados y la
+ * valoración que se eligen en este panel.
  */
 const props = defineProps({
   media: {
@@ -215,49 +136,45 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  canDelete: {
+  /**
+   * Si el consumidor sabe guardar al vuelo. Con esto, la valoración y el estado se
+   * cambian aquí mismo sin abrir el modal; sin esto, el panel se comporta como
+   * siempre. Lo pone `MediaDetailView` cuando su wrapper le pasó `onStatus`/`onRate`.
+   */
+  editable: {
     type: Boolean,
-    default: true
+    default: false
   }
 })
 
-const emit = defineEmits(['save', 'edit', 'delete', 'show-history'])
+// Los tres `show-*` son los `event` de `extraActions`. Van declarados uno a uno y no
+// como un `extra-action` genérico porque el consumidor de cada uno es distinto —el
+// historial abre un modal de libro, las ediciones otro, las temporadas otro— y un
+// emit sin declarar suelta un warning de Vue que no rompe nada y no ve nadie.
+const emit = defineEmits(['save', 'show-history', 'show-editions', 'show-seasons', 'rate', 'set-statuses'])
+
+// El componente NO guarda: emite y deja que `MediaDetailView` aplique las guardas y
+// llame al wrapper. Aquí no hay ni store ni composable, y así sigue.
+const alValorar = (valor) => { if (props.editable) emit('rate', valor) }
+const alCambiarEstados = (estados) => {
+  if (props.editable && !props.isNew) emit('set-statuses', estados)
+}
 
 const config = computed(() => getMediaConfig(props.media))
 const cfg = computed(() => config.value.libraryItem)
-
-// La portada la sirve el backend desde su copia local, no el CDN del proveedor:
-// es lo que hace que la biblioteca se vea sin salida a internet. `remoteUrl` es
-// el respaldo, y se usa cuando el ítem no tiene fila en `cover_file` (guardado
-// antes de que existiera esto y sin sembrar) o cuando la imagen no carga.
-const remoteUrl = computed(() => cfg.value.coverOf(props.item))
-const localFailed = ref(false)
-
-const coverUrl = computed(() => {
-  // Sin portada remota no hay fila en `cover_file` y no hay nada que servir: el
-  // hueco se queda vacío, igual que antes de existir el endpoint.
-  if (!remoteUrl.value || localFailed.value) {
-    return remoteUrl.value
-  }
-
-  return CoverService.localCoverUrl(props.media, cfg.value.idOf(props.item)) || remoteUrl.value
-})
-
-/** Un 404 del endpoint significa «no hay fila»: a la URL de siempre. */
-const onCoverError = () => {
-  localFailed.value = true
-}
-const title = computed(() => cfg.value.titleOf(props.item))
 
 /** Un campo se pinta si tiene valor, salvo los marcados `always`. */
 const resolve = (defs) => defs
   .map((def) => ({ ...def, text: def.value(props.item) }))
   .filter((def) => def.always || (def.text !== null && def.text !== undefined && def.text !== '' && def.text !== 0))
 
-const visibleFields = computed(() => resolve(cfg.value.fields))
 const visibleExtras = computed(() => resolve(cfg.value.extras || []))
+// Dos filtros y no uno: `onlyExisting` mira el estado en tu biblioteca y `when`
+// mira el ítem. Un libro sin `work_key` no tiene ediciones que ofrecer aunque esté
+// guardado, y una serie sin `totalSeasons` no tiene temporadas que seguir.
 const visibleExtraActions = computed(() => (cfg.value.extraActions || [])
-  .filter((action) => (action.onlyExisting ? !props.isNew : true)))
+  .filter((action) => (action.onlyExisting ? !props.isNew : true))
+  .filter((action) => (action.when ? action.when(props.item) : true)))
 
 // ─── Estado local ────────────────────────────────────────────────────────
 const initialStatuses = () => {
@@ -270,17 +187,12 @@ const initialStatuses = () => {
 
 const rating = ref(props.item?.user_rating ?? cfg.value.ratingFallback)
 const selectedUserStatuses = ref(initialStatuses())
-const saveButtonState = ref('idle')
-const editButtonState = ref('idle')
-
-const canSave = computed(() => saveButtonState.value === 'idle')
 
 // Los estados se recalculan solo cuando cambia el ítem **de verdad**, no en
 // cada mutación: las fichas de detalle reemplazan el objeto al enriquecerlo en
 // segundo plano, y un watch profundo borraría lo que el usuario acabe de elegir.
 watch(() => cfg.value.idOf(props.item), () => {
   selectedUserStatuses.value = initialStatuses()
-  localFailed.value = false
 })
 
 watch(() => props.item?.user_rating, (value) => {
@@ -301,36 +213,17 @@ watch(() => props.allowedStatuses, () => {
 /** Los juegos añaden sus campos propios al ítem antes de emitirlo. */
 const payloadItem = () => (cfg.value.withOwnFields ? cfg.value.withOwnFields(props.item) : props.item)
 
-function onSave () {
+/**
+ * Arma el payload del alta y lo emite. Lo dispara el CTA de la barra, que es
+ * donde vive hoy el botón; el payload se sigue armando aquí porque los estados y
+ * la valoración elegidos son de este panel.
+ */
+function guardar () {
   Logger.debug(`[LibraryMediaItem] Saving ${props.media}`)
-  saveButtonState.value = 'idle'
   emit('save', cfg.value.savePayload(payloadItem(), [...selectedUserStatuses.value], rating.value))
 }
 
-function onEdit () {
-  const item = cfg.value.withOwnFields
-    ? { ...cfg.value.withOwnFields(props.item), user_rating: rating.value }
-    : props.item
-  emit('edit', ...cfg.value.editPayload(item))
-}
-
-function onDelete () {
-  Logger.debug(`[LibraryMediaItem] Deleting ${props.media}`)
-  emit('delete', cfg.value.deletePayload(props.item))
-}
-
-// ─── Feedback que confirma el padre ──────────────────────────────────────
-const flash = (state, value, ms) => {
-  state.value = value
-  setTimeout(() => { state.value = 'idle' }, ms)
-}
-
-const setSaveSuccess = () => flash(saveButtonState, 'success', 2000)
-const setSaveError = () => flash(saveButtonState, 'error', 2000)
-const setEditSuccess = () => flash(editButtonState, 'success', 2000)
-const setEditError = () => flash(editButtonState, 'error', 2000)
-
-defineExpose({ setSaveSuccess, setSaveError, setEditSuccess, setEditError })
+defineExpose({ guardar })
 </script>
 
 <style scoped lang="scss">

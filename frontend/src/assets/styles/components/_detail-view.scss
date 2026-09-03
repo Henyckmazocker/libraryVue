@@ -38,6 +38,41 @@
     &:hover { transform: translateX(-4px); }
   }
 
+  // ─── Barra de acciones ───────────────────────────────────────────────────
+  // Volver a la izquierda; a la derecha el CTA y el menú `⋯`. Hasta el
+  // 2026-09-02 aquí había CUATRO botones del mismo peso —volver, recomendar,
+  // añadir a una lista y ponerlo en un club—: a 390 px se envolvían en tres
+  // filas y gastaban 271 px de alto antes de que empezara la ficha, y ninguno
+  // de los cuatro era la acción que se viene a hacer.
+  //
+  // `nowrap` es deliberado, y por eso el `margin-bottom` sube del botón a la
+  // barra: lo que cede al estrecharse no es la fila, es el rótulo de «volver»,
+  // que se queda en su flecha con el nombre accesible intacto.
+  .detail-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: spacing(sm);
+    margin-bottom: spacing(lg);
+
+    .back-button {
+      flex-shrink: 0;
+      margin-bottom: 0;
+    }
+  }
+
+  .detail-actions__end {
+    display: flex;
+    align-items: center;
+    gap: spacing(sm);
+    min-width: 0;
+    margin-left: auto;
+  }
+
+  @include responsive-below(sm) {
+    .back-button__text { @include visually-hidden; }
+  }
+
   // ─── Estados loading / error / empty (incluye variantes legacy) ──────────
   .loading-state,
   .error-state,
@@ -87,12 +122,82 @@
     box-shadow: shadow(medium);
     border-top: 3px solid var(--color-card-#{$entity}-accent);
 
+    // En móvil NO se apila. Hasta el 2026-09-02 lo hacía, y la portada pasaba a
+    // `width: 100%`: a 390 px ocupaba ~620 px de alto y empujaba el título fuera de
+    // la primera pantalla. Se queda en fila, con la portada pequeña a la izquierda
+    // —como una tarjeta de lista—, para que el título y el estado se vean sin
+    // hacer scroll, que es lo que este plan persigue.
     @include responsive-below(md) {
-      flex-direction: column;
       padding: spacing(md);
       gap: spacing(md);
     }
+
+    // ⚠ El escalón que faltaba, entre `md` y `lg`. Cada medio declara su portada en
+    // píxeles —vídeo 320, juego 280, álbum 240, y 220 libro, película y serie— y su
+    // miniatura **solo** por debajo de `md`, así que justo por encima seguían a
+    // tamaño completo con el sidebar de 280 px todavía puesto. Medido el 2026-09-03
+    // en `/books/9788466342667` a 768 px: `396 − 48 de padding − 220 de portada − 32
+    // de gap = 96` px de columna para el título, los metadatos y el identificador,
+    // que salía partido en cuatro líneas.
+    //
+    // Se resuelve con un techo en PORCENTAJE sobre el primer hijo —la portada— en vez
+    // de con seis anchos nuevos: el `width` de cada medio se queda como intención y
+    // esto solo lo acota cuando no cabe, así que un medio nuevo hereda el arreglo sin
+    // declarar nada. El primer hijo del header es siempre la portada
+    // (`MediaDetailView.vue:66`), y su clase la elige `d.coverClass`, que cambia por
+    // medio: por eso se engancha por posición y no por nombre.
+    @include responsive(md) {
+      @include responsive-below(lg) {
+        > *:first-child { max-width: 34%; }
+      }
+    }
   }
+
+  // La columna de datos de la cabecera. Vivía en los seis wrappers y **en ninguno
+  // se aplicaba**: `.{medio}-main-info` lo pinta ESTE fichero, y el `scoped` del
+  // wrapper no alcanza su marcado. Medido el 2026-09-02 en la ficha de vídeo:
+  // `min-width` computaba `auto` y `flex-grow` computaba `0`, con la regla presente
+  // en el CSS pero con el `data-v` del wrapper. Sin el `min-width: 0` la columna no
+  // puede encoger por debajo de su contenido y a 390 px desbordaba 9 px.
+  .#{$selector}-main-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  // ─── El cuerpo: dos columnas en escritorio ───────────────────────────────
+  // El catálogo a la izquierda y lo tuyo a la derecha, pegajoso. En el DOM el panel
+  // va ANTES que el catálogo —así se lee y se tabula primero en móvil, que es donde
+  // hoy queda enterrado—, y aquí se recoloca con `grid-column` en vez de con
+  // `order`, que rompería el orden de tabulación.
+  .detail-body {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: spacing(xl);
+    margin-bottom: spacing(xl);
+
+    @include responsive(lg) {
+      grid-template-columns: minmax(0, 1fr) 22rem;
+      align-items: start;
+
+      .detail-extra { grid-column: 1; grid-row: 1; }
+      .detail-panel { grid-column: 2; grid-row: 1; }
+    }
+  }
+
+  .detail-panel {
+    @include responsive(lg) {
+      position: sticky;
+      // El panel puede ser más alto que el viewport en libro y serie: con scroll
+      // propio se queda pegado sin esconder su parte de abajo.
+      top: spacing(lg);
+      max-height: calc(100vh - #{spacing(xl)});
+      overflow-y: auto;
+    }
+  }
+
+  // `minmax(0, 1fr)` en la columna del catálogo no basta: sus hijos —la rejilla de
+  // capturas, la lista de pistas— tienen anchos propios y desbordarían la columna.
+  .detail-extra { min-width: 0; }
 
   // ─── Cover / poster ──────────────────────────────────────────────────────
   .cover-image-large,
@@ -148,10 +253,15 @@
   //
   // `radius(full)` y no `radius(sm)`: iguala la pastilla con `.genre-tag`, que ya
   // lo usaba, y es lo que hace que la cabecera se lea como una sola familia.
+  // Mismo `inline-flex` que `.meta-identifier`, y por tanto la misma trampa: sin
+  // `wrap` un contenido largo —un título de plataforma, una duración con etiqueta—
+  // empujaría la pastilla fuera del viewport en vez de partirse.
   .meta-pill {
     display: inline-flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: spacing(2xs);
+    max-width: 100%;
     padding: spacing(2xs) spacing(sm);
     background: var(--color-background-soft);
     border-radius: radius(full);
@@ -299,14 +409,82 @@
   // Deja de tener caja propia y filete de acento: competía con el título estando
   // un escalón por debajo del año o la duración. Se queda discreto —monoespaciado
   // y pequeño— porque es lo que es: una clave que se copia, no un dato que se lee.
+  //
+  // ⚠ `flex-wrap` y `max-width` no son decoración. Un `inline-flex` no parte sus
+  // ítems, y aquí cada trozo de texto es uno: el ISBN-13 seguido del ISBN-10 crecía
+  // en una sola línea hasta salirse del viewport —medido el 2026-09-02 en
+  // `/books/9788466342667`: `right: 810` con `vw: 768`, y a 360 px se llevaba
+  // también a `.isbn-secondary`—. A 390 px no se veía, que es el ancho con el que se
+  // estrenó, y `npm run test:responsive` mide **solo 360 y 390**, así que el caso de
+  // 768 no lo cazaba nadie.
   .meta-identifier {
-    display: inline-flex;
+    // `flex` y no `inline-flex`: los tres consumidores lo pintan en un `<div>` que ya
+    // ocupa su línea, y siendo inline la caja se encogía a su ancho MÍNIMO —el ISBN
+    // suelto, 96 px— y partía el resto en cuatro líneas teniendo 196 de sitio.
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: spacing(2xs);
+    max-width: 100%;
     margin-bottom: spacing(sm);
     font-family: var(--font-family-mono);
     font-size: var(--font-size-xs);
     color: var(--color-text-muted);
+    // `break-word` y NO `anywhere`: los dos parten una palabra larga cuando hace
+    // falta, pero `anywhere` además hunde el ancho MÍNIMO intrínseco de la caja, y
+    // con él el ISBN se partía por la mitad teniendo sitio de sobra. Un ISBN es una
+    // clave que se copia: se parte solo si no cabe de ninguna manera.
+    overflow-wrap: break-word;
+  }
+
+  // ─── Datos técnicos, plegados ────────────────────────────────────────────
+  // Un `<details>` nativo: abre y cierra sin una línea de JavaScript y es accesible
+  // por teclado de serie. El marcador por defecto se quita porque no conmuta con el
+  // tema —en oscuro casi no se ve— y el chevrón lo pone el `::before`, que sí usa
+  // `currentColor`.
+  .detail-technical {
+    margin-top: spacing(lg);
+    padding-top: spacing(md);
+    border-top: 1px solid var(--color-border-light);
+
+    summary {
+      display: flex;
+      align-items: center;
+      gap: spacing(2xs);
+      cursor: pointer;
+      list-style: none;
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text-muted);
+      transition: color transition(fast);
+
+      &::-webkit-details-marker { display: none; }
+
+      &::before {
+        content: '\203A';
+        display: inline-block;
+        font-size: var(--font-size-md);
+        line-height: 1;
+        transition: transform transition(fast);
+      }
+
+      &:hover { color: var(--color-text); }
+    }
+
+    &[open] summary::before { transform: rotate(90deg); }
+
+    // ⚠ El plegado se escribe, no se hereda. Ocultar el contenido de un `<details>`
+    // cerrado lo hace normalmente la hoja del navegador, que es la de MENOR
+    // prioridad: el `display: flex` del `.meta-identifier` le ganaba y el ISBN se
+    // veía con el plegable cerrado. Se envolvió en `__body` para quitarle ese
+    // `display`… y aun así seguía visible, porque **este Firefox no aplica la regla
+    // en absoluto**: un `<details>` recién creado en `about:blank` enseña su
+    // contenido cerrado (medido el 2026-09-03, `offsetHeight: 23`). Con la regla
+    // escrita aquí, el plegado no depende de qué navegador toque.
+    &:not([open]) .detail-technical__body { display: none; }
+
+    // Aquí el identificador ya no compite con nada, así que recupera su hueco.
+    .meta-identifier { margin: spacing(sm) 0 0; }
   }
 }
 

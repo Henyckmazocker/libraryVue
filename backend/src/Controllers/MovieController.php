@@ -115,7 +115,10 @@ class MovieController extends BaseController implements Contracts\MovieControlle
     public function deleteMovie(DeleteMovieCommand $command): array
     {
         $this->deleteMovieUseCase->execute($command);
-        return $this->successResponse('Movie removed from your library: ' . $command->movieId);
+        // `$command->movieId` no existe: la propiedad es `id`, y es un
+        // `MovieIdentifier`. Leerla daba un warning de propiedad indefinida y un
+        // mensaje truncado —y en esta suite los warnings hacen fallar los tests—.
+        return $this->successResponse('Movie removed from your library: ' . $command->id->toString());
     }
 
     /**

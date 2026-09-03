@@ -70,12 +70,12 @@ docker compose up --build   # equivalente crudo: NO migra ni arranca el mirror
 
 # Tests backend (PHPUnit 11, dentro del contenedor backend)
 docker compose --profile test up -d mysql-test   # lo necesita la suite de integración
-docker compose exec backend composer test        # las DOS suites: 1437 tests
+docker compose exec backend composer test        # las DOS suites: 1445 tests
 docker compose exec backend composer test:unit   # la rápida: 1279, sin necesitar mysql-test
-docker compose exec backend composer test:integration   # 158, contra una BD desechable
+docker compose exec backend composer test:integration   # 166, contra una BD desechable
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
-docker compose exec frontend npm test            # 465 tests
+docker compose exec frontend npm test            # 490 tests
 docker compose exec frontend npm run test:watch
 docker compose exec frontend npx vue-cli-service lint --no-fix   # lo corre también ./dev-setup.sh
 docker compose exec frontend npm run lint:styles                 # stylelint; también en ./dev-setup.sh
@@ -89,6 +89,13 @@ cd frontend && LIBRARYVUE_JWT=<token> npm run test:responsive -- --width=360,390
 # Frontend / móvil (Capacitor)
 cd frontend && npm run cap:sync && npm run build:mobile
 ```
+
+> ⚠️ **`docker compose exec` corre como ROOT, y eso puede tumbar el backend entero.** Si un
+> `composer test` es lo primero que escribe logs en un día nuevo, los
+> `storage/logs/*-YYYY-MM-DD.log` nacen `root:root` con modo 644 y Apache (`www-data`) ya no puede
+> añadir: **toda** petición pasa a 500, `ping` incluido, y el frontend borra el JWT de
+> `localStorage` al fallar `check_auth`, así que el síntoma que ves es «no puedo entrar en la app».
+> Se arregla con `docker compose exec backend chown -R www-data:www-data storage/logs`.
 
 > ⚠️ **Una devDependency nueva del frontend obliga a `docker compose build frontend`.** El
 > contenedor monta `package.json`, `vitest.config.js`, `tests/` y `.stylelintrc.json`
@@ -502,6 +509,31 @@ se cachean en `mb_track` (ver abajo).
   `/library` y `/search`. El mixin **no impone la disposición de la fila** —ni `display`, ni `gap`, ni
   márgenes—: eso lo pone cada consumidor, y es lo que permitió sacarlo de `MyLibrary` sin moverle un
   píxel.
+- **La ficha se estructura alrededor de «¿qué tengo yo con esto?», y eso son cinco reglas.**
+  Desde el 2026-09-03: **(1)** `.detail-body` es una rejilla de dos columnas en ≥`lg` con el panel
+  *Mi biblioteca* pegajoso a la derecha, y en el DOM el panel va **antes** que `.detail-extra` a
+  propósito —en móvil se lee en ese orden y el de tabulación coincide; en ≥`lg` los recoloca
+  `grid-column`, **nunca `order`**—. **(2)** El panel **no pinta nada del catálogo** y **no lleva
+  botones de la barra**: expone `guardar()` para que lo dispare el CTA, y con `editable` la
+  valoración y el estado **emiten** para que los guarde `MediaDetailView` con las tres guardas del
+  modal. **(3)** La barra es `volver · CTA · ⋯`, y el CTA conmuta con `existing`. **(4)** Las notas
+  van en los **seis** medios y a ancho completo, solo con el ítem guardado; el modal de edición ya no
+  las lleva dentro. **(5)** Los identificadores viven plegados en `<details class="detail-technical">`
+  al final de la columna izquierda: no se leen, se copian. Los botones propios de un medio se
+  declaran en `libraryItem.extraActions`, con `onlyExisting` (mira el estado en tu biblioteca) y
+  `when` (mira el ítem).
+- **⚠ La ficha de serie le pasa al panel `media`, NO `d.libraryMedia`.** `series.detail.libraryMedia`
+  vale `'movie'` y es correcto para el `EditItemModal` —despacha por medio y series no tiene store—,
+  pero con eso el panel se configuraba como película y el `extraActions` propio de series no se
+  consultaba nunca. Por lo mismo, `series` hereda `list`, `libraryItem` y `notes` de `movie`
+  **por prototipo y no por referencia**: con la referencia compartida, un `extraActions` de series
+  aparecería también en las películas. Y `notes` no se copia con un spread, que **ejecuta** los
+  getters y congelaría los rótulos con el catálogo vacío.
+- **⚠ `<details>` no plega solo.** Ocultar el contenido de un `<details>` cerrado lo hace la hoja del
+  **navegador**, que es la de MENOR prioridad: cualquier `display` de autor sobre el hijo le gana y
+  el contenido se ve con el plegable cerrado. Y no es solo teoría: en el Firefox headless de este
+  entorno un `<details>` recién creado en `about:blank` **enseña su contenido cerrado**. Si el
+  plegado importa, se escribe (`&:not([open]) .cuerpo { display: none }`).
 - **Al abrir una ficha, pásale el ítem en `state`, no solo la ruta.** `MediaDetailView` arranca de
   `history.state?.[stateKey]` (`:348`) y solo si no hay nada depende de reconstruirlo. En libros eso
   significa `search_google_books_isbn`, o sea `q=isbn:…`, y **Google no indexa por ISBN todos los
@@ -629,7 +661,16 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
   `RuntimeException`—, así que era un 500 limpio y no un «no encontrado» mentiroso; el `get_library`
   que sí llama `HomePage.vue` va por `GetBooksUseCase`, otro camino, y por eso nunca falló nada a la
   vista. Antes de conectar una acción que no usaba nadie, pruébala con `curl` contra el backend de
-  dev.
+  dev. El **cuarto** llegó el 2026-09-03 con `delete_movie`, y deja dos
+  avisos nuevos. Uno: **`ValidationMiddleware` exige TODAS las claves de su `required`, no una**, así
+  que `['required' => ['imdbID', 'id']] // Either imdbID or id required` rechazaba cualquier llamada
+  real; si el contrato es «una de varias», la comprobación va en el comando, no en la ruta. Dos:
+  **hay DOS `idPayloadKey` por medio y no significan lo mismo** —el del bloque raíz es el de las
+  NOTAS, el del bloque `store` es el de las acciones del store—, y en películas valen `movieIsbn` e
+  `isbn` respectivamente; escribir la validación contra el que no es deja la acción muerta con las
+  dos suites en verde. Y el aviso que se lleva la palma: **un test de integración escrito con la
+  clave equivocada pasa en verde con la app rota**, porque está de acuerdo con tu suposición y no con
+  el cliente. Lo que lo destapó fue mirar el `body` de la petición en el navegador.
 - **El barrido que caza esta clase de fallo de golpe es cruzar el esquema con el SQL del código**:
   los `CREATE TABLE` de `docker/database/*.sql` contra lo que consulta `backend/src`. Dos avisos de
   quien lo hizo: las palabras clave hay que exigirlas **en MAYÚSCULAS** —en minúsculas el regex caza
@@ -795,9 +836,9 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 
 1. `docker compose up --build`; `POST http://localhost:8888/index.php` con `{"action":"ping"}`.
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
-3. `docker compose exec backend composer test` → verde (1437 tests: 1279 unitarios + 158 de
+3. `docker compose exec backend composer test` → verde (1445 tests: 1279 unitarios + 166 de
    integración; estos necesitan `docker compose --profile test up -d mysql-test`).
-4. `docker compose exec frontend npm test` → verde (465 tests) y
+4. `docker compose exec frontend npm test` → verde (490 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
 5. **`docker compose exec frontend npm run build` → `Build complete`.** No es redundante con el paso
    anterior: **ninguno de los tres comandos de arriba compila SCSS**. Los helpers de

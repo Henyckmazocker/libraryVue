@@ -266,6 +266,8 @@ media:
     notesHint: "Agrega notas para recordar tus opiniones sobre este vídeo"
     unknownChannel: Canal desconocido
   series:
+    notesTitle: Notas de la Serie
+    notesHint: "Agrega notas para recordar tus opiniones sobre esta serie"
     fields:
       season: Temporada
     label: Serie
@@ -320,6 +322,9 @@ listening:
   offline: Error de conexión
   soon: Análisis en desarrollo
 
+detail:
+  technical: Datos técnicos
+
 edit:
   totalPages: Total de páginas
   totalPagesPlaceholder: Nº total de páginas del libro
@@ -327,7 +332,6 @@ edit:
   unspecified: — Sin especificar —
   sectionRating: Tu valoración
   sectionLibrary: Cómo lo tienes
-  sectionNotes: Notas y seguimiento
   gameDetails: Detalles del juego
   videoDetails: Detalles del vídeo
   albumDetails: Detalles del álbum
@@ -348,9 +352,8 @@ edit:
   notesAlbum: Tus notas sobre este álbum...
   addWithStatus: Añadir con estado
   readOnlyHint: (solo lectura - usa el modal para editar)
-  saveMedia: Guardar {media}
-  editMedia: Editar {media}
-  deleteMedia: Eliminar {media}
+  saveToLibrary: Guardar en mi biblioteca
+  moreActions: Más acciones
   status: Estado
   rating: Valoración
   tags: Etiquetas
@@ -385,6 +388,7 @@ movie:
 
 editions:
   title: Ediciones disponibles
+  open: Ver ediciones
   showFilters: Mostrar filtros
   hideFilters: Ocultar filtros
   language: Idioma
@@ -499,6 +503,7 @@ notes:
 
 seasons:
   title: Progreso de temporadas
+  open: Temporadas
   watched: "{done} / {total} vistas"
   markAll: Marcar todas como vistas
   short: "T{n}"

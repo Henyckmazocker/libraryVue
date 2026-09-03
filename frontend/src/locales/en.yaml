@@ -255,6 +255,8 @@ media:
     notesHint: "Add notes to remember your thoughts about this video"
     unknownChannel: Unknown channel
   series:
+    notesTitle: Series Notes
+    notesHint: "Add notes to remember your thoughts on this series"
     fields:
       season: Season
     label: Series
@@ -309,6 +311,9 @@ listening:
   offline: Connection error
   soon: Analysis coming soon
 
+detail:
+  technical: Technical details
+
 edit:
   totalPages: Total pages
   totalPagesPlaceholder: Total number of pages
@@ -316,7 +321,6 @@ edit:
   unspecified: — Unspecified —
   sectionRating: Your rating
   sectionLibrary: How you have it
-  sectionNotes: Notes and tracking
   gameDetails: Game details
   videoDetails: Video details
   albumDetails: Album details
@@ -337,9 +341,8 @@ edit:
   notesAlbum: Your notes about this album…
   addWithStatus: Add with a status
   readOnlyHint: (read only — use the modal to edit)
-  saveMedia: Save {media}
-  editMedia: Edit {media}
-  deleteMedia: Delete {media}
+  saveToLibrary: Save to my library
+  moreActions: More actions
   status: Status
   rating: Rating
   tags: Tags
@@ -374,6 +377,7 @@ movie:
 
 editions:
   title: Available editions
+  open: Browse editions
   showFilters: Show filters
   hideFilters: Hide filters
   language: Language
@@ -489,6 +493,7 @@ notes:
 
 seasons:
   title: Season progress
+  open: Seasons
   watched: "{done} / {total} watched"
   markAll: Mark all as watched
   short: "S{n}"

@@ -2,6 +2,8 @@
   <MediaDetailView
     media="movie"
     :store="moviesStore"
+    :on-status="moviesComposable.updateMovieStatuses"
+    :on-rate="guardarValoracion"
   >
     <template #meta="{ item }">
       <!-- Badge tipo: Serie o Película -->
@@ -102,10 +104,6 @@
         </div>
       </div>
 
-      <div class="meta-identifier">
-        <strong>{{ t('movie.imdbId') }}</strong> {{ item.imdbID }}
-      </div>
-
       <div
         v-if="item.genres && item.genres.length > 0"
         class="movie-genres"
@@ -120,6 +118,13 @@
             {{ genre }}
           </span>
         </div>
+      </div>
+    </template>
+
+    <!-- El id de IMDb se copia, no se lee: baja al plegable del final. -->
+    <template #technical="{ item }">
+      <div class="meta-identifier">
+        <strong>{{ t('movie.imdbId') }}</strong> {{ item.imdbID }}
       </div>
     </template>
 
@@ -252,6 +257,7 @@
 <script setup>
 import MediaDetailView from '@/views/shared/MediaDetailView.vue';
 import { useMoviesStore } from '@/store/movies';
+import { useMovies } from '@/composables/useMovies';
 import { useI18n } from '@/composables/useI18n';
 
 const { t } = useI18n();
@@ -263,6 +269,18 @@ const { t } = useI18n();
  * valoraciones de IMDb y Metascore, el reparto, los premios y la producción.
  */
 const moviesStore = useMoviesStore();
+const moviesComposable = useMovies();
+
+/**
+ * La valoración se guarda por donde la guarda el modal de edición, que acaba en este
+ * mismo `editUserMovie` (`useItemEdit.js:26` solo despacha por medio). NO se
+ * usa `updateMovieRating`: esas cinco acciones no las llama nadie y dos están rotas.
+ *
+ * Y no se pasa por `useItemEdit` a propósito: instancia los cinco composables, así que
+ * cada ficha levantaría los cinco stores de Pinia para guardar una valoración.
+ */
+const guardarValoracion = (id, valor) =>
+  moviesComposable.editUserMovie(id, null, { personalRating: valor });
 </script>
 
 <style scoped lang="scss">
@@ -293,10 +311,6 @@ const moviesStore = useMoviesStore();
     width: 220px;
   }
 
-  .movie-main-info {
-    flex: 1;
-    min-width: 0;
-  }
 
   .movie-director-large {
     display: flex;

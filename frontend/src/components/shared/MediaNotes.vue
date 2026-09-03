@@ -395,5 +395,11 @@ watch(() => props.itemId, loadNotes)
   &--game  { @include notes-panel('game');  }
   &--album { @include notes-panel('album'); }
   &--video { @include notes-panel('video'); }
+  // Las series toman el acento de las películas y su propio nombre de clase, igual
+  // que `library-series-item-container` en `LibraryMediaItem.vue:316`. Sin esta
+  // línea el panel de la serie sale **desnudo** —sin fondo, sin relleno y sin
+  // filete—, que es lo que se vio al estrenarlo el 2026-09-02: `mediaKeys` son SEIS
+  // y aquí solo se emitían cinco variantes.
+  &--series { @include notes-panel('movie'); }
 }
 </style>

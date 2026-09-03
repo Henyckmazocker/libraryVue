@@ -189,6 +189,16 @@ final class MySqlUserAlbumRepository implements UserAlbumRepositoryInterface
             );
             $stmtStatuses->execute([':userId' => $userId, ':albumId' => $albumId]);
 
+            // Las notas van con el ítem, y hay que borrarlas a mano: su FK apunta a
+            // la tabla de CATÁLOGO —compartida y que no se borra por esta vía—, no a
+            // la del usuario, así que su `ON DELETE CASCADE` no salta nunca. Las
+            // etiquetas sí cuelgan de `user_albums` (`init.sql:1007`) y se van
+            // solas. Mismo arreglo que en películas el 2026-09-03.
+            $stmtNotes = $this->db->prepare(
+                "DELETE FROM user_album_notes WHERE user_id = :userId AND album_id = :albumId"
+            );
+            $stmtNotes->execute([':userId' => $userId, ':albumId' => $albumId]);
+
             $stmt = $this->db->prepare(
                 "DELETE FROM user_albums WHERE user_id = :userId AND album_id = :albumId"
             );

@@ -466,11 +466,16 @@ export const mediaRegistry = {
       placeholderIcon: 'fas fa-book',
       get libraryTitleNew () { return t('media.book.libraryNew') },
       get libraryTitleExisting () { return t('media.book.libraryExisting') },
-      hasNotes: false,
       statusesAsNames: false,
       // Google Books puede devolver un ISBN-13 distinto del guardado, por eso
       // se busca también por el de la ruta.
       existingOf: (store, item, routeId) => store.getBookByIsbn(item.isbn) || store.getBookByIsbn(routeId),
+      // El único medio donde la nota NO cuelga del identificador de la ficha:
+      // `/books/:isbn` habla de ediciones, pero `add_edition_note` quiere el id de
+      // TU edición (`user_book_editions.id`). Es la misma cadena que
+      // `EditItemModal.vue:449-452` usaba para dárselo a `EditionNotes`, y sin ella
+      // las notas de un libro se pedirían con el ISBN y saldrían siempre vacías.
+      notesIdOf: (fila) => fila?.user_edition_id ?? fila?.userEditionId ?? fila?.id ?? null,
       /**
        * Dos fuentes: Google Books manda y OpenLibrary completa (materias,
        * clasificaciones, work_key). Si Google Books falla, OpenLibrary es el
@@ -618,9 +623,13 @@ export const mediaRegistry = {
       extras: [
         { cls: 'book-field', get label() { return t('media.book.fields.format'); }, value: ownershipLabel, badge: true }
       ],
-      // El botón de historial solo existe en libros.
+      // Las acciones propias del medio, en el panel. `onlyExisting` las reserva a lo
+      // que ya está en tu biblioteca; `when` es el predicado para lo que además
+      // depende del ítem —un libro sin `work_key` no tiene ediciones que ofrecer, y
+      // una serie sin `totalSeasons` no tiene temporadas que seguir—.
       extraActions: [
-        { cls: 'btn--secondary', icon: 'fas fa-history', get label() { return t('media.book.fields.history'); }, get title() { return t('media.book.fields.historyTitle'); }, event: 'show-history', onlyExisting: true }
+        { cls: 'btn--secondary', icon: 'fas fa-history', get label() { return t('media.book.fields.history'); }, get title() { return t('media.book.fields.historyTitle'); }, event: 'show-history', onlyExisting: true },
+        { cls: 'btn--secondary', icon: 'fas fa-layer-group', get label() { return t('editions.open'); }, get title() { return t('editions.title'); }, event: 'show-editions', when: (item) => Boolean(item?.work_key) }
       ],
       savePayload: (item, statuses) => ({ book: item, statuses, itemType: 'book' }),
       deletePayload: (item) => ({ isbn: item.isbn, itemType: 'book' }),
@@ -814,7 +823,6 @@ export const mediaRegistry = {
       placeholderClass: 'poster-placeholder',
       get libraryTitleNew () { return t('media.movie.libraryNew') },
       get libraryTitleExisting () { return t('media.movie.libraryExisting') },
-      hasNotes: false,
       statusesAsNames: false,
       // Las películas esconden los estados que solo tienen sentido en series.
       allowedStatusesFilter: (all) => all.filter((s) => !['watching', 'on-hold', 'dropped'].includes(s)),
@@ -1029,7 +1037,6 @@ export const mediaRegistry = {
       coverOf: (i) => i.coverUrl || i.background_image,
       get libraryTitleNew () { return t('media.game.libraryNew') },
       get libraryTitleExisting () { return t('media.game.libraryExisting') },
-      hasNotes: true,
       statusesAsNames: false,
       existingOf: (store, item, routeId) => store.getGameById(
         item.id || item.igdbId || item.gameId || Number(routeId)
@@ -1283,7 +1290,6 @@ export const mediaRegistry = {
       placeholderIcon: 'fas fa-music',
       get libraryTitleNew () { return t('media.album.libraryNew') },
       get libraryTitleExisting () { return t('media.album.libraryExisting') },
-      hasNotes: true,
       statusesAsNames: false,
       // ⚠ El id de la ruta puede ser el entero de la BD (viene así desde
       // trending), por eso se prefiere el spotify_id del ítem ya cargado.
@@ -1571,7 +1577,6 @@ export const mediaRegistry = {
       placeholderIcon: 'fab fa-youtube',
       get libraryTitleNew () { return t('media.video.libraryNew') },
       get libraryTitleExisting () { return t('media.video.libraryExisting') },
-      hasNotes: true,
       // El selector de estados de los vídeos trabaja con nombres, no con los
       // objetos que devuelve el backend.
       statusesAsNames: true,
@@ -1823,7 +1828,6 @@ export const mediaRegistry = {
       placeholderClass: 'poster-placeholder',
       get libraryTitleNew () { return t('media.series.libraryNew') },
       get libraryTitleExisting () { return t('media.series.libraryExisting') },
-      hasNotes: false,
       statusesAsNames: false,
       // La ficha de biblioteca y el modal son los de películas.
       libraryMedia: 'movie',
@@ -1863,8 +1867,47 @@ export const mediaRegistry = {
 // `list` se añadió el 2026-09-01 al meter series en el buscador general: sin él,
 // `MediaListItem` revienta con «config.value.list is undefined» en cuanto una
 // serie entra en una lista mezclada.
-mediaRegistry.series.libraryItem = mediaRegistry.movie.libraryItem
+// ⚠ `libraryItem` se hereda POR PROTOTIPO y no por referencia, y desde el 2026-09-03
+// no es un detalle: series estrena su propio `extraActions` —el botón que abre el
+// seguimiento por temporadas— y con la referencia compartida ese botón habría
+// aparecido también en la ficha de **películas**, que no tienen temporadas. Todo lo
+// demás sigue llegando de `movie` sin copiarlo, getters incluidos.
+mediaRegistry.series.libraryItem = Object.defineProperties(
+  Object.create(mediaRegistry.movie.libraryItem),
+  {
+    extraActions: {
+      enumerable: true,
+      value: [{
+        cls: 'btn--secondary',
+        icon: 'fas fa-layer-group',
+        get label () { return t('seasons.open') },
+        get title () { return t('seasons.title') },
+        event: 'show-seasons',
+        onlyExisting: true,
+        when: (item) => Boolean(item?.totalSeasons)
+      }]
+    }
+  }
+)
 mediaRegistry.series.list = mediaRegistry.movie.list
+
+// Y `notes`, que estrena el 2026-09-02 al llevar el panel a las seis fichas. Una
+// serie guardada es una fila de `movie` —la añade `AddMovieUseCase`—, así que sus
+// notas viajan por `add_movie_note` con el mismo `movieIsbn` que ya declara arriba:
+// el bloque de películas le vale entero salvo el TEXTO, porque en una ficha de
+// serie «Notas de la Película» miente.
+//
+// Se hereda por prototipo y NO con un `{ ...movie.notes }`: el spread **ejecuta**
+// los getters, y `title` y `emptyHint` quedarían congelados con el catálogo vacío
+// —es lo que prohíbe `mediaRegistryI18n.spec.js`—. Así, además, un campo nuevo en
+// `movie.notes` llega solo.
+mediaRegistry.series.notes = Object.defineProperties(
+  Object.create(mediaRegistry.movie.notes),
+  {
+    title: { get: () => t('media.series.notesTitle'), enumerable: true },
+    emptyHint: { get: () => t('media.series.notesHint'), enumerable: true }
+  }
+)
 
 /** Los medios que el registry conoce, en el orden en que se declararon. */
 

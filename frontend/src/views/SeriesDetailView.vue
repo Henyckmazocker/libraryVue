@@ -3,6 +3,9 @@
     ref="detalle"
     media="series"
     :store="moviesStore"
+    :on-status="moviesComposable.updateMovieStatuses"
+    :on-rate="guardarValoracion"
+    @show-seasons="abrirTemporadas"
   >
     <template #meta="{ item }">
       <div class="media-type-indicator is-series">
@@ -86,10 +89,6 @@
         </div>
       </div>
 
-      <div class="meta-identifier">
-        <strong>{{ t('movie.imdbId') }}</strong> {{ item.imdbID }}
-      </div>
-
       <div
         v-if="item.genres && item.genres.length > 0"
         class="series-genres"
@@ -102,6 +101,13 @@
             class="genre-tag"
           >{{ genre }}</span>
         </div>
+      </div>
+    </template>
+
+    <!-- El id de IMDb se copia, no se lee: baja al plegable del final. -->
+    <template #technical="{ item }">
+      <div class="meta-identifier">
+        <strong>{{ t('movie.imdbId') }}</strong> {{ item.imdbID }}
       </div>
     </template>
 
@@ -167,10 +173,22 @@
         </a>
       </div>
 
-      <!-- Lo irreductible de las series: el seguimiento por temporadas. -->
-      <div
-        v-if="item.totalSeasons && existing"
-        class="season-tracker-section"
+      <!-- Lo irreductible de las series: el seguimiento por temporadas. 514 líneas
+           que ocupaban el final de la ficha para algo que se toca de vez en cuando,
+           y que ahora se abre desde el botón del panel.
+
+           El modal va DENTRO del slot y no como hermano de `MediaDetailView` porque
+           esta vista tiene raíz única: un segundo nodo raíz —aunque sea un
+           `<Teleport>`— la convierte en fragment, y el `<Transition mode="out-in">`
+           de `App.vue` no puede animar un fragment; su transición de salida no
+           termina nunca y la app se queda en blanco. Como el modal se teletransporta
+           al `body`, dónde se declare dentro del árbol da igual. -->
+      <BaseModal
+        v-if="temporadas.isVisible && existing"
+        v-model="temporadas.isVisible"
+        :title="t('seasons.title')"
+        size="lg"
+        accent="var(--color-card-movie-accent)"
       >
         <SeriesSeasonTracker
           :imdb-id="item.imdbID"
@@ -179,7 +197,7 @@
           :is-saving="isSavingSeason"
           @season-updated="(payload) => handleSeasonUpdated(item, payload)"
         />
-      </div>
+      </BaseModal>
 
       <div class="section-divider" />
     </template>
@@ -190,6 +208,7 @@
 import { ref, watch } from 'vue';
 import MediaDetailView from '@/views/shared/MediaDetailView.vue';
 import SeriesSeasonTracker from '@/components/Movies/SeriesSeasonTracker.vue';
+import BaseModal from '@/components/common/BaseModal.vue';
 import { useMoviesStore } from '@/store/movies';
 import { useMovies } from '@/composables/useMovies';
 import Logger from '@/utils/logger';
@@ -206,7 +225,25 @@ const { t } = useI18n();
  */
 const moviesStore = useMoviesStore();
 const moviesComposable = useMovies();
+
+/**
+ * La valoración se guarda por donde la guarda el modal de edición, que acaba en este
+ * mismo `editUserMovie` (`useItemEdit.js:26` solo despacha por medio). NO se
+ * usa `updateMovieRating`: esas cinco acciones no las llama nadie y dos están rotas.
+ *
+ * Y no se pasa por `useItemEdit` a propósito: instancia los cinco composables, así que
+ * cada ficha levantaría los cinco stores de Pinia para guardar una valoración.
+ */
+const guardarValoracion = (id, valor) =>
+  moviesComposable.editUserMovie(id, null, { personalRating: valor });
 const detalle = ref(null);
+
+const temporadas = ref({ isVisible: false });
+
+const abrirTemporadas = () => {
+  Logger.debug('[SeriesDetailView] Showing season tracker');
+  temporadas.value = { isVisible: true };
+};
 
 const seasonProgress = ref({});
 const isSavingSeason = ref(false);
@@ -268,10 +305,6 @@ watch(() => detalle.value?.item?.imdbID, (imdbId) => {
     width: 220px;
   }
 
-  .series-main-info {
-    flex: 1;
-    min-width: 0;
-  }
 
   .media-type-indicator {
     display: inline-flex;

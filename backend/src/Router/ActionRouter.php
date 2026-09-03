@@ -338,8 +338,14 @@ class ActionRouter
             'add_movie' => $controller->addMovie(
                 AddMovieCommand::fromArray($data['movie'] ?? [], $userId)
             ),
+            // ⚠ Era `new DeleteMovieCommand($userId, $data['imdbID'] ?? $data['id'] ?? '')`,
+            // con los argumentos en **otro orden y otro tipo** que el constructor
+            // `(MovieIdentifier $id, int $userId)`: un TypeError garantizado si la
+            // validación llegaba a dejarlo pasar. Es el tercer caso del mismo error en
+            // este fichero —`update_book_user_statuses` y `update_book_rating`—, y por
+            // eso pasa a `fromArray`, como las otras 86 construcciones de aquí.
             'delete_movie' => $controller->deleteMovie(
-                new DeleteMovieCommand($userId, $data['imdbID'] ?? $data['id'] ?? '')
+                DeleteMovieCommand::fromArray($data, $userId)
             ),
             'update_movie_rating' => $controller->updateMovieRating(
                 UpdateMovieRatingCommand::fromArray($data, $userId)

@@ -1,56 +1,67 @@
 <template>
   <div :class="`${media}-detail-view`">
+    <!-- Volver a la izquierda; a la derecha la acción que se viene a hacer y,
+         detrás de `⋯`, las tres colaterales. Recomendar, añadir a una lista y
+         ponerlo en un club estaban aquí como botones de igual peso que volver:
+         eran cuatro decisiones antes de ver la ficha. -->
     <div class="detail-actions">
       <button
         class="btn btn--ghost back-button"
         @click="goBack"
       >
-        <i class="fas fa-arrow-left" />
-        <span>{{ d.backText }}</span>
-      </button>
-
-      <!-- Recomendar. Solo con sesión: `send_recommendation` exige amistad, y sin
-           sesión el diálogo no tendría ni a quién ofrecer. -->
-      <button
-        v-if="isAuthenticated && item"
-        class="btn btn--ghost recommend-button"
-        @click="showRecommendDialog = true"
-      >
         <i
-          class="fas fa-share"
+          class="fas fa-arrow-left"
           aria-hidden="true"
         />
-        <span>{{ t('recommend.action') }}</span>
+        <!-- El rótulo se oculta a la vista por debajo de `sm` sin dejar de
+             existir para el lector: es lo que deja sitio al CTA en una fila. -->
+        <span class="back-button__text">{{ d.backText }}</span>
       </button>
 
-      <!-- Añadir a una lista. Solo con sesión: las once acciones de listas
-           llevan `Auth`, y sin sesión no habría lista que ofrecer. -->
-      <button
-        v-if="isAuthenticated && item"
-        class="btn btn--ghost recommend-button"
-        @click="showAddToListDialog = true"
+      <div
+        v-if="item"
+        class="detail-actions__end"
       >
-        <i
-          class="fas fa-list-ul"
-          aria-hidden="true"
-        />
-        <span>{{ t('lists.addToList') }}</span>
-      </button>
+        <button
+          class="btn btn--primary detail-cta"
+          :class="{
+            'is-success': ctaState === 'success',
+            'is-error': ctaState === 'error'
+          }"
+          :disabled="ctaState !== 'idle'"
+          @click="onCta"
+        >
+          <i
+            :class="ctaIcon"
+            aria-hidden="true"
+          />
+          <span>{{ ctaLabel }}</span>
+        </button>
 
-      <!-- Ponerlo como ítem de un club. Solo con sesión, como los otros dos, y
-           el diálogo se encarga de ofrecer solo los clubs donde de verdad se
-           puede: los que organizo y no tienen ya uno activo. -->
-      <button
-        v-if="isAuthenticated && item"
-        class="btn btn--ghost recommend-button"
-        @click="showAddToClubDialog = true"
-      >
-        <i
-          class="fas fa-users"
-          aria-hidden="true"
-        />
-        <span>{{ t('addToClub.title') }}</span>
-      </button>
+        <!-- Solo con sesión: las tres acciones del menú la exigen —`send_recommendation`
+             pide amistad y las de listas y clubs llevan `Auth`—, así que sin ella el
+             menú se quedaría vacío y `menuItems` lo devuelve vacío. -->
+        <template v-if="menuItems.length > 0">
+          <button
+            class="btn btn--ghost btn--icon detail-more"
+            aria-haspopup="true"
+            :aria-controls="menuId"
+            @click="abrirMenu"
+          >
+            <i
+              class="fas fa-ellipsis-h"
+              aria-hidden="true"
+            />
+            <span class="u-sr-only">{{ t('edit.moreActions') }}</span>
+          </button>
+          <Menu
+            :id="menuId"
+            ref="menuRef"
+            :model="menuItems"
+            :popup="true"
+          />
+        </template>
+      </div>
     </div>
 
     <MediaSkeleton
@@ -122,54 +133,104 @@
         </div>
       </div>
 
-      <!-- Las secciones propias del medio: sinopsis, pistas, capturas… -->
-      <slot
-        name="extra"
-        :item="item"
-        :context="context"
-        :existing="existing"
-      />
-
-      <!-- Una sola forma para los seis medios. Hasta el 2026-09-02 esto se bifurcaba
+      <!-- Dos columnas en ≥lg: el catálogo a la izquierda y lo tuyo a la derecha,
+           pegajoso. En el DOM el panel va **antes** que `#extra` a propósito: en
+           móvil no hay rejilla y se lee en ese orden —lo tuyo primero, que es lo
+           que hoy queda enterrado bajo la sinopsis—, y así el orden de lectura y
+           el de tabulación coinciden. Con `order` no coincidirían. En ≥lg la
+           rejilla los recoloca con `grid-column` sin tocar el DOM. -->
+      <div class="detail-body">
+        <!-- Una sola forma para los seis medios. Hasta el 2026-09-02 esto se bifurcaba
            con tres banderas del registry —`librarySectionClass`, `libraryTitleIcon` y
            `divider`— que partían los medios en dos grupos idénticos sin que nadie lo
            hubiera decidido: venían de respetar la divergencia que ya había al unificar
            las seis vistas. Se queda la variante con icono porque el icono conmuta con
            el acento del medio y es lo único de la sección que dice de qué ficha es. -->
-      <div class="library-section">
-        <h2 class="section-title">
-          <i :class="['fas', existing ? 'fa-edit' : 'fa-save']" />
-          {{ existing ? d.libraryTitleExisting : d.libraryTitleNew }}
-        </h2>
-        <LibraryMediaItem
-          ref="libraryItemRef"
-          :media="d.libraryMedia || media"
-          :item="itemForLibrary"
-          :allowed-statuses="allowedStatuses"
-          :is-new="!existing"
-          :can-delete="!!existing"
-          @save="handleSave"
-          @edit="handleEdit"
-          @delete="handleDelete"
-          @show-history="(payload) => emit('show-history', payload)"
-        >
-          <template #after-rating>
-            <slot
-              name="library-after-rating"
-              :item="itemForLibrary"
-            />
-          </template>
-          <template #after-status>
-            <slot
-              name="library-after-status"
-              :item="itemForLibrary"
-            />
-          </template>
-        </LibraryMediaItem>
+        <div class="library-section detail-panel">
+          <h2 class="section-title">
+            <i :class="['fas', existing ? 'fa-edit' : 'fa-save']" />
+            {{ existing ? d.libraryTitleExisting : d.libraryTitleNew }}
+          </h2>
+          <!-- ⚠ El panel va con `media`, NO con `d.libraryMedia`. Series declara
+               `libraryMedia: 'movie'` (`mediaRegistry.js:1833`) y eso es correcto para
+               el modal de edición de abajo —despacha por medio y series no tiene
+               store—, pero aquí hacía que la ficha de serie pintara el panel de
+               PELÍCULA: su `extraActions` propio, el botón que abre el seguimiento por
+               temporadas, no se consultaba nunca. `series.libraryItem` hereda de
+               `movie.libraryItem` por prototipo, así que todo lo demás sigue igual, y
+               `library-series-item-container` ya existía en el SCSS. -->
+          <LibraryMediaItem
+            ref="libraryItemRef"
+            :media="media"
+            :item="itemForLibrary"
+            :allowed-statuses="allowedStatuses"
+            :is-new="!existing"
+            :editable="!!(onStatus || onRate)"
+            @save="handleSave"
+            @rate="guardarValoracion"
+            @set-statuses="guardarEstados"
+            @show-history="(payload) => emit('show-history', payload)"
+            @show-editions="(payload) => emit('show-editions', payload)"
+            @show-seasons="(payload) => emit('show-seasons', payload)"
+          >
+            <template #after-rating>
+              <slot
+                name="library-after-rating"
+                :item="itemForLibrary"
+              />
+            </template>
+            <template #after-status>
+              <slot
+                name="library-after-status"
+                :item="itemForLibrary"
+              />
+            </template>
+          </LibraryMediaItem>
+        </div>
+
+        <!-- Las secciones propias del medio: sinopsis, pistas, capturas… -->
+        <div class="detail-extra">
+          <slot
+            name="extra"
+            :item="item"
+            :context="context"
+            :existing="existing"
+          />
+
+          <!-- Los identificadores, plegados y al final. Hasta el 2026-09-03 vivían
+               en `#meta`, entre el título y la sinopsis: un ISBN o un id de IMDb no
+               se leen, se copian, y ocupaban el sitio de lo que sí se lee. Se pinta
+               solo si el medio llena el slot, que hoy son tres de seis. -->
+          <details
+            v-if="$slots.technical"
+            class="detail-technical"
+          >
+            <summary>{{ t('detail.technical') }}</summary>
+            <!-- ⚠ El contenido va envuelto, y no es decoración. El navegador oculta
+                 lo que cuelga de un `<details>` cerrado con un `display: none` de la
+                 hoja de usuario, que es la de MENOR prioridad: el `.meta-identifier`
+                 del mixin declara `display: flex` y le ganaba, así que el ISBN se
+                 veía con el plegable cerrado —medido: `offsetHeight: 15` con `open`
+                 ausente—. Este `<div>` no declara `display`, así que la regla del
+                 navegador sí le aplica y el que se oculta es él, con todo dentro. -->
+            <div class="detail-technical__body">
+              <slot
+                name="technical"
+                :item="item"
+              />
+            </div>
+          </details>
+        </div>
       </div>
 
+      <!-- Las notas, a ancho completo y fuera de la rejilla: son de escribir y
+           de releer, y en la columna estrecha no cabe ni un párrafo. Hasta el
+           2026-09-02 solo las tenían aquí juego, álbum y vídeo —lo decidía un
+           `hasNotes` del registry—; en libro, película y serie había que abrir el
+           modal de edición para escribir una, y ese modal las llevaba **también**
+           en los tres que ya las tenían aquí: dos sitios para lo mismo. -->
       <div
-        v-if="d.hasNotes && existing"
+        v-if="existing"
         class="notes-section"
       >
         <MediaNotes
@@ -274,13 +335,19 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, toRaw } from 'vue'
+import { ref, computed, onMounted, watch, toRaw, useId } from 'vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { useRoute, useRouter } from 'vue-router'
 import LibraryMediaItem from '@/components/shared/LibraryMediaItem.vue'
 import MediaNotes from '@/components/shared/MediaNotes.vue'
 import MediaSkeleton from '@/components/shared/MediaSkeleton.vue'
 import EditItemModal from '@/components/EditItemModal.vue'
+// Importado aquí y no registrado en `main.js`: es la convención del repo para
+// todo PrimeVue salvo `MultiSelect` —`MediaNotes.vue:188-192` importa cinco así—,
+// y el registro global no llegaría a `tests/unit/helpers/mount.js`, que no da de
+// alta ni un componente: los tests de esta vista lo verían sin resolver, que es
+// exactamente cómo `v-tooltip` estuvo roto tres meses.
+import Menu from 'primevue/menu'
 import RecommendDialog from '@/components/Social/RecommendDialog.vue'
 import AddToListDialog from '@/components/Lists/AddToListDialog.vue'
 import AddToClubDialog from '@/components/Clubs/AddToClubDialog.vue'
@@ -323,10 +390,37 @@ const props = defineProps({
   store: {
     type: Object,
     required: true
+  },
+  /**
+   * Guardar el estado y la valoración desde el panel, sin abrir el modal.
+   *
+   * Son dos **funciones ya resueltas** y no una prop `composable` a propósito: el
+   * método que orquesta no se llama igual en los seis medios —`createMediaComposable`
+   * lo publica como `update<One>Statuses`, y **no existe ningún `updateStatuses`
+   * pelado**—, así que una vista genérica tendría que armar el nombre con cadenas y
+   * fallaría en silencio el día que el registry cambiara `One`. Con dos props, cada
+   * wrapper dice explícitamente con qué guarda, que es donde vive la diferencia:
+   * en libros `updateBookStatuses` es la versión de `useBooks` con confirmación de
+   * sesión, y en los otros cinco la delegación de tres líneas al store.
+   *
+   * La valoración va por `editItem` y no por `update<One>Rating`: es lo que hace el
+   * modal de edición, funciona en los seis medios, y evita las cinco acciones de
+   * rating —dos de ellas rotas, ver el Roadmap—.
+   */
+  onStatus: {
+    type: Function,
+    default: null
+  },
+  onRate: {
+    type: Function,
+    default: null
   }
 })
 
-const emit = defineEmits(['show-history', 'loaded'])
+// Los tres `show-*` los origina `extraActions` del registry en el panel y los
+// consume el wrapper del medio, que es quien tiene el modal: esta vista solo hace de
+// puente. Cada uno va declarado porque su destino es distinto.
+const emit = defineEmits(['show-history', 'show-editions', 'show-seasons', 'loaded'])
 
 const route = useRoute()
 const router = useRouter()
@@ -352,6 +446,12 @@ const showAddToClubDialog = ref(false)
 // Una portada que no carga pinta el placeholder del medio en vez de dejar el
 // icono de imagen rota del navegador.
 const imageError = ref(false)
+
+// El estado del CTA vive aquí y no en `LibraryMediaItem` porque el botón subió a
+// la barra: el panel ya no tiene ninguno que pintar de verde.
+const ctaState = ref('idle')
+const menuRef = ref(null)
+const menuId = `detail-actions-menu-${useId()}`
 
 const isAuthenticated = computed(() => authStore.isAuthenticated)
 const routeId = computed(() => route.params[d.value.routeParam])
@@ -413,7 +513,14 @@ const handleImageError = () => {
 
 // `title` no siempre está: álbumes y juegos caen a `name`.
 const title = computed(() => (item.value ? config.value.libraryItem.titleOf(item.value) : ''))
-const notesId = computed(() => config.value.libraryItem.idOf(existing.value ?? item.value ?? {}) ?? routeId.value)
+// Normalmente la nota cuelga del mismo identificador que la ficha, y por eso el
+// resolutor por defecto es el del panel. Los libros son la excepción —la nota es de
+// TU edición, no del ISBN— y lo declaran con `notesIdOf`.
+const notesId = computed(() => {
+  const fila = existing.value ?? item.value ?? {}
+  const resolver = d.value.notesIdOf ?? config.value.libraryItem.idOf
+  return resolver(fila) ?? routeId.value
+})
 
 // Los álbumes pasan además sus pistas al modal (`:album-tracks`).
 const modalExtraProps = computed(() => (d.value.modalProps ? d.value.modalProps(context.value) : {}))
@@ -499,6 +606,72 @@ async function enrich (isBackground) {
   }
 }
 
+// ─── La barra: el CTA y el menú `⋯` ──────────────────────────────────────
+// Una sola acción primaria, y conmuta con `existing`: mientras el ítem no esté en
+// tu biblioteca lo único que tiene sentido es meterlo; en cuanto lo está, editarlo.
+const ctaLabel = computed(() => (existing.value ? t('common.edit') : t('edit.saveToLibrary')))
+
+const ctaIcon = computed(() => {
+  if (ctaState.value === 'success') return 'fas fa-check'
+  if (ctaState.value === 'error') return 'fas fa-times'
+  return existing.value ? 'fas fa-pencil-alt' : 'fas fa-save'
+})
+
+/** El acuse lo sigue dando el padre; lo que cambió es dónde se pinta. */
+function flashCta (estado) {
+  ctaState.value = estado
+  setTimeout(() => { ctaState.value = 'idle' }, 2000)
+}
+
+function onCta () {
+  if (existing.value) handleEdit()
+  // El payload del alta lo arma el panel: los estados y la valoración elegidos
+  // son suyos, y subirlos aquí duplicaría `savePayload` del registry.
+  else libraryItemRef.value?.guardar()
+}
+
+// Las tres colaterales, más el borrado cuando hay algo que borrar. `separator` lo
+// entiende PrimeVue: es lo que despega «Eliminar» de las otras tres para que no se
+// pulse por inercia.
+const menuItems = computed(() => {
+  if (!item.value || !isAuthenticated.value) return []
+
+  const acciones = [
+    {
+      label: t('recommend.action'),
+      icon: 'fas fa-share',
+      command: () => { showRecommendDialog.value = true }
+    },
+    {
+      label: t('lists.addToList'),
+      icon: 'fas fa-list-ul',
+      command: () => { showAddToListDialog.value = true }
+    },
+    {
+      label: t('addToClub.title'),
+      icon: 'fas fa-users',
+      command: () => { showAddToClubDialog.value = true }
+    }
+  ]
+
+  if (existing.value) {
+    acciones.push({ separator: true })
+    acciones.push({
+      label: t('common.delete'),
+      icon: 'fas fa-trash',
+      command: () => handleDelete(config.value.libraryItem.deletePayload(itemForLibrary.value))
+    })
+  }
+
+  return acciones
+})
+
+// `toggle` necesita el evento: de su `currentTarget` saca el ancla para colocarse
+// y, sobre todo, el elemento al que devolver el foco al cerrarse con Escape.
+function abrirMenu (event) {
+  menuRef.value?.toggle(event)
+}
+
 // ─── Guardar, editar y borrar ────────────────────────────────────────────
 async function handleSave (payload) {
   try {
@@ -508,14 +681,14 @@ async function handleSave (payload) {
     if (result.success) {
       if (item.value) item.value = { ...item.value, userStatuses: statuses }
       await props.store.fetch()
-      libraryItemRef.value?.setSaveSuccess()
+      flashCta('success')
     } else {
       Logger.error(`[MediaDetailView] Error saving ${props.media}:`, result.message)
-      libraryItemRef.value?.setSaveError()
+      flashCta('error')
     }
   } catch (err) {
     Logger.error(`[MediaDetailView] Error saving ${props.media}:`, err)
-    libraryItemRef.value?.setSaveError()
+    flashCta('error')
   }
 }
 
@@ -545,7 +718,7 @@ async function handleModalSaved (updatedItem) {
     const stored = existing.value
     if (stored) Object.assign(stored, updatedItem)
 
-    libraryItemRef.value?.setEditSuccess()
+    flashCta('success')
     if (d.value.savedMessage) uiStore.showSuccess(d.value.savedMessage)
 
     // Resincronizar con el backend sin bloquear la interfaz.
@@ -555,7 +728,7 @@ async function handleModalSaved (updatedItem) {
     }, 500)
   } catch (err) {
     Logger.error(`[MediaDetailView] Error updating ${props.media}:`, err)
-    libraryItemRef.value?.setEditError()
+    flashCta('error')
   }
 }
 
@@ -592,6 +765,67 @@ async function handleDelete (payload) {
   } catch (err) {
     Logger.error(`[MediaDetailView] Error deleting ${props.media}:`, err)
     if (d.value.deleteErrorMessage) uiStore.showError(d.value.deleteErrorMessage)
+  }
+}
+
+// ─── Guardado al vuelo desde el panel ────────────────────────────────────
+// Las tres guardas son las que `EditItemModal.vue:636-648` lleva aplicando meses, y
+// viven aquí y no en cada wrapper porque son las mismas para los seis.
+//
+// Lo que NO se copia del modal es su paso final: él llama a `updateReadingProgress`
+// después de guardar, porque está guardando un formulario con su página actual. Aquí
+// se cambia un estado de un clic, y llamarlo CREARÍA una sesión de lectura en un
+// libro que no la tiene (`UpdateReadingProgressUseCase.php:79-97`).
+
+/** Guarda la valoración. Optimista: se pinta ya y se revierte si falla. */
+async function guardarValoracion (valor) {
+  if (!props.onRate || !existing.value) return
+  const id = config.value.libraryItem.idOf(existing.value)
+  const previo = existing.value[config.value.store.ratingField || 'user_rating']
+
+  try {
+    const r = await props.onRate(id, valor)
+    if (r && r.success === false) throw new Error(r.message)
+    if (item.value) item.value = { ...item.value, user_rating: valor }
+    Object.assign(existing.value, { user_rating: valor })
+  } catch (err) {
+    Logger.error(`[MediaDetailView] Error guardando la valoración de ${props.media}:`, err)
+    if (item.value) item.value = { ...item.value, user_rating: previo }
+    uiStore.showError(t('storeError.rating'))
+  }
+}
+
+/** Guarda los estados. Con las tres guardas del modal, incluida `cancelled`. */
+async function guardarEstados (estados) {
+  if (!props.onStatus || !existing.value) return
+
+  // (1) El ítem tiene que estar en el store: el guardado orquestado lo busca ahí
+  //     para leer su sesión, y sin él responde «not found».
+  if (props.store.items.length === 0) await props.store.fetch()
+
+  const id = config.value.libraryItem.idOf(existing.value)
+  const previos = existing.value.userStatuses || []
+
+  // (2) Solo si cambian de verdad.
+  const cambian = estados.length !== previos.length ||
+    estados.some((e) => !previos.includes(e))
+  if (!cambian) return
+
+  try {
+    const r = await props.onStatus(id, estados)
+    // (3) El usuario dijo que no en la confirmación de sesión: no se guarda nada
+    //     y el control vuelve a lo que había.
+    if (r && r.cancelled) {
+      Object.assign(existing.value, { userStatuses: [...previos] })
+      return
+    }
+    if (r && r.success === false) throw new Error(r.message)
+    Object.assign(existing.value, { userStatuses: estados })
+    if (item.value) item.value = { ...item.value, userStatuses: estados }
+  } catch (err) {
+    Logger.error(`[MediaDetailView] Error guardando los estados de ${props.media}:`, err)
+    Object.assign(existing.value, { userStatuses: [...previos] })
+    uiStore.showError(t('storeError.statuses'))
   }
 }
 
@@ -647,24 +881,17 @@ defineExpose({ item, context, existing, reload: loadData, setItem })
 .album-detail-view  { @include detail-view-page('album'); }
 .video-detail-view  { @include detail-view-page('video'); }
 
-// ── La fila de acciones de la cabecera ────────────────────────────────────
-// `.back-button` lo estiliza el mixin compartido y arrastra su propio
-// `margin-bottom`, así que el botón de recomendar lleva el mismo para que los
-// dos alineen por arriba sin tocar el mixin, que usan las seis fichas.
-.detail-actions {
-  display: flex;
-  // Cuatro botones —volver, recomendar, añadir a lista y ponerlo en un club— no caben
-  // en una fila a 360px: sin envolver, los dos últimos se salían del viewport.
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: spacing(sm);
+// ── La barra de acciones ──────────────────────────────────────────────────
+// La disposición la pone `detail-view-page`, que la comparten las seis fichas.
+// Aquí solo queda lo del CTA: puede ceder ancho, y su rótulo se recorta antes que
+// empujar el menú fuera de la fila.
+.detail-cta {
+  min-width: 0;
+
+  span { @include truncate(1); }
 }
 
-.recommend-button {
-  // `.back-button` arrastra su propio `margin-bottom` desde el mixin compartido,
-  // así que este lleva el mismo para que los cuatro alineen por arriba.
-  margin-bottom: spacing(lg);
-}
+.detail-more { flex-shrink: 0; }
 
 // Las secciones que pinta este componente, no el wrapper.
 .library-section,
@@ -704,10 +931,9 @@ defineExpose({ item, context, existing, reload: loadData, setItem })
     flex-shrink: 0;
     width: 320px;
 
+    // Miniatura, no portada a pantalla completa: 16/9 es el más ancho de los seis.
     @include responsive-below(md) {
-      width: 100%;
-      max-width: 480px;
-      margin: 0 auto;
+      width: 160px;
     }
   }
 
@@ -733,8 +959,8 @@ defineExpose({ item, context, existing, reload: loadData, setItem })
     box-shadow: shadow(heavy);
 
     @include responsive-below(md) {
-      width: 180px;
-      height: 180px;
+      width: 110px;
+      height: 110px;
     }
   }
 
@@ -747,21 +973,41 @@ defineExpose({ item, context, existing, reload: loadData, setItem })
   }
 }
 
-.movie-detail-view {
-  .movie-poster-large {
+// El bloque del libro vivía en `BookDetailView.vue` y **nunca se aplicó**: ese wrapper
+// tiene el CSS `scoped`, y el `scoped` no alcanza el marcado que pinta ESTE fichero —
+// solo su raíz y el contenido de sus slots—. La portada quedaba a merced del
+// `flex-shrink` por defecto (medido: 52 px a 390 px, con `flex-shrink: 1`). Los otros
+// cinco medios ya tenían su bloque aquí; el libro era el único fuera.
+.book-detail-view {
+  .book-cover-large,
+  .cover-placeholder {
     flex-shrink: 0;
     width: 220px;
+
+    @include responsive-below(md) {
+      width: 110px;
+    }
+  }
+}
+
+.movie-detail-view {
+  .movie-poster-large,
+  .poster-placeholder {
+    flex-shrink: 0;
+    width: 220px;
+
+    // Miniatura en móvil, 2/3 como el resto de pósteres.
+    @include responsive-below(md) {
+      width: 110px;
+    }
   }
 
   .poster-placeholder {
-    width: 220px;
     height: 330px;
 
     @include responsive-below(md) {
-      width: 100%;
-      max-width: 250px;
       height: auto;
-      margin: 0 auto;
+      aspect-ratio: 2 / 3;
     }
   }
 }
@@ -769,9 +1015,14 @@ defineExpose({ item, context, existing, reload: loadData, setItem })
 .series-detail-view {
   @include detail-view-page('movie', 'series');
 
-  .series-poster-large {
+  .series-poster-large,
+  .poster-placeholder {
     flex-shrink: 0;
     width: 220px;
+
+    @include responsive-below(md) {
+      width: 110px;
+    }
   }
 
   .poster-placeholder {
@@ -779,12 +1030,6 @@ defineExpose({ item, context, existing, reload: loadData, setItem })
     border: 2px dashed rgba(139, 92, 246, 0.3);
     color: rgba(139, 92, 246, 0.4);
     font-size: var(--font-size-4xl);
-
-    @include responsive-below(md) {
-      width: 100%;
-      max-width: 250px;
-      margin: 0 auto;
-    }
   }
 }
 
@@ -794,9 +1039,7 @@ defineExpose({ item, context, existing, reload: loadData, setItem })
     width: 280px;
 
     @include responsive-below(md) {
-      width: 100%;
-      max-width: 250px;
-      margin: 0 auto;
+      width: 110px;
     }
   }
 

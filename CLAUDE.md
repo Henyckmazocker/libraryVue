@@ -70,12 +70,12 @@ docker compose up --build   # equivalente crudo: NO migra ni arranca el mirror
 
 # Tests backend (PHPUnit 11, dentro del contenedor backend)
 docker compose --profile test up -d mysql-test   # lo necesita la suite de integración
-docker compose exec backend composer test        # las DOS suites: 1445 tests
+docker compose exec backend composer test        # las DOS suites: 1472 tests
 docker compose exec backend composer test:unit   # la rápida: 1279, sin necesitar mysql-test
-docker compose exec backend composer test:integration   # 166, contra una BD desechable
+docker compose exec backend composer test:integration   # 193, contra una BD desechable
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
-docker compose exec frontend npm test            # 490 tests
+docker compose exec frontend npm test            # 514 tests
 docker compose exec frontend npm run test:watch
 docker compose exec frontend npx vue-cli-service lint --no-fix   # lo corre también ./dev-setup.sh
 docker compose exec frontend npm run lint:styles                 # stylelint; también en ./dev-setup.sh
@@ -116,7 +116,7 @@ cd frontend && npm run cap:sync && npm run build:mobile
   `ActionRouter`, y el método del controller.**
 - Controllers en `backend/src/Controllers`: `Book`, `Movie`, `Game`, `Album`, `Video` (cada medio),
   `Library` / `LibraryX` (colección del usuario), `Feed` + `Social` (feed social), `List` (listas de
-  medios), `Club` (clubs), `Stats`, `Auth`. Extienden `BaseController`
+  medios), `Club` (clubs), `Journal` (el diario), `Stats`, `Auth`. Extienden `BaseController`
   (`successResponse`/`errorResponse`).
 - Dominio: `src/Domain/**` con interfaces de repositorio (modelo Work/Edition) + ~40 use cases;
   persistencia `MySql*Repository` con PDO. Registro en `config/container.php` (interfaz → impl.).
@@ -836,9 +836,9 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 
 1. `docker compose up --build`; `POST http://localhost:8888/index.php` con `{"action":"ping"}`.
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
-3. `docker compose exec backend composer test` → verde (1445 tests: 1279 unitarios + 166 de
+3. `docker compose exec backend composer test` → verde (1472 tests: 1279 unitarios + 193 de
    integración; estos necesitan `docker compose --profile test up -d mysql-test`).
-4. `docker compose exec frontend npm test` → verde (490 tests) y
+4. `docker compose exec frontend npm test` → verde (514 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
 5. **`docker compose exec frontend npm run build` → `Build complete`.** No es redundante con el paso
    anterior: **ninguno de los tres comandos de arriba compila SCSS**. Los helpers de
@@ -855,7 +855,11 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
    **Lee la salida, no solo el exit code**, y separa sus dos cuentas: la de *elementos fuera* es la
    que juzga tu cambio; la de *rutas saltadas* la gobierna el rate limit de 60 req/min —un recorrido
    gasta ~44 peticiones—, así que dos pasadas seguidas dejan a la segunda sin cuota y sus rutas
-   privadas salen como saltadas sin que nada esté roto. Espacia las pasadas.
+   privadas salen como saltadas sin que nada esté roto. Espacia las pasadas: **un ancho por
+   invocación**, no `--width=360,390`, que son dos recorridos seguidos y el segundo sale sin cuota.
+   Y **su lista de rutas privadas está escrita a mano** (`tests/visual/overflow.mjs:156-172`): una
+   ruta nueva que no se añada ahí no se mide, y el informe sale «verde» igualmente. Es el mismo
+   verde engañoso que el fichero documenta sobre `scrollWidth`. Pasó con `/journal` el 2026-09-04.
 7. **Si el cambio se ve en pantalla, ábrelo en el navegador**, y no solo por las capturas: hay una
    clase entera de fallos que **solo aparece en la consola**. `v-tooltip` estuvo sin registrar en
    `main.js` desde el 2026-05-13 y nadie lo vio en tres meses, porque un

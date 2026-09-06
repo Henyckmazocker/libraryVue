@@ -8,6 +8,8 @@ use App\Domain\Repository\Book\ReadingProgressRepositoryInterface;
 use App\Domain\Repository\Book\ReadingSessionRepositoryInterface;
 use App\Domain\Repository\Book\UserBookEditionRepositoryInterface;
 use App\Domain\Repository\Book\EditionRepositoryInterface;
+use App\Domain\Model\JournalEntry;
+use App\Domain\Services\JournalService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\UpdateReadingProgressCommand;
 use Psr\Log\LoggerInterface;
@@ -29,6 +31,7 @@ class UpdateReadingProgressUseCase extends AbstractUseCase
         private readonly ReadingSessionRepositoryInterface $sessionRepository,
         private readonly UserBookEditionRepositoryInterface $userBookEditionRepository,
         private readonly EditionRepositoryInterface $editionRepository,
+        private readonly JournalService $journalService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -125,6 +128,28 @@ class UpdateReadingProgressUseCase extends AbstractUseCase
                     $sessionId,
                     $currentPage // end_page
                 );
+
+                // Y apuntarla en el diario. El `source_id` es el id de la
+                // sesión, no la fecha: así, cerrar dos veces la misma sesión —o
+                // editarle la fecha después— MUEVE su entrada en vez de crear
+                // otra. Va aquí y no en el cambio de estado a `read` para que
+                // terminar un libro no apunte dos entradas el mismo día: la
+                // clave del origen `status` es distinta y no las deduplicaría.
+                $edicion = $this->editionRepository->findByIsbn($isbn);
+
+                if ($edicion) {
+                    $this->journalService->record(
+                        userId:    $userId,
+                        media:     JournalEntry::MEDIA_BOOK,
+                        entityId:  $isbn,
+                        title:     $edicion->getTitle(),
+                        cover:     $edicion->getCoverUrlMedium(),
+                        entryDate: date('Y-m-d'),
+                        rating:    null,
+                        source:    JournalEntry::SOURCE_READING_SESSION,
+                        sourceId:  (string) $sessionId
+                    );
+                }
             }
 
             // ✅ Actualizar estados basados en la sesión completada

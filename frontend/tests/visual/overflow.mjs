@@ -156,6 +156,7 @@ const buildRoutes = async () => {
   const privadas = [
     ['/search', 'Buscador general'],
     ['/library', 'Mi biblioteca'],
+    ['/journal', 'Diario'],
     ['/dashboard?tab=books', 'Dashboard · libros'],
     ['/dashboard?tab=movies', 'Dashboard · películas'],
     ['/dashboard?tab=games', 'Dashboard · videojuegos'],

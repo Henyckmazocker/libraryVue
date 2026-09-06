@@ -8,6 +8,7 @@ use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Book\EditionRepositoryInterface;
 use App\Domain\Repository\Book\UserBookRepositoryInterface;
 use App\Domain\Services\FeedEventService;
+use App\Domain\Services\JournalService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\UpdateBookStatusesCommand;
 use Psr\Log\LoggerInterface;
@@ -20,6 +21,7 @@ class UpdateBookUserStatusesUseCase extends AbstractUseCase
         private readonly UserBookRepositoryInterface $userBookRepository,
         private readonly EditionRepositoryInterface $editionRepository,
         private readonly FeedEventService $feedEventService,
+        private readonly JournalService $journalService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -42,6 +44,8 @@ class UpdateBookUserStatusesUseCase extends AbstractUseCase
             throw new InvalidArgumentException('Book not found in your library.');
         }
 
+        $estadosPrevios = $this->userBookRepository->getUserStatuses($command->userId, $command->isbn->toString());
+
         // Update the user's statuses for this book
         $this->userBookRepository->updateStatuses($command->userId, $command->isbn->toString(), $command->statuses);
 
@@ -55,6 +59,21 @@ class UpdateBookUserStatusesUseCase extends AbstractUseCase
                 null,
                 '',
                 implode(', ', $command->statuses)
+            );
+
+            // El diario apunta SOLO en la transición no-consumido → consumido.
+            // Los estados previos se leen arriba, antes de sustituirlos: este
+            // caso de uso recibe el conjunto entero y por sí solo no sabe qué
+            // cambió. La regla de qué estado cuenta vive en
+            // `JournalEntry::CONSUMED_STATUSES`, no aquí.
+            $this->journalService->recordIfConsumed(
+                $command->userId,
+                'book',
+                $command->isbn->toString(),
+                $edition->getTitle(),
+                $edition->getCoverUrlMedium(),
+                $estadosPrevios,
+                $command->statuses
             );
         }
         

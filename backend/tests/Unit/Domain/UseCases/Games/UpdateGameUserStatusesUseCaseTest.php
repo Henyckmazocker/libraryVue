@@ -9,6 +9,7 @@ use App\Domain\Repository\Game\UserGameRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Game\GameRepositoryInterface;
 use App\Domain\Services\FeedEventService;
+use App\Domain\Services\JournalService;
 use App\Domain\DTO\Commands\UpdateGameStatusesCommand;
 use App\Domain\Model\User;
 use App\Domain\Model\ValueObjects\GoogleId;
@@ -25,6 +26,7 @@ class UpdateGameUserStatusesUseCaseTest extends TestCase
     private UserRepositoryInterface $userRepo;
     private GameRepositoryInterface $gameRepo;
     private FeedEventService $feedEventService;
+    private JournalService $journalService;
 
     protected function setUp(): void
     {
@@ -32,12 +34,14 @@ class UpdateGameUserStatusesUseCaseTest extends TestCase
         $this->userRepo = $this->createMock(UserRepositoryInterface::class);
         $this->gameRepo = $this->createMock(GameRepositoryInterface::class);
         $this->feedEventService = $this->createMock(FeedEventService::class);
+        $this->journalService = $this->createMock(JournalService::class);
 
         $this->useCase = new UpdateGameUserStatusesUseCase(
             $this->userGameRepo,
             $this->userRepo,
             $this->gameRepo,
             $this->feedEventService,
+            $this->journalService,
             new NullLogger()
         );
     }

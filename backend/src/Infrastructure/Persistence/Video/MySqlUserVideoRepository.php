@@ -261,6 +261,28 @@ final class MySqlUserVideoRepository implements UserVideoRepositoryInterface
         }
     }
 
+    public function getUserStatuses(int $userId, int $videoId): array
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT vs.name
+                FROM video_statuses vs
+                INNER JOIN user_video_statuses uvs ON vs.id = uvs.status_id
+                WHERE uvs.user_id = :userId AND uvs.video_id = :videoId
+            ");
+            $stmt->execute([':userId' => $userId, ':videoId' => $videoId]);
+
+            return $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+
+        } catch (PDOException $e) {
+            $this->logError('DB Error getting user video statuses', $e, [
+                'user_id'  => $userId,
+                'video_id' => $videoId,
+            ]);
+            throw new RuntimeException('Could not get user video statuses: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
     public function updateRating(int $userId, int $videoId, float $rating): void
     {
         try {

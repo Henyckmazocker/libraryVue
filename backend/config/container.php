@@ -102,6 +102,7 @@ return function (): ContainerInterface {
         \App\Domain\Repository\Movie\MovieTagRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Movie\MySqlMovieTagRepository::class),
         \App\Domain\Repository\Movie\MovieNoteRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Movie\MySqlMovieNoteRepository::class),
         \App\Domain\Repository\Movie\SeriesSeasonRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Movie\MySqlSeriesSeasonRepository::class),
+        \App\Domain\Repository\Journal\JournalRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Journal\MySqlJournalRepository::class),
         \App\Domain\Repository\Book\EditionNoteRepositoryInterface::class => DI\get(\App\Infrastructure\Persistence\Book\MySqlEditionNoteRepository::class),
 
         // SOCIAL
@@ -174,6 +175,7 @@ return function (): ContainerInterface {
         \App\Infrastructure\Persistence\Movie\MySqlMovieTagRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Movie\MySqlMovieNoteRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Movie\MySqlSeriesSeasonRepository::class => DI\autowire(),
+        \App\Infrastructure\Persistence\Journal\MySqlJournalRepository::class => DI\autowire(),
         \App\Infrastructure\Persistence\Book\MySqlEditionNoteRepository::class => DI\autowire(),
         // Video persistence
         \App\Infrastructure\Persistence\Video\MySqlVideoRepository::class => DI\autowire(),
@@ -426,6 +428,13 @@ return function (): ContainerInterface {
         \App\Domain\UseCases\Social\GetInboxCountUseCase::class => DI\autowire(),
         \App\Domain\UseCases\Social\ResolveRecommendationUseCase::class => DI\autowire(),
         \App\Domain\Services\FeedEventService::class => DI\autowire(),
+        \App\Domain\Services\JournalService::class => DI\autowire(),
+        \App\Domain\Services\JournalItemResolver::class => DI\autowire(),
+        \App\Domain\Services\JournalRatingWriter::class => DI\autowire(),
+        \App\Domain\UseCases\Journal\GetJournalUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Journal\AddJournalEntryUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Journal\UpdateJournalEntryUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Journal\DeleteJournalEntryUseCase::class => DI\autowire(),
 
         // MEDIA LISTS
         // `ListAccess` es la ÚNICA copia de la regla de visibilidad. Se autowirea
@@ -492,6 +501,7 @@ return function (): ContainerInterface {
         \App\Controllers\StatsController::class => DI\autowire(),
         \App\Controllers\SocialController::class => DI\autowire(),
         \App\Controllers\FeedController::class => DI\autowire(),
+        \App\Controllers\JournalController::class => DI\autowire(),
         \App\Controllers\ListController::class => DI\autowire(),
         \App\Controllers\ClubController::class => DI\autowire(),
         \App\Controllers\SearchController::class => DI\autowire(),

@@ -887,6 +887,9 @@ menu:
   library:
     name: Library
     hint: Your personal library
+  journal:
+    name: Diary
+    hint: What you consumed and when
   stats:
     name: Stats
     hint: Stats of your library
@@ -1446,3 +1449,38 @@ misc:
   daysOngoing:
     one: "{n} day (ongoing)"
     other: "{n} days (ongoing)"
+
+journal:
+  title: Diary
+  subtitle: What you consumed, and when
+  empty: Your diary is still empty
+  emptyHint: It fills itself when you mark something as read, watched or played; and you can log older things by hand.
+  emptyFiltered: Nothing of this kind in your diary
+  add: Log in diary
+  addTitle: Log in diary
+  editTitle: Edit entry
+  date: When
+  rating: What you thought
+  what: What
+  pickHint: Pick something from your library
+  searchPlaceholder: Search your library
+  noMatches: Nothing in your library matches that
+  change: Change
+  repeat: Repeat
+  repeatTitle: You had logged this before
+  edit: Edit this entry
+  remove: Delete this entry
+  removeConfirm: The entry disappears from the diary. It does not touch the item or its rating.
+  removed: Entry deleted
+  saved: Entry saved
+  actionsFor: Actions on {title}
+  loadMore: Show more
+  countOne: 1 entry
+  countMany: "{n} entries"
+  filterAll: All
+  today: Today
+  yesterday: Yesterday
+
+journalError:
+  load: Could not load the diary
+  save: Could not save the entry

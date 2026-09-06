@@ -142,7 +142,11 @@ class MovieController extends BaseController implements Contracts\MovieControlle
     public function updateMovieUserStatuses(UpdateMovieStatusesCommand $command): array
     {
         $this->updateMovieUserStatusesUseCase->execute($command);
-        return $this->successResponse('User statuses updated for Movie ID ' . $command->movieId);
+        // `$command->movieId` NO existe: la propiedad del comando es `$id`, un
+        // `MovieIdentifier` (`UpdateMovieStatusesCommand.php:15`). En dev, con
+        // `display_errors`, el warning se imprimía como HTML ANTES del JSON y la
+        // respuesta dejaba de ser parseable. Desde `3b06874` (2025-12-20).
+        return $this->successResponse('User statuses updated for Movie ID ' . $command->id->toString());
     }
 
     public function getMovieAllowedStatuses(): array

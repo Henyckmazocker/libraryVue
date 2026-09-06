@@ -9,6 +9,7 @@ use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Book\UserBookRepositoryInterface;
 use App\Domain\Repository\Book\EditionRepositoryInterface;
 use App\Domain\Services\FeedEventService;
+use App\Domain\Services\JournalService;
 use App\Domain\DTO\Commands\UpdateBookStatusesCommand;
 use App\Domain\Model\User;
 use App\Domain\Model\ValueObjects\GoogleId;
@@ -25,6 +26,7 @@ class UpdateBookUserStatusesUseCaseTest extends TestCase
     private UserBookRepositoryInterface $userBookRepo;
     private EditionRepositoryInterface $editionRepo;
     private FeedEventService $feedEventService;
+    private JournalService $journalService;
 
     protected function setUp(): void
     {
@@ -32,12 +34,14 @@ class UpdateBookUserStatusesUseCaseTest extends TestCase
         $this->userBookRepo = $this->createMock(UserBookRepositoryInterface::class);
         $this->editionRepo = $this->createMock(EditionRepositoryInterface::class);
         $this->feedEventService = $this->createMock(FeedEventService::class);
+        $this->journalService = $this->createMock(JournalService::class);
 
         $this->useCase = new UpdateBookUserStatusesUseCase(
             $this->userRepo,
             $this->userBookRepo,
             $this->editionRepo,
             $this->feedEventService,
+            $this->journalService,
             new NullLogger()
         );
     }

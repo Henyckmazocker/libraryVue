@@ -9,6 +9,7 @@ use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Movie\UserMovieRepositoryInterface;
 use App\Domain\Repository\Movie\MovieRepositoryInterface;
 use App\Domain\Services\FeedEventService;
+use App\Domain\Services\JournalService;
 use App\Domain\DTO\Commands\UpdateMovieStatusesCommand;
 use App\Domain\Model\User;
 use App\Domain\Model\ValueObjects\GoogleId;
@@ -26,6 +27,7 @@ class UpdateMovieUserStatusesUseCaseTest extends TestCase
     private UserMovieRepositoryInterface $userMovieRepo;
     private MovieRepositoryInterface $movieRepo;
     private FeedEventService $feedEventService;
+    private JournalService $journalService;
 
     protected function setUp(): void
     {
@@ -33,12 +35,14 @@ class UpdateMovieUserStatusesUseCaseTest extends TestCase
         $this->userMovieRepo = $this->createMock(UserMovieRepositoryInterface::class);
         $this->movieRepo = $this->createMock(MovieRepositoryInterface::class);
         $this->feedEventService = $this->createMock(FeedEventService::class);
+        $this->journalService = $this->createMock(JournalService::class);
 
         $this->useCase = new UpdateMovieUserStatusesUseCase(
             $this->userRepo,
             $this->userMovieRepo,
             $this->movieRepo,
             $this->feedEventService,
+            $this->journalService,
             new NullLogger()
         );
     }

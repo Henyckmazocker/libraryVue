@@ -9,6 +9,7 @@ use App\Domain\Repository\Album\UserAlbumRepositoryInterface;
 use App\Domain\Repository\Album\AlbumRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Services\FeedEventService;
+use App\Domain\Services\JournalService;
 use App\Domain\DTO\Commands\UpdateAlbumStatusesCommand;
 use App\Domain\Model\User;
 use App\Domain\Model\ValueObjects\GoogleId;
@@ -25,6 +26,7 @@ class UpdateAlbumUserStatusesUseCaseTest extends TestCase
     private AlbumRepositoryInterface $albumRepo;
     private UserRepositoryInterface $userRepo;
     private FeedEventService $feedEventService;
+    private JournalService $journalService;
 
     protected function setUp(): void
     {
@@ -32,12 +34,14 @@ class UpdateAlbumUserStatusesUseCaseTest extends TestCase
         $this->albumRepo     = $this->createMock(AlbumRepositoryInterface::class);
         $this->userRepo      = $this->createMock(UserRepositoryInterface::class);
         $this->feedEventService = $this->createMock(FeedEventService::class);
+        $this->journalService = $this->createMock(JournalService::class);
 
         $this->useCase = new UpdateAlbumUserStatusesUseCase(
             $this->userAlbumRepo,
             $this->albumRepo,
             $this->userRepo,
             $this->feedEventService,
+            $this->journalService,
             new NullLogger()
         );
     }

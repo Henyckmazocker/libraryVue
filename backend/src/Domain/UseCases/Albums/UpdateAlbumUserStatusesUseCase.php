@@ -8,6 +8,7 @@ use App\Domain\Repository\Album\UserAlbumRepositoryInterface;
 use App\Domain\Repository\Album\AlbumRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Services\FeedEventService;
+use App\Domain\Services\JournalService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\UpdateAlbumStatusesCommand;
 use Psr\Log\LoggerInterface;
@@ -20,6 +21,7 @@ class UpdateAlbumUserStatusesUseCase extends AbstractUseCase
         private readonly AlbumRepositoryInterface $albumRepository,
         private readonly UserRepositoryInterface $userRepository,
         private readonly FeedEventService $feedEventService,
+        private readonly JournalService $journalService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -50,6 +52,8 @@ class UpdateAlbumUserStatusesUseCase extends AbstractUseCase
             }
         }
 
+        $estadosPrevios = $this->userAlbumRepository->getUserStatuses($command->userId, $command->albumId);
+
         $this->userAlbumRepository->updateStatuses(
             $command->userId,
             $command->albumId,
@@ -66,6 +70,21 @@ class UpdateAlbumUserStatusesUseCase extends AbstractUseCase
                 $album->getCoverUrl(),
                 '',
                 implode(', ', $command->statuses)
+            );
+
+            // El diario apunta SOLO en la transición no-consumido → consumido.
+            // Los estados previos se leen arriba, antes de sustituirlos: este
+            // caso de uso recibe el conjunto entero y por sí solo no sabe qué
+            // cambió. La regla de qué estado cuenta vive en
+            // `JournalEntry::CONSUMED_STATUSES`, no aquí.
+            $this->journalService->recordIfConsumed(
+                $command->userId,
+                'album',
+                (string) $command->albumId,
+                $album->getTitle(),
+                $album->getCoverUrl(),
+                $estadosPrevios,
+                $command->statuses
             );
         }
     }

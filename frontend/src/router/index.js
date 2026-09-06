@@ -169,6 +169,14 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/journal',
+    name: 'Journal',
+    component: () => import('../views/JournalView.vue'),
+    // Como listas y clubs: `get_journal` lleva `Auth`, así que sin esto la vista
+    // se monta sin sesión y recibe un 401 que no espera.
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/inbox',
     name: 'Inbox',
     component: () => import('../views/InboxView.vue'),

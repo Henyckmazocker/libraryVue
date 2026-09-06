@@ -10,6 +10,12 @@
           "descriptionKey": "menu.library.hint"
         },
         {
+          "nameKey": "menu.journal.name",
+          "path": "/journal",
+          "icon": "fas fa-book-open",
+          "descriptionKey": "menu.journal.hint"
+        },
+        {
           "nameKey": "menu.stats.name",
           "path": "/dashboard",
           "icon": "fas fa-chart-bar",

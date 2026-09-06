@@ -13,6 +13,7 @@ use App\Domain\Model\ValueObjects\MovieIdentifier;
 use App\Domain\Model\ValueObjects\Timestamp;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use App\Domain\Services\JournalService;
 use Psr\Log\NullLogger;
 use InvalidArgumentException;
 
@@ -22,14 +23,19 @@ class TrackSeriesSeasonUseCaseTest extends TestCase
     private SeriesSeasonRepositoryInterface $seriesSeasonRepo;
     private MovieRepositoryInterface $movieRepo;
 
+    private JournalService $journalService;
+
     protected function setUp(): void
     {
         $this->seriesSeasonRepo = $this->createMock(SeriesSeasonRepositoryInterface::class);
         $this->movieRepo        = $this->createMock(MovieRepositoryInterface::class);
 
+        $this->journalService = $this->createMock(JournalService::class);
+
         $this->useCase = new TrackSeriesSeasonUseCase(
             $this->seriesSeasonRepo,
             $this->movieRepo,
+            $this->journalService,
             new NullLogger()
         );
     }

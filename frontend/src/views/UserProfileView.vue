@@ -39,6 +39,20 @@
       </div>
     </div>
 
+    <!-- El diario. Aquí y en el sidebar: la barra de navegación móvil se queda
+         con sus cinco pestañas, que a 360 px ya iban justas. -->
+    <RouterLink
+      class="profile-journal-link"
+      :to="{ name: 'Journal' }"
+    >
+      <i class="fas fa-book-open" />
+      <span class="profile-journal-link__text">
+        <strong>{{ t('journal.title') }}</strong>
+        <small>{{ t('journal.subtitle') }}</small>
+      </span>
+      <i class="fas fa-chevron-right" />
+    </RouterLink>
+
     <!-- Settings sections -->
     <div class="settings-section">
       <h3 class="section-title">
@@ -229,6 +243,36 @@ export default {
 <style scoped lang="scss">
 @use '@/assets/styles/abstracts' as *;
 @use '@/assets/styles/components/cards' as *;
+
+.profile-journal-link {
+  display: flex;
+  align-items: center;
+  gap: spacing(sm);
+  padding: spacing(md);
+  margin-bottom: spacing(lg);
+  border: 1px solid var(--color-border);
+  border-radius: radius(lg);
+  background: var(--color-background-soft);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: var(--transition-fast);
+
+  &:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  &__text {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+
+    small {
+      color: var(--color-text-light);
+    }
+  }
+}
 
 
 .profile-container {

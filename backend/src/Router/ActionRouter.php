@@ -7,6 +7,7 @@ namespace App\Router;
 use App\Controllers\AlbumController;
 use App\Controllers\AuthController;
 use App\Controllers\FeedController;
+use App\Controllers\JournalController;
 use App\Controllers\SocialController;
 use App\Controllers\BookController;
 use App\Controllers\MovieController;
@@ -94,6 +95,10 @@ use App\Domain\DTO\Commands\SendFriendRequestCommand;
 use App\Domain\DTO\Commands\SendRecommendationCommand;
 use App\Domain\DTO\Commands\UpdatePrivacySettingsCommand;
 use App\Domain\DTO\Queries\GetFeedQuery;
+use App\Domain\DTO\Queries\GetJournalQuery;
+use App\Domain\DTO\Commands\AddJournalEntryCommand;
+use App\Domain\DTO\Commands\UpdateJournalEntryCommand;
+use App\Domain\DTO\Commands\DeleteJournalEntryCommand;
 use App\Domain\DTO\Queries\GetFriendRequestsQuery;
 use App\Domain\DTO\Queries\GetFriendsQuery;
 use App\Domain\DTO\Queries\GetInboxCountQuery;
@@ -137,6 +142,7 @@ class ActionRouter
     private ?VideoController $videoController = null;
     private ?SocialController $socialController = null;
     private ?FeedController $feedController = null;
+    private ?JournalController $journalController = null;
     private ?ListController $listController = null;
     private ?ClubController $clubController = null;
     private ?SearchController $searchController = null;
@@ -669,6 +675,20 @@ class ActionRouter
                 GetFeedQuery::fromArray($data, $userId)
             ),
             'get_privacy_settings' => $controller->getPrivacySettings($userId),
+
+            // JOURNAL - El diario
+            'get_journal' => $controller->getJournal(
+                GetJournalQuery::fromArray($data, $userId)
+            ),
+            'add_journal_entry' => $controller->addEntry(
+                AddJournalEntryCommand::fromArray($data, $userId)
+            ),
+            'update_journal_entry' => $controller->updateEntry(
+                UpdateJournalEntryCommand::fromArray($data, $userId)
+            ),
+            'delete_journal_entry' => $controller->deleteEntry(
+                DeleteJournalEntryCommand::fromArray($data, $userId)
+            ),
             'update_privacy_settings' => $controller->updatePrivacySettings(
                 UpdatePrivacySettingsCommand::fromArray($data, $userId)
             ),
@@ -791,6 +811,7 @@ class ActionRouter
             'VideoController' => $this->videoController ??= $this->container->get(VideoController::class),
             'SocialController' => $this->socialController ??= $this->container->get(SocialController::class),
             'FeedController' => $this->feedController ??= $this->container->get(FeedController::class),
+            'JournalController' => $this->journalController ??= $this->container->get(JournalController::class),
             'ListController' => $this->listController ??= $this->container->get(ListController::class),
             'ClubController' => $this->clubController ??= $this->container->get(ClubController::class),
             'SearchController' => $this->searchController ??= $this->container->get(SearchController::class),

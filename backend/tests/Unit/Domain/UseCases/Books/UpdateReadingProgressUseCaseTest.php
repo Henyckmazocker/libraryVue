@@ -14,6 +14,7 @@ use App\Domain\Model\Edition;
 use App\Domain\Model\UserBookEdition;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use App\Domain\Services\JournalService;
 use Psr\Log\NullLogger;
 use InvalidArgumentException;
 use RuntimeException;
@@ -26,6 +27,8 @@ class UpdateReadingProgressUseCaseTest extends TestCase
     private UserBookEditionRepositoryInterface $userBookEditionRepo;
     private EditionRepositoryInterface $editionRepo;
 
+    private JournalService $journalService;
+
     protected function setUp(): void
     {
         $this->progressRepo = $this->createMock(ReadingProgressRepositoryInterface::class);
@@ -33,11 +36,14 @@ class UpdateReadingProgressUseCaseTest extends TestCase
         $this->userBookEditionRepo = $this->createMock(UserBookEditionRepositoryInterface::class);
         $this->editionRepo = $this->createMock(EditionRepositoryInterface::class);
 
+        $this->journalService = $this->createMock(JournalService::class);
+
         $this->useCase = new UpdateReadingProgressUseCase(
             $this->progressRepo,
             $this->sessionRepo,
             $this->userBookEditionRepo,
             $this->editionRepo,
+            $this->journalService,
             new NullLogger()
         );
     }

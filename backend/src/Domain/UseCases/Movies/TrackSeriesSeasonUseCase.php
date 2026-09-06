@@ -6,7 +6,9 @@ namespace App\Domain\UseCases\Movies;
 
 use App\Domain\DTO\Commands\TrackSeriesSeasonCommand;
 use App\Domain\Repository\Movie\MovieRepositoryInterface;
+use App\Domain\Model\JournalEntry;
 use App\Domain\Repository\Movie\SeriesSeasonRepositoryInterface;
+use App\Domain\Services\JournalService;
 use App\Domain\UseCases\AbstractUseCase;
 use InvalidArgumentException;
 use Psr\Log\LoggerInterface;
@@ -16,6 +18,7 @@ class TrackSeriesSeasonUseCase extends AbstractUseCase
     public function __construct(
         private readonly SeriesSeasonRepositoryInterface $seriesSeasonRepository,
         private readonly MovieRepositoryInterface $movieRepository,
+        private readonly JournalService $journalService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -54,6 +57,27 @@ class TrackSeriesSeasonUseCase extends AbstractUseCase
             $command->personalRating,
             $command->notes,
         );
+
+        // En series la entrada del diario es una TEMPORADA, no la serie: su
+        // `source_id` es `"<imdbID>:<temporada>"`, y por eso volver a guardar la
+        // misma temporada actualiza su entrada en vez de duplicarla.
+        //
+        // Solo `viewed` apunta: `partial` es «voy por la mitad» y `skipped` es
+        // justo lo contrario de haberla visto. Y la fecha es la que el usuario
+        // eligiera en el seguimiento; si no puso ninguna, hoy.
+        if ($command->status === 'viewed') {
+            $this->journalService->record(
+                userId:    $command->userId,
+                media:     JournalEntry::MEDIA_SERIES,
+                entityId:  $command->seriesIsbn,
+                title:     $movie->getTitle(),
+                cover:     $movie->getCoverUrl(),
+                entryDate: $command->dateViewed ?: date('Y-m-d'),
+                rating:    $command->personalRating,
+                source:    JournalEntry::SOURCE_SERIES_SEASON,
+                sourceId:  $command->seriesIsbn . ':' . $command->seasonNumber
+            );
+        }
     }
 
     protected function getLogContext(): string

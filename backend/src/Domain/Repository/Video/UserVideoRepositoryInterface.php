@@ -52,6 +52,20 @@ interface UserVideoRepositoryInterface
     public function updateStatuses(int $userId, int $videoId, array $statuses): void;
 
     /**
+     * Los estados que el usuario tiene puestos ahora mismo sobre el vídeo, como
+     * nombres (`'watched'`, `'saved'`…).
+     *
+     * Existe desde el 2026-09-04 y es la última de las cinco en escribirse: los
+     * otros cuatro medios ya la declaraban. La necesita el diario, que emite una
+     * entrada **solo en la transición** no-consumido → consumido, y para eso hay
+     * que saber qué había antes — `updateStatuses` recibe el conjunto entero y
+     * lo sustituye, así que por sí solo no dice qué cambió.
+     *
+     * @return string[]
+     */
+    public function getUserStatuses(int $userId, int $videoId): array;
+
+    /**
      * Update personal rating for a user-video
      */
     public function updateRating(int $userId, int $videoId, float $rating): void;

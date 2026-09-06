@@ -120,6 +120,12 @@ export const useMenuStore = defineStore('menu', {
                 path: "/library",
                 icon: "fas fa-bookmark",
                 descriptionKey: "menu.library.hint"
+              },
+              {
+                nameKey: "menu.journal.name",
+                path: "/journal",
+                icon: "fas fa-book-open",
+                descriptionKey: "menu.journal.hint"
               }
             ]
           },

@@ -8,6 +8,7 @@ use App\Domain\Repository\Game\UserGameRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Game\GameRepositoryInterface;
 use App\Domain\Services\FeedEventService;
+use App\Domain\Services\JournalService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\UpdateGameStatusesCommand;
 use Psr\Log\LoggerInterface;
@@ -20,6 +21,7 @@ class UpdateGameUserStatusesUseCase extends AbstractUseCase
         private readonly UserRepositoryInterface $userRepository,
         private readonly GameRepositoryInterface $gameRepository,
         private readonly FeedEventService $feedEventService,
+        private readonly JournalService $journalService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -50,6 +52,8 @@ class UpdateGameUserStatusesUseCase extends AbstractUseCase
             }
         }
 
+        $estadosPrevios = $this->userGameRepository->getUserStatuses($command->userId, $command->gameId);
+
         // Update statuses
         $this->userGameRepository->updateStatuses(
             $command->userId,
@@ -67,6 +71,21 @@ class UpdateGameUserStatusesUseCase extends AbstractUseCase
                 $game->getCoverUrl(),
                 '',
                 implode(', ', $command->statuses)
+            );
+
+            // El diario apunta SOLO en la transición no-consumido → consumido.
+            // Los estados previos se leen arriba, antes de sustituirlos: este
+            // caso de uso recibe el conjunto entero y por sí solo no sabe qué
+            // cambió. La regla de qué estado cuenta vive en
+            // `JournalEntry::CONSUMED_STATUSES`, no aquí.
+            $this->journalService->recordIfConsumed(
+                $command->userId,
+                'game',
+                (string) $command->gameId,
+                $game->getTitle(),
+                $game->getCoverUrl(),
+                $estadosPrevios,
+                $command->statuses
             );
         }
     }

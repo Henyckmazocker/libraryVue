@@ -284,6 +284,18 @@
         :entity-cover="remoteCoverUrl"
       />
 
+      <!-- Con `v-if` además del `v-model`, como los tres de arriba: el modal usa
+           el store del diario en su `setup`, y sin esto toda ficha visitada lo
+           levantaría. El ítem llega ya decidido, así que no pinta el buscador.
+           Va con `media` y NO con `coverMedia`: aquel mapea series→película para
+           el endpoint de portadas, pero el diario sí distingue las dos —una
+           entrada de serie es una temporada— y su ruta de detalle es otra. -->
+      <JournalEntryModal
+        v-if="showJournalDialog"
+        v-model="showJournalDialog"
+        :item="{ media, entityId: routeId, title }"
+      />
+
       <!-- Atribución del proveedor. La exigen las condiciones de uso de TMDB
            en cualquier pantalla que muestre datos suyos, así que no se quita. -->
       <footer
@@ -351,6 +363,7 @@ import Menu from 'primevue/menu'
 import RecommendDialog from '@/components/Social/RecommendDialog.vue'
 import AddToListDialog from '@/components/Lists/AddToListDialog.vue'
 import AddToClubDialog from '@/components/Clubs/AddToClubDialog.vue'
+import JournalEntryModal from '@/components/Journal/JournalEntryModal.vue'
 import { getMediaConfig, mediaKeys } from '@/config/mediaRegistry'
 import CoverService from '@/services/CoverService'
 import { useAuthStore } from '@/store/auth'
@@ -443,6 +456,7 @@ const editModal = ref({ isVisible: false, item: null })
 const showRecommendDialog = ref(false)
 const showAddToListDialog = ref(false)
 const showAddToClubDialog = ref(false)
+const showJournalDialog = ref(false)
 // Una portada que no carga pinta el placeholder del medio en vez de dejar el
 // icono de imagen rota del navegador.
 const imageError = ref(false)
@@ -653,6 +667,19 @@ const menuItems = computed(() => {
       command: () => { showAddToClubDialog.value = true }
     }
   ]
+
+  // Solo con el ítem en tu biblioteca: el diario registra lo que consumiste, y
+  // eso es algo que tienes. Va en el menú `⋯` y no en `libraryItem.extraActions`
+  // del registry porque es idéntico en los seis medios —declararlo ahí serían
+  // seis copias, y una séptima en el `extraActions` propio de series, que
+  // sustituye al de películas en vez de añadirse—.
+  if (existing.value) {
+    acciones.push({
+      label: t('journal.add'),
+      icon: 'fas fa-book-open',
+      command: () => { showJournalDialog.value = true }
+    })
+  }
 
   if (existing.value) {
     acciones.push({ separator: true })

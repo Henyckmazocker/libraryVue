@@ -1583,6 +1583,52 @@ return [
     ],
 
     // ============================================================================
+    // JOURNAL - El diario: qué consumiste y cuándo
+    // ============================================================================
+
+    'get_journal' => [
+        'controller' => ['JournalController', 'getJournal'],
+        'middleware' => [LoggingMiddleware::class, AuthenticationMiddleware::class],
+        'validation' => []
+    ],
+
+    // `entryDate` NO va en `required`: sin fecha se apunta hoy, que es lo que
+    // espera quien acaba de terminar algo. Y `ValidationMiddleware` exige TODAS
+    // las claves de su `required`, no una cualquiera.
+    'add_journal_entry' => [
+        'controller' => ['JournalController', 'addEntry'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['media', 'entityId']]]
+        ],
+        'validation' => ['media', 'entityId']
+    ],
+
+    'update_journal_entry' => [
+        'controller' => ['JournalController', 'updateEntry'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['entryId']]]
+        ],
+        'validation' => ['entryId']
+    ],
+
+    'delete_journal_entry' => [
+        'controller' => ['JournalController', 'deleteEntry'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['entryId']]]
+        ],
+        'validation' => ['entryId']
+    ],
+
+    // ============================================================================
     // RECOMMENDATIONS - The inbox behind the header bell
     // ============================================================================
 

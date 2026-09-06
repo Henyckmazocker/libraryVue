@@ -8,6 +8,7 @@ use App\Domain\Repository\Movie\MovieRepositoryInterface;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Movie\UserMovieRepositoryInterface;
 use App\Domain\Services\FeedEventService;
+use App\Domain\Services\JournalService;
 use App\Domain\UseCases\AbstractUseCase;
 use App\Domain\DTO\Commands\UpdateMovieStatusesCommand;
 use Psr\Log\LoggerInterface;
@@ -20,6 +21,7 @@ class UpdateMovieUserStatusesUseCase extends AbstractUseCase
         private readonly UserMovieRepositoryInterface $userMovieRepository,
         private readonly MovieRepositoryInterface $movieRepository,
         private readonly FeedEventService $feedEventService,
+        private readonly JournalService $journalService,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -42,6 +44,8 @@ class UpdateMovieUserStatusesUseCase extends AbstractUseCase
             throw new InvalidArgumentException('Movie not found in your library.');
         }
 
+        $estadosPrevios = $this->userMovieRepository->getUserStatuses($command->userId, $command->id->toString());
+
         // Update the user's statuses for this movie
         $this->userMovieRepository->updateStatuses($command->userId, $command->id->toString(), $command->statuses);
 
@@ -55,6 +59,21 @@ class UpdateMovieUserStatusesUseCase extends AbstractUseCase
                 $movie->getCoverUrl(),
                 '',
                 implode(', ', $command->statuses)
+            );
+
+            // El diario apunta SOLO en la transición no-consumido → consumido.
+            // Los estados previos se leen arriba, antes de sustituirlos: este
+            // caso de uso recibe el conjunto entero y por sí solo no sabe qué
+            // cambió. La regla de qué estado cuenta vive en
+            // `JournalEntry::CONSUMED_STATUSES`, no aquí.
+            $this->journalService->recordIfConsumed(
+                $command->userId,
+                'movie',
+                $command->id->toString(),
+                $movie->getTitle(),
+                $movie->getCoverUrl(),
+                $estadosPrevios,
+                $command->statuses
             );
         }
         

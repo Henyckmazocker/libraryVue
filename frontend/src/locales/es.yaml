@@ -906,6 +906,9 @@ menu:
   library:
     name: Biblioteca
     hint: Tu biblioteca personal
+  journal:
+    name: Diario
+    hint: Qué consumiste y cuándo
   stats:
     name: Estadísticas
     hint: Estadísticas de tu biblioteca
@@ -1483,3 +1486,38 @@ misc:
   daysOngoing:
     one: "{n} día (en curso)"
     other: "{n} días (en curso)"
+
+journal:
+  title: Diario
+  subtitle: Qué has consumido y cuándo
+  empty: Tu diario todavía está vacío
+  emptyHint: Se llena solo al marcar algo como leído, visto o jugado; y puedes apuntar a mano lo de antes.
+  emptyFiltered: No hay nada de este medio en tu diario
+  add: Apuntar en el diario
+  addTitle: Apuntar en el diario
+  editTitle: Editar la entrada
+  date: Cuándo
+  rating: Qué te pareció
+  what: Qué
+  pickHint: Elige algo de tu biblioteca
+  searchPlaceholder: Busca en tu biblioteca
+  noMatches: Nada de tu biblioteca casa con eso
+  change: Cambiar
+  repeat: Repetición
+  repeatTitle: Ya lo habías apuntado antes
+  edit: Editar esta entrada
+  remove: Borrar esta entrada
+  removeConfirm: La entrada desaparece del diario. No toca ni el ítem ni su valoración.
+  removed: Entrada borrada
+  saved: Entrada guardada
+  actionsFor: Acciones sobre {title}
+  loadMore: Ver más
+  countOne: 1 entrada
+  countMany: "{n} entradas"
+  filterAll: Todos
+  today: Hoy
+  yesterday: Ayer
+
+journalError:
+  load: No se pudo cargar el diario
+  save: No se pudo guardar la entrada

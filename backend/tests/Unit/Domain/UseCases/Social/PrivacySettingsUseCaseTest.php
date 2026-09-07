@@ -66,7 +66,8 @@ class PrivacySettingsUseCaseTest extends TestCase
             showRatings: true,
             showNotes: false,
             showReadingSessions: false,
-            showAchievements: true
+            showAchievements: true,
+            showJournal: true
         );
         $this->privacyRepo->expects($this->once())->method('save')->willReturn($saved);
 
@@ -78,7 +79,8 @@ class PrivacySettingsUseCaseTest extends TestCase
             showRatings: true,
             showNotes: false,
             showReadingSessions: false,
-            showAchievements: true
+            showAchievements: true,
+            showJournal: true
         );
 
         $result = $useCase->execute($command);
@@ -86,6 +88,7 @@ class PrivacySettingsUseCaseTest extends TestCase
         $this->assertIsArray($result);
         $this->assertFalse($result['show_additions']);
         $this->assertTrue($result['show_ratings']);
+        $this->assertTrue($result['show_journal']);
     }
 
     #[Test]
@@ -97,5 +100,20 @@ class PrivacySettingsUseCaseTest extends TestCase
         $this->assertTrue($command->showAdditions);
         $this->assertTrue($command->showRatings);
         $this->assertFalse($command->showNotes);
+        // El diario es el segundo que cae a apagado: enseñarlo se pide, no se hereda.
+        $this->assertFalse($command->showJournal);
+    }
+
+    #[Test]
+    public function journal_is_not_a_feed_event(): void
+    {
+        // `showJournal` es permiso de lectura del diario, no un `event_type`.
+        // Si entrara en EVENT_TYPE_MAP saldría aquí y el feed filtraría por un
+        // tipo que `feed_events.event_type` no admite.
+        $settings = new PrivacySettings(userId: 1, showJournal: true);
+
+        $this->assertNotContains('journal', $settings->getVisibleEventTypes());
+        $this->assertFalse($settings->isEventVisible('journal'));
+        $this->assertTrue($settings->toArray()['show_journal']);
     }
 }

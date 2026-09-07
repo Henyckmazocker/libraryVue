@@ -96,6 +96,7 @@ use App\Domain\DTO\Commands\SendRecommendationCommand;
 use App\Domain\DTO\Commands\UpdatePrivacySettingsCommand;
 use App\Domain\DTO\Queries\GetFeedQuery;
 use App\Domain\DTO\Queries\GetJournalQuery;
+use App\Domain\DTO\Queries\GetUserJournalQuery;
 use App\Domain\DTO\Commands\AddJournalEntryCommand;
 use App\Domain\DTO\Commands\UpdateJournalEntryCommand;
 use App\Domain\DTO\Commands\DeleteJournalEntryCommand;
@@ -679,6 +680,9 @@ class ActionRouter
             // JOURNAL - El diario
             'get_journal' => $controller->getJournal(
                 GetJournalQuery::fromArray($data, $userId)
+            ),
+            'get_user_journal' => $controller->getUserJournal(
+                GetUserJournalQuery::fromArray($data, $userId)
             ),
             'add_journal_entry' => $controller->addEntry(
                 AddJournalEntryCommand::fromArray($data, $userId)

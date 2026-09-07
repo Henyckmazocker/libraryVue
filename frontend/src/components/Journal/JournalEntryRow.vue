@@ -59,20 +59,22 @@
       size="small"
     />
 
-    <button
-      type="button"
-      class="journal-row__menu"
-      :aria-label="t('journal.actionsFor', { title: entry.entity_title || t('common.untitled') })"
-      @click="abrirMenu"
-    >
-      <i class="fas fa-ellipsis" />
-    </button>
+    <template v-if="!readonly">
+      <button
+        type="button"
+        class="journal-row__menu"
+        :aria-label="t('journal.actionsFor', { title: entry.entity_title || t('common.untitled') })"
+        @click="abrirMenu"
+      >
+        <i class="fas fa-ellipsis" />
+      </button>
 
-    <Menu
-      ref="menuRef"
-      :model="opcionesMenu"
-      :popup="true"
-    />
+      <Menu
+        ref="menuRef"
+        :model="opcionesMenu"
+        :popup="true"
+      />
+    </template>
   </div>
 </template>
 
@@ -105,6 +107,17 @@ const props = defineProps({
   entry: {
     type: Object,
     required: true
+  },
+
+  /**
+   * Modo lectura: sin el menú ⋯, que solo sabe editar y borrar. Es lo que pinta
+   * la sección del diario en el perfil público de un amigo, y va por prop y no
+   * por una copia del componente: el escalón de portadas de más abajo es lo
+   * bastante delicado como para no querer dos versiones de él.
+   */
+  readonly: {
+    type: Boolean,
+    default: false
   }
 })
 

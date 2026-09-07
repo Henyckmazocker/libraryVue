@@ -65,7 +65,7 @@
         class="journal-view__day"
       >
         <h2 class="journal-view__day-title">
-          {{ rotuloDeDia(dia.date) }}
+          {{ journalDayLabel(dia.date) }}
         </h2>
 
         <JournalEntryRow
@@ -108,7 +108,7 @@ import { useConfirmationModal } from '@/composables/useConfirmationModal'
 import { useJournalStore } from '@/store/journal'
 import { useUIStore } from '@/store/ui'
 import { getMediaConfig, mediaKeys } from '@/config/mediaRegistry'
-import { intlLocale } from '@/config/i18n'
+import { journalDayLabel } from '@/utils/dates'
 import { useI18n } from '@/composables/useI18n'
 
 const { t } = useI18n()
@@ -136,35 +136,6 @@ const filtros = computed(() => [
 
 const cambiarFiltro = (clave) => {
   journalStore.setMedia(media.value === clave ? null : clave)
-}
-
-/**
- * El rótulo del día.
- *
- * `entry_date` es una cadena `YYYY-MM-DD` y se compara **como cadena** con la de
- * hoy: convertirla a `Date` para compararlas es donde aparecen los errores de
- * huso. Solo se construye un `Date` para formatear, y con la hora del mediodía
- * para que ningún desplazamiento de zona lo mueva de día.
- */
-const rotuloDeDia = (fecha) => {
-  const hoy = new Date().toLocaleDateString('sv-SE')
-
-  if (fecha === hoy) {
-    return t('journal.today')
-  }
-
-  const ayer = new Date(Date.now() - 86400000).toLocaleDateString('sv-SE')
-
-  if (fecha === ayer) {
-    return t('journal.yesterday')
-  }
-
-  return new Date(`${fecha}T12:00:00`).toLocaleDateString(intlLocale(), {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  })
 }
 
 const modalAbierto = ref(false)

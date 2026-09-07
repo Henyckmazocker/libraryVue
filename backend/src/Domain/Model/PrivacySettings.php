@@ -6,7 +6,10 @@ namespace App\Domain\Model;
 
 class PrivacySettings
 {
-    // Maps event_type constants to property names
+    // Maps event_type constants to property names.
+    // `showJournal` NO entra aquí: no es un evento del feed, sino permiso de
+    // lectura del diario desde el perfil público. Colarlo lo sacaría en
+    // `getVisibleEventTypes()` y filtraría por un `event_type` que no existe.
     private const EVENT_TYPE_MAP = [
         FeedEvent::TYPE_ITEM_ADDED      => 'showAdditions',
         FeedEvent::TYPE_STATUS_CHANGED  => 'showStatusChanges',
@@ -23,7 +26,8 @@ class PrivacySettings
         private bool $showRatings        = true,
         private bool $showNotes          = false,
         private bool $showReadingSessions = true,
-        private bool $showAchievements   = true
+        private bool $showAchievements   = true,
+        private bool $showJournal        = false
     ) {}
 
     public function getUserId(): int           { return $this->userId; }
@@ -33,6 +37,7 @@ class PrivacySettings
     public function showNotes(): bool          { return $this->showNotes; }
     public function showReadingSessions(): bool { return $this->showReadingSessions; }
     public function showAchievements(): bool   { return $this->showAchievements; }
+    public function showJournal(): bool        { return $this->showJournal; }
 
     public function isEventVisible(string $eventType): bool
     {
@@ -61,6 +66,7 @@ class PrivacySettings
             'show_notes'           => $this->showNotes,
             'show_reading_sessions' => $this->showReadingSessions,
             'show_achievements'    => $this->showAchievements,
+            'show_journal'         => $this->showJournal,
         ];
     }
 }

@@ -1592,6 +1592,19 @@ return [
         'validation' => []
     ],
 
+    // El de otro, para `/user/:username`. Solo lee, así que no lleva CSRF; lleva
+    // `Auth` como `get_user_lists`: un diario visible lo es para amigos
+    // REGISTRADOS. Quién puede verlo lo decide el caso de uso, no esta tabla.
+    'get_user_journal' => [
+        'controller' => ['JournalController', 'getUserJournal'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            [ValidationMiddleware::class, ['required' => ['username']]]
+        ],
+        'validation' => ['username']
+    ],
+
     // `entryDate` NO va en `required`: sin fecha se apunta hoy, que es lo que
     // espera quien acaba de terminar algo. Y `ValidationMiddleware` exige TODAS
     // las claves de su `required`, no una cualquiera.

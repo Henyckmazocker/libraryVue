@@ -1011,6 +1011,8 @@ privacy:
   notesHint: Only the notes you mark as public. Private ones are never published.
   readingSessions: When I log a reading session
   achievements: When I earn an achievement
+  journal: Show my journal to my friends
+  journalHint: It is not published to the feed. Your friends see it when they open your profile.
 
 rating:
   rateWith:
@@ -1480,6 +1482,7 @@ journal:
   filterAll: All
   today: Today
   yesterday: Yesterday
+  userTitle: '{name}''s diary'
 
 journalError:
   load: Could not load the diary

@@ -9,8 +9,9 @@ import { mountComponent } from './helpers/mount'
  * existen (`profile_visibility`, `library_visibility`, `feed_visibility`,
  * `allow_friend_requests`).
  *
- * Lo que se fija aquí es que manda **exactamente** las seis claves reales de
- * `user_privacy_settings`. No es un detalle de nombres:
+ * Lo que se fija aquí es que manda **exactamente** las siete claves reales de
+ * `user_privacy_settings` —seis del feed más `show_journal`, que es permiso de
+ * lectura del diario y no un evento—. No es un detalle de nombres:
  * `UpdatePrivacySettingsCommand::fromArray` las lee con un `?? true` de
  * respaldo, así que una clave que no llegue **no se conserva, se resetea**.
  */
@@ -36,13 +37,14 @@ vi.mock('primevue/usetoast', () => ({
   useToast: () => ({ add: vi.fn() })
 }))
 
-const LAS_SEIS = [
+const LAS_SIETE = [
   'show_additions',
   'show_status_changes',
   'show_ratings',
   'show_notes',
   'show_reading_sessions',
-  'show_achievements'
+  'show_achievements',
+  'show_journal'
 ]
 
 const guardados = () => ({
@@ -51,10 +53,11 @@ const guardados = () => ({
   show_ratings: true,
   show_notes: false,
   show_reading_sessions: true,
-  show_achievements: true
+  show_achievements: true,
+  show_journal: false
 })
 
-describe('PrivacySettingsPanel — las seis columnas reales', () => {
+describe('PrivacySettingsPanel — las siete columnas reales', () => {
   beforeEach(() => {
     ajustes.value = guardados()
     updatePrivacySettings.mockClear()
@@ -64,19 +67,19 @@ describe('PrivacySettingsPanel — las seis columnas reales', () => {
   it('pinta un interruptor por cada ajuste que existe, y ninguno más', () => {
     const w = mountComponent(PrivacySettingsPanel)
 
-    expect(w.findAllComponents({ name: 'ToggleSwitch' })).toHaveLength(6)
+    expect(w.findAllComponents({ name: 'ToggleSwitch' })).toHaveLength(7)
     // Los desplegables de visibilidad eran de campos inexistentes.
     expect(w.findAllComponents({ name: 'Select' })).toHaveLength(0)
   })
 
-  it('guarda las seis claves con el nombre que espera el backend', async () => {
+  it('guarda las siete claves con el nombre que espera el backend', async () => {
     const w = mountComponent(PrivacySettingsPanel)
     await flushPromises()
 
     await w.find('button').trigger('click')
 
     expect(updatePrivacySettings).toHaveBeenCalledTimes(1)
-    expect(Object.keys(updatePrivacySettings.mock.calls[0][0]).sort()).toEqual([...LAS_SEIS].sort())
+    expect(Object.keys(updatePrivacySettings.mock.calls[0][0]).sort()).toEqual([...LAS_SIETE].sort())
   })
 
   it('un `false` guardado sobrevive a la carga', async () => {
@@ -99,6 +102,26 @@ describe('PrivacySettingsPanel — las seis columnas reales', () => {
     const w = mountComponent(PrivacySettingsPanel)
 
     expect(w.text()).toContain('Las privadas no se publican nunca')
+  })
+
+  it('el diario apagado sobrevive a la carga y viaja como `false`', async () => {
+    // Mismo riesgo que `show_notes`, y aquí es el peor de los dos: si un
+    // `false` se perdiera, «Guardar» encendería el diario sin pedirlo.
+    ajustes.value = { ...guardados(), show_journal: false }
+
+    const w = mountComponent(PrivacySettingsPanel)
+    await flushPromises()
+    await w.find('button').trigger('click')
+
+    expect(updatePrivacySettings.mock.calls[0][0].show_journal).toBe(false)
+  })
+
+  it('el diario avisa de que no se publica en el feed', () => {
+    // Los otros seis rótulos dicen «cuando yo hago X» y el intro del panel
+    // habla del feed: sin el aviso, éste se lee como uno más de esos.
+    const w = mountComponent(PrivacySettingsPanel)
+
+    expect(w.text()).toContain('No se publica en el feed')
   })
 
   it('sin ajustes cargados enseña el spinner y los pide', () => {

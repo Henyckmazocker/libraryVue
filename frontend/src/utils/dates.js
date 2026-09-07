@@ -1,4 +1,4 @@
-import { intlLocale } from '@/config/i18n';
+import { intlLocale, t } from '@/config/i18n';
 
 /**
  * Formateo de fechas para lo que se enseña en pantalla.
@@ -26,6 +26,42 @@ export function formatDate (iso) {
   const fecha = new Date(iso);
   if (Number.isNaN(fecha.getTime())) return '';
   return fecha.toLocaleDateString(intlLocale(), {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+}
+
+/**
+ * El rótulo de un día del diario: `Hoy`, `Ayer`, o la fecha larga con su día de
+ * la semana.
+ *
+ * `entry_date` es una cadena `YYYY-MM-DD` y se compara **como cadena** con la de
+ * hoy: convertirla a `Date` para compararlas es donde aparecen los errores de
+ * huso. Solo se construye un `Date` para formatear, y con la hora del mediodía
+ * para que ningún desplazamiento de zona lo mueva de día.
+ *
+ * Vive aquí, y no en `JournalView.vue`, porque el diario se pinta en dos sitios:
+ * el propio y la sección del perfil público de un amigo.
+ *
+ * @param {string} fecha Fecha `YYYY-MM-DD`.
+ * @returns {string} p. ej. `Hoy` o `viernes, 4 de septiembre de 2026`.
+ */
+export function journalDayLabel (fecha) {
+  const hoy = new Date().toLocaleDateString('sv-SE');
+
+  if (fecha === hoy) {
+    return t('journal.today');
+  }
+
+  const ayer = new Date(Date.now() - 86400000).toLocaleDateString('sv-SE');
+
+  if (fecha === ayer) {
+    return t('journal.yesterday');
+  }
+
+  return new Date(`${fecha}T12:00:00`).toLocaleDateString(intlLocale(), {
+    weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric'

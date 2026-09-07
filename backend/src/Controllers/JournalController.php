@@ -8,9 +8,11 @@ use App\Domain\DTO\Commands\AddJournalEntryCommand;
 use App\Domain\DTO\Commands\DeleteJournalEntryCommand;
 use App\Domain\DTO\Commands\UpdateJournalEntryCommand;
 use App\Domain\DTO\Queries\GetJournalQuery;
+use App\Domain\DTO\Queries\GetUserJournalQuery;
 use App\Domain\UseCases\Journal\AddJournalEntryUseCase;
 use App\Domain\UseCases\Journal\DeleteJournalEntryUseCase;
 use App\Domain\UseCases\Journal\GetJournalUseCase;
+use App\Domain\UseCases\Journal\GetUserJournalUseCase;
 use App\Domain\UseCases\Journal\UpdateJournalEntryUseCase;
 use RuntimeException;
 
@@ -18,6 +20,7 @@ class JournalController extends BaseController
 {
     public function __construct(
         private readonly GetJournalUseCase         $getJournalUseCase,
+        private readonly GetUserJournalUseCase     $getUserJournalUseCase,
         private readonly AddJournalEntryUseCase    $addJournalEntryUseCase,
         private readonly UpdateJournalEntryUseCase $updateJournalEntryUseCase,
         private readonly DeleteJournalEntryUseCase $deleteJournalEntryUseCase
@@ -26,6 +29,17 @@ class JournalController extends BaseController
     public function getJournal(GetJournalQuery $query): array
     {
         $result = $this->getJournalUseCase->execute($query);
+        return $this->successResponse('Journal retrieved', $result);
+    }
+
+    /**
+     * El diario de otro, para su perfil público. Sin amistad aceptada o con el
+     * interruptor apagado devuelve la lista vacía y un 200, no un 403: la
+     * decisión está razonada en `GetUserJournalUseCase`.
+     */
+    public function getUserJournal(GetUserJournalQuery $query): array
+    {
+        $result = $this->getUserJournalUseCase->execute($query);
         return $this->successResponse('Journal retrieved', $result);
     }
 

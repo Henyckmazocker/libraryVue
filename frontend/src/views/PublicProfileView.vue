@@ -123,6 +123,49 @@
           </RouterLink>
         </div>
       </section>
+
+      <!-- El diario. Mismo trato que las listas: la sección solo existe si hay
+           entradas, y lo que decide si las hay es el backend. `get_user_journal`
+           devuelve la MISMA lista vacía sin amistad aceptada, con el interruptor
+           apagado y sin entradas, así que desde aquí no se puede distinguir
+           —ni hace falta— «no lo enseña» de «no tiene nada». -->
+      <section
+        v-if="hasUserEntries"
+        class="public-profile-view__journal"
+      >
+        <h2 class="public-profile-view__journal-title">
+          <i class="fas fa-book-open" />
+          {{ t('journal.userTitle', { name: profile.username }) }}
+        </h2>
+
+        <section
+          v-for="dia in userByDay"
+          :key="dia.date"
+          class="public-profile-view__journal-day"
+        >
+          <h3 class="public-profile-view__journal-day-title">
+            {{ journalDayLabel(dia.date) }}
+          </h3>
+
+          <JournalEntryRow
+            v-for="entrada in dia.entries"
+            :key="entrada.id"
+            :entry="entrada"
+            readonly
+          />
+        </section>
+
+        <button
+          v-if="userHasMore"
+          type="button"
+          class="btn btn--secondary public-profile-view__journal-more"
+          :class="{ 'is-loading': isLoadingUser }"
+          :disabled="isLoadingUser"
+          @click="journalStore.loadMoreUserJournal()"
+        >
+          {{ t('journal.loadMore') }}
+        </button>
+      </section>
     </template>
   </div>
 </template>
@@ -137,6 +180,9 @@ import { useAuthStore } from '@/store/auth'
 import { useSocialStore } from '@/store/social'
 import { storeToRefs } from 'pinia'
 import { useListsStore } from '@/store/lists'
+import { useJournalStore } from '@/store/journal'
+import JournalEntryRow from '@/components/Journal/JournalEntryRow.vue'
+import { journalDayLabel } from '@/utils/dates'
 import { useI18n } from '@/composables/useI18n';
 
 const { t } = useI18n();
@@ -148,6 +194,9 @@ const socialStore = useSocialStore()
 const listsStore = useListsStore()
 const { userLists } = storeToRefs(listsStore)
 const hasUserLists = computed(() => listsStore.hasUserLists)
+const journalStore = useJournalStore()
+const { userByDay, userHasMore, isLoadingUser } = storeToRefs(journalStore)
+const hasUserEntries = computed(() => journalStore.hasUserEntries)
 
 const profile = ref(null)
 const loading = ref(true)
@@ -177,6 +226,7 @@ onMounted(async () => {
   // Fuera del try del perfil y sin `await` que lo bloquee: si las listas
   // fallan, el perfil ya se ha pintado y lo único que falta es la sección.
   listsStore.fetchUserLists(route.params.username)
+  journalStore.fetchUserJournal(route.params.username)
 })
 
 const handleSendRequest = async () => {
@@ -335,6 +385,37 @@ const handleSendRequest = async () => {
   &__list-count {
     font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
+  }
+
+  &__journal {
+    margin-top: spacing(xl);
+  }
+
+  &__journal-title {
+    display: flex;
+    align-items: center;
+    gap: spacing(sm);
+    margin-bottom: spacing(md);
+    font-size: var(--font-size-md);
+    font-weight: 700;
+    color: var(--color-text);
+
+    i { color: var(--color-primary); }
+  }
+
+  &__journal-day {
+    margin-bottom: spacing(md);
+  }
+
+  &__journal-day-title {
+    margin: 0 0 spacing(2xs);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+  }
+
+  &__journal-more {
+    width: 100%;
   }
 }
 </style>

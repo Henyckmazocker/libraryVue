@@ -35,7 +35,8 @@ class UpdatePrivacySettingsUseCase extends AbstractUseCase
             showRatings:         $command->showRatings,
             showNotes:           $command->showNotes,
             showReadingSessions: $command->showReadingSessions,
-            showAchievements:    $command->showAchievements
+            showAchievements:    $command->showAchievements,
+            showJournal:         $command->showJournal
         );
 
         $saved = $this->privacySettingsRepository->save($settings);

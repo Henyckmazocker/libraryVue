@@ -1035,6 +1035,8 @@ privacy:
   notesHint: Solo las notas que marques como públicas. Las privadas no se publican nunca.
   readingSessions: Cuando registro una sesión de lectura
   achievements: Cuando consigo un logro
+  journal: Enseñar mi diario a mis amigos
+  journalHint: No se publica en el feed. Tus amigos lo ven al entrar en tu perfil.
 
 rating:
   rateWith:
@@ -1517,6 +1519,7 @@ journal:
   filterAll: Todos
   today: Hoy
   yesterday: Ayer
+  userTitle: El diario de {name}
 
 journalError:
   load: No se pudo cargar el diario

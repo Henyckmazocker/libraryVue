@@ -58,7 +58,7 @@ import { useI18n } from '@/composables/useI18n';
 const { t } = useI18n();
 
 /**
- * Los **seis** ajustes que existen de verdad, con el mismo nombre que tienen en
+ * Los **siete** ajustes que existen de verdad, con el mismo nombre que tienen en
  * `user_privacy_settings` y en `PrivacySettings::toArray()`.
  *
  * Hasta el 2026-08-25 este panel pintaba otra cosa: tres desplegables de
@@ -84,7 +84,16 @@ const AJUSTES = computed(() => [
     hint: t('privacy.notesHint')
   },
   { key: 'show_reading_sessions', label: t('privacy.readingSessions') },
-  { key: 'show_achievements', label: t('privacy.achievements') }
+  { key: 'show_achievements', label: t('privacy.achievements') },
+  {
+    key: 'show_journal',
+    label: t('privacy.journal'),
+    // El único de los siete que NO es un evento del feed: los otros seis dicen
+    // qué se publica, y éste si tu diario se puede leer desde tu perfil. Sin
+    // decirlo, se lee como los de arriba —el intro del panel habla del feed— y
+    // el diario no se publica en ninguna parte.
+    hint: t('privacy.journalHint')
+  }
 ])
 
 const { privacySettings, fetchPrivacySettings, updatePrivacySettings } = usePrivacySettings()
@@ -98,7 +107,9 @@ const localSettings = ref({
   show_ratings: true,
   show_notes: false,
   show_reading_sessions: true,
-  show_achievements: true
+  show_achievements: true,
+  // Apagado, como `show_notes` y como la columna: el diario nace privado.
+  show_journal: false
 })
 
 watch(privacySettings, (val) => {

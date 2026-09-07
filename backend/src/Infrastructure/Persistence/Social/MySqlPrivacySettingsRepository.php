@@ -41,7 +41,10 @@ final class MySqlPrivacySettingsRepository implements PrivacySettingsRepositoryI
                 showRatings:        (bool) $row['show_ratings'],
                 showNotes:          (bool) $row['show_notes'],
                 showReadingSessions:(bool) $row['show_reading_sessions'],
-                showAchievements:   (bool) $row['show_achievements']
+                showAchievements:   (bool) $row['show_achievements'],
+                // `??` y no un acceso directo: una fila escrita antes de la
+                // migración 20260907_120000 no trae la columna.
+                showJournal:        (bool) ($row['show_journal'] ?? false)
             );
         } catch (PDOException $e) {
             $this->logError('findByUserId failed', $e, ['user_id' => $userId]);
@@ -54,15 +57,16 @@ final class MySqlPrivacySettingsRepository implements PrivacySettingsRepositoryI
         try {
             $stmt = $this->db->prepare(
                 "INSERT INTO " . self::TABLE
-                . " (user_id, show_additions, show_status_changes, show_ratings, show_notes, show_reading_sessions, show_achievements)"
-                . " VALUES (:user_id, :show_additions, :show_status_changes, :show_ratings, :show_notes, :show_reading_sessions, :show_achievements)"
+                . " (user_id, show_additions, show_status_changes, show_ratings, show_notes, show_reading_sessions, show_achievements, show_journal)"
+                . " VALUES (:user_id, :show_additions, :show_status_changes, :show_ratings, :show_notes, :show_reading_sessions, :show_achievements, :show_journal)"
                 . " ON DUPLICATE KEY UPDATE"
                 . " show_additions = VALUES(show_additions),"
                 . " show_status_changes = VALUES(show_status_changes),"
                 . " show_ratings = VALUES(show_ratings),"
                 . " show_notes = VALUES(show_notes),"
                 . " show_reading_sessions = VALUES(show_reading_sessions),"
-                . " show_achievements = VALUES(show_achievements)"
+                . " show_achievements = VALUES(show_achievements),"
+                . " show_journal = VALUES(show_journal)"
             );
             $stmt->execute([
                 ':user_id'              => $settings->getUserId(),
@@ -72,6 +76,7 @@ final class MySqlPrivacySettingsRepository implements PrivacySettingsRepositoryI
                 ':show_notes'           => (int) $settings->showNotes(),
                 ':show_reading_sessions'=> (int) $settings->showReadingSessions(),
                 ':show_achievements'    => (int) $settings->showAchievements(),
+                ':show_journal'         => (int) $settings->showJournal(),
             ]);
             return $settings;
         } catch (PDOException $e) {

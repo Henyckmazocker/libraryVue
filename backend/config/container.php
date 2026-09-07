@@ -432,6 +432,7 @@ return function (): ContainerInterface {
         \App\Domain\Services\JournalItemResolver::class => DI\autowire(),
         \App\Domain\Services\JournalRatingWriter::class => DI\autowire(),
         \App\Domain\UseCases\Journal\GetJournalUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Journal\GetUserJournalUseCase::class => DI\autowire(),
         \App\Domain\UseCases\Journal\AddJournalEntryUseCase::class => DI\autowire(),
         \App\Domain\UseCases\Journal\UpdateJournalEntryUseCase::class => DI\autowire(),
         \App\Domain\UseCases\Journal\DeleteJournalEntryUseCase::class => DI\autowire(),

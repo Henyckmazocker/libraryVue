@@ -13,7 +13,8 @@ final readonly class UpdatePrivacySettingsCommand
         public bool $showRatings,
         public bool $showNotes,
         public bool $showReadingSessions,
-        public bool $showAchievements
+        public bool $showAchievements,
+        public bool $showJournal
     ) {}
 
     public static function fromArray(array $data, int $userId): self
@@ -25,7 +26,9 @@ final readonly class UpdatePrivacySettingsCommand
             showRatings:        (bool) ($data['showRatings'] ?? $data['show_ratings'] ?? true),
             showNotes:          (bool) ($data['showNotes'] ?? $data['show_notes'] ?? false),
             showReadingSessions:(bool) ($data['showReadingSessions'] ?? $data['show_reading_sessions'] ?? true),
-            showAchievements:   (bool) ($data['showAchievements'] ?? $data['show_achievements'] ?? true)
+            showAchievements:   (bool) ($data['showAchievements'] ?? $data['show_achievements'] ?? true),
+            // El único junto a `showNotes` que cae a false: el diario nace apagado.
+            showJournal:        (bool) ($data['showJournal'] ?? $data['show_journal'] ?? false)
         );
     }
 }

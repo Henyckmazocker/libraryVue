@@ -157,6 +157,10 @@ const buildRoutes = async () => {
     ['/search', 'Buscador general'],
     ['/library', 'Mi biblioteca'],
     ['/journal', 'Diario'],
+    // Las dos vistas de calendario del diario. Van en la lista a mano como el
+    // resto: una ruta que no esté aquí no se mide y el informe sale «verde».
+    ['/journal?view=year', 'Diario · año'],
+    ['/journal?view=month', 'Diario · mes'],
     ['/dashboard?tab=books', 'Dashboard · libros'],
     ['/dashboard?tab=movies', 'Dashboard · películas'],
     ['/dashboard?tab=games', 'Dashboard · videojuegos'],

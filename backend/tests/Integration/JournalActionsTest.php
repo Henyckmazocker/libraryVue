@@ -255,6 +255,106 @@ class JournalActionsTest extends IntegrationTestCase
         $this->assertFalse($entradas[1]['is_repeat']);
     }
 
+    /**
+     * La acción del calendario **por el router**: es la costura donde falla
+     * este repo —una acción declarada en dos de los tres sitios—, y ningún
+     * unitario del caso de uso la ve.
+     */
+    #[Test]
+    public function the_calendar_action_answers_with_the_aggregate_of_the_year(): void
+    {
+        foreach ([['2026-09-04', 4.5], ['2026-09-04', null], ['2026-08-27', null], ['2025-02-10', null]] as [$fecha, $nota]) {
+            $this->router()->dispatch('add_journal_entry', [
+                'media' => 'movie', 'entityId' => 'tt0133093', 'entryDate' => $fecha, 'rating' => $nota,
+            ]);
+        }
+
+        $respuesta = $this->router()->dispatch('get_journal_calendar', ['year' => 2026]);
+
+        $this->assertSame('success', $respuesta['status'], $respuesta['message'] ?? '');
+        $this->assertSame(['2026-08-27', '2026-09-04'], array_keys($respuesta['data']['days']));
+        $this->assertSame(2, $respuesta['data']['days']['2026-09-04']['count']);
+        $this->assertSame(['movie'], $respuesta['data']['days']['2026-09-04']['media']);
+        // El total es el del año pedido, no el del diario entero (que son 4).
+        $this->assertSame(3, $respuesta['data']['total']);
+        $this->assertSame([2026, 2025], $respuesta['data']['years']);
+    }
+
+    /**
+     * El filtro por medio, **por el router**, hasta el `GROUP BY`: es lo que
+     * añade el M4 y lo que ningún unitario prueba de punta a punta.
+     */
+    #[Test]
+    public function the_calendar_action_accepts_the_media_filter_and_keeps_every_year(): void
+    {
+        // Series y películas comparten tabla; lo que las separa en el diario es
+        // la columna `media`, que es justo lo que filtra el agregado.
+        $this->pdo()->prepare('INSERT INTO movie (isbn, title) VALUES (:i, :t)')
+            ->execute([':i' => 'tt14452776', ':t' => 'The Bear']);
+
+        $this->router()->dispatch('add_journal_entry', [
+            'media' => 'movie', 'entityId' => 'tt0133093', 'entryDate' => '2026-09-04',
+        ]);
+        $this->router()->dispatch('add_journal_entry', [
+            'media' => 'series', 'entityId' => 'tt14452776', 'entryDate' => '2026-09-04',
+        ]);
+        $this->router()->dispatch('add_journal_entry', [
+            'media' => 'movie', 'entityId' => 'tt0133093', 'entryDate' => '2025-02-10',
+        ]);
+
+        $series = $this->router()->dispatch('get_journal_calendar', ['year' => 2026, 'media' => 'series']);
+
+        $this->assertSame('success', $series['status'], $series['message'] ?? '');
+        $this->assertSame(['2026-09-04'], array_keys($series['data']['days']));
+        $this->assertSame(1, $series['data']['days']['2026-09-04']['count']);
+        $this->assertSame(['series'], $series['data']['days']['2026-09-04']['media']);
+        $this->assertSame(1, $series['data']['total']);
+        // El selector de años NO se filtra: 2025 solo tiene una película y
+        // sigue ofreciéndose, o no habría forma de volver a él.
+        $this->assertSame([2026, 2025], $series['data']['years']);
+    }
+
+    #[Test]
+    public function the_listing_with_a_range_only_brings_that_range(): void
+    {
+        foreach (['2026-08-31', '2026-09-01', '2026-09-30', '2026-10-01'] as $fecha) {
+            $this->router()->dispatch('add_journal_entry', [
+                'media' => 'movie', 'entityId' => 'tt0133093', 'entryDate' => $fecha,
+            ]);
+        }
+
+        $mes = $this->router()->dispatch('get_journal', [
+            'from' => '2026-09-01', 'to' => '2026-09-30', 'limit' => 200,
+        ]);
+
+        $this->assertSame('success', $mes['status'], $mes['message'] ?? '');
+        $this->assertSame(
+            ['2026-09-30', '2026-09-01'],
+            array_column($mes['data']['entries'], 'entry_date')
+        );
+        // `total` y `hasMore` describen el RANGO, no el diario entero.
+        $this->assertSame(2, $mes['data']['total']);
+        $this->assertFalse($mes['data']['hasMore']);
+
+        // Y sin rango sigue saliendo el diario completo, como antes del plan.
+        $this->assertSame(4, $this->router()->dispatch('get_journal', [])['data']['total']);
+    }
+
+    #[Test]
+    public function a_range_that_makes_no_sense_is_ignored_instead_of_failing(): void
+    {
+        $this->router()->dispatch('add_journal_entry', [
+            'media' => 'movie', 'entityId' => 'tt0133093', 'entryDate' => '2026-09-04',
+        ]);
+
+        foreach ([['from' => 'ayer'], ['from' => '2026-09-30', 'to' => '2026-09-01']] as $datos) {
+            $respuesta = $this->router()->dispatch('get_journal', $datos);
+
+            $this->assertSame('success', $respuesta['status'], $respuesta['message'] ?? '');
+            $this->assertSame(1, $respuesta['data']['total'], 'Un rango inválido se ignora, no vacía el listado');
+        }
+    }
+
     #[Test]
     public function the_entries_of_another_user_are_out_of_reach(): void
     {

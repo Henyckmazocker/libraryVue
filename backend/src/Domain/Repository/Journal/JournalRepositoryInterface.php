@@ -15,16 +15,62 @@ interface JournalRepositoryInterface
      * entrada anterior del mismo ítem. Se calcula en SQL, no pidiendo el historial
      * de cada fila.
      *
+     * `from`/`to` acotan por `entry_date` (columna `DATE`, comparada por la
+     * cadena `YYYY-MM-DD`) y son los dos opcionales e independientes: es lo que
+     * usa la vista de mes del calendario para pedir un mes concreto sin
+     * paginar hacia atrás desde hoy.
+     *
      * @param string|null $media uno de los seis medios, o null para todos
+     * @param string|null $from  fecha `YYYY-MM-DD` inclusive, o null
+     * @param string|null $to    fecha `YYYY-MM-DD` inclusive, o null
      * @return JournalEntry[]
      */
-    public function findByUser(int $userId, int $limit, int $offset, ?string $media = null): array;
+    public function findByUser(
+        int $userId,
+        int $limit,
+        int $offset,
+        ?string $media = null,
+        ?string $from = null,
+        ?string $to = null
+    ): array;
 
     /**
      * Total de entradas del usuario con el mismo filtro que `findByUser`, para
-     * que el cliente sepa si hay más páginas.
+     * que el cliente sepa si hay más páginas. El rango cuenta: sin él, pedir un
+     * mes devolvería el total del diario entero y `hasMore` mentiría.
      */
-    public function countByUser(int $userId, ?string $media = null): int;
+    public function countByUser(
+        int $userId,
+        ?string $media = null,
+        ?string $from = null,
+        ?string $to = null
+    ): int;
+
+    /**
+     * El agregado por día del calendario: una fila **por día con entradas**,
+     * dentro del rango dado. Los días vacíos no salen — un año sin nada son
+     * cero filas, no 365 ceros.
+     *
+     * El `media` es el mismo filtro del listado: las píldoras de `/journal`
+     * mandan también sobre el calendario. `null` es «todos».
+     *
+     * @param string $from fecha `YYYY-MM-DD` inclusive
+     * @param string $to   fecha `YYYY-MM-DD` inclusive
+     * @return array<string, array{count: int, media: string[]}> indexado por `YYYY-MM-DD`
+     */
+    public function countByDay(int $userId, string $from, string $to, ?string $media = null): array;
+
+    /**
+     * Los años con al menos una entrada, de más reciente a más antiguo, para el
+     * navegador de años del calendario.
+     *
+     * **Sin filtro por medio, a propósito**, al revés que `countByDay`: filtrar
+     * aquí haría desaparecer años enteros del selector y dejaría al usuario sin
+     * forma de volver a ellos.
+     *
+     * @return int[]
+     */
+    public function yearsWithEntries(int $userId): array;
 
     /**
      * Inserta la entrada, o **actualiza** la que ya exista con el mismo

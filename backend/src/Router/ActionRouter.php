@@ -95,6 +95,7 @@ use App\Domain\DTO\Commands\SendFriendRequestCommand;
 use App\Domain\DTO\Commands\SendRecommendationCommand;
 use App\Domain\DTO\Commands\UpdatePrivacySettingsCommand;
 use App\Domain\DTO\Queries\GetFeedQuery;
+use App\Domain\DTO\Queries\GetJournalCalendarQuery;
 use App\Domain\DTO\Queries\GetJournalQuery;
 use App\Domain\DTO\Queries\GetUserJournalQuery;
 use App\Domain\DTO\Commands\AddJournalEntryCommand;
@@ -680,6 +681,9 @@ class ActionRouter
             // JOURNAL - El diario
             'get_journal' => $controller->getJournal(
                 GetJournalQuery::fromArray($data, $userId)
+            ),
+            'get_journal_calendar' => $controller->getJournalCalendar(
+                GetJournalCalendarQuery::fromArray($data, $userId)
             ),
             'get_user_journal' => $controller->getUserJournal(
                 GetUserJournalQuery::fromArray($data, $userId)

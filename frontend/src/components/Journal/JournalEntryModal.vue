@@ -358,7 +358,7 @@ const guardar = async () => {
   }
 
   &__hint {
-    color: var(--color-text-light);
+    color: var(--color-text-muted);
     font-size: var(--font-size-sm);
   }
 
@@ -417,7 +417,7 @@ const guardar = async () => {
 
   &__no-results {
     padding: spacing(xs) spacing(sm);
-    color: var(--color-text-light);
+    color: var(--color-text-muted);
   }
 
   &__error {

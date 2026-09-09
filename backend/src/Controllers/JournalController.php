@@ -7,10 +7,12 @@ namespace App\Controllers;
 use App\Domain\DTO\Commands\AddJournalEntryCommand;
 use App\Domain\DTO\Commands\DeleteJournalEntryCommand;
 use App\Domain\DTO\Commands\UpdateJournalEntryCommand;
+use App\Domain\DTO\Queries\GetJournalCalendarQuery;
 use App\Domain\DTO\Queries\GetJournalQuery;
 use App\Domain\DTO\Queries\GetUserJournalQuery;
 use App\Domain\UseCases\Journal\AddJournalEntryUseCase;
 use App\Domain\UseCases\Journal\DeleteJournalEntryUseCase;
+use App\Domain\UseCases\Journal\GetJournalCalendarUseCase;
 use App\Domain\UseCases\Journal\GetJournalUseCase;
 use App\Domain\UseCases\Journal\GetUserJournalUseCase;
 use App\Domain\UseCases\Journal\UpdateJournalEntryUseCase;
@@ -20,6 +22,7 @@ class JournalController extends BaseController
 {
     public function __construct(
         private readonly GetJournalUseCase         $getJournalUseCase,
+        private readonly GetJournalCalendarUseCase $getJournalCalendarUseCase,
         private readonly GetUserJournalUseCase     $getUserJournalUseCase,
         private readonly AddJournalEntryUseCase    $addJournalEntryUseCase,
         private readonly UpdateJournalEntryUseCase $updateJournalEntryUseCase,
@@ -30,6 +33,16 @@ class JournalController extends BaseController
     {
         $result = $this->getJournalUseCase->execute($query);
         return $this->successResponse('Journal retrieved', $result);
+    }
+
+    /**
+     * El agregado por día de un año, para el calendario. Solo cuenta: las
+     * entradas de un mes se piden con `get_journal` y su rango.
+     */
+    public function getJournalCalendar(GetJournalCalendarQuery $query): array
+    {
+        $result = $this->getJournalCalendarUseCase->execute($query);
+        return $this->successResponse('Journal calendar retrieved', $result);
     }
 
     /**

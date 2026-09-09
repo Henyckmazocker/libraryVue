@@ -51,8 +51,14 @@ final class MySqlJournalRepository implements JournalRepositoryInterface
         private readonly LoggerInterface $logger
     ) {}
 
-    public function findByUser(int $userId, int $limit, int $offset, ?string $media = null): array
-    {
+    public function findByUser(
+        int $userId,
+        int $limit,
+        int $offset,
+        ?string $media = null,
+        ?string $from = null,
+        ?string $to = null
+    ): array {
         try {
             $sql = 'SELECT je.*, ' . self::IS_REPEAT_SUBQUERY . '
                     FROM ' . self::TABLE . ' je
@@ -61,6 +67,14 @@ final class MySqlJournalRepository implements JournalRepositoryInterface
             if ($media !== null) {
                 $sql .= ' AND je.media = :media';
             }
+            // `entry_date` es DATE, no un instante: el rango se compara contra
+            // la cadena `YYYY-MM-DD` y los dos extremos son inclusivos.
+            if ($from !== null) {
+                $sql .= ' AND je.entry_date >= :from';
+            }
+            if ($to !== null) {
+                $sql .= ' AND je.entry_date <= :to';
+            }
 
             $sql .= ' ORDER BY je.entry_date DESC, je.id DESC LIMIT :limit OFFSET :offset';
 
@@ -68,6 +82,12 @@ final class MySqlJournalRepository implements JournalRepositoryInterface
             $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
             if ($media !== null) {
                 $stmt->bindValue(':media', $media, PDO::PARAM_STR);
+            }
+            if ($from !== null) {
+                $stmt->bindValue(':from', $from, PDO::PARAM_STR);
+            }
+            if ($to !== null) {
+                $stmt->bindValue(':to', $to, PDO::PARAM_STR);
             }
             // `LIMIT :x` con `ATTR_EMULATE_PREPARES => false` (DatabaseConnector.php:117)
             // exige PARAM_INT: sin él el driver manda una cadena entrecomillada y
@@ -84,13 +104,19 @@ final class MySqlJournalRepository implements JournalRepositoryInterface
             $this->logError('DB Error listing journal entries', $e, [
                 'userId' => $userId,
                 'media'  => $media,
+                'from'   => $from,
+                'to'     => $to,
             ]);
             throw new RuntimeException('Could not list journal entries. DB Error: ' . $e->getMessage(), 0, $e);
         }
     }
 
-    public function countByUser(int $userId, ?string $media = null): int
-    {
+    public function countByUser(
+        int $userId,
+        ?string $media = null,
+        ?string $from = null,
+        ?string $to = null
+    ): int {
         try {
             $sql = 'SELECT COUNT(*) FROM ' . self::TABLE . ' WHERE user_id = :userId';
             $params = [':userId' => $userId];
@@ -98,6 +124,16 @@ final class MySqlJournalRepository implements JournalRepositoryInterface
             if ($media !== null) {
                 $sql .= ' AND media = :media';
                 $params[':media'] = $media;
+            }
+            // El mismo rango que `findByUser`, o el `hasMore` del listado
+            // compararía la página de un mes contra el total del diario entero.
+            if ($from !== null) {
+                $sql .= ' AND entry_date >= :from';
+                $params[':from'] = $from;
+            }
+            if ($to !== null) {
+                $sql .= ' AND entry_date <= :to';
+                $params[':to'] = $to;
             }
 
             $stmt = $this->db->prepare($sql);
@@ -108,8 +144,93 @@ final class MySqlJournalRepository implements JournalRepositoryInterface
             $this->logError('DB Error counting journal entries', $e, [
                 'userId' => $userId,
                 'media'  => $media,
+                'from'   => $from,
+                'to'     => $to,
             ]);
             throw new RuntimeException('Could not count journal entries. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    /**
+     * El agregado del calendario: una fila por día CON entradas.
+     *
+     * `GROUP BY entry_date` sobre `WHERE user_id = ? AND entry_date BETWEEN ?`
+     * cae entero dentro de `idx_journal_user_date (user_id, entry_date)`, así
+     * que el año no se trae ni una entrada: se cuenta en el motor. `media` sale
+     * como `GROUP_CONCAT(DISTINCT …)`, que es una cadena separada por comas —
+     * los seis medios juntos ocupan 30 caracteres, muy por debajo del
+     * `group_concat_max_len` por defecto (1024), así que no se trunca.
+     *
+     * Con `media` puesto el agregado cuenta solo ese medio —el filtro del
+     * listado manda también sobre el calendario—, y el `GROUP_CONCAT` sale
+     * entonces con un único valor, que es correcto: el acento de la celda es el
+     * de lo que se está enseñando.
+     */
+    public function countByDay(int $userId, string $from, string $to, ?string $media = null): array
+    {
+        try {
+            $sql = 'SELECT entry_date,
+                           COUNT(*) AS total,
+                           GROUP_CONCAT(DISTINCT media ORDER BY media) AS medios
+                    FROM ' . self::TABLE . '
+                    WHERE user_id = :userId
+                      AND entry_date >= :from
+                      AND entry_date <= :to';
+            $params = [':userId' => $userId, ':from' => $from, ':to' => $to];
+
+            if ($media !== null) {
+                $sql .= ' AND media = :media';
+                $params[':media'] = $media;
+            }
+
+            $sql .= ' GROUP BY entry_date ORDER BY entry_date';
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+
+            $dias = [];
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $fila) {
+                $dias[(string) $fila['entry_date']] = [
+                    'count' => (int) $fila['total'],
+                    'media' => $fila['medios'] === null ? [] : explode(',', (string) $fila['medios']),
+                ];
+            }
+
+            return $dias;
+        } catch (PDOException $e) {
+            $this->logError('DB Error aggregating journal entries by day', $e, [
+                'userId' => $userId,
+                'from'   => $from,
+                'to'     => $to,
+                'media'  => $media,
+            ]);
+            throw new RuntimeException('Could not aggregate journal entries. DB Error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    /**
+     * Los años con entradas, de más reciente a más antiguo. Aquí sí se usa
+     * `YEAR(entry_date)`: no hay rango que acotar, y el índice sirve igual para
+     * quedarse en las filas del usuario.
+     */
+    public function yearsWithEntries(int $userId): array
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT DISTINCT YEAR(entry_date) AS anyo
+                 FROM ' . self::TABLE . '
+                 WHERE user_id = :userId
+                 ORDER BY anyo DESC'
+            );
+            $stmt->execute([':userId' => $userId]);
+
+            return array_map(
+                static fn ($anyo): int => (int) $anyo,
+                $stmt->fetchAll(PDO::FETCH_COLUMN)
+            );
+        } catch (PDOException $e) {
+            $this->logError('DB Error listing journal years', $e, ['userId' => $userId]);
+            throw new RuntimeException('Could not list journal years. DB Error: ' . $e->getMessage(), 0, $e);
         }
     }
 

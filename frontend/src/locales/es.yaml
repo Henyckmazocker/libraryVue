@@ -1521,6 +1521,31 @@ journal:
   yesterday: Ayer
   userTitle: El diario de {name}
 
+  # Bloque del calendario. El M2 abrió la mitad de arriba —el heatmap ya necesitaba
+  # rótulos visibles y el `.u-sr-only` de cada celda, y `tests/unit/i18n.spec.js`
+  # prohíbe cadenas de interfaz en el `<script>`—; el M4 le añadió las del
+  # conmutador, de `viewLabel` para abajo.
+  calendar:
+    prevYear: Ver el año anterior
+    nextYear: Ver el año siguiente
+    prevMonth: Ver el mes anterior
+    nextMonth: Ver el mes siguiente
+    less: menos
+    more: más
+    emptyYear: Este año no tiene ninguna entrada
+    emptyMonth: Este mes no tiene ninguna entrada
+    dayEmpty: "{date}: nada"
+    dayEntries:
+      one: "{date}: 1 entrada"
+      other: "{date}: {n} entradas"
+    openMonth: Ver {month}
+    viewLabel: Cómo ver el diario
+    viewList: Listado
+    viewMonth: Mes
+    viewYear: Año
+    fromDay: Desde el {date}
+    wholeDiary: Ver el diario entero
+
 journalError:
   load: No se pudo cargar el diario
   save: No se pudo guardar la entrada

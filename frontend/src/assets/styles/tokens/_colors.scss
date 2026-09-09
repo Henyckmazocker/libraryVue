@@ -149,4 +149,26 @@
   --color-card-video-bg-hover:    #EDDAD6;
   --color-card-video-border:      #D09E93;
   --color-card-video-accent:      #96280E;
+
+  // ─── Intensidad del calendario del diario (escala secuencial) ────────
+  // Cuatro escalones de UNA sola tinta —el teal de marca, H 188° en OKLCH— para el
+  // heatmap del año (`components/Journal/JournalCalendarYear.vue`). El escalón 0 no
+  // vive aquí: es --color-background-soft, la celda de un día sin nada.
+  //
+  // No es una paleta categórica y no se valida como tal: es una escala ORDINAL, así
+  // que pasa las cuatro comprobaciones de `validate_palette.js --ordinal` (L monótona,
+  // ΔL ≥ 0.06 entre escalones, extremo pálido ≥ 2:1 sobre la superficie, un solo tono).
+  // Se mide contra --color-background-soft, que es el escalón 0: lo que tiene que
+  // destacar el escalón 1 no es el fondo de página, es la celda vacía de al lado.
+  //
+  //   node <dataviz>/scripts/validate_palette.js \
+  //     "#4fbcb3,#219890,#00746d,#00504b" --ordinal --mode light --surface "#FFFCF7"
+  //   → 4/4 PASS · ΔL 0.113/0.113/0.114 · extremo pálido 2.24:1
+  //
+  // Los verdes de GitHub no valen: esta paleta es hueso + teal.
+
+  --color-journal-heat-1: #4fbcb3;   // 2.24 sobre el escalón 0 (#FFFCF7) · 2.06 sobre el fondo
+  --color-journal-heat-2: #219890;   // 3.44 · 3.17
+  --color-journal-heat-3: #00746d;   // 5.52 · 5.07
+  --color-journal-heat-4: #00504b;   // 9.12 · 8.39
 }

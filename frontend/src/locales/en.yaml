@@ -1484,6 +1484,30 @@ journal:
   yesterday: Yesterday
   userTitle: '{name}''s diary'
 
+  # Calendar block. M2 opened the top half — the heatmap already needed visible labels
+  # and the `.u-sr-only` of every cell, and `tests/unit/i18n.spec.js` forbids interface
+  # strings in the `<script>`; M4 added the view switcher's keys, from `viewLabel` down.
+  calendar:
+    prevYear: Show the previous year
+    nextYear: Show the next year
+    prevMonth: Show the previous month
+    nextMonth: Show the next month
+    less: less
+    more: more
+    emptyYear: Nothing logged this year
+    emptyMonth: Nothing logged this month
+    dayEmpty: "{date}: nothing"
+    dayEntries:
+      one: "{date}: 1 entry"
+      other: "{date}: {n} entries"
+    openMonth: Show {month}
+    viewLabel: How to show the diary
+    viewList: List
+    viewMonth: Month
+    viewYear: Year
+    fromDay: From {date}
+    wholeDiary: Show the whole diary
+
 journalError:
   load: Could not load the diary
   save: Could not save the entry

@@ -1592,6 +1592,15 @@ return [
         'validation' => []
     ],
 
+    // El agregado por día del calendario. Sin CSRF, como `get_journal`: solo
+    // lee. `year` NO va en `required`: sin año se devuelve el actual, que es lo
+    // que quiere ver quien abre el calendario por primera vez.
+    'get_journal_calendar' => [
+        'controller' => ['JournalController', 'getJournalCalendar'],
+        'middleware' => [LoggingMiddleware::class, AuthenticationMiddleware::class],
+        'validation' => []
+    ],
+
     // El de otro, para `/user/:username`. Solo lee, así que no lleva CSRF; lleva
     // `Auth` como `get_user_lists`: un diario visible lo es para amigos
     // REGISTRADOS. Quién puede verlo lo decide el caso de uso, no esta tabla.

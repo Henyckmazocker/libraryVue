@@ -28,8 +28,18 @@ class GetJournalUseCase extends AbstractUseCase
             throw new InvalidArgumentException('Query must be an instance of GetJournalQuery');
         }
 
-        $entradas = $this->journal->findByUser($query->userId, $query->limit, $query->offset, $query->media);
-        $total    = $this->journal->countByUser($query->userId, $query->media);
+        // El rango va a las DOS consultas: con `from`/`to` puestos, `total` y
+        // `hasMore` describen el rango pedido —el mes del calendario—, no el
+        // diario entero.
+        $entradas = $this->journal->findByUser(
+            $query->userId,
+            $query->limit,
+            $query->offset,
+            $query->media,
+            $query->from,
+            $query->to
+        );
+        $total = $this->journal->countByUser($query->userId, $query->media, $query->from, $query->to);
 
         return [
             'entries' => array_map(static fn (JournalEntry $e): array => $e->toArray(), $entradas),

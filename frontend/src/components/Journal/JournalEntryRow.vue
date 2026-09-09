@@ -246,7 +246,7 @@ const abrirMenu = (evento) => {
     aspect-ratio: 2 / 3;
     border-radius: radius(sm);
     background: var(--color-background-mute);
-    color: var(--color-text-light);
+    color: var(--color-text-muted);
   }
 
   &__main {
@@ -274,13 +274,13 @@ const abrirMenu = (evento) => {
     display: flex;
     align-items: center;
     gap: spacing(3xs);
-    color: var(--color-text-light);
+    color: var(--color-text-muted);
     font-size: var(--font-size-sm);
   }
 
   &__repeat {
     flex: 0 0 auto;
-    color: var(--color-text-light);
+    color: var(--color-text-muted);
   }
 
   &__rating {
@@ -293,7 +293,7 @@ const abrirMenu = (evento) => {
     flex: 0 0 auto;
     padding: spacing(2xs);
     border-radius: radius(sm);
-    color: var(--color-text-light);
+    color: var(--color-text-muted);
 
     &:hover {
       color: var(--color-text);

@@ -91,6 +91,46 @@ env_get() {
   grep -E "^${key}=" "$file" 2>/dev/null | head -1 | cut -d'=' -f2- || true
 }
 
+# ---------------------------------------------------------------------------
+# SHA del commit del checkout
+# ---------------------------------------------------------------------------
+# Es el dato que sella la imagen del backend (LABEL
+# org.opencontainers.image.revision) y el que la guarda de --migrate compara
+# con el de la imagen desplegada.
+#
+# Si esto no es un repo git, `rev-parse` falla y sale `unknown`. Un checkout
+# sucio NO cambia nada: HEAD sigue siendo el commit, y el estado del árbol de
+# trabajo no se hornea en ninguna parte.
+git_head_sha() {
+  git -C "$ROOT_DIR" rev-parse HEAD 2>/dev/null || echo "unknown"
+}
+
+# ---------------------------------------------------------------------------
+# Sello de versión de una imagen ya construida
+# ---------------------------------------------------------------------------
+# Lee el LABEL org.opencontainers.image.revision que el Dockerfile del backend
+# hornea con el GIT_SHA del build. Lo comparten los dos sitios que preguntan
+# "¿qué código lleva esta imagen?": la guarda de --migrate
+# (check_image_revision) y la decisión de construir del deploy (build_needed).
+#
+# Dos detalles que deciden si sirve o no:
+#   - `docker inspect` de una imagen inexistente sale != 0 y con `set -e`
+#     mataría el script sin explicar nada: se captura con `|| true`.
+#   - Un label ausente sale como cadena vacía o como `<no value>` según la
+#     versión de Docker; las dos se normalizan a `unknown`, que NUNCA casa con
+#     nada, ni con otro `unknown`: dos incógnitas no son una coincidencia.
+image_revision() {
+  local image="$1"
+  local label="org.opencontainers.image.revision"
+  local sha
+
+  sha="$(docker inspect -f "{{ index .Config.Labels \"${label}\" }}" \
+    "$image" 2>/dev/null || true)"
+  [[ -z "$sha" || "$sha" == "<no value>" ]] && sha="unknown"
+
+  printf '%s' "$sha"
+}
+
 ask() {
   local prompt="$1"
   local current="$2"
@@ -355,18 +395,81 @@ warn_pending_migrations() {
   fi
 }
 
+# ---------------------------------------------------------------------------
+# ¿Hay que construir las imágenes?
+# ---------------------------------------------------------------------------
+# En producción el código va HORNEADO en la imagen: docker-compose.prod.yml
+# monta solo volúmenes persistentes, no el árbol de fuentes. Un `up -d` sin
+# build no despliega código nuevo de ninguna manera, así que decidir por la
+# mera existencia de las imágenes —lo que se hacía hasta hoy— dejaba pasar
+# despliegues que no desplegaban nada y encima decían que todo estaba bien.
+#
+# Se decide comparando el sello de la imagen del backend con el HEAD del
+# checkout, el mismo dato que la guarda de --migrate. Construye en los cuatro
+# casos que importan —imagen ausente, imagen sin label, label `unknown`, label
+# distinto del HEAD— y salta solo cuando coinciden, diciendo qué SHA da por
+# bueno.
+#
+# El frontend NO lleva sello: el M3 etiqueta solo el backend, que es el que
+# habla con el esquema. Pero su ausencia sigue siendo motivo para construir
+# —sin imagen no hay `up -d` que valga—, y si está presente basta con el sello
+# del backend: las dos se construyen en la misma pasada de `compose_cmd build`,
+# así que un backend al día implica un frontend de esa misma pasada.
+#
+# Los nombres de imagen van en variables locales para poder ejercer la función
+# contra imágenes de usar y tirar sin rozar los tags vivos de producción. No
+# son parámetros del script: aquí se quedan con los valores de producción.
+#
+# Devuelve 0 = hay que construir, 1 = no hay nada que construir.
+build_needed() {
+  local backend_image="libraryvue_prod-backend:latest"
+  local frontend_image="libraryvue_prod-frontend:latest"
+
+  local head_sha image_sha
+  head_sha="$(git_head_sha)"
+  image_sha="$(image_revision "$backend_image")"
+
+  if ! docker image inspect "$frontend_image" &>/dev/null; then
+    info "Falta la imagen ${frontend_image} — construyendo."
+    return 0
+  fi
+
+  if [[ "$image_sha" == "unknown" ]]; then
+    info "La imagen ${backend_image} no existe o se construyó sin sello de versión — construyendo."
+    return 0
+  fi
+
+  if [[ "$head_sha" == "unknown" ]]; then
+    info "Este directorio no es un repositorio git: sin HEAD con el que comparar — construyendo."
+    return 0
+  fi
+
+  if [[ "$image_sha" != "$head_sha" ]]; then
+    info "La imagen ${backend_image} lleva ${image_sha} y el checkout está en ${head_sha} — construyendo."
+    return 0
+  fi
+
+  info "Imágenes Docker al día en ${head_sha} — saltando build. Usa --rebuild para reconstruir."
+  return 1
+}
+
 deploy_services() {
   local no_cache="${1:-no}"
   cd "$ROOT_DIR"
+
+  # El SHA viaja al build como build-arg (`backend.build.args` en
+  # docker-compose.prod.yml) y acaba de LABEL en la imagen del backend. Se
+  # exporta ANTES de las dos ramas de abajo porque las dos construyen, y una
+  # imagen sin sellar es una imagen que --migrate rechazará después.
+  export GIT_SHA
+  GIT_SHA="$(git_head_sha)"
+  info "Sello de versión de la imagen del backend: GIT_SHA=${GIT_SHA}"
 
   if [[ "$no_cache" == "yes" ]]; then
     info "Rebuilding imágenes sin caché..."
     compose_cmd build --no-cache
   else
-    if docker image inspect libraryvue_prod-backend:latest &>/dev/null \
-       && docker image inspect libraryvue_prod-frontend:latest &>/dev/null; then
-      info "Imágenes Docker ya existen — saltando build. Usa --no-cache para reconstruir."
-    else
+    if build_needed; then
       info "Construyendo imágenes Docker..."
       compose_cmd build
     fi
@@ -632,8 +735,148 @@ cmd_rebuild() {
   deploy_services "yes"
 }
 
+# ---------------------------------------------------------------------------
+# Copia de seguridad antes de migrar
+# ---------------------------------------------------------------------------
+# El DDL de MySQL no es transaccional: una migración a medias no se deshace
+# sola y el proyecto descarta el rollback por diseño (migrations/README.md).
+# La red es este dump, así que si no sale bien --migrate ABORTA: mejor no
+# migrar que migrar sin copia.
+#
+# Solo cuelga de --migrate. Desplegar no toca datos.
+#
+# La trampa está en la tubería: `mysqldump | gzip > f` devuelve el código de
+# gzip, que sale 0 aunque mysqldump haya escupido un error y cero bytes, y el
+# .gz de 20 bytes pasaría por copia buena. Hoy `set -euo pipefail` (:14) lo
+# taparía, pero basta que alguien quite el pipefail para que la red desaparezca
+# en silencio: se mira ${PIPESTATUS[0]} explícito y además el tamaño. El array
+# se copia ENTERO y de una vez porque cualquier comando posterior —una
+# asignación incluida— lo reescribe.
+# ---------------------------------------------------------------------------
+backup_prod_db() {
+  local service="mysql"
+  local db_user="library_user"
+  # Igual que en cmd_migrate(): el nombre de la BD no está en .env.prod, está
+  # hardcodeado en docker-compose.prod.yml, así que aquí va literal.
+  local db_name="library_db_prod"
+  local backup_dir="$ROOT_DIR/docker/database/backups"
+  local keep=5
+  local min_bytes=1024
+
+  local db_pass
+  db_pass="$(env_get "$ENV_FILE" MYSQL_PASSWORD)"
+
+  mkdir -p "$backup_dir"
+  local dump="$backup_dir/${db_name}_$(date +%Y%m%d_%H%M%S).sql.gz"
+
+  info "Copia de seguridad de ${db_name} → ${dump#"$ROOT_DIR"/}"
+
+  # --single-transaction: todo es InnoDB, así que el dump sale consistente sin
+  #   bloquear la app mientras dura.
+  # --no-tablespaces: library_user tiene GRANT ALL ON library_db_prod.* pero NO
+  #   PROCESS, que es un privilegio GLOBAL y es lo que mysqldump pide para los
+  #   tablespaces. Sin la bandera falla con el error 1227.
+  # La extensión .sql.gz tampoco es cosmética: .gitignore cubre *.sql.gz, pero
+  # *.sql a secas no, y ahí dentro hay datos reales.
+  local -a st=()
+  set +e
+  compose_cmd exec -T "$service" mysqldump \
+    -u"$db_user" -p"$db_pass" \
+    --single-transaction --no-tablespaces --routines --events \
+    "$db_name" | gzip > "$dump"
+  st=("${PIPESTATUS[@]}")
+  set -e
+
+  if [[ "${st[0]}" -ne 0 ]]; then
+    rm -f "$dump"
+    error "mysqldump falló (código ${st[0]}); el error de MySQL está arriba."
+    error "No se migra sin copia de seguridad."
+    exit 1
+  fi
+
+  if [[ "${st[1]}" -ne 0 ]]; then
+    rm -f "$dump"
+    error "gzip falló (código ${st[1]}). No se migra sin copia de seguridad."
+    exit 1
+  fi
+
+  # Umbral de cordura: un dump vacío o cortado a media escritura comprime a
+  # ~20 bytes. Cualquier base real pasa de 1 KB de sobra.
+  local size
+  size=$(stat -c%s "$dump")
+  if [[ "$size" -lt "$min_bytes" ]]; then
+    rm -f "$dump"
+    error "La copia salió de ${size} bytes (< ${min_bytes}): no es un dump válido."
+    error "No se migra sin copia de seguridad."
+    exit 1
+  fi
+
+  success "Copia de seguridad hecha — ${dump#"$ROOT_DIR"/} ($(du -h "$dump" | cut -f1))."
+
+  # Rotación: se conservan las $keep más recientes y se borra el resto.
+  ls -1t "$backup_dir"/*.sql.gz | tail -n "+$((keep + 1))" | xargs -r rm --
+}
+
+# ---------------------------------------------------------------------------
+# Guarda de versión: el código desplegado tiene que ser el de este checkout
+# ---------------------------------------------------------------------------
+# Migrar antes de desplegar rompe producción: el esquema avanza y el backend
+# que está corriendo sigue pidiendo lo que la migración acaba de borrar
+# (20260910_120000_drop_consumption_dates.sql contra los 16 ficheros que nombran
+# las columnas de consumo). Nada impedía ese orden hasta hoy.
+#
+# La imagen del backend lleva horneado el SHA con el que se construyó
+# (Dockerfile.backend.prod, al final; lo rellena deploy_services). Aquí se
+# compara con el HEAD del checkout, y si no casan se aborta.
+#
+# NO hay bandera para saltársela: la guarda existe justamente para el día en que
+# uno tenga prisa.
+#
+# Tres detalles que deciden si funciona:
+#   - Va ANTES de backup_prod_db: un --migrate prematuro no debe dejar ni dump.
+#   - La lectura del label la hace image_revision(), compartida con
+#     build_needed(): imagen inexistente y label ausente salen los dos como
+#     `unknown` sin matar el script.
+#   - `unknown` NUNCA casa, ni con otro `unknown`: dos incógnitas no son una
+#     coincidencia.
+#
+# El nombre de la imagen va en una variable local para poder ejercer la función
+# contra una imagen de ensayo sin tocar el tag vivo de producción. No es un
+# parámetro del script: aquí se queda con el valor de producción.
+# ---------------------------------------------------------------------------
+check_image_revision() {
+  local image="libraryvue_prod-backend:latest"
+
+  local head_sha image_sha
+  head_sha="$(git_head_sha)"
+
+  image_sha="$(image_revision "$image")"
+
+  if [[ "$image_sha" != "unknown" && "$head_sha" != "unknown" \
+        && "$image_sha" == "$head_sha" ]]; then
+    success "Código desplegado al día — imagen y checkout en ${head_sha}."
+    return 0
+  fi
+
+  error "El código desplegado NO corresponde a este checkout."
+  error "  la imagen ${image} lleva el SHA: ${image_sha}"
+  error "  el HEAD de ${ROOT_DIR} es: ${head_sha}"
+  if [[ "$image_sha" == "unknown" ]]; then
+    error "  (la imagen no existe o se construyó sin sello de versión)"
+  fi
+  if [[ "$head_sha" == "unknown" ]]; then
+    error "  (este directorio no es un repositorio git)"
+  fi
+  error "Primero el código, después el esquema: despliega con"
+  error "  ./prod-deploy.sh --rebuild"
+  error "y vuelve a lanzar --migrate. No se ha tocado la base ni se ha hecho copia."
+  exit 1
+}
+
 cmd_migrate() {
   check_deps
+  check_image_revision
+  backup_prod_db
   info "Aplicando migraciones de base de datos pendientes..."
   # El nombre de la BD está hardcodeado en docker-compose.prod.yml, no en
   # .env.prod: sin este DB_NAME, run_migrations.sh cae a su default library_db,

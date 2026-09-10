@@ -21,7 +21,6 @@ final readonly class EditUserVideoCommand
         public ?Rating $userRating = null,
         public ?string $personalNotes = null,
         public ?int $watchCount = null,
-        public ?string $watchedAt = null,
         public ?array $statuses = null,
         public array $tags = []
     ) {}
@@ -54,7 +53,6 @@ final readonly class EditUserVideoCommand
             userRating:   $userRating,
             personalNotes: $videoData['personalNotes'] ?? $videoData['personal_notes'] ?? $videoData['notes'] ?? null,
             watchCount:   $watchCount,
-            watchedAt:    $videoData['watchedAt'] ?? $videoData['watched_at'] ?? null,
             statuses:     $videoData['statuses'] ?? $data['statuses'] ?? null,
             tags:         $data['tags'] ?? []
         );

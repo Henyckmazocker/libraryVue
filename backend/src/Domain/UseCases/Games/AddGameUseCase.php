@@ -70,7 +70,6 @@ class AddGameUseCase extends AbstractUseCase
             $command->statuses,
             $command->userRating?->toFloat(),
             $command->personalNotes, // Personal notes from frontend
-            null, // completedAt - not provided in AddGameCommand
             $command->hoursPlayed,
             $command->platformPlayed,
             $command->dateStarted,

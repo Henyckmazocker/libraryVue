@@ -22,6 +22,14 @@ services:
     build:
       context: .
       dockerfile: docker/backend/Dockerfile.backend.prod
+      args:
+        # El SHA del commit que se hornea en la imagen, como LABEL
+        # org.opencontainers.image.revision (Dockerfile.backend.prod, al final).
+        # Lo exporta deploy_services() en prod-deploy.sh; `unknown` si el
+        # checkout no es un repo git, y la guarda de --migrate lo trata como
+        # no-coincidencia. Se etiqueta el backend y no el frontend porque es el
+        # backend el que habla con el esquema.
+        GIT_SHA: ${GIT_SHA:-unknown}
     expose:
       - "80"
     volumes:

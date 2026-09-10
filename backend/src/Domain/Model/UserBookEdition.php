@@ -19,7 +19,6 @@ class UserBookEdition
     private int $userId;
     private int $editionId;
     private Timestamp $addedAt;
-    private ?Timestamp $consumedAt;
     private int $currentPage;
     private ?int $activeReadingSessionId;
     private ?Rating $editionRating; // Rating of this specific edition's quality
@@ -32,8 +31,6 @@ class UserBookEdition
     private ?string $location;
     private bool $isDigital;
     private int $totalSessionsCompleted;
-    private ?Timestamp $lastSessionCompletedAt;
-    private ?string $personalNotes;
     private ?array $ownershipFormat = null; // Formato de posesión (id, value, label)
 
     public function __construct(
@@ -51,7 +48,6 @@ class UserBookEdition
         $this->totalSessionsCompleted = 0;
         
         // Initialize all nullable properties
-        $this->consumedAt = null;
         $this->activeReadingSessionId = null;
         $this->editionRating = null;
         $this->workRating = null;
@@ -60,8 +56,6 @@ class UserBookEdition
         $this->condition = null;
         $this->conditionNotes = null;
         $this->location = null;
-        $this->lastSessionCompletedAt = null;
-        $this->personalNotes = null;
         $this->ownershipFormat = null;
     }
 
@@ -102,21 +96,6 @@ class UserBookEdition
             throw new \InvalidArgumentException('Current page must be non-negative.');
         }
         $this->currentPage = $page; 
-    }
-
-    public function getConsumedAt(): ?Timestamp 
-    { 
-        return $this->consumedAt; 
-    }
-    
-    public function markAsConsumed(): void
-    {
-        $this->consumedAt = Timestamp::now();
-    }
-
-    public function unmarkAsConsumed(): void
-    {
-        $this->consumedAt = null;
     }
 
     public function getActiveReadingSessionId(): ?int
@@ -207,17 +186,6 @@ class UserBookEdition
     public function incrementSessionsCompleted(): void
     {
         $this->totalSessionsCompleted++;
-        $this->lastSessionCompletedAt = Timestamp::now();
-    }
-
-    public function getPersonalNotes(): ?string 
-    { 
-        return $this->personalNotes; 
-    }
-
-    public function setPersonalNotes(?string $notes): void 
-    { 
-        $this->personalNotes = $notes; 
     }
 
     public function getOwnershipFormat(): ?array { return $this->ownershipFormat; }
@@ -233,7 +201,6 @@ class UserBookEdition
             'user_edition_id' => $this->id,
             'added_at' => $this->addedAt->toDateTime()->format('Y-m-d H:i:s'),
             'addedTimestamp' => $this->addedAt->toUnixTimestamp(),
-            'consumed_at' => $this->consumedAt?->toDateTime()->format('Y-m-d H:i:s'),
             'current_page' => $this->currentPage,
             'currentPage' => $this->currentPage, // Compatibility with camelCase
             'personal_rating' => $this->editionRating?->toFloat(), // Frontend uses "personal_rating"
@@ -249,8 +216,6 @@ class UserBookEdition
             'ownershipFormat'        => $this->ownershipFormat,
             'ownership_format_value' => $this->ownershipFormat['value'] ?? null,
             'ownership_format_label' => $this->ownershipFormat['label'] ?? null,
-            'personal_notes' => $this->personalNotes,
-            'personalNotes' => $this->personalNotes,
             'active_reading_session_id' => $this->activeReadingSessionId,
             'condition' => $this->condition,
             'location' => $this->location,
@@ -267,7 +232,6 @@ class UserBookEdition
             'user_id' => $this->userId,
             'edition_id' => $this->editionId,
             'added_at' => $this->addedAt->toDateTime()->format('Y-m-d H:i:s'),
-            'consumed_at' => $this->consumedAt?->toDateTime()->format('Y-m-d H:i:s'),
             'current_page' => $this->currentPage,
             'active_reading_session_id' => $this->activeReadingSessionId,
             'edition_rating' => $this->editionRating?->toFloat(),
@@ -284,8 +248,6 @@ class UserBookEdition
             'location' => $this->location,
             'is_digital' => $this->isDigital,
             'total_sessions_completed' => $this->totalSessionsCompleted,
-            'last_session_completed_at' => $this->lastSessionCompletedAt?->toDateTime()->format('Y-m-d H:i:s'),
-            'personal_notes' => $this->personalNotes,
         ];
     }
 
@@ -302,9 +264,6 @@ class UserBookEdition
 
         if (isset($data['current_page'])) {
             $userBookEdition->setCurrentPage($data['current_page']);
-        }
-        if (isset($data['consumed_at']) && $data['consumed_at']) {
-            $userBookEdition->markAsConsumed();
         }
         if (isset($data['active_reading_session_id'])) {
             $userBookEdition->setActiveReadingSessionId($data['active_reading_session_id']);
@@ -326,9 +285,6 @@ class UserBookEdition
         }
         if (isset($data['is_digital'])) {
             $userBookEdition->setIsDigital((bool) $data['is_digital']);
-        }
-        if (isset($data['personal_notes'])) {
-            $userBookEdition->setPersonalNotes($data['personal_notes']);
         }
         $ownershipFormat = $data['ownership_format'] ?? $data['ownershipFormat'] ?? null;
         if ($ownershipFormat !== null) {

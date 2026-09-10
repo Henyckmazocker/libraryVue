@@ -314,7 +314,6 @@ class GameCommandsTest extends TestCase
                 'personalNotes' => 'Great',
                 'hoursPlayed' => 25.5,
                 'platformPlayed' => 'PC',
-                'completedAt' => '2024-06-01',
                 'dateStarted' => '2024-01-01',
                 'dateFinished' => '2024-06-01',
                 'statuses' => ['completed'],
@@ -328,7 +327,6 @@ class GameCommandsTest extends TestCase
         $this->assertEquals('Great', $cmd->personalNotes);
         $this->assertSame(25.5, $cmd->hoursPlayed);
         $this->assertEquals('PC', $cmd->platformPlayed);
-        $this->assertEquals('2024-06-01', $cmd->completedAt);
         $this->assertEquals('2024-01-01', $cmd->dateStarted);
         $this->assertEquals('2024-06-01', $cmd->dateFinished);
         $this->assertEquals(['completed'], $cmd->statuses);
@@ -345,7 +343,6 @@ class GameCommandsTest extends TestCase
                 'personal_notes' => 'Notes',
                 'hours_played' => 10.0,
                 'platform_played' => 'PS5',
-                'completed_at' => '2024-05-01',
                 'date_started' => '2024-04-01',
                 'date_finished' => '2024-05-01',
             ],
@@ -383,7 +380,6 @@ class GameCommandsTest extends TestCase
         $this->assertEquals('Test', $arr['personal_notes']);
         $this->assertArrayNotHasKey('hours_played', $arr);
         $this->assertArrayNotHasKey('platform_played', $arr);
-        $this->assertArrayNotHasKey('completed_at', $arr);
     }
 
     // ═══════════════════════════════════════

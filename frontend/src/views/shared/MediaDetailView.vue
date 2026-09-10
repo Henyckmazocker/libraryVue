@@ -289,11 +289,19 @@
            levantaría. El ítem llega ya decidido, así que no pinta el buscador.
            Va con `media` y NO con `coverMedia`: aquel mapea series→película para
            el endpoint de portadas, pero el diario sí distingue las dos —una
-           entrada de serie es una temporada— y su ruta de detalle es otra. -->
+           entrada de serie es una temporada— y su ruta de detalle es otra.
+           Y el id va con `coverKey`, NO con `routeId` pelado: el diario guarda
+           la identidad con la que el resto de la app conoce el ítem, que es la
+           de `libraryItem.idOf` —la misma con la que se registra la portada—, y
+           en álbum esa es el PK de `albums` mientras que el parámetro de la ruta
+           es el MBID del mirror. En los otros cinco medios las dos coinciden, así
+           que esto no los cambia. El `?? routeId` cubre el ítem que aún no está
+           en la biblioteca, donde `existing` es `null` y no hay más id que el de
+           la ruta: ese lo normaliza el backend en `JournalItemResolver`. -->
       <JournalEntryModal
         v-if="showJournalDialog"
         v-model="showJournalDialog"
-        :item="{ media, entityId: routeId, title }"
+        :item="{ media, entityId: coverKey ?? routeId, title }"
       />
 
       <!-- Atribución del proveedor. La exigen las condiciones de uso de TMDB

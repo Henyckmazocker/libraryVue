@@ -32,7 +32,6 @@ class Video
     private ?array $allowedTags;
     private ?string $personalNotes;
     private ?int $watchCount;
-    private ?string $watchedAt;
 
     public function __construct(
         int $id,
@@ -55,8 +54,7 @@ class Video
         ?array $tags = null,
         ?array $allowedTags = null,
         ?string $personalNotes = null,
-        ?int $watchCount = null,
-        ?string $watchedAt = null
+        ?int $watchCount = null
     ) {
         if (empty($title)) {
             throw new InvalidArgumentException('Title cannot be empty.');
@@ -86,7 +84,6 @@ class Video
         $this->allowedTags     = $allowedTags;
         $this->personalNotes   = $personalNotes;
         $this->watchCount      = $watchCount ?? 0;
-        $this->watchedAt       = $watchedAt;
     }
 
     public static function fromArray(array $data): self
@@ -151,7 +148,6 @@ class Video
             personalNotes:   $data['personal_notes'] ?? $data['personalNotes'] ?? null,
             watchCount:      isset($data['watch_count']) ? (int)$data['watch_count']
                              : (isset($data['watchCount']) ? (int)$data['watchCount'] : null),
-            watchedAt:       $data['watched_at'] ?? $data['watchedAt'] ?? null,
         );
     }
 
@@ -178,7 +174,6 @@ class Video
     public function getAllowedTags(): ?array { return $this->allowedTags; }
     public function getPersonalNotes(): ?string { return $this->personalNotes; }
     public function getWatchCount(): ?int { return $this->watchCount; }
-    public function getWatchedAt(): ?string { return $this->watchedAt; }
 
     // --- Setters for post-construction population ---
 
@@ -263,8 +258,6 @@ class Video
             'notes'            => $this->personalNotes, // alias
             'watch_count'      => $this->watchCount,
             'watchCount'       => $this->watchCount,
-            'watched_at'       => $this->watchedAt,
-            'watchedAt'        => $this->watchedAt,
             'itemType'         => 'video',
         ];
     }

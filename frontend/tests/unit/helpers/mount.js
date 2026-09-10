@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils'
 import PrimeVue from 'primevue/config'
+import { createPinia, getActivePinia, setActivePinia } from 'pinia'
 
 /**
  * Monta un componente con el andamiaje mínimo que el proyecto da por hecho en
@@ -15,15 +16,38 @@ import PrimeVue from 'primevue/config'
  * que hay dentro de un modal y 17 tests que no habían cambiado se caen a la vez.
  * Es la vía que recomienda Vue Test Utils, y además mantiene los tests hablando
  * del componente y no de `document`.
+ *
+ * Y Pinia se instala SOLO SI NO HAY UNO ACTIVO. El condicional no es una
+ * cautela decorativa: 19 de los 50 specs hacen `setActivePinia(createPinia())`
+ * en su `beforeEach`, piden el store ANTES de montar y le pisan métodos
+ * —`RecommendDialog.spec.js:56-57` hace `const social = useSocialStore();
+ * social.fetchFriends = vi.fn()`—. Si el montaje activara otra instancia, el
+ * componente recibiría un store distinto del que el spec preparó: los mocks no
+ * se aplicarían y el fallo aparecería como una aserción rara, no como un error
+ * de Pinia. Con el condicional, esos 19 siguen mandando sobre su instancia y
+ * los otros 31 reciben una limpia por montaje —que es lo que evita el
+ * `"getActivePinia()" was called but there was no active Pinia` de los tres
+ * diálogos que llaman a un store en su `setup` (RecommendDialog.vue:137,
+ * AddToListDialog.vue:111, AddToClubDialog.vue:113)—.
+ *
+ * Van las DOS cosas, plugin y `setActivePinia`: el plugin cubre lo que el
+ * componente pide en su `setup`; `setActivePinia` cubre lo que el propio spec
+ * pida fuera del componente (un store consultado tras montar). Y es
+ * `createPinia()`, no `createTestingPinia()`: este último stubea las acciones
+ * por defecto y cambiaría el comportamiento de los 31 specs que hoy no esperan
+ * stubs.
  */
 export function mountComponent (component, options = {}) {
   const { global = {}, ...rest } = options
+  const pinia = getActivePinia() ? null : createPinia()
+
+  if (pinia) setActivePinia(pinia)
 
   return mount(component, {
     ...rest,
     global: {
       ...global,
-      plugins: [[PrimeVue, { unstyled: true }], ...(global.plugins ?? [])],
+      plugins: [...(pinia ? [pinia] : []), [PrimeVue, { unstyled: true }], ...(global.plugins ?? [])],
       provide: { notifications: createNotificationsStub(), ...(global.provide ?? {}) },
       stubs: { teleport: true, ...(global.stubs ?? {}) },
     },

@@ -47,7 +47,6 @@ class AlbumDataMapperTest extends TestCase
             'favorite_track' => 'No Surprises',
             'date_started' => '2024-01-01',
             'date_finished' => '2024-01-30',
-            'completed_at' => '2024-01-30',
             'user_statuses' => 'listened, favorite',
             'user_added_at' => '2024-01-01 10:00:00',
         ];
@@ -80,7 +79,6 @@ class AlbumDataMapperTest extends TestCase
         $this->assertEquals('No Surprises', $album->getFavoriteTrack());
         $this->assertEquals('2024-01-01', $album->getDateStarted());
         $this->assertEquals('2024-01-30', $album->getDateFinished());
-        $this->assertEquals('2024-01-30', $album->getCompletedAt());
     }
 
     #[Test]
@@ -163,7 +161,6 @@ class AlbumDataMapperTest extends TestCase
         $row['favorite_track'] = null;
         $row['date_started'] = null;
         $row['date_finished'] = null;
-        $row['completed_at'] = null;
 
         $album = $this->mapper->toDomain($row);
 
@@ -181,7 +178,6 @@ class AlbumDataMapperTest extends TestCase
         $this->assertNull($album->getFavoriteTrack());
         $this->assertNull($album->getDateStarted());
         $this->assertNull($album->getDateFinished());
-        $this->assertNull($album->getCompletedAt());
     }
 
     #[Test]

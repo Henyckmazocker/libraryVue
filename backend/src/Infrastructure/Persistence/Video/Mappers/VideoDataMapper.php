@@ -66,8 +66,7 @@ class VideoDataMapper
             tags:            null,
             allowedTags:     null,
             personalNotes:   $this->extractString($row, 'personal_notes', null),
-            watchCount:      $this->extractInt($row, 'watch_count', null),
-            watchedAt:       $this->extractString($row, 'watched_at', null)
+            watchCount:      $this->extractInt($row, 'watch_count', null)
         );
     }
 

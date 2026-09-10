@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Services;
 
 use App\Domain\Model\JournalEntry;
+use App\Domain\Repository\Album\AlbumRepositoryInterface;
 use App\Domain\Repository\Album\UserAlbumRepositoryInterface;
 use App\Domain\Repository\Book\EditionRepositoryInterface;
 use App\Domain\Repository\Book\UserBookEditionRepositoryInterface;
@@ -42,6 +43,7 @@ class JournalRatingWriter
         private readonly UserMovieRepositoryInterface       $userMovies,
         private readonly UserGameRepositoryInterface        $userGames,
         private readonly UserAlbumRepositoryInterface       $userAlbums,
+        private readonly AlbumRepositoryInterface           $albums,
         private readonly UserVideoRepositoryInterface       $userVideos,
         private readonly VideoRepositoryInterface           $videos,
         private readonly SeriesSeasonRepositoryInterface    $seasons,
@@ -50,6 +52,27 @@ class JournalRatingWriter
 
     /**
      * Propaga la valoración de una entrada al ítem correspondiente.
+     *
+     * **Por qué cada rama convierte como convierte (auditado el 2026-09-10).**
+     * `journal_entry.entity_id` es una columna de texto que guarda **seis
+     * identidades distintas**, y ninguna regla obliga a que sea la PK del ítem;
+     * el repositorio de usuario de cada medio, en cambio, quiere la suya. Ahí
+     * vivió meses el fallo del álbum —`(int)` sobre un MBID no avisa de nada—,
+     * así que la auditoría se escribe aquí para que la próxima rama nazca
+     * teniéndola delante:
+     *
+     * - **book** → `writeBook()`: el ISBN se cambia por el `edition_id` con
+     *   `editions->findByIsbn()`. Ningún casteo.
+     * - **movie** → `userMovies->updateRating(int, **string**, ?float)`: el
+     *   identificador viaja como cadena porque la PK de `movie` se llama `isbn`
+     *   y contiene el tconst de IMDb. No hay conversión que pueda salir mal.
+     * - **game** → `(int) $entityId`, y **es correcto**: ver su rama.
+     * - **album** → `writeAlbum()`, el único que resuelve: ver su docblock.
+     * - **video** → `writeVideo()`: el `youtube_id` se resuelve a PK con
+     *   `videos->findByYouTubeId()`, el mismo patrón que el álbum.
+     * - **series** → `writeSeason()`: no trata `entityId` como número; parte el
+     *   `source_id` (`"tconst:temporada"`) y solo propaga si la entrada nació
+     *   del seguimiento por temporadas.
      *
      * @param string|null $sourceId el `source_id` de la entrada; en series es lo
      *                              único que dice de QUÉ temporada se habla
@@ -72,8 +95,15 @@ class JournalRatingWriter
             match ($media) {
                 JournalEntry::MEDIA_BOOK   => $this->writeBook($userId, $entityId, $rating),
                 JournalEntry::MEDIA_MOVIE  => $this->userMovies->updateRating($userId, $entityId, $rating),
+                // El único `(int) $entityId` que queda, y es la identidad, no
+                // una conversión: `games` **no tiene** columna `igdb_id` —su PK
+                // `games.id` ES el id de IGDB (`DESCRIBE games`, 2026-09-10)—,
+                // así que lo que el diario guarda ya es lo que quiere
+                // `user_games`, y siempre es numérico. Se parece al fallo que
+                // tenía el álbum aquí abajo y no lo es: no lo conviertas en una
+                // resolución por parecido.
                 JournalEntry::MEDIA_GAME   => $this->userGames->updateRating($userId, (int) $entityId, $rating),
-                JournalEntry::MEDIA_ALBUM  => $this->userAlbums->updateRating($userId, (int) $entityId, $rating),
+                JournalEntry::MEDIA_ALBUM  => $this->writeAlbum($userId, $entityId, $rating),
                 JournalEntry::MEDIA_VIDEO  => $this->writeVideo($userId, $entityId, $rating),
                 JournalEntry::MEDIA_SERIES => $this->writeSeason($userId, $entityId, $rating, $source, $sourceId),
                 default => null,
@@ -123,6 +153,52 @@ class JournalRatingWriter
             $actual?->getWorkRating()?->toFloat(), // work_rating: se conserva
             $rating                                // edition_rating: lo que la ficha lee
         );
+    }
+
+    /**
+     * `user_albums` se indexa por el PK de `albums`, y el diario **puede** traer
+     * otra cosa: la ficha vive en `/albums/:albumId`, donde el parámetro es el
+     * MBID del mirror —o el base62 de los álbumes viejos de Spotify—, y ese es
+     * el id que llega cuando la entrada se apunta desde ahí.
+     *
+     * Hasta el 2026-09-10 esto era `(int) $entityId`, y en eso consistía el
+     * fallo: PHP convierte `"171db008-7f7b-…"` en **`171`** sin error ni aviso,
+     * así que la valoración acababa en el álbum 171 —uno cualquiera, de otro
+     * disco— en vez de no acabar en ninguno. Un fallo así no se ve: la entrada
+     * del diario se guarda, la petición devuelve 200 y quien lo nota es el dueño
+     * de un álbum que él no ha puntuado.
+     *
+     * `JournalItemResolver` ya normaliza a PK lo que entra por el alta manual,
+     * pero por aquí pasan dos vías más que no lo hacen: la edición de una
+     * entrada ya guardada (`UpdateJournalEntryUseCase.php:48-57`, que reenvía el
+     * `entity_id` tal como está en la BD) y los emisores automáticos, que llaman
+     * a `write()` sin pasar por el resolver. Por eso la guarda va también aquí.
+     *
+     * La resolución es la misma que la del resolver —`ctype_digit` elige la
+     * consulta, y `findBySpotifyId` casa MBID y base62 de una vez porque su
+     * `WHERE` mira además `mb_release_group_gid`, que es donde vive la identidad
+     * de los álbumes del mirror—. Aquí también se castea, pero dentro de la rama
+     * que ya ha comprobado que el id es numérico, y esa es toda la diferencia.
+     * La repetición es deliberada: llamar al resolver desde aquí arrastraría una
+     * consulta de título y portada que a este servicio no le hace falta, y
+     * unificar las dos copias es un plan aparte.
+     *
+     * Si el álbum no aparece, no se propaga nada, como en `writeBook()` y
+     * `writeVideo()`. Es la respuesta coherente con una clase que se traga sus
+     * errores: quedarse sin valorar se arregla en un clic; valorar el álbum de
+     * otro no se descubre nunca.
+     */
+    private function writeAlbum(int $userId, string $albumId, float $rating): void
+    {
+        $album = ctype_digit($albumId)
+            ? $this->albums->findById((int) $albumId)
+            : $this->albums->findBySpotifyId($albumId);
+
+        if ($album === null) {
+            return;
+        }
+
+        $this->userAlbums->updateRating($userId, $album->getId(), $rating);
     }
 
     /**

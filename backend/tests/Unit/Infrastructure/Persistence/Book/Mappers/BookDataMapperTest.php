@@ -38,8 +38,6 @@ class BookDataMapperTest extends TestCase
             'user_statuses' => 'reading,owned',
             'allowedStatuses' => ['reading', 'completed', 'to-read', 'owned'],
             'current_page' => 50,
-            'personal_notes' => 'Great read',
-            'consumed_at' => '2024-06-15',
         ];
     }
 

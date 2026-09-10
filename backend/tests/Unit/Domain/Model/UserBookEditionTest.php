@@ -25,12 +25,10 @@ class UserBookEditionTest extends TestCase
         $this->assertEquals('physical', $ube->getOwnershipType());
         $this->assertFalse($ube->isDigital());
         $this->assertSame(0, $ube->getTotalSessionsCompleted());
-        $this->assertNull($ube->getConsumedAt());
         $this->assertNull($ube->getEditionRating());
         $this->assertNull($ube->getWorkRating());
         $this->assertNull($ube->getCondition());
         $this->assertNull($ube->getLocation());
-        $this->assertNull($ube->getPersonalNotes());
         $this->assertNull($ube->getActiveReadingSessionId());
     }
 
@@ -67,21 +65,6 @@ class UserBookEditionTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('non-negative');
         $ube->setCurrentPage(-1);
-    }
-
-    // ── Consumed at ──
-
-    #[Test]
-    public function mark_as_consumed_and_unmark(): void
-    {
-        $ube = new UserBookEdition(1, 10);
-        $this->assertNull($ube->getConsumedAt());
-
-        $ube->markAsConsumed();
-        $this->assertNotNull($ube->getConsumedAt());
-
-        $ube->unmarkAsConsumed();
-        $this->assertNull($ube->getConsumedAt());
     }
 
     // ── Ratings ──
@@ -195,7 +178,6 @@ class UserBookEditionTest extends TestCase
         $ube->setCondition('like-new');
         $ube->setLocation('Shelf A');
         $ube->setIsDigital(true);
-        $ube->setPersonalNotes('Notes');
 
         $arr = $ube->toArray();
 
@@ -208,7 +190,6 @@ class UserBookEditionTest extends TestCase
         $this->assertEquals('like-new', $arr['condition']);
         $this->assertEquals('Shelf A', $arr['location']);
         $this->assertTrue($arr['is_digital']);
-        $this->assertEquals('Notes', $arr['personal_notes']);
     }
 
     // ── toLegacyFormat ──
@@ -219,7 +200,6 @@ class UserBookEditionTest extends TestCase
         $ube = new UserBookEdition(1, 10, 5);
         $ube->setCurrentPage(50);
         $ube->setEditionRating(Rating::fromFloat(4.5));
-        $ube->setPersonalNotes('My notes');
 
         $legacy = $ube->toLegacyFormat();
 
@@ -231,8 +211,6 @@ class UserBookEditionTest extends TestCase
         $this->assertSame(4.5, $legacy['user_rating']);
         $this->assertSame(4.5, $legacy['userRating']);
         $this->assertSame(4.5, $legacy['edition_rating']);
-        $this->assertEquals('My notes', $legacy['personal_notes']);
-        $this->assertEquals('My notes', $legacy['personalNotes']);
     }
 
     // ── fromArray ──
@@ -251,7 +229,6 @@ class UserBookEditionTest extends TestCase
             'condition' => 'good',
             'location' => 'Shelf B',
             'is_digital' => true,
-            'personal_notes' => 'Great read',
         ];
 
         $ube = UserBookEdition::fromArray($data);
@@ -266,7 +243,6 @@ class UserBookEditionTest extends TestCase
         $this->assertEquals('good', $ube->getCondition());
         $this->assertEquals('Shelf B', $ube->getLocation());
         $this->assertTrue($ube->isDigital());
-        $this->assertEquals('Great read', $ube->getPersonalNotes());
     }
 
     #[Test]

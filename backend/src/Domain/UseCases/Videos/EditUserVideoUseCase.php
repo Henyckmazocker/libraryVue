@@ -55,9 +55,6 @@ class EditUserVideoUseCase extends AbstractUseCase
         if ($command->watchCount !== null) {
             $data['watch_count'] = $command->watchCount;
         }
-        if ($command->watchedAt !== null) {
-            $data['watched_at'] = $command->watchedAt;
-        }
 
         if (!empty($data)) {
             $this->userVideoRepository->update($command->userId, $video->getId(), $data);

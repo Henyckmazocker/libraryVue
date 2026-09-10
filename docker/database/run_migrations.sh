@@ -5,6 +5,12 @@
 # Uso (desde la raíz del proyecto):
 #   ./docker/database/run_migrations.sh
 #   ./docker/database/run_migrations.sh --env-file .env.prod --compose-file docker-compose.prod.yml
+#   ./docker/database/run_migrations.sh --service mysql-test   # ensayo sobre la BD desechable
+#
+# Opciones:
+#   --env-file      — archivo .env del que salen las credenciales (default: .env de la raíz)
+#   --compose-file  — archivo compose (default: el que resuelva docker compose)
+#   --service       — servicio de compose donde vive MySQL (default: mysql)
 #
 # Variables de entorno opcionales (sobreescriben los valores del .env):
 #   DB_USER  — usuario de MySQL (default: library_user)
@@ -34,6 +40,11 @@ error()   { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 # ---------------------------------------------------------------------------
 ENV_FILE_ARG=""
 COMPOSE_FILE_ARG=""
+# Servicio de compose donde corre MySQL. Se parametriza para poder ensayar la
+# tanda entera contra `mysql-test` (perfil `test`, sobre tmpfs) sin tocar la
+# base de desarrollo. El default es el de siempre: nadie que no lo pase nota
+# ningún cambio.
+MYSQL_SERVICE="mysql"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -41,6 +52,8 @@ while [[ $# -gt 0 ]]; do
     --env-file)       shift; ENV_FILE_ARG="$1"                ;;
     --compose-file=*) COMPOSE_FILE_ARG="${1#--compose-file=}" ;;
     --compose-file)   shift; COMPOSE_FILE_ARG="$1"            ;;
+    --service=*)      MYSQL_SERVICE="${1#--service=}"         ;;
+    --service)        shift; MYSQL_SERVICE="$1"               ;;
   esac
   shift
 done
@@ -98,25 +111,61 @@ resolve_db_creds() {
 }
 
 # ---------------------------------------------------------------------------
+# Filtrar la salida de error de MySQL
+#
+# Se descarta UNA sola línea, el aviso «Using a password on the command line»
+# que MySQL escupe en cada invocación; todo lo demás pasa a stderr, que es
+# donde se diagnostica. Antes se tiraba stderr entero con `2>/dev/null` y una
+# migración fallida no decía por qué.
+#
+# Va por fichero temporal y no por tubería a propósito: con `set -o pipefail`
+# (:21) el código de salida de `mysql | grep` sería el del `grep` —que devuelve
+# 1 cuando no filtra ninguna línea—, y el de `mysql` es justo lo que decide si
+# una migración se da por aplicada. Y el filtro escribe a stderr, nunca a
+# stdout: `is_applied()` hace `tail -1` de la salida y cualquier línea de más
+# se convertiría en «el resultado».
+# ---------------------------------------------------------------------------
+mysql_stderr_filter() {
+  grep -v 'Using a password on the command line' "$1" >&2 || true
+}
+
+# ---------------------------------------------------------------------------
 # Ejecutar SQL inline en el contenedor MySQL
 # ---------------------------------------------------------------------------
 mysql_exec() {
-  compose_cmd exec -T mysql mysql \
+  local errfile status=0
+  errfile="$(mktemp)"
+
+  compose_cmd exec -T "$MYSQL_SERVICE" mysql \
     -u"$DB_USER" \
     -p"$DB_PASS" \
     "$DB_NAME" \
-    -e "$1" 2>/dev/null
+    -e "$1" 2>"$errfile" || status=$?
+
+  mysql_stderr_filter "$errfile"
+  rm -f "$errfile"
+  return "$status"
 }
 
 # ---------------------------------------------------------------------------
 # Ejecutar un archivo SQL local en el contenedor MySQL (vía stdin)
+#
+# El valor de retorno es el de `mysql`, y no es un detalle: es lo que decide si
+# la migración se registra como aplicada (ver run_migrations()).
 # ---------------------------------------------------------------------------
 mysql_file() {
-  compose_cmd exec -T mysql mysql \
+  local errfile status=0
+  errfile="$(mktemp)"
+
+  compose_cmd exec -T "$MYSQL_SERVICE" mysql \
     -u"$DB_USER" \
     -p"$DB_PASS" \
     "$DB_NAME" \
-    2>/dev/null < "$1"
+    2>"$errfile" < "$1" || status=$?
+
+  mysql_stderr_filter "$errfile"
+  rm -f "$errfile"
+  return "$status"
 }
 
 # ---------------------------------------------------------------------------
@@ -137,12 +186,25 @@ bootstrap_migrations_table() {
 
 # ---------------------------------------------------------------------------
 # Comprobar si una migración ya fue aplicada
+#
+# Devuelve 0 si la fila existe y deja su `checksum` en APPLIED_CHECKSUM, para
+# que run_migrations() pueda contrastarlo con el del fichero en disco.
+#
+# La consulta es de agregación a propósito: `COUNT(*)`/`MAX(...)` devuelven
+# SIEMPRE una fila, así que la salida son dos líneas (cabecera + valores) haya
+# o no registro, y el `tail -1` de siempre sigue siendo el resultado. Los dos
+# campos vienen separados por tabulador, que es como los emite `mysql -e`.
 # ---------------------------------------------------------------------------
+APPLIED_CHECKSUM=""
+
 is_applied() {
   local filename="$1"
-  local result
-  result=$(mysql_exec "SELECT COUNT(*) FROM schema_migrations WHERE filename='${filename}';" 2>/dev/null | tail -1)
-  [[ "$result" == "1" ]]
+  local row
+  APPLIED_CHECKSUM=""
+  row=$(mysql_exec "SELECT COUNT(*), COALESCE(MAX(checksum), '') FROM schema_migrations WHERE filename='${filename}';" | tail -1)
+  [[ "${row%%$'\t'*}" == "1" ]] || return 1
+  APPLIED_CHECKSUM="${row#*$'\t'}"
+  return 0
 }
 
 # ---------------------------------------------------------------------------
@@ -160,7 +222,7 @@ run_migrations() {
   resolve_db_creds
 
   info "Verificando conexión a MySQL..."
-  if ! compose_cmd exec -T mysql mysqladmin ping -h localhost --silent 2>/dev/null; then
+  if ! compose_cmd exec -T "$MYSQL_SERVICE" mysqladmin ping -h localhost --silent 2>/dev/null; then
     error "MySQL no está disponible. Asegúrate de que el contenedor está corriendo."
     exit 1
   fi
@@ -184,14 +246,25 @@ run_migrations() {
 
   local pending=0
   local already_applied=0
+  # Migraciones ya aplicadas cuyo fichero ha cambiado desde entonces. Se
+  # recogen todas antes de abortar, para que el listado salga completo.
+  local modified=()
 
   echo ""
   echo -e "${YELLOW}=== Estado de migraciones ===${NC}"
   for filepath in "${migration_files[@]}"; do
-    local filename
+    local filename disk_checksum
     filename=$(basename "$filepath")
     if is_applied "$filename"; then
-      echo -e "  ${GREEN}✓${NC} $filename  ${BLUE}(ya aplicada)${NC}"
+      disk_checksum=$(sha256sum "$filepath" | cut -d' ' -f1)
+      # Un checksum vacío en la fila (registro escrito a mano antes de que el
+      # runner lo guardara) no es una divergencia: no hay con qué comparar.
+      if [[ -n "$APPLIED_CHECKSUM" && "$APPLIED_CHECKSUM" != "$disk_checksum" ]]; then
+        echo -e "  ${RED}✗${NC} $filename  ${RED}(MODIFICADA después de aplicarse)${NC}"
+        modified+=("${filename}|${APPLIED_CHECKSUM}|${disk_checksum}")
+      else
+        echo -e "  ${GREEN}✓${NC} $filename  ${BLUE}(ya aplicada)${NC}"
+      fi
       already_applied=$((already_applied + 1))
     else
       echo -e "  ${YELLOW}→${NC} $filename  ${YELLOW}(pendiente)${NC}"
@@ -199,6 +272,25 @@ run_migrations() {
     fi
   done
   echo ""
+
+  # Regla 1 de docker/database/migrations/README.md: una migración aplicada no
+  # se edita. Hasta hoy el `checksum` se guardaba y no lo miraba nadie, así que
+  # el cambio se saltaba en silencio. Se aborta ANTES de aplicar nada.
+  if [[ ${#modified[@]} -gt 0 ]]; then
+    error "Migraciones ya aplicadas cuyo fichero ha cambiado desde entonces:"
+    local entry m_file m_db m_disk
+    for entry in "${modified[@]}"; do
+      IFS='|' read -r m_file m_db m_disk <<< "$entry"
+      error "  $m_file"
+      error "    registrado: $m_db"
+      error "    en disco:   $m_disk"
+    done
+    error ""
+    error "  La regla 1 de docker/database/migrations/README.md lo prohíbe: una"
+    error "  migración aplicada no se modifica. Restaura el fichero a como estaba"
+    error "  o escribe una migración nueva con el cambio."
+    exit 1
+  fi
 
   if [[ $pending -eq 0 ]]; then
     success "Base de datos actualizada — no hay migraciones pendientes. ($already_applied ya aplicadas)"

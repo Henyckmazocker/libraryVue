@@ -19,8 +19,6 @@ final readonly class EditUserBookCommand
      * @param array $statuses
      * @param array $tags Array of tag IDs
      * @param int|null $currentPage
-     * @param string|null $personalNotes
-     * @param string|null $consumedAt
      */
     public function __construct(
         public ISBN $isbn,
@@ -29,8 +27,6 @@ final readonly class EditUserBookCommand
         public ?array $statuses = null,
         public array $tags = [],
         public ?int $currentPage = null,
-        public ?string $personalNotes = null,
-        public ?string $consumedAt = null,
         public ?int $ownershipFormatId = null,
         public ?int $pages = null
     ) {}
@@ -55,8 +51,6 @@ final readonly class EditUserBookCommand
                 : (isset($bookData['currentPage']) && is_numeric($bookData['currentPage'])
                     ? (int)$bookData['currentPage']
                     : null),
-            personalNotes: $bookData['personal_notes'] ?? $bookData['personalNotes'] ?? null,
-            consumedAt: $bookData['consumed_at'] ?? $bookData['consumedAt'] ?? null,
             ownershipFormatId: isset($bookData['ownership_format_id']) ? (int)$bookData['ownership_format_id'] : (isset($bookData['ownershipFormatId']) ? (int)$bookData['ownershipFormatId'] : null),
             pages: isset($bookData['pages']) && is_numeric($bookData['pages']) && (int)$bookData['pages'] > 0
                 ? (int)$bookData['pages']

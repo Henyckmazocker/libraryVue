@@ -20,11 +20,11 @@ interface UserBookRepositoryInterface
     public function hasBook(int $userId, string $bookId): bool;
 
     /**
-     * Update user's book data (rating, notes, current page, consumed date)
+     * Update user's book data (rating, current page, ownership format)
      *
      * @param int $userId User ID
      * @param string $isbn Book ISBN
-     * @param array $data Data to update ['current_page', 'personal_rating', 'personal_notes', 'consumed_at']
+     * @param array $data Data to update ['current_page', 'personal_rating', 'ownership_format_id']
      * @return void
      */
     public function edit(int $userId, string $isbn, array $data): void;

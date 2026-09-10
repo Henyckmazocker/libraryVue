@@ -103,6 +103,12 @@ database/*.db
 *.sql.gz
 *.dump
 
+# Los dumps que deja `./prod-deploy.sh --migrate` antes de migrar: datos
+# REALES de producción. La carpeta se nombra entera a propósito — las reglas
+# de arriba cubren *.sql.gz y *.dump, pero un `.sql` a secas no lo cubre nadie.
+docker/database/backups/*
+!docker/database/backups/.gitkeep
+
 # ----------------------------------------------------------------------------
 # Editor & IDE Files
 # ----------------------------------------------------------------------------

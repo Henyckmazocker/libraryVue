@@ -95,9 +95,6 @@ final class BookDataMapper
             ? (int) $dbRow['current_page']
             : null;
         
-        $personalNotes = $this->extractOptionalString($dbRow, 'personal_notes');
-        $consumedAt = $this->extractOptionalString($dbRow, 'consumed_at');
-        
         // Extract allowedStatuses from data or use empty array
         $allowedStatuses = isset($dbRow['allowedStatuses']) && is_array($dbRow['allowedStatuses'])
             ? $dbRow['allowedStatuses']
@@ -120,9 +117,7 @@ final class BookDataMapper
             'addedTimestamp' => $addedTimestamp->toUnixTimestamp(),
             'userStatuses' => $userStatuses,
             'allowedStatuses' => $allowedStatuses,
-            'current_page' => $currentPage,
-            'personal_notes' => $personalNotes,
-            'consumed_at' => $consumedAt
+            'current_page' => $currentPage
         ]);
     }
 

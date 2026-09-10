@@ -22,7 +22,6 @@ final readonly class EditUserAlbumCommand
         public ?string $personalNotes = null,
         public ?int $listenCount = null,
         public ?string $favoriteTrack = null,
-        public ?string $completedAt = null,
         public ?string $dateStarted = null,
         public ?string $dateFinished = null,
         public ?array $statuses = null,
@@ -58,7 +57,6 @@ final readonly class EditUserAlbumCommand
             personalNotes: $albumData['personal_notes'] ?? $albumData['personalNotes'] ?? $albumData['notes'] ?? null,
             listenCount: $listenCount,
             favoriteTrack: $albumData['favorite_track'] ?? $albumData['favoriteTrack'] ?? null,
-            completedAt: $albumData['completed_at'] ?? $albumData['completedAt'] ?? null,
             dateStarted: !empty($albumData['dateStarted'])
                 ? $albumData['dateStarted']
                 : (!empty($albumData['date_started']) ? $albumData['date_started'] : null),
@@ -86,9 +84,6 @@ final readonly class EditUserAlbumCommand
         }
         if ($this->favoriteTrack !== null) {
             $data['favorite_track'] = $this->favoriteTrack;
-        }
-        if ($this->completedAt !== null) {
-            $data['completed_at'] = $this->completedAt;
         }
         if ($this->dateStarted !== null) {
             $data['date_started'] = $this->dateStarted;

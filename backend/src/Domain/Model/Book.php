@@ -32,9 +32,7 @@ class Book
     private ?int $totalSessionsCompleted;
     private ?int $currentSessionNumber;
     private ?string $sessionStartedAt;
-    private ?string $lastSessionCompletedAt;
     private ?string $personalNotes;
-    private ?string $consumedAt;
 
     public function __construct(
         ISBN $isbn,
@@ -59,9 +57,7 @@ class Book
         ?int $totalSessionsCompleted = null,
         ?int $currentSessionNumber = null,
         ?string $sessionStartedAt = null,
-        ?string $lastSessionCompletedAt = null,
-        ?string $personalNotes = null,
-        ?string $consumedAt = null
+        ?string $personalNotes = null
     ) {
         // Validation handled by Value Objects
         if (empty($title)) {
@@ -107,9 +103,7 @@ class Book
         $this->totalSessionsCompleted = $totalSessionsCompleted ?? 0;
         $this->currentSessionNumber = $currentSessionNumber;
         $this->sessionStartedAt = $sessionStartedAt;
-        $this->lastSessionCompletedAt = $lastSessionCompletedAt;
         $this->personalNotes = $personalNotes;
-        $this->consumedAt = $consumedAt;
     }
 
     public function getAllowedTags(): ?array
@@ -213,11 +207,6 @@ class Book
         return $this->personalNotes;
     }
 
-    public function getConsumedAt(): ?string
-    {
-        return $this->consumedAt;
-    }
-
     public function getPages(): ?int
     {
         return $this->pages;
@@ -312,9 +301,7 @@ class Book
             'total_sessions_completed' => $this->totalSessionsCompleted,
             'current_session_number' => $this->currentSessionNumber,
             'session_started_at' => $this->sessionStartedAt,
-            'last_session_completed_at' => $this->lastSessionCompletedAt,
             'personal_notes' => $this->personalNotes,
-            'consumed_at' => $this->consumedAt,
         ];
     }
 
@@ -393,9 +380,7 @@ class Book
             isset($data['total_sessions_completed']) ? (int) $data['total_sessions_completed'] : null,
             isset($data['current_session_number']) ? (int) $data['current_session_number'] : null,
             $data['session_started_at'] ?? null,
-            $data['last_session_completed_at'] ?? null,
-            $data['personal_notes'] ?? null,
-            $data['consumed_at'] ?? null
+            $data['personal_notes'] ?? null
         );
     }
 }

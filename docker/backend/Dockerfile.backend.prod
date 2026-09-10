@@ -55,3 +55,17 @@ EXPOSE 80
 
 # Start Apache
 CMD ["apache2-foreground"] 
+
+# Sello de versión: el SHA del commit con el que se construyó esta imagen.
+#
+# Va AL FINAL a propósito. Un ARG cambia en cada commit e invalida la caché de
+# todo lo que venga por debajo suyo; arriba, debajo quedaría el apt-get de
+# :8-15 y cada despliegue reconstruiría la imagen entera desde cero. Aquí no
+# cuesta nada: la capa del COPY del código (:33) ya se invalida en cada commit.
+#
+# Lo lee prod-deploy.sh --migrate para negarse a migrar el esquema con el
+# código viejo desplegado, y lo rellena docker-compose.prod.yml desde la
+# variable GIT_SHA que exporta deploy_services(). Sin valor, `unknown`, que la
+# guarda trata siempre como no-coincidencia.
+ARG GIT_SHA=unknown
+LABEL org.opencontainers.image.revision=$GIT_SHA

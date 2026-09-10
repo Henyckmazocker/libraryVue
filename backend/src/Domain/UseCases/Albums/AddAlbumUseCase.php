@@ -137,7 +137,6 @@ class AddAlbumUseCase extends AbstractUseCase
             $command->statuses,
             $command->userRating?->toFloat(),
             $command->personalNotes,
-            null, // completedAt — not supplied at add time
             $command->listenCount,
             $command->favoriteTrack,
             $command->ownershipFormatId

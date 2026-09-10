@@ -92,16 +92,6 @@ final class MySqlUserBookRepository implements UserBookRepositoryInterface
                 $params[':edition_rating'] = $data['personal_rating'] !== null ? (float) $data['personal_rating'] : null;
             }
 
-            if (isset($data['personal_notes'])) {
-                $updates[] = "personal_notes = :personal_notes";
-                $params[':personal_notes'] = $data['personal_notes'];
-            }
-
-            if (isset($data['consumed_at'])) {
-                $updates[] = "consumed_at = :consumed_at";
-                $params[':consumed_at'] = $data['consumed_at'];
-            }
-
             if (array_key_exists('ownership_format_id', $data)) {
                 $updates[] = "ownership_format_id = :ownership_format_id";
                 $params[':ownership_format_id'] = $data['ownership_format_id'] !== null ? (int) $data['ownership_format_id'] : null;

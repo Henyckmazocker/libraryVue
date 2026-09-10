@@ -40,7 +40,6 @@ final class MySqlUserVideoRepository implements UserVideoRepositoryInterface
                        uv.personal_rating AS user_rating,
                        uv.personal_notes,
                        uv.watch_count,
-                       uv.watched_at,
                        GROUP_CONCAT(vs.name SEPARATOR ', ') AS user_statuses
                 FROM videos v
                 INNER JOIN user_videos uv ON v.id = uv.video_id
@@ -65,7 +64,7 @@ final class MySqlUserVideoRepository implements UserVideoRepositoryInterface
             }
 
             $sql .= " GROUP BY v.id, uv.user_id, uv.added_at, uv.personal_rating, uv.personal_notes,
-                               uv.watch_count, uv.watched_at
+                               uv.watch_count
                       ORDER BY uv.added_at DESC";
 
             $stmt = $this->db->prepare($sql);
@@ -101,7 +100,6 @@ final class MySqlUserVideoRepository implements UserVideoRepositoryInterface
         array $statuses = [],
         ?float $personalRating = null,
         ?string $personalNotes = null,
-        ?string $watchedAt = null,
         ?int $watchCount = null
     ): void {
         try {
@@ -115,15 +113,14 @@ final class MySqlUserVideoRepository implements UserVideoRepositoryInterface
 
             $stmt = $this->db->prepare("
                 INSERT INTO user_videos
-                    (user_id, video_id, added_at, personal_rating, personal_notes, watch_count, watched_at)
+                    (user_id, video_id, added_at, personal_rating, personal_notes, watch_count)
                 VALUES
-                    (:userId, :videoId, NOW(), :personalRating, :personalNotes, :watchCount, :watchedAt)
+                    (:userId, :videoId, NOW(), :personalRating, :personalNotes, :watchCount)
                 ON DUPLICATE KEY UPDATE
                     added_at       = NOW(),
                     personal_rating = COALESCE(VALUES(personal_rating), personal_rating),
                     personal_notes  = COALESCE(VALUES(personal_notes), personal_notes),
-                    watch_count     = COALESCE(VALUES(watch_count), watch_count),
-                    watched_at      = COALESCE(VALUES(watched_at), watched_at)
+                    watch_count     = COALESCE(VALUES(watch_count), watch_count)
             ");
             $stmt->execute([
                 ':userId'        => $userId,
@@ -131,7 +128,6 @@ final class MySqlUserVideoRepository implements UserVideoRepositoryInterface
                 ':personalRating' => $personalRating,
                 ':personalNotes'  => $personalNotes,
                 ':watchCount'     => $watchCount,
-                ':watchedAt'      => $watchedAt,
             ]);
 
             if (!empty($statuses)) {
@@ -208,7 +204,7 @@ final class MySqlUserVideoRepository implements UserVideoRepositoryInterface
             $setClauses = [];
             $params = [':userId' => $userId, ':videoId' => $videoId];
 
-            $allowedFields = ['personal_rating', 'personal_notes', 'watch_count', 'watched_at'];
+            $allowedFields = ['personal_rating', 'personal_notes', 'watch_count'];
             foreach ($allowedFields as $field) {
                 if (array_key_exists($field, $data)) {
                     $setClauses[]          = "{$field} = :{$field}";
@@ -316,7 +312,6 @@ final class MySqlUserVideoRepository implements UserVideoRepositoryInterface
                        uv.personal_rating AS user_rating,
                        uv.personal_notes,
                        uv.watch_count,
-                       uv.watched_at,
                        GROUP_CONCAT(vs.name SEPARATOR ', ') AS user_statuses
                 FROM videos v
                 INNER JOIN user_videos uv ON v.id = uv.video_id
@@ -324,7 +319,7 @@ final class MySqlUserVideoRepository implements UserVideoRepositoryInterface
                 LEFT JOIN video_statuses vs ON uvs.status_id = vs.id
                 WHERE uv.user_id = :userId
                 GROUP BY v.id, uv.user_id, uv.added_at, uv.personal_rating, uv.personal_notes,
-                         uv.watch_count, uv.watched_at
+                         uv.watch_count
                 ORDER BY uv.added_at DESC
                 LIMIT :limit
             ");

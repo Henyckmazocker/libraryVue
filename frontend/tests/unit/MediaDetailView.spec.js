@@ -2,6 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises } from '@vue/test-utils'
 import MediaDetailView from '@/views/shared/MediaDetailView.vue'
 import MediaNotes from '@/components/shared/MediaNotes.vue'
+import RecommendDialog from '@/components/Social/RecommendDialog.vue'
+import AddToListDialog from '@/components/Lists/AddToListDialog.vue'
+import AddToClubDialog from '@/components/Clubs/AddToClubDialog.vue'
+import JournalEntryModal from '@/components/Journal/JournalEntryModal.vue'
 import { getMediaConfig } from '@/config/mediaRegistry'
 import { mountComponent } from './helpers/mount'
 
@@ -541,19 +545,32 @@ describe('MediaDetailView — el CTA de la barra', () => {
     expect(menu(guardado).some((i) => i.separator)).toBe(true)
   })
 
+  /**
+   * Se mide el MONTAJE, no el booleano. Los tres diálogos van con `v-if` en la
+   * vista, así que el `ref` en `true` es solo la mitad del camino: sin el `await`
+   * el render posterior cae fuera del test y un diálogo que reventara al montarse
+   * dejaría el test en verde. Y se asserta con `findComponent` sobre el
+   * componente importado, no con un selector de clase: los tres envuelven un
+   * `Dialog` que se teletransporta y el `teleport: true` de `helpers/mount.js` lo
+   * deja inerte —el marcado interno no aparece en el wrapper, pero el componente
+   * sí—.
+   */
   it('cada entrada del menú abre su diálogo', async () => {
     conEstado('video', { title: 'Charla', youtube_id: 'abc' })
     const wrapper = montar('video', crearStore())
     await wrapper.vm.$nextTick()
 
-    pulsarEnMenu(wrapper, 'Recomendar')
-    pulsarEnMenu(wrapper, 'Añadir a una lista')
-    pulsarEnMenu(wrapper, 'Ponerlo en un club')
+    await pulsarEnMenu(wrapper, 'Recomendar')
+    await flushPromises()
+    expect(wrapper.findComponent(RecommendDialog).exists()).toBe(true)
 
-    const estado = wrapper.vm.$.setupState
-    expect(estado.showRecommendDialog).toBe(true)
-    expect(estado.showAddToListDialog).toBe(true)
-    expect(estado.showAddToClubDialog).toBe(true)
+    await pulsarEnMenu(wrapper, 'Añadir a una lista')
+    await flushPromises()
+    expect(wrapper.findComponent(AddToListDialog).exists()).toBe(true)
+
+    await pulsarEnMenu(wrapper, 'Ponerlo en un club')
+    await flushPromises()
+    expect(wrapper.findComponent(AddToClubDialog).exists()).toBe(true)
   })
 })
 
@@ -692,5 +709,66 @@ describe('MediaDetailView — el puente de las acciones del panel', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.emitted(evento)[0][0]).toEqual({ probe: 1 })
+  })
+})
+
+/**
+ * El identificador con el que la ficha abre el modal del diario.
+ *
+ * `journal_entry.entity_id` guarda, para cada medio, la identidad con la que el
+ * resto de la app conoce el ítem: la de `libraryItem.idOf`, que es también la
+ * clave con la que se registra su portada. En cinco medios esa identidad coincide
+ * con el parámetro de la ruta, y el álbum es el único donde no —su ficha vive en
+ * `/albums/:albumId`, donde el parámetro es el MBID del mirror, mientras que el
+ * diario, `user_albums` y `cover_file` hablan del PK de `albums`—. Mandar el id
+ * crudo de la ruta era el `400` del 2026-09-10.
+ */
+describe('MediaDetailView — la identidad que va al diario', () => {
+  // El álbum de dev: PK 2, identidad en `mb_release_group_gid` y `spotify_id` a
+  // NULL, que es como quedan todos los álbumes del mirror.
+  const MBID = '171db008-7f7b-48d3-a3b5-640d6ea41aa7'
+  const fila = { id: 2, title: 'The New Sound', mb_release_group_gid: MBID, spotify_id: null }
+
+  beforeEach(() => {
+    window.history.replaceState({}, '')
+    route.params = {}
+    apiCall.mockReset()
+    // El enriquecimiento de álbum sale a la API del catálogo y aquí no pinta
+    // nada: se responde que no hay ficha para que corra en silencio.
+    apiCall.mockResolvedValue({ data: { status: 'error' } })
+  })
+
+  const abrirFichaDelAlbum = async () => {
+    const store = crearStore([fila])
+    // `getAlbumBySpotifyId` casa las dos formas del identificador, como el
+    // `WHERE spotify_id = ? OR mb_release_group_gid = ?` del repositorio: en el
+    // mirror la primera columna va a NULL y la identidad vive en la segunda. El
+    // stub genérico del fichero solo mira `spotify_id`, así que se completa.
+    store.getAlbumBySpotifyId = (id) =>
+      [fila].find((i) => i.spotify_id === id || i.mb_release_group_gid === id)
+
+    route.params = { albumId: MBID }
+    conEstado('album', { title: 'The New Sound', mb_release_group_gid: MBID })
+    const wrapper = montar('album', store)
+    await flushPromises()
+
+    return wrapper
+  }
+
+  it('un álbum abierto por su MBID se apunta con el id de la fila de biblioteca', async () => {
+    const wrapper = await abrirFichaDelAlbum()
+
+    await pulsarEnMenu(wrapper, 'Apuntar en el diario')
+    await flushPromises()
+
+    const modal = wrapper.findComponent(JournalEntryModal)
+    expect(modal.exists()).toBe(true)
+
+    // Lo que importa es el `entityId`: es el `id` de la fila —lo que devuelve
+    // `libraryItem.idOf`— y NO el MBID de la ruta. Viaja como número porque
+    // `albums.id` es un entero en el JSON del backend, que lo castea a cadena al
+    // guardar; lo que no puede ser nunca es el identificador de la ruta.
+    expect(modal.props('item')).toEqual({ media: 'album', entityId: 2, title: 'The New Sound' })
+    expect(modal.props('item').entityId).not.toBe(MBID)
   })
 })

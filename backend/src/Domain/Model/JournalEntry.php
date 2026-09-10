@@ -9,9 +9,18 @@ use InvalidArgumentException;
 /**
  * JournalEntry — una cosa consumida, un día.
  *
- * A diferencia de las columnas `consumed_at` / `completed_at` / `watched_at` que
- * el esquema arrastra desde `init.sql` (y que nadie ha escrito nunca), aquí hay
- * **una fila por vez**: ver la misma película tres veces son tres entradas.
+ * Las seis columnas de fecha de consumo que el esquema arrastraba
+ * —`consumed_at`, `last_session_completed_at`, `completed_at`, `watched_at`—
+ * se **retiraron** el 2026-09-10 con la migración
+ * `20260910_120000_drop_consumption_dates.sql`: estaban vacías en todas las
+ * filas y en todos los entornos, y nunca se conectaron a nada.
+ *
+ * Este es el sitio donde eso se guarda de verdad. Aquí van medio, entidad,
+ * título, portada, fecha, valoración, origen y `source_id`, y sobre todo hay
+ * **una fila por vez**: releer un libro en marzo y en octubre son dos entradas,
+ * y ver la misma película tres veces son tres. Una columna suelta solo podía
+ * guardar una de ellas — que es justamente por lo que aquellas seis se quedaron
+ * sin llenar.
  *
  * `entity_id` es el identificador **externo**, el que espera la ruta de detalle
  * del frontend: ISBN-13 en libros, imdbID en películas y series, id de IGDB en

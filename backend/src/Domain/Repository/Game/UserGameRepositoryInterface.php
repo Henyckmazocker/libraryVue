@@ -18,7 +18,6 @@ interface UserGameRepositoryInterface
      * @param array $statuses Initial statuses
      * @param float|null $personalRating User's rating (0.5-5.0)
      * @param string|null $personalNotes User's notes
-     * @param string|null $completedAt Date when game was completed
      * @param float|null $hoursPlayed Hours played
      * @param string|null $platformPlayed Platform user played on
      * @return void
@@ -29,7 +28,6 @@ interface UserGameRepositoryInterface
         array $statuses = [],
         ?float $personalRating = null,
         ?string $personalNotes = null,
-        ?string $completedAt = null,
         ?float $hoursPlayed = null,
         ?string $platformPlayed = null
     ): void;

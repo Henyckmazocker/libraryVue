@@ -28,11 +28,6 @@ final class UserBookEditionDataMapper
             $userBookEdition->setCurrentPage((int) $dbRow['current_page']);
         }
 
-        if (isset($dbRow['consumed_at']) && $dbRow['consumed_at']) {
-            // consumed_at will be set from DB timestamp
-            $userBookEdition->markAsConsumed();
-        }
-
         if (isset($dbRow['active_reading_session_id']) && $dbRow['active_reading_session_id']) {
             $userBookEdition->setActiveReadingSessionId((int) $dbRow['active_reading_session_id']);
         }
@@ -65,10 +60,6 @@ final class UserBookEditionDataMapper
             $userBookEdition->setIsDigital((bool) $dbRow['is_digital']);
         }
 
-        if (isset($dbRow['personal_notes'])) {
-            $userBookEdition->setPersonalNotes($dbRow['personal_notes']);
-        }
-
         $ownershipFormat = $this->buildOwnershipFormat($dbRow);
         if ($ownershipFormat !== null) {
             $userBookEdition->setOwnershipFormat($ownershipFormat);
@@ -87,7 +78,6 @@ final class UserBookEditionDataMapper
             'user_id' => $userBookEdition->getUserId(),
             'edition_id' => $userBookEdition->getEditionId(),
             'added_at' => $userBookEdition->getAddedAt()->toDateTime()->format('Y-m-d H:i:s'),
-            'consumed_at' => $userBookEdition->getConsumedAt()?->toDateTime()->format('Y-m-d H:i:s'),
             'current_page' => $userBookEdition->getCurrentPage(),
             'active_reading_session_id' => $userBookEdition->getActiveReadingSessionId(),
             'edition_rating' => $userBookEdition->getEditionRating()?->toFloat(),
@@ -97,7 +87,6 @@ final class UserBookEditionDataMapper
             'location' => $userBookEdition->getLocation(),
             'is_digital' => $userBookEdition->isDigital() ? 1 : 0,
             'total_sessions_completed' => $userBookEdition->getTotalSessionsCompleted(),
-            'personal_notes' => $userBookEdition->getPersonalNotes(),
             'ownership_format_id' => $userBookEdition->getOwnershipFormat()['id'] ?? null,
         ];
     }

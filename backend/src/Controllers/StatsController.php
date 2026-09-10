@@ -71,7 +71,6 @@ class StatsController extends BaseController implements StatsControllerInterface
                             ),
                             'genres' => $work->getSubjects() ?? [],
                             'addedAt' => $userEdition->getAddedAt(),
-                            'consumedAt' => $userEdition->getConsumedAt(),
                             'pages' => $edition->getPages()
                         ];
                     }

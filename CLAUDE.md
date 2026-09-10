@@ -73,13 +73,13 @@ docker compose up --build   # equivalente crudo: NO migra ni arranca el mirror
                                                  # corre las dos suites como www-data. Es la única
                                                  # que no deja ficheros de root detrás (ver el aviso)
 docker compose --profile test up -d mysql-test   # lo necesita la suite de integración
-docker compose exec backend composer test        # las DOS suites: 1566 tests — ⚠ CRUDO, corre como
+docker compose exec backend composer test        # las DOS suites — ⚠ CRUDO, corre como
                                                  # ROOT y tumba la app: usa ./dev-setup.sh --test
-docker compose exec backend composer test:unit   # la rápida: 1313, sin necesitar mysql-test
+docker compose exec backend composer test:unit   # la rápida, sin necesitar mysql-test
 docker compose exec backend composer test:integration   # 253, contra una BD desechable
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
-docker compose exec frontend npm test            # 628 tests
+docker compose exec frontend npm test
 docker compose exec frontend npm run test:watch
 docker compose exec frontend npx vue-cli-service lint --no-fix   # lo corre también ./dev-setup.sh
 docker compose exec frontend npm run lint:styles                 # stylelint; también en ./dev-setup.sh
@@ -591,8 +591,10 @@ se cachean en `mb_track` (ver abajo).
     wrappers. Es un fallo que **jsdom no puede detectar**: se ve con capturas
     (`.github/skills/frontend.md`, *Visual Verification*).
 - **Tests de frontend en `frontend/tests/unit/`** (Vitest + `@vue/test-utils`, entorno `jsdom`). Monta
-  con el helper `tests/unit/helpers/mount.js`, no con `mount` a pelo: registra PrimeVue y provee el
-  `notifications` del `inject`. `tests/unit/setup.js` trae el polyfill de `matchMedia` sin el cual no
+  con el helper `tests/unit/helpers/mount.js`, no con `mount` a pelo: registra PrimeVue, provee el
+  `notifications` del `inject` e instala un Pinia **solo si no hay uno activo** —los specs que traen
+  el suyo siguen mandando; los demás dejan de reventar al montar un componente que llama a un store
+  en su `setup`—. `tests/unit/setup.js` trae el polyfill de `matchMedia` sin el cual no
   se puede montar nada que lleve un `Dropdown`.
 - **Ningún `@keyframes` puede animar `left`, `right`, `top` ni `bottom`.** Anima con `transform`, o
   mueve el fondo con `background-position` como hace `@keyframes shine` en
@@ -857,14 +859,30 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
   `themes/_dark.scss` y los umbrales a `abstracts/_breakpoints.scss`. `stylelint` lo comprueba.
 - **Trabaja en la rama `dev`** en este checkout; los cambios a producción se promueven a `master`
   y se despliegan desde `libraryVue_prod` con `docker-compose.prod.yml`.
+- **El despliegue de producción son dos comandos y en este orden: `--rebuild` y luego `--migrate`.**
+  Primero el código, después el esquema. `./prod-deploy.sh --rebuild` reconstruye las imágenes y las
+  levanta, sellando la del backend con el HEAD del checkout (`LABEL
+  org.opencontainers.image.revision`, `docker/backend/Dockerfile.backend.prod:70-71`, relleno con el
+  `GIT_SHA` que exporta `deploy_services()`, `prod-deploy.sh:464-466`); solo después
+  `./prod-deploy.sh --migrate`, que hace, en ese orden, `check_deps` → `check_image_revision` →
+  `backup_prod_db` → `run_migrations.sh` (`prod-deploy.sh:876-887`). Dos consecuencias que conviene
+  saber antes de teclearlo: **se niega a migrar** si el sello de `libraryvue_prod-backend:latest` no
+  es el HEAD del checkout, o si falta (`:847-874`), y **no hay bandera para saltárselo**; y **hace
+  copia de seguridad** antes de tocar la base, a
+  `docker/database/backups/library_db_prod_<fecha>.sql.gz`, abortando el `--migrate` si el
+  `mysqldump` falla o si el `.gz` no llega a 1 KB, y rotando a las 5 más recientes (`:756-818`).
+  El orden no es cosmético: migrar antes de desplegar aplicaría
+  `20260910_120000_drop_consumption_dates.sql` —que se lleva seis columnas de consumo y sus cinco
+  índices— contra un backend que todavía las nombra en sus consultas. El detalle, en
+  `docker/database/migrations/README.md` → *Running Migrations*.
 
 ## Verificación end-to-end
 
 1. `docker compose up --build`; `POST http://localhost:8888/index.php` con `{"action":"ping"}`.
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
-3. `docker compose exec backend composer test` → verde (1566 tests: 1313 unitarios + 253 de
-   integración; estos necesitan `docker compose --profile test up -d mysql-test`).
-4. `docker compose exec frontend npm test` → verde (628 tests) y
+3. `docker compose exec backend composer test` → verde (la suite de integración necesita
+   `docker compose --profile test up -d mysql-test`).
+4. `docker compose exec frontend npm test` → verde y
    `docker compose exec frontend npm run lint:styles` → sin salida.
 5. **`docker compose exec frontend npm run build` → `Build complete`.** No es redundante con el paso
    anterior: **ninguno de los tres comandos de arriba compila SCSS**. Los helpers de

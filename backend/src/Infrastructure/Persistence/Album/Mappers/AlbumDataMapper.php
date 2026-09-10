@@ -97,7 +97,6 @@ class AlbumDataMapper
             favoriteTrack: $this->extractString($row, 'favorite_track', null),
             dateStarted: $this->extractString($row, 'date_started', null),
             dateFinished: $this->extractString($row, 'date_finished', null),
-            completedAt: $this->extractString($row, 'completed_at', null),
             ownershipFormat: $this->buildOwnershipFormat($row)
         );
     }

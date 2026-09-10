@@ -19,7 +19,6 @@ interface UserAlbumRepositoryInterface
      * @param array $statuses Initial statuses
      * @param float|null $personalRating User's rating (0.5-5.0)
      * @param string|null $personalNotes User's notes
-     * @param string|null $completedAt Date when album was completed
      * @param int|null $listenCount Number of times listened
      * @param string|null $favoriteTrack User's favourite track name
      * @return void
@@ -30,7 +29,6 @@ interface UserAlbumRepositoryInterface
         array $statuses = [],
         ?float $personalRating = null,
         ?string $personalNotes = null,
-        ?string $completedAt = null,
         ?int $listenCount = null,
         ?string $favoriteTrack = null
     ): void;

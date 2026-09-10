@@ -52,17 +52,23 @@ class AddJournalEntryUseCase extends AbstractUseCase
             throw new InvalidArgumentException('That item is not in the catalog.');
         }
 
-        [$titulo, $portada] = $item;
+        // El primer elemento es el identificador CANÓNICO del ítem, que no tiene
+        // por qué ser el que mandó el cliente: en álbum la ficha manda el MBID de
+        // la ruta y la identidad que guarda el diario es el PK de `albums`.
+        [$idCanonico, $titulo, $portada] = $item;
 
         // El constructor de `JournalEntry` valida la fecha y el rango del rating.
-        $id = $this->journal->add($command->toEntry($titulo, $portada));
+        $id = $this->journal->add($command->toEntry($idCanonico, $titulo, $portada));
 
         // «La última entrada manda»: se propaga después de guardar, y si falla
         // no se lleva por delante la entrada — el escritor se traga sus errores.
+        // Va el id canónico, no `$command->entityId`: el writer resuelve el ítem
+        // por su cuenta y darle una forma que el diario no guarda sería pedirle
+        // que adivine.
         $this->ratings->write(
             $command->userId,
             $command->media,
-            $command->entityId,
+            $idCanonico,
             $command->rating
         );
 

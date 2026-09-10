@@ -217,7 +217,6 @@ final class MySqlUserBookEditionRepository implements UserBookEditionRepositoryI
                         user_id,
                         edition_id,
                         added_at,
-                        consumed_at,
                         current_page,
                         active_reading_session_id,
                         edition_rating,
@@ -227,13 +226,11 @@ final class MySqlUserBookEditionRepository implements UserBookEditionRepositoryI
                         location,
                         is_digital,
                         total_sessions_completed,
-                        personal_notes,
                         ownership_format_id
                     ) VALUES (
                         :user_id,
                         :edition_id,
                         :added_at,
-                        :consumed_at,
                         :current_page,
                         :active_reading_session_id,
                         :edition_rating,
@@ -243,7 +240,6 @@ final class MySqlUserBookEditionRepository implements UserBookEditionRepositoryI
                         :location,
                         :is_digital,
                         :total_sessions_completed,
-                        :personal_notes,
                         :ownership_format_id
                     )'
                 );
@@ -252,7 +248,6 @@ final class MySqlUserBookEditionRepository implements UserBookEditionRepositoryI
                     ':user_id' => $data['user_id'],
                     ':edition_id' => $data['edition_id'],
                     ':added_at' => $data['added_at'],
-                    ':consumed_at' => $data['consumed_at'],
                     ':current_page' => $data['current_page'],
                     ':active_reading_session_id' => $data['active_reading_session_id'],
                     ':edition_rating' => $data['edition_rating'],
@@ -262,7 +257,6 @@ final class MySqlUserBookEditionRepository implements UserBookEditionRepositoryI
                     ':location' => $data['location'],
                     ':is_digital' => $data['is_digital'],
                     ':total_sessions_completed' => $data['total_sessions_completed'],
-                    ':personal_notes' => $data['personal_notes'],
                     ':ownership_format_id' => $data['ownership_format_id'],
                 ]);
 
@@ -273,7 +267,6 @@ final class MySqlUserBookEditionRepository implements UserBookEditionRepositoryI
                 // Update existing
                 $stmt = $this->db->prepare(
                     'UPDATE user_book_editions SET
-                        consumed_at = :consumed_at,
                         current_page = :current_page,
                         active_reading_session_id = :active_reading_session_id,
                         edition_rating = :edition_rating,
@@ -283,14 +276,12 @@ final class MySqlUserBookEditionRepository implements UserBookEditionRepositoryI
                         location = :location,
                         is_digital = :is_digital,
                         total_sessions_completed = :total_sessions_completed,
-                        personal_notes = :personal_notes,
                         ownership_format_id = :ownership_format_id
                      WHERE id = :id'
                 );
 
                 $stmt->execute([
                     ':id' => $userBookEdition->getId(),
-                    ':consumed_at' => $data['consumed_at'],
                     ':current_page' => $data['current_page'],
                     ':active_reading_session_id' => $data['active_reading_session_id'],
                     ':edition_rating' => $data['edition_rating'],
@@ -300,7 +291,6 @@ final class MySqlUserBookEditionRepository implements UserBookEditionRepositoryI
                     ':location' => $data['location'],
                     ':is_digital' => $data['is_digital'],
                     ':total_sessions_completed' => $data['total_sessions_completed'],
-                    ':personal_notes' => $data['personal_notes'],
                     ':ownership_format_id' => $data['ownership_format_id'],
                 ]);
 

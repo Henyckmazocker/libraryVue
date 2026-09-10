@@ -40,9 +40,7 @@ class EditUserBookUseCase extends AbstractUseCase
             'userRating' => $command->userRating?->toFloat(),
             'statuses' => $command->statuses,
             'tags' => $command->tags,
-            'currentPage' => $command->currentPage,
-            'personalNotes' => $command->personalNotes,
-            'consumedAt' => $command->consumedAt
+            'currentPage' => $command->currentPage
         ]);
 
         // Prepare data for edit method
@@ -54,14 +52,6 @@ class EditUserBookUseCase extends AbstractUseCase
         
         if ($command->currentPage !== null) {
             $editData['current_page'] = $command->currentPage;
-        }
-        
-        if ($command->personalNotes !== null) {
-            $editData['personal_notes'] = $command->personalNotes;
-        }
-        
-        if ($command->consumedAt !== null) {
-            $editData['consumed_at'] = $command->consumedAt;
         }
         
         if ($command->ownershipFormatId !== null) {

@@ -243,8 +243,6 @@ class BookCommandsTest extends TestCase
                 'personalRating' => 4.5,
                 'statuses' => ['completed'],
                 'current_page' => 150,
-                'personal_notes' => 'Great',
-                'consumed_at' => '2024-06-15',
             ],
             'tags' => [1, 2],
         ], 1);
@@ -254,8 +252,6 @@ class BookCommandsTest extends TestCase
         $this->assertSame(4.5, $cmd->userRating->toFloat());
         $this->assertEquals(['completed'], $cmd->statuses);
         $this->assertSame(150, $cmd->currentPage);
-        $this->assertEquals('Great', $cmd->personalNotes);
-        $this->assertEquals('2024-06-15', $cmd->consumedAt);
         $this->assertEquals([1, 2], $cmd->tags);
     }
 
@@ -285,8 +281,6 @@ class BookCommandsTest extends TestCase
         $this->assertNull($cmd->statuses);
         $this->assertEquals([], $cmd->tags);
         $this->assertNull($cmd->currentPage);
-        $this->assertNull($cmd->personalNotes);
-        $this->assertNull($cmd->consumedAt);
     }
 
     // ═══════════════════════════════════════

@@ -45,9 +45,7 @@ class BookTest extends TestCase
             $d['totalSessionsCompleted'] ?? null,
             $d['currentSessionNumber'] ?? null,
             $d['sessionStartedAt'] ?? null,
-            $d['lastSessionCompletedAt'] ?? null,
-            $d['personalNotes'] ?? null,
-            $d['consumedAt'] ?? null
+            $d['personalNotes'] ?? null
         );
     }
 
@@ -262,7 +260,6 @@ class BookTest extends TestCase
             'genre' => Genre::fromString('Fantasy'),
             'language' => 'en',
             'personalNotes' => 'Great book',
-            'consumedAt' => '2024-06-15',
             'tags' => ['favorite'],
         ]);
 
@@ -288,7 +285,6 @@ class BookTest extends TestCase
         $this->assertEquals(['Fantasy'], $arr['genres']); // backward compat
         $this->assertEquals(['favorite'], $arr['tags']);
         $this->assertEquals('Great book', $arr['personal_notes']);
-        $this->assertEquals('2024-06-15', $arr['consumed_at']);
     }
 
     // ── fromArray ──

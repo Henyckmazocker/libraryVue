@@ -37,13 +37,22 @@ final readonly class AddJournalEntryCommand
         );
     }
 
-    public function toEntry(string $title, ?string $cover): JournalEntry
+    /**
+     * El `$entityId` entra por parámetro y **no** se lee del comando: lo que
+     * mandó el cliente puede no ser la identidad con la que el diario guarda ese
+     * medio —en álbum la ruta trae un MBID y la fila quiere el PK—, así que el
+     * bueno es el que devuelve `JournalItemResolver`, que es quien lo ha
+     * encontrado en el catálogo. La clase es `final readonly`, de modo que
+     * corregirlo mutando el objeto no es una opción, y tampoco sería deseable:
+     * el comando debe seguir diciendo lo que pidió el cliente.
+     */
+    public function toEntry(string $entityId, string $title, ?string $cover): JournalEntry
     {
         return new JournalEntry(
             id:          null,
             userId:      $this->userId,
             media:       $this->media,
-            entityId:    $this->entityId,
+            entityId:    $entityId,
             entityTitle: $title,
             entityCover: $cover,
             entryDate:   $this->entryDate,

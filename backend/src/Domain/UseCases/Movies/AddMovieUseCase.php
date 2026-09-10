@@ -64,7 +64,6 @@ class AddMovieUseCase extends AbstractUseCase
             $command->statuses,
             $command->userRating?->toFloat(),
             null, // personalNotes - not provided in AddMovieCommand
-            null, // consumedAt - not provided in AddMovieCommand
             $command->ownershipFormatId
         );
         

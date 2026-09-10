@@ -63,7 +63,6 @@ class Album
     private ?string $favoriteTrack;
     private ?string $dateStarted;
     private ?string $dateFinished;
-    private ?string $completedAt;
     private ?array $ownershipFormat; // Formato de posesión (id, value, label)
 
     public function __construct(
@@ -96,7 +95,6 @@ class Album
         ?string $favoriteTrack = null,
         ?string $dateStarted = null,
         ?string $dateFinished = null,
-        ?string $completedAt = null,
         ?array $ownershipFormat = null
     ) {
         if (empty($title)) {
@@ -138,7 +136,6 @@ class Album
         $this->favoriteTrack = $favoriteTrack;
         $this->dateStarted = $dateStarted;
         $this->dateFinished = $dateFinished;
-        $this->completedAt = $completedAt;
         $this->ownershipFormat = $ownershipFormat;
     }
 
@@ -238,7 +235,6 @@ class Album
             favoriteTrack: $data['favorite_track'] ?? $data['favoriteTrack'] ?? null,
             dateStarted: $data['date_started'] ?? $data['dateStarted'] ?? null,
             dateFinished: $data['date_finished'] ?? $data['dateFinished'] ?? null,
-            completedAt: $data['completed_at'] ?? $data['completedAt'] ?? null,
             ownershipFormat: $data['ownership_format'] ?? $data['ownershipFormat'] ?? null
         );
     }
@@ -397,11 +393,6 @@ class Album
         return $this->dateFinished;
     }
 
-    public function getCompletedAt(): ?string
-    {
-        return $this->completedAt;
-    }
-
     // --- Utility methods ---
 
     public function hasStatus(string $status): bool
@@ -523,8 +514,6 @@ class Album
             'dateStarted'            => $this->dateStarted,
             'date_finished'          => $this->dateFinished,
             'dateFinished'           => $this->dateFinished,
-            'completed_at'           => $this->completedAt,
-            'completedAt'            => $this->completedAt,
             'ownership_format'       => $this->ownershipFormat,
             'ownershipFormat'        => $this->ownershipFormat,
             'ownership_format_value' => $this->ownershipFormat['value'] ?? null,

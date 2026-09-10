@@ -36,7 +36,6 @@ interface UserMovieRepositoryInterface
      * @param array $statuses User's statuses for the movie
      * @param float|null $personalRating User's rating
      * @param string|null $personalNotes User's notes
-     * @param string|null $consumedAt Date when consumed
      * @return void
      */
     public function add(
@@ -44,8 +43,7 @@ interface UserMovieRepositoryInterface
         string $movieIsbn,
         array $statuses = [],
         ?float $personalRating = null,
-        ?string $personalNotes = null,
-        ?string $consumedAt = null
+        ?string $personalNotes = null
     ): void;
 
     /**
@@ -58,11 +56,11 @@ interface UserMovieRepositoryInterface
     public function remove(int $userId, string $movieId): bool;
 
     /**
-     * Update user's movie data (rating, notes, consumed date)
+     * Update user's movie data (rating, notes)
      *
      * @param int $userId User ID
      * @param string $movieIsbn Movie identifier
-     * @param array $data Array containing optional keys: personal_rating, personal_notes, consumed_at
+     * @param array $data Array containing optional keys: personal_rating, personal_notes
      * @return void
      */
     public function edit(int $userId, string $movieIsbn, array $data): void;

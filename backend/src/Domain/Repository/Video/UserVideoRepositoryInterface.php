@@ -20,7 +20,6 @@ interface UserVideoRepositoryInterface
         array $statuses = [],
         ?float $personalRating = null,
         ?string $personalNotes = null,
-        ?string $watchedAt = null,
         ?int $watchCount = null
     ): void;
 

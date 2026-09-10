@@ -40,7 +40,7 @@ final class MySqlUserMovieRepository implements UserMovieRepositoryInterface
             
             $sql = "
                 SELECT m.*, um.added_at as user_added_at, um.personal_rating as user_rating,
-                       um.personal_notes, um.consumed_at,
+                       um.personal_notes,
                        iof.id AS ownership_format_id, iof.value AS ownership_format_value, iof.label AS ownership_format_label,
                        GROUP_CONCAT(ms.name SEPARATOR ', ') as user_statuses
                 FROM movie m
@@ -63,7 +63,7 @@ final class MySqlUserMovieRepository implements UserMovieRepositoryInterface
                 $params[':title'] = '%' . $filters['title'] . '%';
             }
 
-            $sql .= " GROUP BY m.isbn, m.title, m.original_title, m.director, m.author, m.rating, m.coverUrl, m.description, m.addedTimestamp, m.genres, um.added_at, um.personal_rating, um.personal_notes, um.consumed_at, iof.id, iof.value, iof.label ORDER BY um.added_at DESC";
+            $sql .= " GROUP BY m.isbn, m.title, m.original_title, m.director, m.author, m.rating, m.coverUrl, m.description, m.addedTimestamp, m.genres, um.added_at, um.personal_rating, um.personal_notes, iof.id, iof.value, iof.label ORDER BY um.added_at DESC";
 
             $stmt = $this->db->prepare($sql);
             foreach ($params as $key => $value) {
@@ -107,7 +107,6 @@ final class MySqlUserMovieRepository implements UserMovieRepositoryInterface
         array $statuses = [],
         ?float $personalRating = null,
         ?string $personalNotes = null,
-        ?string $consumedAt = null,
         ?int $ownershipFormatId = null
     ): void
     {
@@ -126,13 +125,12 @@ final class MySqlUserMovieRepository implements UserMovieRepositoryInterface
 
             // Add relationship between user and movie
             $stmt = $this->db->prepare("
-                INSERT INTO user_movies (user_id, movie_isbn, added_at, personal_rating, personal_notes, consumed_at, ownership_format_id) 
-                VALUES (:userId, :movieId, NOW(), :personalRating, :personalNotes, :consumedAt, :ownershipFormatId)
+                INSERT INTO user_movies (user_id, movie_isbn, added_at, personal_rating, personal_notes, ownership_format_id) 
+                VALUES (:userId, :movieId, NOW(), :personalRating, :personalNotes, :ownershipFormatId)
                 ON DUPLICATE KEY UPDATE 
                     added_at = NOW(),
                     personal_rating = COALESCE(VALUES(personal_rating), personal_rating),
                     personal_notes = COALESCE(VALUES(personal_notes), personal_notes),
-                    consumed_at = COALESCE(VALUES(consumed_at), consumed_at),
                     ownership_format_id = COALESCE(VALUES(ownership_format_id), ownership_format_id)
             ");
             $stmt->execute([
@@ -140,7 +138,6 @@ final class MySqlUserMovieRepository implements UserMovieRepositoryInterface
                 ':movieId' => $movieIsbn,
                 ':personalRating' => $personalRating,
                 ':personalNotes' => $personalNotes,
-                ':consumedAt' => $consumedAt,
                 ':ownershipFormatId' => $ownershipFormatId
             ]);
 
@@ -156,8 +153,7 @@ final class MySqlUserMovieRepository implements UserMovieRepositoryInterface
                 'movie_isbn' => $movieIsbn,
                 'statuses' => $statuses,
                 'personal_rating' => $personalRating,
-                'personal_notes' => $personalNotes,
-                'consumed_at' => $consumedAt
+                'personal_notes' => $personalNotes
             ]);
         } catch (PDOException $e) {
             $this->db->rollBack();
@@ -264,11 +260,6 @@ final class MySqlUserMovieRepository implements UserMovieRepositoryInterface
             if (isset($data['personal_notes'])) {
                 $updates[] = "personal_notes = :personalNotes";
                 $params[':personalNotes'] = $data['personal_notes'];
-            }
-
-            if (isset($data['consumed_at'])) {
-                $updates[] = "consumed_at = :consumedAt";
-                $params[':consumedAt'] = $data['consumed_at'];
             }
 
             if (array_key_exists('ownership_format_id', $data)) {

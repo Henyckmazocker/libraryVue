@@ -26,7 +26,6 @@ class UserBookEditionDataMapperTest extends TestCase
             'user_id' => 1,
             'edition_id' => 5,
             'current_page' => 150,
-            'consumed_at' => '2024-06-01 12:00:00',
             'active_reading_session_id' => 42,
             'edition_rating' => 4.5,
             'work_rating' => 3.0,
@@ -34,7 +33,6 @@ class UserBookEditionDataMapperTest extends TestCase
             'condition' => 'good',
             'location' => 'Shelf A',
             'is_digital' => 1,
-            'personal_notes' => 'Great edition',
         ];
     }
 
@@ -50,7 +48,6 @@ class UserBookEditionDataMapperTest extends TestCase
         $this->assertSame(1, $entity->getUserId());
         $this->assertSame(5, $entity->getEditionId());
         $this->assertSame(150, $entity->getCurrentPage());
-        $this->assertNotNull($entity->getConsumedAt());
         $this->assertSame(42, $entity->getActiveReadingSessionId());
         $this->assertNotNull($entity->getEditionRating());
         $this->assertSame(4.5, $entity->getEditionRating()->toFloat());
@@ -60,7 +57,6 @@ class UserBookEditionDataMapperTest extends TestCase
         $this->assertEquals('good', $entity->getCondition());
         $this->assertEquals('Shelf A', $entity->getLocation());
         $this->assertTrue($entity->isDigital());
-        $this->assertEquals('Great edition', $entity->getPersonalNotes());
     }
 
     #[Test]
@@ -77,7 +73,6 @@ class UserBookEditionDataMapperTest extends TestCase
         $this->assertSame(8, $entity->getEditionId());
         $this->assertNull($entity->getId());
         $this->assertSame(0, $entity->getCurrentPage());
-        $this->assertNull($entity->getConsumedAt());
         $this->assertNull($entity->getActiveReadingSessionId());
         $this->assertNull($entity->getEditionRating());
         $this->assertNull($entity->getWorkRating());
@@ -85,33 +80,6 @@ class UserBookEditionDataMapperTest extends TestCase
         $this->assertNull($entity->getCondition());
         $this->assertNull($entity->getLocation());
         $this->assertFalse($entity->isDigital());
-        $this->assertNull($entity->getPersonalNotes());
-    }
-
-    #[Test]
-    public function to_domain_consumed_at_triggers_mark_as_consumed(): void
-    {
-        $row = [
-            'user_id' => 1,
-            'edition_id' => 2,
-            'consumed_at' => '2024-01-15 09:30:00',
-        ];
-
-        $entity = $this->mapper->toDomain($row);
-        $this->assertNotNull($entity->getConsumedAt());
-    }
-
-    #[Test]
-    public function to_domain_consumed_at_empty_string_ignored(): void
-    {
-        $row = [
-            'user_id' => 1,
-            'edition_id' => 2,
-            'consumed_at' => '',
-        ];
-
-        $entity = $this->mapper->toDomain($row);
-        $this->assertNull($entity->getConsumedAt());
     }
 
     #[Test]
@@ -162,23 +130,6 @@ class UserBookEditionDataMapperTest extends TestCase
         $this->assertEquals('good', $data['condition']);
         $this->assertEquals('Shelf A', $data['location']);
         $this->assertSame(1, $data['is_digital']);
-        $this->assertEquals('Great edition', $data['personal_notes']);
-    }
-
-    #[Test]
-    public function to_database_null_consumed_at(): void
-    {
-        $row = [
-            'user_id' => 1,
-            'edition_id' => 2,
-        ];
-
-        $entity = $this->mapper->toDomain($row);
-        $data = $this->mapper->toDatabase($entity);
-
-        $this->assertNull($data['consumed_at']);
-        $this->assertNull($data['edition_rating']);
-        $this->assertNull($data['work_rating']);
     }
 
     #[Test]
@@ -227,6 +178,5 @@ class UserBookEditionDataMapperTest extends TestCase
         $this->assertEquals($original['ownership_type'], $data['ownership_type']);
         $this->assertEquals($original['condition'], $data['condition']);
         $this->assertEquals($original['location'], $data['location']);
-        $this->assertEquals($original['personal_notes'], $data['personal_notes']);
     }
 }

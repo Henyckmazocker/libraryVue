@@ -18,7 +18,6 @@ final readonly class EditUserGameCommand
         public ?string $personalNotes = null,
         public ?float $hoursPlayed = null,
         public ?string $platformPlayed = null,
-        public ?string $completedAt = null,
         public ?string $dateStarted = null,
         public ?string $dateFinished = null,
         public ?array $statuses = null,
@@ -46,7 +45,6 @@ final readonly class EditUserGameCommand
                 ? (float)($gameData['hoursPlayed'] ?? $gameData['hours_played'])
                 : null,
             platformPlayed: $gameData['platform_played'] ?? $gameData['platformPlayed'] ?? null,
-            completedAt: $gameData['completed_at'] ?? $gameData['completedAt'] ?? null,
             dateStarted: !empty($gameData['dateStarted']) ? $gameData['dateStarted'] : (!empty($gameData['date_started']) ? $gameData['date_started'] : null),
             dateFinished: !empty($gameData['dateFinished']) ? $gameData['dateFinished'] : (!empty($gameData['date_finished']) ? $gameData['date_finished'] : null),
             statuses: $gameData['statuses'] ?? $data['statuses'] ?? null,
@@ -70,9 +68,6 @@ final readonly class EditUserGameCommand
         }
         if ($this->platformPlayed !== null) {
             $data['platform_played'] = $this->platformPlayed;
-        }
-        if ($this->completedAt !== null) {
-            $data['completed_at'] = $this->completedAt;
         }
         if ($this->dateStarted !== null) {
             $data['date_started'] = $this->dateStarted;

@@ -42,7 +42,6 @@ final class MySqlUserAlbumRepository implements UserAlbumRepositoryInterface
                        ua.personal_notes,
                        ua.listen_count,
                        ua.favorite_track,
-                       ua.completed_at,
                        ua.date_started,
                        ua.date_finished,
                        iof.id AS ownership_format_id, iof.value AS ownership_format_value, iof.label AS ownership_format_label,
@@ -81,7 +80,7 @@ final class MySqlUserAlbumRepository implements UserAlbumRepositoryInterface
                                a.release_date_precision, a.cover_url, a.genres, a.label, a.total_tracks,
                                a.album_type, a.duration_ms, a.popularity, a.external_url, a.upc, a.addedTimestamp,
                                ua.added_at, ua.personal_rating, ua.personal_notes, ua.listen_count,
-                               ua.favorite_track, ua.completed_at, ua.date_started, ua.date_finished,
+                               ua.favorite_track, ua.date_started, ua.date_finished,
                                iof.id, iof.value, iof.label
                       ORDER BY ua.added_at DESC";
 
@@ -118,7 +117,6 @@ final class MySqlUserAlbumRepository implements UserAlbumRepositoryInterface
         array $statuses = [],
         ?float $personalRating = null,
         ?string $personalNotes = null,
-        ?string $completedAt = null,
         ?int $listenCount = null,
         ?string $favoriteTrack = null,
         ?int $ownershipFormatId = null
@@ -135,16 +133,15 @@ final class MySqlUserAlbumRepository implements UserAlbumRepositoryInterface
 
             $stmt = $this->db->prepare("
                 INSERT INTO user_albums
-                    (user_id, album_id, added_at, personal_rating, personal_notes, listen_count, favorite_track, completed_at, ownership_format_id)
+                    (user_id, album_id, added_at, personal_rating, personal_notes, listen_count, favorite_track, ownership_format_id)
                 VALUES
-                    (:userId, :albumId, NOW(), :personalRating, :personalNotes, :listenCount, :favoriteTrack, :completedAt, :ownershipFormatId)
+                    (:userId, :albumId, NOW(), :personalRating, :personalNotes, :listenCount, :favoriteTrack, :ownershipFormatId)
                 ON DUPLICATE KEY UPDATE
                     added_at       = NOW(),
                     personal_rating = COALESCE(VALUES(personal_rating), personal_rating),
                     personal_notes  = COALESCE(VALUES(personal_notes), personal_notes),
                     listen_count    = COALESCE(VALUES(listen_count), listen_count),
                     favorite_track  = COALESCE(VALUES(favorite_track), favorite_track),
-                    completed_at    = COALESCE(VALUES(completed_at), completed_at),
                     ownership_format_id = COALESCE(VALUES(ownership_format_id), ownership_format_id)
             ");
             $stmt->execute([
@@ -154,7 +151,6 @@ final class MySqlUserAlbumRepository implements UserAlbumRepositoryInterface
                 ':personalNotes'  => $personalNotes,
                 ':listenCount'    => $listenCount,
                 ':favoriteTrack'  => $favoriteTrack,
-                ':completedAt'    => $completedAt,
                 ':ownershipFormatId' => $ownershipFormatId,
             ]);
 
@@ -237,7 +233,6 @@ final class MySqlUserAlbumRepository implements UserAlbumRepositoryInterface
                 'personal_notes'     => [':personalNotes',  'string'],
                 'listen_count'       => [':listenCount',    'int'],
                 'favorite_track'     => [':favoriteTrack',  'string'],
-                'completed_at'       => [':completedAt',    'string'],
                 'date_started'       => [':dateStarted',    'string'],
                 'date_finished'      => [':dateFinished',   'string'],
                 'ownership_format_id' => [':ownershipFormatId', 'int'],

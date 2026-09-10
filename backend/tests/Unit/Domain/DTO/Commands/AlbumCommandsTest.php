@@ -233,12 +233,22 @@ class AlbumCommandsTest extends TestCase
         $this->assertSame(3.5, $cmd->rating->toFloat());
     }
 
+    /**
+     * Ver `GameCommandsTest`: un `rating` ausente o 0 borra la valoración en
+     * los cinco medios, no revienta.
+     */
     #[Test]
-    public function update_album_rating_from_array_throws_without_rating(): void
+    public function update_album_rating_from_array_without_rating_is_null(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Valid rating is required');
-        UpdateAlbumRatingCommand::fromArray(['albumId' => 1], 1);
+        $cmd = UpdateAlbumRatingCommand::fromArray(['albumId' => 1], 1);
+        $this->assertNull($cmd->rating);
+    }
+
+    #[Test]
+    public function update_album_rating_from_array_with_zero_is_null(): void
+    {
+        $cmd = UpdateAlbumRatingCommand::fromArray(['albumId' => 1, 'rating' => 0], 1);
+        $this->assertNull($cmd->rating);
     }
 
     #[Test]

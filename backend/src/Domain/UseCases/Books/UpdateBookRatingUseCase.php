@@ -51,22 +51,45 @@ class UpdateBookRatingUseCase extends AbstractUseCase
             throw new InvalidArgumentException('Book not found in your library.');
         }
 
-        // Update the user's work rating (Rating VO already validated in constructor)
+        // Se escribe `edition_rating`, NO `work_rating`: es la columna que la ficha
+        // enseña —`UserBookEdition::toArray()` la publica como `user_rating`,
+        // `personal_rating` y `rating` (`UserBookEdition.php:239-243`)— y la misma que
+        // guarda el modal de edición por `edit_user_book`
+        // (`MySqlUserBookRepository.php:85-87`). Hasta el 2026-09-09 esta acción
+        // escribía `work_rating` y dejaba `edition_rating` a NULL, así que valorar
+        // desde la ficha guardaba en una columna que nadie lee y borraba la que sí:
+        // la estrella se pintaba y desaparecía al recargar.
+        //
+        // `work_rating` —la valoración de la OBRA, otro concepto del modelo
+        // Work/Edition— se relee y se reescribe igual porque el UPDATE del
+        // repositorio toca las dos columnas de una vez.
+        //
+        // `null` no es «no hay dato»: es «borra mi valoración», y tiene que llegar a
+        // la columna tal cual.
+        $actual = $this->userBookEditionRepository->findByUserAndEdition(
+            $command->userId,
+            $edition->getEditionId()
+        );
+
         $this->userBookEditionRepository->updateRating(
             $command->userId,
             $edition->getEditionId(),
-            $command->rating->toFloat(), // work_rating
-            null // edition_rating - could be added as optional parameter
+            $actual?->getWorkRating()?->toFloat(), // work_rating: se conserva
+            $command->rating?->toFloat()           // edition_rating: lo que la ficha lee
         );
 
-        $this->feedEventService->recordItemRated(
-            $command->userId,
-            'book',
-            $command->isbn->toString(),
-            $edition->getTitle(),
-            null,
-            $command->rating->toFloat()
-        );
+        // Borrar una valoración no es «ha valorado»: sin esta guarda el feed
+        // pintaría una estrella que ya no existe.
+        if ($command->rating !== null) {
+            $this->feedEventService->recordItemRated(
+                $command->userId,
+                'book',
+                $command->isbn->toString(),
+                $edition->getTitle(),
+                null,
+                $command->rating->toFloat()
+            );
+        }
         
         return true;
     }

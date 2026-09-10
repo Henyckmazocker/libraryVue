@@ -46,10 +46,13 @@ class UpdateGameRatingUseCase extends AbstractUseCase
         $this->userGameRepository->updateRating(
             $command->userId,
             $command->gameId,
-            $command->rating->toFloat()
+            $command->rating?->toFloat()
         );
 
-        $game = $this->gameRepository->findById($command->gameId);
+        // Borrar una valoración no es «ha valorado»: no se emite evento.
+        $game = $command->rating !== null
+            ? $this->gameRepository->findById($command->gameId)
+            : null;
         if ($game) {
             $this->feedEventService->recordItemRated(
                 $command->userId,

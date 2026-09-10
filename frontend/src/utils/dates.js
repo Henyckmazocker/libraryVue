@@ -47,6 +47,29 @@ export function formatDate (iso) {
  * @param {string} fecha Fecha `YYYY-MM-DD`.
  * @returns {string} p. ej. `Hoy` o `viernes, 4 de septiembre de 2026`.
  */
+/**
+ * Hoy en formato `YYYY-MM-DD`, que es el que `<input type="date">` exige en
+ * `min` y `max`.
+ *
+ * Local y no UTC a propósito. `toISOString()` devuelve el día de Greenwich, y
+ * España va **por delante**: entre las 00:00 y las 02:00 de un verano español
+ * daría **ayer** (`2026-09-10T00:30+02:00` → `2026-09-09`), así que el tope
+ * impediría fechar el día en curso justo en la franja en la que nadie lo
+ * prueba. Es el mismo cuidado que `journalDayLabel` toma más abajo al comparar
+ * `entry_date` como cadena en vez de construir un `Date`.
+ *
+ * No se cachea: una pestaña abierta a través de la medianoche tiene que cambiar
+ * de tope. Misma decisión que `intlLocale()` (ver la cabecera de este módulo).
+ *
+ * @returns {string} p. ej. `2026-09-09`.
+ */
+export function hoyISO () {
+  const d = new Date();
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const dia = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mes}-${dia}`;
+}
+
 export function journalDayLabel (fecha) {
   const hoy = new Date().toLocaleDateString('sv-SE');
 

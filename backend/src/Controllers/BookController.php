@@ -153,7 +153,9 @@ class BookController extends BaseController implements Contracts\BookControllerI
     public function updateBookRating(UpdateBookRatingCommand $command): array
     {
         $this->updateBookRatingUseCase->execute($command);
-        return $this->successResponse('Rating updated for ISBN ' . $command->isbn);
+        // Mismo texto que los otros cuatro medios: es el contrato escrito del plan
+        // «Valoración en Línea de las Fichas», y la ficha lo trata igual en los cinco.
+        return $this->successResponse('Book rating updated successfully.');
     }
 
     /**

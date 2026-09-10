@@ -87,10 +87,10 @@ interface UserAlbumRepositoryInterface
      *
      * @param int $userId User ID
      * @param int $albumId Album ID
-     * @param float $rating New rating value
+     * @param float|null $rating New rating value, o `null` para borrarla
      * @return void
      */
-    public function updateRating(int $userId, int $albumId, float $rating): void;
+    public function updateRating(int $userId, int $albumId, ?float $rating): void;
 
     /**
      * Get current statuses for a user-album relationship

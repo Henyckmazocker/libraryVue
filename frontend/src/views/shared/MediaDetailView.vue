@@ -416,9 +416,11 @@ const props = defineProps({
    * en libros `updateBookStatuses` es la versión de `useBooks` con confirmación de
    * sesión, y en los otros cinco la delegación de tres líneas al store.
    *
-   * La valoración va por `editItem` y no por `update<One>Rating`: es lo que hace el
-   * modal de edición, funciona en los seis medios, y evita las cinco acciones de
-   * rating —dos de ellas rotas, ver el Roadmap—.
+   * La valoración va por `update<One>Rating` y no por `editItem`: desde el 2026-09-09
+   * las cinco acciones de rating funcionan y comparten criterio —`ActionRouter.php:306`,
+   * `routes.php:360`, los cinco comandos con `?Rating`—, y las cubre
+   * `backend/tests/Integration/RatingActionsTest.php`. `edit_user_*` se queda como el
+   * camino del modal de edición, que es el que guarda varios campos a la vez.
    */
   onStatus: {
     type: Function,
@@ -808,7 +810,12 @@ async function handleDelete (payload) {
 async function guardarValoracion (valor) {
   if (!props.onRate || !existing.value) return
   const id = config.value.libraryItem.idOf(existing.value)
-  const previo = existing.value[config.value.store.ratingField || 'user_rating']
+  // `store?` no es cosmético: **`series` es el único medio sin bloque `store`** en el
+  // registry —comparte el de `movie`—, así que sin el opcional esta línea lanzaba
+  // «config.value.store is undefined» y reventaba ANTES de llamar a `onRate`. La ficha
+  // de serie pintaba la estrella y no guardaba nada, por este camino y por el viejo de
+  // `editItem`. Verificado en navegador el 2026-09-09.
+  const previo = existing.value[config.value.store?.ratingField || 'user_rating']
 
   try {
     const r = await props.onRate(id, valor)
@@ -844,14 +851,23 @@ async function guardarEstados (estados) {
     //     y el control vuelve a lo que había.
     if (r && r.cancelled) {
       Object.assign(existing.value, { userStatuses: [...previos] })
+      // El panel guarda su propia copia y solo la resincroniza cuando cambia el id
+      // del ítem (`LibraryMediaItem`, watch sobre `idOf`), así que revertir aquí no
+      // le llegaba y el chip se quedaba pintado hasta recargar.
+      libraryItemRef.value?.revertirEstados(previos)
       return
     }
     if (r && r.success === false) throw new Error(r.message)
-    Object.assign(existing.value, { userStatuses: estados })
-    if (item.value) item.value = { ...item.value, userStatuses: estados }
+    // Los efectivos, no los pedidos: en libros, terminar uno retira la lectura en
+    // curso (`useBooks`), así que lo guardado puede ser un subconjunto de `estados`.
+    const efectivos = Array.isArray(r?.statuses) ? r.statuses : estados
+    Object.assign(existing.value, { userStatuses: efectivos })
+    if (item.value) item.value = { ...item.value, userStatuses: efectivos }
+    if (efectivos.length !== estados.length) libraryItemRef.value?.revertirEstados(efectivos)
   } catch (err) {
     Logger.error(`[MediaDetailView] Error guardando los estados de ${props.media}:`, err)
     Object.assign(existing.value, { userStatuses: [...previos] })
+    libraryItemRef.value?.revertirEstados(previos)
     uiStore.showError(t('storeError.statuses'))
   }
 }

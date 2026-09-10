@@ -19,8 +19,8 @@
       <div class="public-profile-view__header">
         <div class="public-profile-view__avatar">
           <img
-            v-if="profile.avatar"
-            :src="profile.avatar"
+            v-if="profile.picture"
+            :src="profile.picture"
             :alt="profile.username"
             loading="lazy"
             decoding="async"
@@ -34,61 +34,69 @@
           <h1 class="public-profile-view__username">
             {{ profile.username }}
           </h1>
+          <!-- Solo si aporta algo: cuando el usuario no ha elegido `username`, el
+               caso de uso devuelve `name` en los DOS campos
+               (`GetPublicProfileUseCase.php:58`) y la cabecera repetiría el mismo
+               texto dos veces, una grande y otra pequeña. -->
           <p
-            v-if="profile.display_name"
+            v-if="profile.name && profile.name !== profile.username"
             class="public-profile-view__display"
           >
-            {{ profile.display_name }}
-          </p>
-          <p
-            v-if="profile.bio"
-            class="public-profile-view__bio"
-          >
-            {{ profile.bio }}
+            {{ profile.name }}
           </p>
         </div>
 
-        <div class="public-profile-view__actions">
+        <!-- Los cuatro valores de `friend_status`, con la guarda de `isCurrentUser`
+             sobre los cuatro y no solo sobre «Agregar»: uno no se envía solicitudes
+             a sí mismo, pero es una línea y evita pintar una rama imposible. -->
+        <div
+          v-if="!isCurrentUser"
+          class="public-profile-view__actions"
+        >
           <Button
-            v-if="!profile.is_friend && !profile.request_sent && !isCurrentUser"
+            v-if="profile.friend_status === 'none'"
             :label="t('social.addFriend')"
             icon="pi pi-user-plus"
             :loading="requestSending"
             @click="handleSendRequest"
           />
           <Tag
-            v-else-if="profile.request_sent"
+            v-else-if="profile.friend_status === 'pending_sent'"
             :value="t('social.requestSent')"
             severity="secondary"
           />
           <Tag
-            v-else-if="profile.is_friend"
-            value="Amigo/a"
+            v-else-if="profile.friend_status === 'friends'"
+            :value="t('social.friends')"
             severity="success"
           />
-        </div>
-      </div>
-
-      <!-- Stats -->
-      <div
-        v-if="profile.stats"
-        class="public-profile-view__stats"
-      >
-        <div class="public-profile-view__stat">
-          <span class="public-profile-view__stat-value">{{ profile.stats.books ?? 0 }}</span>
-          <span class="public-profile-view__stat-label">{{ t('library.filters.books') }}</span>
-        </div>
-        <div class="public-profile-view__stat">
-          <span class="public-profile-view__stat-value">{{ profile.stats.movies ?? 0 }}</span>
-          <span class="public-profile-view__stat-label">{{ t('library.filters.movies') }}</span>
-        </div>
-        <div class="public-profile-view__stat">
-          <span class="public-profile-view__stat-value">{{ profile.stats.games ?? 0 }}</span>
-          <span class="public-profile-view__stat-label">{{ t('library.filters.games') }}</span>
-        </div>
-        <div class="public-profile-view__stat">
-          <span class="public-profile-view__stat-value">{{ profile.stats.albums ?? 0 }}</span>
-          <span class="public-profile-view__stat-label">{{ t('library.filters.albums') }}</span>
+          <!-- A quien te ha escrito se le responde aquí mismo: el caso de uso ya
+               devuelve el `friendship_id` que necesitan las dos acciones, así que
+               no hay razón para mandarle a /friends. -->
+          <template v-else-if="profile.friend_status === 'pending_received'">
+            <span class="public-profile-view__request-hint">
+              {{ t('social.wantsToBeFriendShort') }}
+            </span>
+            <div class="public-profile-view__request-buttons">
+              <Button
+                :label="t('common.accept')"
+                icon="pi pi-check"
+                severity="success"
+                size="small"
+                :loading="requestAnswering"
+                @click="handleAcceptRequest"
+              />
+              <Button
+                :label="t('common.reject')"
+                icon="pi pi-times"
+                severity="danger"
+                text
+                size="small"
+                :loading="requestAnswering"
+                @click="handleRejectRequest"
+              />
+            </div>
+          </template>
         </div>
       </div>
 
@@ -202,6 +210,7 @@ const profile = ref(null)
 const loading = ref(true)
 const error = ref(null)
 const requestSending = ref(false)
+const requestAnswering = ref(false)
 
 const isCurrentUser = computed(() => {
   return authStore.user?.username === route.params.username
@@ -233,12 +242,47 @@ const handleSendRequest = async () => {
   requestSending.value = true
   try {
     await socialStore.sendFriendRequest(profile.value.id)
-    profile.value.request_sent = true
+    // El estado vive en el `ref` local: es un cambio de un campo que el usuario
+    // acaba de provocar, y volver a pedir el perfil entero no diría nada nuevo.
+    profile.value.friend_status = 'pending_sent'
     toast.add({ severity: 'success', summary: t('toasts.requestSent'), life: 3000 })
   } catch (err) {
     toast.add({ severity: 'error', summary: 'Error', detail: err.message, life: 4000 })
   } finally {
     requestSending.value = false
+  }
+}
+
+// Calcados de FriendsView.vue:116-131 —el mismo try/catch, los mismos toasts y el
+// rechazo igualmente sin toast de éxito— para que responder desde el perfil y
+// responder desde /friends se comporten igual. `acceptFriendRequest` refresca de
+// paso la lista de amigos del store, así que /friends ya queda al día.
+// El `friendship_id` nunca es null bajo `pending_received`, pero se comprueba
+// antes de llamar: es más barato que descubrirlo por un 400 del backend.
+const handleAcceptRequest = async () => {
+  if (!profile.value.friendship_id) return
+  requestAnswering.value = true
+  try {
+    await socialStore.acceptFriendRequest(profile.value.friendship_id)
+    profile.value.friend_status = 'friends'
+    toast.add({ severity: 'success', summary: t('toasts.requestAccepted'), life: 3000 })
+  } catch (err) {
+    toast.add({ severity: 'error', summary: 'Error', detail: err.message, life: 4000 })
+  } finally {
+    requestAnswering.value = false
+  }
+}
+
+const handleRejectRequest = async () => {
+  if (!profile.value.friendship_id) return
+  requestAnswering.value = true
+  try {
+    await socialStore.rejectFriendRequest(profile.value.friendship_id)
+    profile.value.friend_status = 'none'
+  } catch (err) {
+    toast.add({ severity: 'error', summary: 'Error', detail: err.message, life: 4000 })
+  } finally {
+    requestAnswering.value = false
   }
 }
 </script>
@@ -302,38 +346,26 @@ const handleSendRequest = async () => {
     margin: 0 0 spacing(xs);
   }
 
-  &__bio {
-    font-size: var(--font-size-sm);
-    color: var(--color-text);
-    margin: 0;
-  }
-
-  &__stats {
-    display: flex;
-    gap: spacing(md);
-    flex-wrap: wrap;
-  }
-
-  &__stat {
-    flex: 1;
-    min-width: min(80px, 100%);
+  // Solo `pending_received` pinta más de un elemento aquí —el aviso y los dos
+  // botones—; en los otros tres estados hay un control suelto al que esta regla
+  // no le cambia nada.
+  &__actions {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    padding: spacing(md);
-    background: var(--color-background-mute);
-    border-radius: radius(md);
+    align-items: flex-end;
+    gap: spacing(xs);
+    flex-shrink: 0;
+  }
 
-    &-value {
-      font-size: var(--font-size-xl);
-      font-weight: 700;
-      color: var(--color-primary);
-    }
+  &__request-hint {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    text-align: right;
+  }
 
-    &-label {
-      font-size: var(--font-size-xs);
-      color: var(--color-text-secondary);
-    }
+  &__request-buttons {
+    display: flex;
+    gap: spacing(xs);
   }
 
   &__lists {

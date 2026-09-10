@@ -259,15 +259,16 @@ const booksStore = useBooksStore();
 const booksComposable = useBooks();
 
 /**
- * La valoración se guarda por donde la guarda el modal de edición, que acaba en este
- * mismo `editUserBook` (`useItemEdit.js:26` solo despacha por medio). NO se
- * usa `updateBookRating`: esas cinco acciones no las llama nadie y dos están rotas.
+ * La valoración va por `updateBookRating`, la acción propia (`update_book_rating`): desde
+ * el 2026-09-09 las cinco acciones de rating funcionan, comparten criterio y están
+ * cubiertas por `backend/tests/Integration/RatingActionsTest.php`. `editUserBook` sigue
+ * siendo el camino del modal de edición, que guarda varios campos a la vez.
  *
  * Y no se pasa por `useItemEdit` a propósito: instancia los cinco composables, así que
  * cada ficha levantaría los cinco stores de Pinia para guardar una valoración.
  */
 const guardarValoracion = (id, valor) =>
-  booksComposable.editUserBook(id, null, { personalRating: valor });
+  booksComposable.updateBookRating(id, valor);
 const uiStore = useUIStore();
 const detalle = ref(null);
 

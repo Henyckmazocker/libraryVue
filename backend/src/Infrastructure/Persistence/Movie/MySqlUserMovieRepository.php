@@ -387,9 +387,11 @@ final class MySqlUserMovieRepository implements UserMovieRepositoryInterface
                 ':rating' => $rating
             ]);
 
-            if ($stmt->rowCount() === 0) {
-                throw new RuntimeException("No user-movie relationship found to update rating. userId=$userId, movieId=$movieId");
-            }
+            // Sin guarda por `rowCount()`: `DatabaseConnector.php:115-117` no activa
+            // `PDO::MYSQL_ATTR_FOUND_ROWS`, así que son filas CAMBIADAS, y reescribir
+            // el valor que ya estaba contaba como cero y reventaba —repulsar la misma
+            // estrella daba un 500 desde que la ficha usa esta acción—. La pertenencia
+            // ya la valida `UpdateMovieRatingUseCase.php:42` con `hasMovie`.
             
             $this->logInfo('User movie rating updated', [
                 'user_id' => $userId,

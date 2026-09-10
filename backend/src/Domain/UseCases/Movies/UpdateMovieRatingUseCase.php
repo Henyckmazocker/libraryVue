@@ -46,10 +46,13 @@ class UpdateMovieRatingUseCase extends AbstractUseCase
         $this->userMovieRepository->updateRating(
             $command->userId, 
             $command->id->toString(), 
-            $command->rating->toFloat()
+            $command->rating?->toFloat()
         );
 
-        $movie = $this->movieRepository->findById($command->id->toString());
+        // Borrar una valoración no es «ha valorado»: no se emite evento.
+        $movie = $command->rating !== null
+            ? $this->movieRepository->findById($command->id->toString())
+            : null;
         if ($movie) {
             $this->feedEventService->recordItemRated(
                 $command->userId,

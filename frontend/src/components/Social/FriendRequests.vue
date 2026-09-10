@@ -19,8 +19,8 @@
       >
         <div class="friend-requests__avatar">
           <img
-            v-if="req.avatar"
-            :src="req.avatar"
+            v-if="req.picture"
+            :src="req.picture"
             :alt="req.username"
             loading="lazy"
             decoding="async"
@@ -36,14 +36,14 @@
         </div>
         <div class="friend-requests__actions">
           <Button
-            v-tooltip.top="'Aceptar'"
+            v-tooltip.top="t('common.accept')"
             icon="pi pi-check"
             severity="success"
             size="small"
             @click="$emit('accept', req.friendship_id)"
           />
           <Button
-            v-tooltip.top="'Rechazar'"
+            v-tooltip.top="t('common.reject')"
             icon="pi pi-times"
             severity="danger"
             text

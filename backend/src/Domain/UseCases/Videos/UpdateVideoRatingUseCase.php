@@ -48,17 +48,20 @@ class UpdateVideoRatingUseCase extends AbstractUseCase
         $this->userVideoRepository->updateRating(
             $command->userId,
             $video->getId(),
-            $command->rating->toFloat()
+            $command->rating?->toFloat()
         );
 
-        $this->feedEventService->recordItemRated(
-            $command->userId,
-            'video',
-            $video->getYouTubeId()->toString(),
-            $video->getTitle(),
-            $video->getCoverUrl(),
-            $command->rating->toFloat()
-        );
+        // Borrar una valoración no es «ha valorado»: no se emite evento.
+        if ($command->rating !== null) {
+            $this->feedEventService->recordItemRated(
+                $command->userId,
+                'video',
+                $video->getYouTubeId()->toString(),
+                $video->getTitle(),
+                $video->getCoverUrl(),
+                $command->rating->toFloat()
+            );
+        }
 
         return true;
     }

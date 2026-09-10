@@ -207,15 +207,16 @@ const gamesStore = useGamesStore();
 const gamesComposable = useGames();
 
 /**
- * La valoración se guarda por donde la guarda el modal de edición, que acaba en este
- * mismo `editUserGame` (`useItemEdit.js:26` solo despacha por medio). NO se
- * usa `updateGameRating`: esas cinco acciones no las llama nadie y dos están rotas.
+ * La valoración va por `updateGameRating`, la acción propia (`update_game_rating`): desde
+ * el 2026-09-09 las cinco acciones de rating funcionan, comparten criterio y están
+ * cubiertas por `backend/tests/Integration/RatingActionsTest.php`. `editUserGame` sigue
+ * siendo el camino del modal de edición, que guarda varios campos a la vez.
  *
  * Y no se pasa por `useItemEdit` a propósito: instancia los cinco composables, así que
  * cada ficha levantaría los cinco stores de Pinia para guardar una valoración.
  */
 const guardarValoracion = (id, valor) =>
-  gamesComposable.editUserGame(id, null, { personalRating: valor });
+  gamesComposable.updateGameRating(id, valor);
 
 const joinNames = (value) => (Array.isArray(value)
   ? value.map(v => (typeof v === 'string' ? v : v.name)).filter(Boolean).join(', ')

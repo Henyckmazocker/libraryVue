@@ -60,8 +60,12 @@ class UpdateBookRatingUseCaseTest extends TestCase
         $this->userRepo->method('findById')->willReturn($this->makeUser());
         $this->editionRepo->method('findByIsbn')->willReturn($this->makeEdition(5));
         $this->userBookEditionRepo->method('hasEdition')->willReturn(true);
+        // Desde el 2026-09-09 el rating va al CUARTO argumento (`edition_rating`), que
+        // es la columna que la ficha enseña; el tercero (`work_rating`) se relee y se
+        // conserva. Antes era al revés y por eso la estrella no persistía al recargar.
+        $this->userBookEditionRepo->method('findByUserAndEdition')->willReturn(null);
         $this->userBookEditionRepo->expects($this->once())->method('updateRating')
-            ->with(1, 5, 4.5, null);
+            ->with(1, 5, null, 4.5);
 
         $command = UpdateBookRatingCommand::fromArray([
             'isbn' => '9780131103627',

@@ -582,29 +582,35 @@ final class MySqlReadingSessionRepository implements ReadingSessionRepositoryInt
             // Obtener estados actuales
             $currentStatuses = $this->userBookEditionRepository->getStatusesForEdition($userId, $editionId);
             
-            // Estados de propiedad que siempre se mantienen
-            $ownershipStates = ['owned', 'want-to-buy'];
-            $ownershipStatuses = array_intersect($currentStatuses, $ownershipStates);
-
-            // Determinar nuevos estados basados en sesiones
-            $newStatuses = $ownershipStatuses; // Mantener siempre ownership
+            // AJUSTAR, no reconstruir: se parte de lo que hay y solo se toca lo
+            // que las sesiones sí saben. Hasta el 2026-09-09 esto era un
+            // `array_intersect($currentStatuses, ['owned', 'want-to-buy'])` que
+            // pisaba todo lo demás, así que apuntar progreso borraba `to-read`,
+            // `paused` y `abandoned` sin que nadie lo pidiera.
+            $newStatuses = $currentStatuses;
 
             if ($hasActive) {
-                // Hay sesión activa → debe estar en 'reading' o 're-reading'
-                if ($hasCompleted) {
-                    $newStatuses[] = 're-reading'; // Ya completó antes, es relectura
-                } else {
-                    $newStatuses[] = 'reading'; // Primera lectura
-                }
+                // `reading`/`re-reading` ocupan la RANURA EXCLUYENTE de estado de lectura, así que
+                // desplazan a quien la tuviera. No es una pérdida: es la regla del dominio
+                // (`MySqlUserBookEditionRepository::validateStatusLogic`, que lanza con dos de
+                // ellos), y es la conducta correcta —un libro que empiezas a leer deja de estar
+                // `to-read`.
+                $newStatuses = array_diff($newStatuses, ['to-read', 'reading', 're-reading', 'paused', 'abandoned']);
+                $newStatuses[] = $hasCompleted ? 're-reading' : 'reading';
+            } else {
+                // Sin sesión activa NO hay estado de lectura que imponer: se retira solo lo que ha
+                // dejado de ser cierto. Aquí es donde estaba el defecto — hoy se borra todo.
+                $newStatuses = array_diff($newStatuses, ['reading', 're-reading']);
             }
 
             if ($hasCompleted) {
-                // Ha completado al menos una vez → añadir 'read'
+                // `read` es histórico y convive con todo: no participa de la ranura excluyente.
                 $newStatuses[] = 'read';
             }
 
-            // Eliminar duplicados y actualizar
-            $newStatuses = array_unique($newStatuses);
+            // Eliminar duplicados y REINDEXAR: `array_diff`/`array_unique` dejan
+            // huecos en los índices y `updateStatuses()` recorre el array.
+            $newStatuses = array_values(array_unique($newStatuses));
 
             $this->logInfo('Updating book statuses based on sessions', [
                 'userId' => $userId,

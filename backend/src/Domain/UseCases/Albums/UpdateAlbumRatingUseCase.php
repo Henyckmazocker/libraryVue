@@ -45,10 +45,13 @@ class UpdateAlbumRatingUseCase extends AbstractUseCase
         $this->userAlbumRepository->updateRating(
             $command->userId,
             $command->albumId,
-            $command->rating->toFloat()
+            $command->rating?->toFloat()
         );
 
-        $album = $this->albumRepository->findById($command->albumId);
+        // Borrar una valoración no es «ha valorado»: no se emite evento.
+        $album = $command->rating !== null
+            ? $this->albumRepository->findById($command->albumId)
+            : null;
         if ($album) {
             $this->feedEventService->recordItemRated(
                 $command->userId,

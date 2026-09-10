@@ -83,6 +83,7 @@
           id="journal-date"
           v-model="fecha"
           type="date"
+          :max="hoyISO()"
           class="journal-form__input"
           required
         >
@@ -139,6 +140,7 @@ import { useGames } from '@/composables/useGames'
 import { useAlbums } from '@/composables/useAlbums'
 import { useVideos } from '@/composables/useVideos'
 import { useI18n } from '@/composables/useI18n'
+import { hoyISO } from '@/utils/dates'
 
 const { t } = useI18n()
 

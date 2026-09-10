@@ -49,6 +49,20 @@ interface UserBookRepositoryInterface
     public function getUserStatuses(int $userId, string $isbn): array;
 
     /**
+     * Get the last known page the user reached in a book
+     *
+     * La página vive en `user_book_editions.current_page`, y ningún método de
+     * esta interfaz la exponía. La necesita el cierre de sesión desde el cambio
+     * de estado: `complete()` escribe `$finalPage ?? 0`, así que sin la página
+     * el historial pintaría una sesión de cero páginas.
+     *
+     * @param int $userId User ID
+     * @param string $isbn Book ISBN
+     * @return int|null Current page, or null if the book is not in the library
+     */
+    public function getCurrentPage(int $userId, string $isbn): ?int;
+
+    /**
      * Count books by status for user
      *
      * @param int $userId User ID

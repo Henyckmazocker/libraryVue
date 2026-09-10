@@ -334,7 +334,7 @@ final class MySqlUserAlbumRepository implements UserAlbumRepositoryInterface
         }
     }
 
-    public function updateRating(int $userId, int $albumId, float $rating): void
+    public function updateRating(int $userId, int $albumId, ?float $rating): void
     {
         try {
             $stmt = $this->db->prepare("

@@ -49,8 +49,9 @@ for arg in "$@"; do
     --logs)    MODE="logs"    ;;
     --mobile)  MODE="mobile"  ;;
     --migrate) MODE="migrate" ;;
+    --test)    MODE="test"    ;;
     --help|-h)
-      echo "Uso: $0 [--reset|--stop|--logs|--mobile|--migrate|--help]"
+      echo "Uso: $0 [--reset|--stop|--logs|--mobile|--migrate|--test|--help]"
       echo ""
       echo "  (sin args)  Setup interactivo + arranque web (Docker)"
       echo "  --reset     Recrea contenedores y volúmenes desde cero"
@@ -58,6 +59,7 @@ for arg in "$@"; do
       echo "  --logs      Logs en tiempo real de todos los servicios"
       echo "  --mobile    Prepara .env.mobile, secrets.xml, compila APK de debug"
       echo "  --migrate   Aplica migraciones de BD pendientes (sin resetear la BD)"
+      echo "  --test      Corre las dos suites de PHPUnit como www-data (no deja logs de root)"
       exit 0
       ;;
   esac
@@ -621,6 +623,29 @@ cmd_migrate() {
 }
 
 # ---------------------------------------------------------------------------
+# Tests del backend, por la vía que no rompe la app
+# ---------------------------------------------------------------------------
+# `docker compose exec` entra como root —el Dockerfile de dev no declara `USER`
+# y su `chown` es de build, no de ejecución—, así que un `composer test` crudo
+# que sea lo primero que escribe logs en el día crea `storage/logs/*.log` como
+# `root:root` 644. Apache es `www-data`: a partir de ahí toda petición muere en
+# un 500, `ping` incluido, el frontend ve fallar `check_auth`, borra el JWT y te
+# devuelve al login. Pasó el 2026-09-03 y el síntoma no se parece a la causa.
+#
+# `--user www-data` es el arreglo entero: los logs nacen con el dueño que Apache
+# necesita y no hay nada que reparar después. El perfil `test` hace falta porque
+# `mysql-test` lo declara (`docker-compose.yml:150`) y la testsuite Integration
+# no arranca sin él.
+cmd_test() {
+  check_deps
+  cd "$ROOT_DIR"
+  info "Levantando la base de datos de tests (perfil 'test')..."
+  compose_cmd --profile test up -d mysql-test
+  info "Ejecutando las dos suites como www-data..."
+  compose_cmd exec --user www-data backend composer test
+}
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 case "$MODE" in
@@ -630,4 +655,5 @@ case "$MODE" in
   logs)    cmd_logs    ;;
   mobile)  cmd_mobile  ;;
   migrate) cmd_migrate ;;
+  test)    cmd_test    ;;
 esac

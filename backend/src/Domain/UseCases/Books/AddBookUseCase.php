@@ -176,13 +176,25 @@ class AddBookUseCase extends AbstractUseCase
             $command->ownershipFormatId
         );
 
-        // Update user's work rating if provided
+        // La valoración del alta va a `edition_rating`, NO a `work_rating`: es la
+        // columna que la ficha enseña —`UserBookEdition::toArray()` la publica como
+        // `user_rating`, `personal_rating` y `rating` (`UserBookEdition.php:239-243`),
+        // y `LibraryMediaItem.vue:188` lee `item.user_rating`—. Hasta el 2026-09-09
+        // el rating iba en el TERCER argumento posicional (`work_rating`) con el
+        // cuarto en su default `null`, y como el UPDATE del repositorio escribe las
+        // dos columnas de una vez (`MySqlUserBookEditionRepository.php:318-332`),
+        // dar de alta un libro con valoración guardaba en la columna que nadie lee
+        // y borraba la que sí.
+        //
+        // El `work_rating` que hubiera se conserva por ese mismo UPDATE de dos
+        // columnas. No hace falta releer la fila: el `add()` de arriba devuelve la
+        // entidad recién guardada.
         if ($command->userRating !== null) {
             $this->userBookEditionRepository->updateRating(
                 $command->userId,
                 $edition->getEditionId(),
-                $command->userRating->toFloat(), // work_rating
-                null // edition_rating not provided in this context
+                $userBookEdition->getWorkRating()?->toFloat(), // work_rating: se conserva
+                $command->userRating->toFloat()                // edition_rating: lo que la ficha lee
             );
         }
 

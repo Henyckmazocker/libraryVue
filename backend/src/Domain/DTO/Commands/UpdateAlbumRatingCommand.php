@@ -8,21 +8,19 @@ use App\Domain\Model\ValueObjects\Rating;
 
 /**
  * Command DTO for updating user's album rating
+ *
+ * `$rating` es nulable: `null` (o un `rating` de 0) borra la valoración.
  */
 final readonly class UpdateAlbumRatingCommand
 {
     public function __construct(
         public int $userId,
         public int $albumId,
-        public Rating $rating
+        public ?Rating $rating
     ) {}
 
     public static function fromArray(array $data, int $userId): self
     {
-        if (!isset($data['rating']) || !is_numeric($data['rating'])) {
-            throw new \InvalidArgumentException('Valid rating is required.');
-        }
-
         if (!isset($data['albumId'])) {
             throw new \InvalidArgumentException('Album ID is required.');
         }
@@ -30,7 +28,9 @@ final readonly class UpdateAlbumRatingCommand
         return new self(
             userId: $userId,
             albumId: is_int($data['albumId']) ? $data['albumId'] : (int)$data['albumId'],
-            rating: Rating::fromFloat((float)$data['rating'])
+            rating: isset($data['rating']) && (float)$data['rating'] > 0
+                ? Rating::fromNullableFloat((float)$data['rating'])
+                : null
         );
     }
 }

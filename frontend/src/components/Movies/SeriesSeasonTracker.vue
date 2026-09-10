@@ -101,6 +101,7 @@
               id="season-date-input"
               v-model="editForm.dateViewed"
               type="date"
+              :max="hoyISO()"
               class="date-input"
             >
           </div>
@@ -186,6 +187,7 @@ import { ref, computed, watch } from 'vue';
 import { useAuthStore } from '@/store/auth';
 import RatingComponent from '@/components/common/RatingComponent.vue';
 import { useI18n } from '@/composables/useI18n';
+import { hoyISO } from '@/utils/dates';
 
 const { t } = useI18n();
 

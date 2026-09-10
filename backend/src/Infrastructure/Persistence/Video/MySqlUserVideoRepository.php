@@ -283,7 +283,7 @@ final class MySqlUserVideoRepository implements UserVideoRepositoryInterface
         }
     }
 
-    public function updateRating(int $userId, int $videoId, float $rating): void
+    public function updateRating(int $userId, int $videoId, ?float $rating): void
     {
         try {
             $this->db->prepare(

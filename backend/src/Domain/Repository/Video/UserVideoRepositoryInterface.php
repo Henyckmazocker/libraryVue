@@ -67,8 +67,10 @@ interface UserVideoRepositoryInterface
 
     /**
      * Update personal rating for a user-video
+     *
+     * `null` escribe `NULL` en la columna: es «borra mi valoración».
      */
-    public function updateRating(int $userId, int $videoId, float $rating): void;
+    public function updateRating(int $userId, int $videoId, ?float $rating): void;
 
     /**
      * Update watch count for a user-video

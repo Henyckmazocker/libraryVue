@@ -403,12 +403,24 @@ class GameCommandsTest extends TestCase
         $this->assertSame(4.5, $cmd->rating->toFloat());
     }
 
+    /**
+     * Desde el 2026-09-09 los cinco comandos de valoración comparten criterio:
+     * un `rating` ausente, nulo o 0 **no** es un error, es «borra mi
+     * valoración». Antes aquí saltaba una `InvalidArgumentException`, al revés
+     * que en libro y película.
+     */
     #[Test]
-    public function update_game_rating_throws_on_missing_rating(): void
+    public function update_game_rating_from_array_without_rating_is_null(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Valid rating is required');
-        UpdateGameRatingCommand::fromArray(['gameId' => 1], 1);
+        $cmd = UpdateGameRatingCommand::fromArray(['gameId' => 1], 1);
+        $this->assertNull($cmd->rating);
+    }
+
+    #[Test]
+    public function update_game_rating_from_array_with_zero_is_null(): void
+    {
+        $cmd = UpdateGameRatingCommand::fromArray(['gameId' => 1, 'rating' => 0], 1);
+        $this->assertNull($cmd->rating);
     }
 
     #[Test]

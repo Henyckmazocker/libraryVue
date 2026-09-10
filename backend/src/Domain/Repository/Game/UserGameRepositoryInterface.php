@@ -86,10 +86,10 @@ interface UserGameRepositoryInterface
      *
      * @param int $userId User ID
      * @param int $gameId Game ID
-     * @param float $rating New rating (0.5-5.0)
+     * @param float|null $rating New rating (0.5-5.0), o `null` para borrarla
      * @return void
      */
-    public function updateRating(int $userId, int $gameId, float $rating): void;
+    public function updateRating(int $userId, int $gameId, ?float $rating): void;
 
     /**
      * Update hours played

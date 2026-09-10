@@ -134,6 +134,7 @@
             id="date-started"
             v-model="localDateStarted"
             type="date"
+            :max="hoyISO()"
             class="edit-modal__input"
           >
         </div>
@@ -144,6 +145,8 @@
             id="date-finished"
             v-model="localDateFinished"
             type="date"
+            :min="localDateStarted || undefined"
+            :max="hoyISO()"
             class="edit-modal__input"
           >
         </div>
@@ -226,6 +229,7 @@
           id="album-date-started"
           v-model="localDateStarted"
           type="date"
+          :max="hoyISO()"
           class="edit-modal__input"
         >
       </div>
@@ -284,6 +288,7 @@ import { useGames } from '@/composables/useGames'
 import { useAlbums } from '@/composables/useAlbums'
 import { useItemEdit } from '@/composables/useItemEdit'
 import { useUIStore } from '@/store/ui'
+import { hoyISO } from '@/utils/dates'
 import Logger from '@/utils/logger'
 import { useI18n } from '@/composables/useI18n';
 

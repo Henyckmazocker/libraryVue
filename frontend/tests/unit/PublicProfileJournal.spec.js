@@ -31,15 +31,15 @@ const respuesta = (data, status = 'success') => ({
   data: { status, data, message: 'backend message in english', http_code: 200 }
 })
 
+// El contrato real de `GetPublicProfileUseCase::doExecute`, ni un campo más:
+// este fixture declaraba seis que el backend nunca ha devuelto.
 const perfil = {
   id: 2,
   username: 'david',
-  display_name: 'David',
-  bio: '',
-  avatar: null,
-  is_friend: true,
-  request_sent: false,
-  stats: null
+  name: 'David',
+  picture: null,
+  friend_status: 'friends',
+  friendship_id: 7
 }
 
 const entrada = (extra = {}) => ({

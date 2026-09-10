@@ -20,6 +20,7 @@ use App\Domain\Model\UserBookEdition;
 use App\Domain\Model\ValueObjects\GoogleId;
 use App\Domain\Model\ValueObjects\Email;
 use App\Domain\Model\ValueObjects\ISBN;
+use App\Domain\Model\ValueObjects\Rating;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
@@ -165,5 +166,87 @@ class AddBookUseCaseTest extends TestCase
 
         $result = $this->useCase->execute($command);
         $this->assertIsArray($result);
+    }
+
+    /**
+     * La valoración del alta va a `edition_rating`, el CUARTO argumento de
+     * `updateRating(int, int, ?float $workRating, ?float $editionRating = null)`.
+     *
+     * Hasta el 2026-09-09 iba al tercero —`work_rating`, con el cuarto en su
+     * default `null`—, y como el UPDATE del repositorio escribe las dos columnas
+     * de una vez, el alta guardaba en la columna que la ficha no lee y borraba la
+     * que sí (`UserBookEdition.php:239-243`, `LibraryMediaItem.vue:188`).
+     */
+    #[Test]
+    public function the_rating_of_a_new_book_goes_to_the_edition_rating_column(): void
+    {
+        $this->userRepo->method('findById')->willReturn($this->makeUser());
+
+        $edition = new Edition(1, null, 'Test Book', 5);
+        $work = Work::fromArray([
+            'title' => 'Test Book',
+            'authors' => ['Author'],
+            'subjects' => [],
+            'first_publish_year' => 2020,
+        ]);
+
+        $this->editionRepo->method('findByIsbn')->willReturn($edition);
+        $this->userBookEditionRepo->method('hasEdition')->willReturn(false);
+        $this->workRepo->method('findById')->willReturn($work);
+
+        $userBookEdition = new UserBookEdition(userId: 1, editionId: 5, id: 1);
+        $this->userBookEditionRepo->method('add')->willReturn($userBookEdition);
+
+        $this->userBookEditionRepo->expects($this->once())
+            ->method('updateRating')
+            ->with(1, 5, null, 4.5);
+
+        $command = new AddBookCommand(
+            isbn: ISBN::fromString('9780131103627'),
+            title: 'Test Book',
+            userId: 1,
+            userRating: Rating::fromFloat(4.5)
+        );
+
+        $this->useCase->execute($command);
+    }
+
+    /**
+     * Y el `work_rating` que ya tuviera la fila se conserva: no hace falta
+     * releerla, porque `add()` devuelve la entidad recién guardada.
+     */
+    #[Test]
+    public function the_rating_of_a_new_book_keeps_the_work_rating_of_the_row(): void
+    {
+        $this->userRepo->method('findById')->willReturn($this->makeUser());
+
+        $edition = new Edition(1, null, 'Test Book', 5);
+        $work = Work::fromArray([
+            'title' => 'Test Book',
+            'authors' => ['Author'],
+            'subjects' => [],
+            'first_publish_year' => 2020,
+        ]);
+
+        $this->editionRepo->method('findByIsbn')->willReturn($edition);
+        $this->userBookEditionRepo->method('hasEdition')->willReturn(false);
+        $this->workRepo->method('findById')->willReturn($work);
+
+        $userBookEdition = new UserBookEdition(userId: 1, editionId: 5, id: 1);
+        $userBookEdition->setWorkRating(Rating::fromFloat(2.5));
+        $this->userBookEditionRepo->method('add')->willReturn($userBookEdition);
+
+        $this->userBookEditionRepo->expects($this->once())
+            ->method('updateRating')
+            ->with(1, 5, 2.5, 4.5);
+
+        $command = new AddBookCommand(
+            isbn: ISBN::fromString('9780131103627'),
+            title: 'Test Book',
+            userId: 1,
+            userRating: Rating::fromFloat(4.5)
+        );
+
+        $this->useCase->execute($command);
     }
 }

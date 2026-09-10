@@ -813,6 +813,7 @@ social:
   feedTab: Feed
   requestsTab: Solicitudes
   requestSent: Solicitud enviada
+  wantsToBeFriendShort: Te ha enviado una solicitud
 
 importer:
   title: Importar datos

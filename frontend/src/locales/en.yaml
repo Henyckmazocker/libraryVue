@@ -801,6 +801,7 @@ social:
   feedTab: Feed
   requestsTab: Requests
   requestSent: Request sent
+  wantsToBeFriendShort: Sent you a friend request
 
 importer:
   title: Import data

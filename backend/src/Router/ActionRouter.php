@@ -296,7 +296,14 @@ class ActionRouter
                 DeleteBookCommand::fromArray($data, $userId)
             ),
             'update_book_rating' => $controller->updateBookRating(
-                new UpdateBookRatingCommand($userId, $data['isbn'] ?? '', $data['rating'] ?? null)
+                // Por `fromArray`, como sus cuatro hermanas de rating y como las
+                // 86 construcciones restantes de este fichero: el constructor es
+                // (ISBN, int, ?Rating) y aqui se le pasaba (int, string, mixed),
+                // asi que la accion moria con un TypeError del ISBN siempre. Es
+                // el cuarto caso del mismo error aqui, tras
+                // `update_book_user_statuses`, `update_movie_user_statuses` y
+                // `delete_movie`.
+                UpdateBookRatingCommand::fromArray($data, $userId)
             ),
             'update_book_user_statuses' => $controller->updateBookUserStatuses(
                 // Por `fromArray`, como sus vecinas: el constructor es

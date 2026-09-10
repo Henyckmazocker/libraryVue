@@ -24,10 +24,12 @@ use Throwable;
  * números para la misma película sin que nada explique cuál manda; así el
  * historial vive en el diario y la ficha sigue enseñando lo que piensas HOY.
  *
- * **No pasa por las acciones `update_*_rating`**, que están rotas y sin
- * consumidores (`ActionRouter.php:291` construye su comando con los argumentos
- * cambiados de orden; está en el Roadmap). Se llama al repositorio de cada
- * medio, que ya tiene el método hecho y probado.
+ * **No pasa por las acciones `update_*_rating`.** Cuando esto se escribió era
+ * porque estaban rotas; desde el 2026-09-09 funcionan y las usan las seis
+ * fichas, pero el motivo de ahora es otro: aquí ya se tiene la entidad delante
+ * y una acción exigiría rehacer el payload y la pila de middleware para acabar
+ * en el mismo repositorio. Se llama al de cada medio, que ya tiene el método
+ * hecho y probado.
  *
  * Como `FeedEventService`, **se traga sus errores**: no poder propagar una
  * valoración no puede impedir que la entrada del diario se guarde.
@@ -89,8 +91,21 @@ class JournalRatingWriter
     /**
      * El diario guarda el ISBN y el repositorio de usuario quiere el
      * `edition_id`: la conversión es la misma que hace
-     * `UpdateBookRatingUseCase.php:41-59`. Se escribe el `work_rating`, que es
-     * el que la ficha enseña.
+     * `UpdateBookRatingUseCase.php:41-59`.
+     *
+     * Se escribe `edition_rating`, NO `work_rating`: es la columna que la ficha
+     * enseña —`UserBookEdition::toArray()` la publica como `user_rating`,
+     * `personal_rating` y `rating` (`UserBookEdition.php:239-243`), y
+     * `LibraryMediaItem.vue:188` lee `item.user_rating`—. Hasta el 2026-09-09
+     * este método pasaba el rating en el TERCER argumento posicional, que es
+     * `work_rating`, y dejaba el cuarto en su default `null`: como el UPDATE del
+     * repositorio escribe las dos columnas de una vez
+     * (`MySqlUserBookEditionRepository.php:318-332`), valorar desde el diario
+     * guardaba en la columna que nadie lee y **borraba la que sí**.
+     *
+     * `work_rating` —la valoración de la OBRA, otro concepto del modelo
+     * Work/Edition— se relee y se reescribe igual, por ese mismo UPDATE de dos
+     * columnas.
      */
     private function writeBook(int $userId, string $isbn, float $rating): void
     {
@@ -100,7 +115,14 @@ class JournalRatingWriter
             return;
         }
 
-        $this->userBookEditions->updateRating($userId, $edition->getEditionId(), $rating);
+        $actual = $this->userBookEditions->findByUserAndEdition($userId, $edition->getEditionId());
+
+        $this->userBookEditions->updateRating(
+            $userId,
+            $edition->getEditionId(),
+            $actual?->getWorkRating()?->toFloat(), // work_rating: se conserva
+            $rating                                // edition_rating: lo que la ficha lee
+        );
     }
 
     /**

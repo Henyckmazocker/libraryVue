@@ -8,6 +8,7 @@ use App\Domain\UseCases\Books\UpdateBookUserStatusesUseCase;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Book\UserBookRepositoryInterface;
 use App\Domain\Repository\Book\EditionRepositoryInterface;
+use App\Domain\Repository\Book\ReadingSessionRepositoryInterface;
 use App\Domain\Services\FeedEventService;
 use App\Domain\Services\JournalService;
 use App\Domain\DTO\Commands\UpdateBookStatusesCommand;
@@ -27,6 +28,7 @@ class UpdateBookUserStatusesUseCaseTest extends TestCase
     private EditionRepositoryInterface $editionRepo;
     private FeedEventService $feedEventService;
     private JournalService $journalService;
+    private ReadingSessionRepositoryInterface $sessionRepo;
 
     protected function setUp(): void
     {
@@ -35,6 +37,7 @@ class UpdateBookUserStatusesUseCaseTest extends TestCase
         $this->editionRepo = $this->createMock(EditionRepositoryInterface::class);
         $this->feedEventService = $this->createMock(FeedEventService::class);
         $this->journalService = $this->createMock(JournalService::class);
+        $this->sessionRepo = $this->createMock(ReadingSessionRepositoryInterface::class);
 
         $this->useCase = new UpdateBookUserStatusesUseCase(
             $this->userRepo,
@@ -42,6 +45,7 @@ class UpdateBookUserStatusesUseCaseTest extends TestCase
             $this->editionRepo,
             $this->feedEventService,
             $this->journalService,
+            $this->sessionRepo,
             new NullLogger()
         );
     }

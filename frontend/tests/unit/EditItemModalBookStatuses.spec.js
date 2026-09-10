@@ -4,9 +4,19 @@ import { nextTick } from 'vue'
 import { mountComponent } from './helpers/mount'
 import EditItemModal from '@/components/EditItemModal.vue'
 import { useBooksStore } from '@/store/books'
-import { useSessionsStore } from '@/store/sessions'
 
-const authenticatedApiCall = vi.fn(() => Promise.resolve({ data: { status: 'success', data: [] } }))
+// La sesión activa que sirve el backend. `updateBookStatuses` la pide bajo
+// demanda con `get_active_reading_session` antes de leer el getter del store
+// (`useBooks.js`), así que sembrar `activeSessions` a mano ya no basta: la
+// carga lo sobrescribe con lo que conteste el backend.
+let sesionActiva = null
+
+const authenticatedApiCall = vi.fn((accion) => Promise.resolve({
+  data: {
+    status: 'success',
+    data: accion === 'get_active_reading_session' ? sesionActiva : []
+  }
+}))
 
 vi.mock('@/store/auth', () => ({
   useAuthStore: () => ({ authenticatedApiCall, apiCall: authenticatedApiCall })
@@ -60,6 +70,7 @@ describe('EditItemModal — los estados de un libro pasan por la máquina de tra
   beforeEach(() => {
     setActivePinia(createPinia())
     authenticatedApiCall.mockClear()
+    sesionActiva = null
     confirmStatusChangeWithSession.mockReset()
     notificados.length = 0
     // `updateBookStatuses` busca el libro en el store para leer su sesión.
@@ -103,9 +114,7 @@ describe('EditItemModal — los estados de un libro pasan por la máquina de tra
   it('cerrar un libro con una sesión abierta pide confirmación, y un «no» no guarda nada', async () => {
     // Esto es lo que estaba desconectado: con los estados dentro de
     // edit_user_book, la confirmación no llegaba a aparecer nunca.
-    useSessionsStore().activeSessions = {
-      [libro.isbn]: { session_number: 2, started_at: '2026-08-01' }
-    }
+    sesionActiva = { session_number: 2, started_at: '2026-08-01' }
     confirmStatusChangeWithSession.mockResolvedValue(false)
 
     const wrapper = montar()

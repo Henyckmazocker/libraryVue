@@ -315,3 +315,46 @@ describe('LibraryMediaItem — resincronización con el ítem', () => {
 // cadena local → remota → placeholder la prueban `MediaDetailView.spec.js:251-307`
 // con cinco casos, incluido el de la serie que pide la clave de película, y
 // `CoverService.spec.js` la composición de la URL.
+
+describe('LibraryMediaItem — revertir la selección de estados', () => {
+  /**
+   * El watch que resincroniza el desplegable mira solo `idOf(props.item)`, y es a
+   * propósito: uno profundo borraría la selección del usuario cada vez que la ficha
+   * reemplaza el objeto al enriquecerlo en segundo plano. El precio era que un
+   * guardado que NO llegó a ocurrir —cancelar la confirmación de sesión— dejaba el
+   * chip pintado hasta recargar, con la base de datos diciendo otra cosa. De ahí
+   * `revertirEstados`, que `MediaDetailView` llama en sus dos ramas de vuelta atrás.
+   */
+  const libro = { isbn: '9788427200203', title: 'Los Juegos del Hambre', userStatuses: ['owned', 'reading'] }
+
+  it('cambiar el `item` sin cambiar su id NO resincroniza el desplegable', async () => {
+    const wrapper = mount('book', libro, { allowedStatuses: ['owned', 'reading', 'read'] })
+
+    await wrapper.setProps({ item: { ...libro, userStatuses: ['owned'] } })
+
+    // Sigue mostrando lo que había: es la conducta que protege la selección del
+    // usuario durante el enriquecimiento, y la razón de que haga falta el método.
+    expect(wrapper.vm.selectedUserStatuses ?? []).toEqual(['owned', 'reading'])
+  })
+
+  it('`revertirEstados` devuelve el desplegable a lo que se le pase', () => {
+    const wrapper = mount('book', libro, { allowedStatuses: ['owned', 'reading', 'read'] })
+
+    wrapper.vm.revertirEstados(['owned', 'read'])
+    expect(wrapper.vm.selectedUserStatuses).toEqual(['owned', 'read'])
+
+    // Copia, no la misma referencia: quien llama conserva su array.
+    const previos = ['owned', 'reading']
+    wrapper.vm.revertirEstados(previos)
+    expect(wrapper.vm.selectedUserStatuses).toEqual(previos)
+    expect(wrapper.vm.selectedUserStatuses).not.toBe(previos)
+  })
+
+  it('sin argumento vuelve a los estados del `item`', () => {
+    const wrapper = mount('book', libro, { allowedStatuses: ['owned', 'reading', 'read'] })
+
+    wrapper.vm.revertirEstados(['owned', 'read'])
+    wrapper.vm.revertirEstados()
+    expect(wrapper.vm.selectedUserStatuses).toEqual(['owned', 'reading'])
+  })
+})

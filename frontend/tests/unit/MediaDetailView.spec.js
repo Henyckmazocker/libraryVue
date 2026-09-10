@@ -375,6 +375,27 @@ describe('MediaDetailView — el panel guarda al vuelo', () => {
     expect(store.add).not.toHaveBeenCalled()
   })
 
+  // `series` es el ÚNICO medio del registry sin bloque `store` —comparte el de
+  // `movie`—, y hasta el 2026-09-09 `guardarValoracion` leía `config.store.ratingField`
+  // sin opcional: la ficha de serie reventaba con «config.value.store is undefined»
+  // antes de llamar a `onRate` y no guardaba la valoración por ningún camino. El test
+  // de arriba no lo veía porque monta un vídeo, que sí declara `store`.
+  it('valorar una SERIE llama a `onRate` aunque el medio no declare `store`', async () => {
+    const onRate = vi.fn().mockResolvedValue({ success: true })
+    route.params = { imdbId: 'tt14452776' }
+    conEstado('movie', { title: 'The Bear', imdbID: 'tt14452776', user_rating: 2 })
+    const store = crearStore([{ title: 'The Bear', imdbID: 'tt14452776', user_rating: 2 }])
+    const wrapper = mountComponent(MediaDetailView, {
+      props: { media: 'series', store, onRate }
+    })
+    await flushPromises()
+
+    wrapper.findComponent({ name: 'LibraryMediaItem' }).vm.$emit('rate', 4)
+    await flushPromises()
+
+    expect(onRate).toHaveBeenCalledWith('tt14452776', 4)
+  })
+
   it('cambiar de estado llama a `onStatus` y NO al store', async () => {
     const onStatus = vi.fn().mockResolvedValue({ success: true })
     const { store, panel } = await conPanel({ onStatus })

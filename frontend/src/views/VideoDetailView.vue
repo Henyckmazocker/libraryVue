@@ -138,15 +138,16 @@ const videosStore = useVideosStore();
 const videosComposable = useVideos();
 
 /**
- * La valoración se guarda por donde la guarda el modal de edición, que acaba en este
- * mismo `editUserVideo` (`useItemEdit.js:26` solo despacha por medio). NO se
- * usa `updateVideoRating`: esas cinco acciones no las llama nadie y dos están rotas.
+ * La valoración va por `updateVideoRating`, la acción propia (`update_video_rating`): desde
+ * el 2026-09-09 las cinco acciones de rating funcionan, comparten criterio y están
+ * cubiertas por `backend/tests/Integration/RatingActionsTest.php`. `editUserVideo` sigue
+ * siendo el camino del modal de edición, que guarda varios campos a la vez.
  *
  * Y no se pasa por `useItemEdit` a propósito: instancia los cinco composables, así que
  * cada ficha levantaría los cinco stores de Pinia para guardar una valoración.
  */
 const guardarValoracion = (id, valor) =>
-  videosComposable.editUserVideo(id, null, { personalRating: valor });
+  videosComposable.updateVideoRating(id, valor);
 const showFullDesc = ref(false);
 
 const youtubeIdOf = (video) => video?.youtube_id || video?.youtubeId;

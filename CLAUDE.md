@@ -69,13 +69,17 @@ docker compose up --build   # equivalente crudo: NO migra ni arranca el mirror
 ./mirror-sync.sh --covers   # caduca la caché del catálogo y baja las portadas pendientes
 
 # Tests backend (PHPUnit 11, dentro del contenedor backend)
+./dev-setup.sh --test                            # LA VÍA OFICIAL: levanta mysql-test con su perfil y
+                                                 # corre las dos suites como www-data. Es la única
+                                                 # que no deja ficheros de root detrás (ver el aviso)
 docker compose --profile test up -d mysql-test   # lo necesita la suite de integración
-docker compose exec backend composer test        # las DOS suites: 1494 tests
-docker compose exec backend composer test:unit   # la rápida: 1279, sin necesitar mysql-test
-docker compose exec backend composer test:integration   # 193, contra una BD desechable
+docker compose exec backend composer test        # las DOS suites: 1566 tests — ⚠ CRUDO, corre como
+                                                 # ROOT y tumba la app: usa ./dev-setup.sh --test
+docker compose exec backend composer test:unit   # la rápida: 1313, sin necesitar mysql-test
+docker compose exec backend composer test:integration   # 253, contra una BD desechable
 
 # Tests frontend (Vitest 3, dentro del contenedor frontend)
-docker compose exec frontend npm test            # 531 tests
+docker compose exec frontend npm test            # 628 tests
 docker compose exec frontend npm run test:watch
 docker compose exec frontend npx vue-cli-service lint --no-fix   # lo corre también ./dev-setup.sh
 docker compose exec frontend npm run lint:styles                 # stylelint; también en ./dev-setup.sh
@@ -95,7 +99,18 @@ cd frontend && npm run cap:sync && npm run build:mobile
 > `storage/logs/*-YYYY-MM-DD.log` nacen `root:root` con modo 644 y Apache (`www-data`) ya no puede
 > añadir: **toda** petición pasa a 500, `ping` incluido, y el frontend borra el JWT de
 > `localStorage` al fallar `check_auth`, así que el síntoma que ves es «no puedo entrar en la app».
-> Se arregla con `docker compose exec backend chown -R www-data:www-data storage/logs`.
+> Se arregla con `docker compose exec backend chown -R www-data:www-data storage .phpunit.cache`.
+>
+> **La vía que no lo provoca es `./dev-setup.sh --test`**, que corre la suite con `--user www-data`.
+> Reproducido el 2026-09-09: con `composer test` crudo los logs del día nacen `root:root` y `ping`
+> devuelve 500; con el `chown` de arriba vuelve a 200. Dos matices que cuestan un rato si no se
+> saben: solo lo provocan las suites que arrancan la app (`composer test` y `test:integration`);
+> `test:unit` **no** escribe en `storage/logs` y no rompe nada. Y el daño **no se limita a los
+> logs** — ese mismo día aparecieron 3 ficheros `root` en `storage/cache/` (`googlebooks`,
+> `googlebooks_rows_v2`, `youtube`) de corridas crudas anteriores, que hacían fallar 2 tests al
+> correr como `www-data`, y `.phpunit.cache/` era `root:root` desde agosto, lo que añadía un
+> `Warning: file_put_contents(…/test-results): Permission denied` a cada corrida. Por eso el rescate
+> va sobre `storage` entero y `.phpunit.cache`, y no sobre `storage/logs` a secas.
 
 > ⚠️ **Una devDependency nueva del frontend obliga a `docker compose build frontend`.** El
 > contenedor monta `package.json`, `vitest.config.js`, `tests/` y `.stylelintrc.json`
@@ -682,6 +697,17 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
   `GetLibraryUseCase` (inyectado en `LibraryController`, nunca invocado) y el par
   `BookNoteRepositoryInterface`/`MySqlBookNoteRepository`. De `BookRepositoryInterface` sobrevive
   **un** método, `fetchAllowedStatuses()`, que lee `book_statuses` y sí existe.
+  **Aquel barrido se dejó dos, y las dos aguantaron hasta el 2026-09-09**, porque buscaba *tablas*
+  fantasma y estas eran *columnas*: `MySqlUserBookRepository::getUserStatuses()` y `countByStatus()`
+  consultaban `user_book_statuses` por `ubs.user_id` y `ubs.book_isbn`, que esa tabla no tiene desde
+  Work/Edition (sus campos son `user_edition_id`, `status_id`, `updated_at`). Las dos morían con
+  `1054 Unknown column` y las dos lo escondían en su `catch`, devolviendo `[]` y `0`. **El síntoma de
+  la primera era una entrada de diario falsa**: `UpdateBookUserStatusesUseCase` comparaba los estados
+  previos contra un conjunto siempre vacío, así que reguardar un libro ya `read` parecía una
+  transición. La segunda no tenía síntoma **ninguno**, y por eso duró más: un contador a cero no
+  parece roto. Dos consecuencias para el próximo barrido: **cruza también columnas, no solo tablas**,
+  y **desconfía del fichero que ya arreglaste** — `hasBook()` se corrigió en agosto y sus dos vecinas
+  siguieron rotas siete meses más.
 - **Nunca apuntes el sembrado de test al MySQL de dev.** `docker/database/init.sql` empieza con
   `DROP DATABASE IF EXISTS library_db` y **el nombre de la base es el mismo** en dev y en test. El
   bootstrap tiene una lista blanca de hosts y aborta si `DB_TEST_HOST` no está en ella; no la quites.
@@ -836,9 +862,9 @@ Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_
 
 1. `docker compose up --build`; `POST http://localhost:8888/index.php` con `{"action":"ping"}`.
 2. Busca un libro/película, guárdalo en la biblioteca, comprueba la ficha y el dashboard de stats.
-3. `docker compose exec backend composer test` → verde (1494 tests: 1288 unitarios + 206 de
+3. `docker compose exec backend composer test` → verde (1566 tests: 1313 unitarios + 253 de
    integración; estos necesitan `docker compose --profile test up -d mysql-test`).
-4. `docker compose exec frontend npm test` → verde (531 tests) y
+4. `docker compose exec frontend npm test` → verde (628 tests) y
    `docker compose exec frontend npm run lint:styles` → sin salida.
 5. **`docker compose exec frontend npm run build` → `Build complete`.** No es redundante con el paso
    anterior: **ninguno de los tres comandos de arriba compila SCSS**. Los helpers de

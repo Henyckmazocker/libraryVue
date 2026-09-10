@@ -407,7 +407,7 @@ final class MySqlUserGameRepository implements UserGameRepositoryInterface
         }
     }
 
-    public function updateRating(int $userId, int $gameId, float $rating): void
+    public function updateRating(int $userId, int $gameId, ?float $rating): void
     {
         try {
             $stmt = $this->db->prepare("
@@ -422,9 +422,11 @@ final class MySqlUserGameRepository implements UserGameRepositoryInterface
                 ':rating' => $rating
             ]);
 
-            if ($stmt->rowCount() === 0) {
-                throw new RuntimeException("No user-game relationship found to update rating. userId=$userId, gameId=$gameId");
-            }
+            // Sin guarda por `rowCount()`: `DatabaseConnector.php:115-117` no activa
+            // `PDO::MYSQL_ATTR_FOUND_ROWS`, así que son filas CAMBIADAS, y reescribir
+            // el valor que ya estaba contaba como cero y reventaba —repulsar la misma
+            // estrella daba un 500 desde que la ficha usa esta acción—. La pertenencia
+            // ya la valida `UpdateGameRatingUseCase.php:42` con `hasGame`.
             
             $this->logInfo('User game rating updated', [
                 'user_id' => $userId,

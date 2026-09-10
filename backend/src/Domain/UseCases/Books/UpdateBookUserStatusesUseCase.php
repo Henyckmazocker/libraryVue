@@ -6,6 +6,7 @@ namespace App\Domain\UseCases\Books;
 
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Domain\Repository\Book\EditionRepositoryInterface;
+use App\Domain\Repository\Book\ReadingSessionRepositoryInterface;
 use App\Domain\Repository\Book\UserBookRepositoryInterface;
 use App\Domain\Services\FeedEventService;
 use App\Domain\Services\JournalService;
@@ -22,6 +23,7 @@ class UpdateBookUserStatusesUseCase extends AbstractUseCase
         private readonly EditionRepositoryInterface $editionRepository,
         private readonly FeedEventService $feedEventService,
         private readonly JournalService $journalService,
+        private readonly ReadingSessionRepositoryInterface $sessionRepository,
         LoggerInterface $logger
     ) {
         parent::__construct($logger);
@@ -48,6 +50,24 @@ class UpdateBookUserStatusesUseCase extends AbstractUseCase
 
         // Update the user's statuses for this book
         $this->userBookRepository->updateStatuses($command->userId, $command->isbn->toString(), $command->statuses);
+
+        // Solo en la TRANSICION, no en cada guardado: el use case recibe el conjunto
+        // entero y sin los previos no sabe que cambio. Mismo criterio que `recordIfConsumed`.
+        $anadidos = array_diff($command->statuses, $estadosPrevios);
+        $sesion   = $this->sessionRepository->getActive($command->userId, $command->isbn->toString());
+
+        if ($sesion !== null) {
+            if (in_array('read', $anadidos, true)) {
+                // Se conserva la ultima pagina conocida, NO `null`: `complete()` hace
+                // `':finalPage' => $finalPage ?? 0`, asi que `null` escribe un 0 en `end_page`
+                // y `SessionHistoryModal` pintaria una sesion de cero paginas.
+                $paginaActual = $this->userBookRepository->getCurrentPage($command->userId, $command->isbn->toString());
+                $this->sessionRepository->complete((int) $sesion['id'], $paginaActual);
+            } elseif (in_array('abandoned', $anadidos, true)) {
+                $this->sessionRepository->abandon((int) $sesion['id'], 'status_change');
+            }
+        }
+        // NO se apunta diario aqui: `recordIfConsumed` de mas abajo ya lo hace para `read`.
 
         $edition = $this->editionRepository->findByIsbn($command->isbn->toString());
         if ($edition && !empty($command->statuses)) {

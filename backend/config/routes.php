@@ -349,9 +349,17 @@ return [
             LoggingMiddleware::class,
             AuthenticationMiddleware::class,
             CSRFMiddleware::class,
-            [ValidationMiddleware::class, ['required' => ['rating']]]
+            // ⚠ Antes solo exigía `rating`, así que un payload sin identificador
+            // pasaba la validación y reventaba abajo, en el último `??` sin
+            // default de `UpdateMovieRatingCommand::fromArray`. Se exige `isbn`,
+            // que es la clave que manda el store (`mediaRegistry.js:897`), y
+            // **una sola**: `ValidationMiddleware` pide TODAS las de la lista
+            // —la trampa de `delete_movie`, aquí arriba—, así que enumerar
+            // `id`/`imdbID` de más las volvería obligatorias. Los alias los
+            // resuelve el `fromArray`.
+            [ValidationMiddleware::class, ['required' => ['isbn', 'rating']]]
         ],
-        'validation' => ['rating']
+        'validation' => ['isbn', 'rating']
     ],
     
     'update_movie_user_statuses' => [

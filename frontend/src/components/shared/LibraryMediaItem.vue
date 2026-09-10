@@ -223,7 +223,22 @@ function guardar () {
   emit('save', cfg.value.savePayload(payloadItem(), [...selectedUserStatuses.value], rating.value))
 }
 
-defineExpose({ guardar })
+/**
+ * Devuelve el desplegable a unos estados concretos, sin pasar por el watch.
+ *
+ * Existe porque el watch de arriba solo mira `idOf(props.item)`, a propósito: uno
+ * profundo borraría la selección del usuario cada vez que la ficha reemplaza el
+ * objeto al enriquecerlo. Pero eso deja sin vía de vuelta al caso contrario —el
+ * guardado que NO llegó a ocurrir—, y el chip se quedaba pintado hasta recargar:
+ * cancelar la confirmación de sesión no escribía nada en la base y el desplegable
+ * seguía enseñando `read`. Lo llama `MediaDetailView.guardarEstados()` en sus dos
+ * ramas de vuelta atrás, la de `cancelled` y la del `catch`.
+ */
+function revertirEstados (estados) {
+  selectedUserStatuses.value = Array.isArray(estados) ? [...estados] : initialStatuses()
+}
+
+defineExpose({ guardar, revertirEstados })
 </script>
 
 <style scoped lang="scss">

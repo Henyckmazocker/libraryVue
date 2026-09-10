@@ -88,7 +88,25 @@ export function useBooks() {
           abandonedBook: statuses.includes('abandoned') && !previousStatuses.includes('abandoned')
         }
 
-        // Verificar si hay sesión activa
+        // Verificar si hay sesión activa.
+        //
+        // Una petición, y SOLO cuando se va a cambiar un estado: el mapa
+        // `activeSessions` del store nadie lo llena en el arranque, y llenarlo
+        // entero costaría una petición por libro de la biblioteca. Sin esta
+        // línea el mapa está siempre vacío y el diálogo de abajo no se ejecuta
+        // jamás.
+        //
+        // El `try` es la ruta de escape: `loadActiveSession` se traga sus
+        // propios fallos —borra la entrada y devuelve `{ success: false }`, o
+        // `undefined` si la respuesta llega sin `success`—, pero si alguna vez
+        // dejara escapar uno, el `catch` de `updateBookStatuses` lo convertiría
+        // en un cambio de estado abortado. Un fallo de red al PREGUNTAR por la
+        // sesión deja al usuario sin diálogo, nunca sin cambio de estado.
+        try {
+          await sessionsStore.loadActiveSession(isbn)
+        } catch (err) {
+          Logger.warn('[useBooks] Active session lookup failed, continuing without dialog:', err)
+        }
         const activeSession = sessionsStore.getActiveSessionByBook(isbn)
         let sessionInfo = null
 
@@ -119,8 +137,23 @@ export function useBooks() {
           }
         }
 
+        // Dar un libro por terminado LIBERA la ranura de lectura. El desplegable
+        // solo sabe añadir, así que marcar «leído» sobre un libro en curso mandaba
+        // `['owned', 'reading', 'read']` y lo dejaba leyendo y leído a la vez, con
+        // la sesión ya cerrada. `validateStatusLogic` no lo impide porque `read` es
+        // histórico y convive con todo. Es la misma regla que aplica la derivación
+        // (`MySqlReadingSessionRepository::updateBookStatusesBasedOnSessions`), y va
+        // aquí para que la petición, el estado local y la base digan lo mismo.
+        //
+        // `read` + `re-reading` NO se toca: es válido, y se llega a él marcando
+        // `re-reading` después. Lo que se retira es la lectura en curso en el
+        // momento en que se termina, no la posibilidad de releer.
+        const aGuardar = transitions.completedBook
+          ? statuses.filter(s => s !== 'reading' && s !== 're-reading')
+          : statuses
+
         // Delegar actualización al store
-        const result = await booksStore.updateBookStatuses(isbn, statuses)
+        const result = await booksStore.updateBookStatuses(isbn, aGuardar)
 
         // NOTIFICACIONES AUTOMÁTICAS (lógica de UI)
         if (result.success) {
@@ -141,7 +174,10 @@ export function useBooks() {
           }
         }
 
-        return result
+        // Los estados EFECTIVOS viajan de vuelta: pueden no ser los que pidió quien
+        // llama, porque terminar un libro retira la lectura en curso. Sin esto, la
+        // ficha se queda pintando un `reading` que el backend ya no tiene.
+        return { ...result, statuses: aGuardar }
       } catch (err) {
         // Validación especial para error de página incompleta
         // Se compara contra el texto del BACKEND, que no se traduce, y por eso

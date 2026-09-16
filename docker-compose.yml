@@ -107,6 +107,14 @@ services:
 
   mysql:
     image: mysql:8.0
+    # performance_schema reserva ~220 MB al arrancar, dimensionados por
+    # max_connections y table_open_cache, no por el tamaño de la BD ni por el
+    # uso: una instancia ociosa paga lo mismo que una a tope. Apagado aqui
+    # porque esta es la instancia de desarrollo y nadie la perfila; el pico
+    # historico de conexiones es 1. Para volver a diagnosticar, quitar la
+    # linea y recrear el contenedor.
+    command:
+      - --performance-schema=OFF
     ports:
       - "3308:3306"
     environment:

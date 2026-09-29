@@ -3,6 +3,17 @@ import { useAuth } from './useAuth';
 import { FileProcessorService } from '@/services/FileProcessorService';
 import Logger from '@/utils/logger';
 import { t } from '@/config/i18n';
+import { track } from '@/analytics';
+import { IMPORT_SERVICES } from '@/analytics/catalog';
+
+/** El servicio del evento, o `unknown`. Del fichero no viaja nada: ni su nombre ni su tamaño. */
+const serviceOf = (id) => (IMPORT_SERVICES.includes(id) ? id : 'unknown');
+
+/** Un recuento del resultado de `import_data` como entero (`0` si no llega). */
+const countOf = (value) => {
+  const n = Number(value);
+  return Number.isInteger(n) && n > 0 ? n : 0;
+};
 
 /**
  * Composable para gestión de importación de archivos
@@ -125,6 +136,7 @@ export function useFileImport() {
         if (!isCompatible) {
           error.value = t('importer.wrongType', { tipos: currentService.value.acceptedTypes });
           selectedFile.value = null;
+          track('import_file_rejected', { service: serviceOf(selectedService.value) });
         }
       }
     }
@@ -146,6 +158,9 @@ export function useFileImport() {
     importProgress.value = 0;
     error.value = null;
     importResults.value = {};
+    // El servicio se fija aquí: `resetImport` puede vaciarlo antes de que vuelva el backend.
+    const service = serviceOf(selectedService.value);
+    track('import_started', { service });
 
     try {
       Logger.debug(`[useFileImport] Starting import with service: ${selectedService.value}`);
@@ -175,6 +190,11 @@ export function useFileImport() {
         importResults.value = response.data.data || {};
         
         Logger.debug('[useFileImport] Import completed successfully:', importResults.value);
+        track('import_completed', {
+          service,
+          ok_items: countOf(importResults.value.successful_items),
+          failed_items: countOf(importResults.value.failed_items)
+        });
         
         return {
           success: true,
@@ -193,6 +213,7 @@ export function useFileImport() {
       importProgress.value = 0;
       
       Logger.error('[useFileImport] Import failed:', err);
+      track('import_failed', { service });
       
       return {
         success: false,
@@ -269,6 +290,7 @@ export function useFileImport() {
       importStatus.value = 'idle';
       importProgress.value = 0;
       error.value = t('importer.cancelled');
+      track('import_cancelled', { service: serviceOf(selectedService.value) });
       
       Logger.debug('[useFileImport] Import cancelled by user');
     }

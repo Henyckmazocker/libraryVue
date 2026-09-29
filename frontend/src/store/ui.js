@@ -1,6 +1,10 @@
 import { defineStore } from 'pinia'
 import Logger from '@/utils/logger'
 import { t } from '@/config/i18n'
+import { track, currentRouteName } from '@/analytics'
+
+/** Los `type` del modal de confirmación que declara `confirm_cancelled` (catalog.js). */
+const CONFIRM_KINDS = ['default', 'danger', 'warning', 'success', 'info']
 
 export const useUIStore = defineStore('ui', {
   state: () => ({
@@ -101,6 +105,10 @@ export const useUIStore = defineStore('ui', {
      * Cierra el modal de confirmación con resultado
      */
     closeConfirmationModal(confirmed = false) {
+      if (!confirmed && this.modals.confirmation.isOpen) {
+        const type = this.modals.confirmation.type
+        track('confirm_cancelled', { kind: CONFIRM_KINDS.includes(type) ? type : 'unknown' })
+      }
       if (this.modals.confirmation.resolve) {
         this.modals.confirmation.resolve(confirmed)
       }
@@ -165,6 +173,11 @@ export const useUIStore = defineStore('ui', {
 
       this.notifications.push(notification)
       Logger.debug('[UIStore] Notification added:', notification)
+
+      // Dónde se enseñó, nunca qué decía: el texto puede llevar un dato.
+      if (notification.type === 'error' || notification.type === 'warning') {
+        track('error_shown', { source: currentRouteName() })
+      }
 
       // Auto-dismiss después de la duración especificada
       if (notification.duration > 0) {

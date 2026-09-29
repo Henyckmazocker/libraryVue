@@ -124,7 +124,7 @@ class AddBookUseCaseTest extends TestCase
         $this->userBookEditionRepo->method('hasEdition')->willReturn(false);
         $this->workRepo->method('findById')->willReturn($work);
 
-        $userBookEdition = new UserBookEdition(userId: 1, editionId: 5, id: 1);
+        $userBookEdition = new UserBookEdition(userId: 1, editionId: 5, id: 42);
         $this->userBookEditionRepo->method('add')->willReturn($userBookEdition);
 
         $command = new AddBookCommand(
@@ -136,6 +136,8 @@ class AddBookUseCaseTest extends TestCase
 
         $result = $this->useCase->execute($command);
         $this->assertIsArray($result);
+        // Las notas de la ficha recién dada de alta cuelgan de este id, no del de la edición.
+        $this->assertSame(42, $result['user_edition_id']);
     }
 
     #[Test]

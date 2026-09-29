@@ -3,6 +3,16 @@ import { useAuthStore } from './auth'
 import Logger from '@/utils/logger'
 import { handleStoreError } from '@/utils/storeHelpers'
 import { t } from '@/config/i18n'
+import { track } from '@/analytics'
+
+/** Los motivos de cierre que el catálogo conoce (`reading_session_completed.reason`). */
+const COMPLETION_REASONS = ['completed', 'abandoned']
+
+/** Páginas leídas en la sesión: de la de inicio a la de cierre, nunca negativo. */
+const pagesRead = (session, endPage) => {
+  const n = Number(endPage) - Number(session?.start_page ?? 0)
+  return Number.isFinite(n) && n > 0 ? Math.round(n) : 0
+}
 
 export const useSessionsStore = defineStore('sessions', {
   state: () => ({
@@ -191,6 +201,7 @@ export const useSessionsStore = defineStore('sessions', {
           this.sessionHistories[bookId].push(newSession)
           
           Logger.debug('[SessionsStore] Session created successfully:', newSession)
+          track('reading_session_started')
           return { 
             success: true, 
             session: newSession,
@@ -249,6 +260,10 @@ export const useSessionsStore = defineStore('sessions', {
           delete this.activeSessions[bookId]
           
           Logger.debug('[SessionsStore] Session completed successfully')
+          track('reading_session_completed', {
+            reason: COMPLETION_REASONS.includes(reason) ? reason : 'unknown',
+            pages: pagesRead(activeSession, endPage)
+          })
           return { success: true }
         } else {
           throw new Error(t('session.completeFailed'))
@@ -286,6 +301,7 @@ export const useSessionsStore = defineStore('sessions', {
           }
           
           Logger.debug('[SessionsStore] Session paused successfully')
+          track('reading_session_paused')
           return { success: true }
         } else {
           throw new Error(t('session.pauseFailed'))
@@ -321,6 +337,7 @@ export const useSessionsStore = defineStore('sessions', {
           }
           
           Logger.debug('[SessionsStore] Session resumed successfully')
+          track('reading_session_resumed')
           return { success: true }
         } else {
           throw new Error(t('session.resumeFailed'))
@@ -367,6 +384,7 @@ export const useSessionsStore = defineStore('sessions', {
           delete this.activeSessions[bookId]
           
           Logger.debug('[SessionsStore] Session abandoned successfully')
+          track('reading_session_abandoned')
           return { success: true }
         } else {
           throw new Error(t('session.abandonFailed'))
@@ -404,6 +422,7 @@ export const useSessionsStore = defineStore('sessions', {
           }
           
           Logger.debug('[SessionsStore] Session deleted successfully')
+          track('reading_session_deleted')
           return { success: true }
         } else {
           throw new Error(t('session.deleteFailed'))

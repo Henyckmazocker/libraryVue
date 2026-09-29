@@ -2,7 +2,10 @@
   <!-- El chasis lo pone `BaseModal`: overlay, trampa de foco, Escape, cabecera
        y pie ordenado, igual que en los cuatro modales propios. -->
   <BaseModal
+    ref="modalRef"
     v-model="visible"
+    analytics-name="invite_to_club"
+    :analytics-dirty="inviteeId !== null"
     :title="t('clubInvite.title')"
     class="invite-to-club-dialog"
   >
@@ -98,11 +101,13 @@
 </template>
 
 <script setup>
-import { computed, inject, onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import { storeToRefs } from 'pinia'
 import { useSocialStore } from '@/store/social'
 import { useClubsStore } from '@/store/clubs'
+import { useUIStore } from '@/store/ui'
+import { track } from '@/analytics'
 import { useI18n } from '@/composables/useI18n';
 
 const { t } = useI18n();
@@ -119,7 +124,8 @@ const emit = defineEmits(['update:modelValue', 'invited'])
 const social = useSocialStore()
 const clubs = useClubsStore()
 const { isSaving, error } = storeToRefs(clubs)
-const notifications = inject('notifications', null)
+const uiStore = useUIStore()
+const modalRef = ref(null)
 
 const isLoadingFriends = ref(true)
 const friends = ref([])
@@ -148,6 +154,7 @@ onMounted(async () => {
 
 const submit = async () => {
   const result = await clubs.inviteToClub(Number(props.clubId), inviteeId.value)
+  track('form_submit', { form: 'invite_to_club', ok: result.success === true })
 
   if (!result.success) {
     // El mensaje se queda DENTRO del diálogo: hay que poder leerlo mientras se
@@ -155,8 +162,9 @@ const submit = async () => {
     return
   }
 
+  modalRef.value?.markSubmitted()
   visible.value = false
-  notifications?.showSuccess?.(t('toasts.inviteSent'))
+  uiStore.showSuccess(t('toasts.inviteSent'))
   emit('invited')
 }
 </script>

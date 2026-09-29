@@ -20,6 +20,7 @@ import Logger from '@/utils/logger'
 
 import { apiError } from '@/composables/useApiError'
 import { t } from '@/config/i18n'
+import { track, failureCode, mediaOrNull } from '@/analytics'
 
 /**
  * Lo que los clubs dicen de cada código. El 409 lo devuelven dos cosas —«ya hay
@@ -32,6 +33,10 @@ const CLAVES = {
   404: 'clubs.error404',
   409: 'clubs.error409'
 }
+
+/** Las fases de `ClubRound::PHASES`; lo que no sea una de ellas viaja como `unknown`. */
+const FASES = ['proposing', 'voting', 'closed']
+
 
 export const useClubsStore = defineStore('clubs', {
   state: () => ({
@@ -120,8 +125,11 @@ export const useClubsStore = defineStore('clubs', {
      * la respuesta puede traer un `pick` que no existía antes de esta llamada, y
      * por eso hay que releer el club después de proponer o votar: el estado
      * siguiente lo decide el servidor al leer, no el cliente.
+     *
+     * `countView: false` es la relectura que sigue a cada escritura: no es una
+     * visita, y contarla inflaría `club_viewed` con cada voto y cada propuesta.
      */
-    async fetchClub (clubId) {
+    async fetchClub (clubId, { countView = true } = {}) {
       const authStore = useAuthStore()
       this.isLoading = true
       this.error = null
@@ -141,15 +149,18 @@ export const useClubsStore = defineStore('clubs', {
           this.currentPick = response.data.data?.pick ?? null
           this.currentRound = response.data.data?.round ?? null
           this.currentHistory = response.data.data?.history ?? []
+          if (countView) track('club_viewed')
           return { success: true }
         }
 
         this.error = apiError(response.data, CLAVES)
+        if (countView) track('club_view_failed', { code: failureCode(response.data) })
         return { success: false, code: response.data.http_code ?? null }
       } catch (err) {
         Logger.error('[ClubsStore] fetchClub error:', err)
         const code = err.response?.status ?? err.response?.data?.http_code ?? null
         this.error = apiError(code, CLAVES)
+        if (countView) track('club_view_failed', { code: failureCode(err) })
         return { success: false, code }
       } finally {
         this.isLoading = false
@@ -263,6 +274,8 @@ export const useClubsStore = defineStore('clubs', {
         // `created_at`, `member_count` e `is_owner`, y componerla aquí sería
         // inventarse tres campos que la tarjeta pinta.
         this.fetchMyClubs()
+        // Ni el nombre ni la descripción: el evento no lleva props.
+        track('club_created')
         return { clubId: data?.clubId }
       })
     },
@@ -273,7 +286,11 @@ export const useClubsStore = defineStore('clubs', {
      * le invitaste», y ninguno es un fallo de permiso.
      */
     async inviteToClub (clubId, userId) {
-      const result = await this._write('invite_to_club', { clubId, userId })
+      const result = await this._write('invite_to_club', { clubId, userId }, () => {
+        // Sin el invitado: quién es no es asunto de Augur.
+        track('club_member_invited')
+        return {}
+      })
 
       if (!result.success && result.code === 400) {
         this.error = t('clubs.inviteNotFriends')
@@ -286,6 +303,7 @@ export const useClubsStore = defineStore('clubs', {
     async leaveClub (clubId) {
       return this._write('leave_club', { clubId }, () => {
         this.clubs = this.clubs.filter((c) => c.id !== clubId)
+        track('club_left')
         return {}
       })
     },
@@ -297,10 +315,15 @@ export const useClubsStore = defineStore('clubs', {
         () => {
           // Se relee en vez de componer el pick a mano: la fila del servidor
           // trae `started_at`, y el progreso arranca de cero para todos.
-          this.fetchClub(clubId)
+          this.fetchClub(clubId, { countView: false })
           this.fetchProgress(clubId)
           // Las notas del ítem anterior no valen para el nuevo.
           this.fetchNotes(clubId)
+          // Solo el medio: ni el título ni la portada del ítem.
+          // El backend rechaza un medio fuera de `ClubPick::ENTITY_TYPES`, así
+          // que tras un OK siempre está en `MEDIA`; si no, se calla.
+          const media = mediaOrNull(entityType)
+          if (media) track('club_pick_set', { media })
           return {}
         }
       )
@@ -313,9 +336,10 @@ export const useClubsStore = defineStore('clubs', {
      */
     async finishPick (clubId) {
       return this._write('finish_club_pick', { clubId }, () => {
-        this.fetchClub(clubId)
+        this.fetchClub(clubId, { countView: false })
         this.fetchProgress(clubId)
         this.fetchNotes(clubId)
+        track('club_pick_finished')
         return {}
       })
     },
@@ -334,7 +358,9 @@ export const useClubsStore = defineStore('clubs', {
         () => {
           // Se relee: proponer el último que faltaba ABRE el voto, y eso lo
           // decide el servidor en la lectura siguiente, no esta respuesta.
-          this.fetchClub(clubId)
+          this.fetchClub(clubId, { countView: false })
+          const media = mediaOrNull(entityType)
+          if (media) track('club_item_proposed', { media })
           return {}
         }
       )
@@ -348,8 +374,9 @@ export const useClubsStore = defineStore('clubs', {
       return this._write('vote_club_proposal', { clubId, proposalId }, () => {
         // Votar el último que faltaba CIERRA la ronda y crea el ítem, y también
         // eso lo resuelve el servidor al leer.
-        this.fetchClub(clubId)
+        this.fetchClub(clubId, { countView: false })
         this.fetchProgress(clubId)
+        track('club_proposal_voted')
         return {}
       })
     },
@@ -364,15 +391,19 @@ export const useClubsStore = defineStore('clubs', {
      */
     async openVote (clubId) {
       return this._write('open_club_vote', { clubId }, () => {
-        this.fetchClub(clubId)
+        this.fetchClub(clubId, { countView: false })
+        track('club_vote_opened')
         return {}
       })
     },
 
     async closeVote (clubId) {
       return this._write('close_club_vote', { clubId }, (data) => {
-        this.fetchClub(clubId)
+        this.fetchClub(clubId, { countView: false })
         this.fetchProgress(clubId)
+        // La fase en la que queda la ronda: `closed` si hubo ganador, `voting`
+        // si el empate la mandó a desempate.
+        track('club_vote_closed', { phase: FASES.includes(data?.phase) ? data.phase : 'unknown' })
         return { pickId: data?.pickId ?? null, phase: data?.phase ?? null }
       })
     },
@@ -394,6 +425,8 @@ export const useClubsStore = defineStore('clubs', {
         if (response.data.status !== 'success') {
           const code = response.data.http_code ?? null
           this.error = apiError(code, CLAVES)
+          // El `api_error` ya lo contó `auth.apiCall`; este es el de dominio.
+          track('club_action_failed', { action, code: failureCode(response.data) })
           return { success: false, message: this.error, code }
         }
 
@@ -402,6 +435,7 @@ export const useClubsStore = defineStore('clubs', {
         Logger.error(`[ClubsStore] ${action} error:`, err)
         const code = err.response?.status ?? err.response?.data?.http_code ?? null
         this.error = apiError(err, CLAVES)
+        track('club_action_failed', { action, code: failureCode(err) })
         return { success: false, message: this.error, code }
       } finally {
         this.isSaving = false

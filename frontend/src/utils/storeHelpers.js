@@ -1,4 +1,5 @@
 import { apiError } from '@/composables/useApiError'
+import { trackUncountedApiError } from '@/analytics'
 import { t } from '@/config/i18n'
 
 /**
@@ -24,6 +25,8 @@ import { t } from '@/config/i18n'
 export function handleStoreError (err, claves = {}) {
   // Un error de red no trae respuesta ni código: no hay nada que consultar.
   if (err && typeof err === 'object' && err.request && !err.response) {
+    // El resto de casos lo cuenta `apiError`; este atajo no pasa por él.
+    trackUncountedApiError(err)
     return t('errors.network')
   }
 

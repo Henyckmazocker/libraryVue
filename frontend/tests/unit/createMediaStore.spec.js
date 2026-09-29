@@ -348,6 +348,17 @@ describe('createMediaStore — los cinco medios', () => {
     expect(llamada[1]).toHaveProperty(key)
   })
 
+  it('el libro recién dado de alta lleva el user_edition_id de la respuesta', async () => {
+    // Las notas cuelgan de TU edición (`notesIdOf`): sin este id, la ficha recién
+    // dada de alta las pedía con otro y enseñaba un 400 «Edition not found».
+    authenticatedApiCall.mockImplementation(async (action) =>
+      action === 'add_book' ? ok({ isbn: '1', user_edition_id: 42 }) : ok([]))
+    const store = useBooksStore()
+    await store.add({ isbn: '1', title: 'X' }, [])
+
+    expect(store.books[0].user_edition_id).toBe(42)
+  })
+
   it('el alta de vídeos va plana, sin clave envolvente', async () => {
     authenticatedApiCall.mockResolvedValue(ok({}))
     await useVideosStore().addVideo({ id: 'abc', title: 'X' }, [])

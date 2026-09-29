@@ -3,7 +3,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
-vi.mock('@/analytics', () => ({
+// El resto del módulo, el real: `track` y compañía validan y, sin clave, no mandan nada.
+vi.mock('@/analytics', async (importOriginal) => ({
+  ...(await importOriginal()),
   syncAnalytics: vi.fn(),
   stopAnalytics: vi.fn(() => Promise.resolve()),
 }))

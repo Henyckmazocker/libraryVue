@@ -52,9 +52,10 @@
 </template>
 
 <script setup>
-import { computed, inject, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useInboxStore } from '@/store/inbox'
+import { useUIStore } from '@/store/ui'
 import RecommendationCard from '@/components/Inbox/RecommendationCard.vue'
 import ListInvitationCard from '@/components/Inbox/ListInvitationCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -67,7 +68,7 @@ const inbox = useInboxStore()
 const { items, isLoading, resolvingId, error } = storeToRefs(inbox)
 const hasItems = computed(() => inbox.hasItems)
 
-const notifications = inject('notifications', null)
+const uiStore = useUIStore()
 
 // El mapa de tipos: añadir uno es añadir una línea y un componente.
 const CARDS = {
@@ -91,9 +92,9 @@ const handleAdd = async (recommendation) => {
   const result = await inbox.addToLibrary(recommendation)
 
   if (result.success) {
-    notifications?.showSuccess?.(t('inboxActions.added'))
+    uiStore.showSuccess(t('inboxActions.added'))
   } else {
-    notifications?.showError?.(result.message || t('inboxActions.addFailed'))
+    uiStore.showError(result.message || t('inboxActions.addFailed'))
   }
 }
 
@@ -101,11 +102,11 @@ const handleAccept = async (invitation) => {
   const result = await inbox.acceptCollaboration(invitation)
 
   if (!result.success) {
-    notifications?.showError?.(result.message || t('inboxActions.acceptFailed'))
+    uiStore.showError(result.message || t('inboxActions.acceptFailed'))
     return
   }
 
-  notifications?.showSuccess?.(t('inboxActions.collaborating'))
+  uiStore.showSuccess(t('inboxActions.collaborating'))
   // Se entra directo: lo siguiente que quiere quien acepta es verla.
   if (result.listId) {
     router.push({ name: 'ListDetail', params: { listId: String(result.listId) } })
@@ -116,7 +117,7 @@ const handleDismiss = async (recommendation) => {
   const result = await inbox.dismiss(recommendation)
 
   if (!result.success) {
-    notifications?.showError?.(result.message || t('inboxActions.dismissFailed'))
+    uiStore.showError(result.message || t('inboxActions.dismissFailed'))
   }
 }
 </script>

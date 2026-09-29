@@ -74,6 +74,7 @@
          formulario no existe mientras nadie lo abre. -->
     <ClubFormDialog
       v-if="showCreate"
+      ref="formRef"
       v-model="showCreate"
       @submit="handleCreate"
     />
@@ -81,10 +82,12 @@
 </template>
 
 <script setup>
-import { computed, inject, onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useClubsStore } from '@/store/clubs'
+import { useUIStore } from '@/store/ui'
+import { track } from '@/analytics'
 import ClubFormDialog from '@/components/Clubs/ClubFormDialog.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { useI18n } from '@/composables/useI18n';
@@ -96,23 +99,26 @@ const { clubs, isLoading, error } = storeToRefs(clubsStore)
 const hasClubs = computed(() => clubsStore.hasClubs)
 
 const router = useRouter()
-const notifications = inject('notifications', null)
+const uiStore = useUIStore()
 
 const showCreate = ref(false)
+const formRef = ref(null)
 const openCreate = () => { showCreate.value = true }
 
 onMounted(() => clubsStore.fetchMyClubs())
 
 const handleCreate = async (form) => {
   const result = await clubsStore.createClub(form)
+  track('form_submit', { form: 'club_form', ok: result.success === true })
 
   if (!result.success) {
-    notifications?.showError?.(result.message || t('toasts.clubCreateFailed'))
+    uiStore.showError(result.message || t('toasts.clubCreateFailed'))
     return
   }
 
+  formRef.value?.markSubmitted()
   showCreate.value = false
-  notifications?.showSuccess?.(t('toasts.clubCreated'))
+  uiStore.showSuccess(t('toasts.clubCreated'))
   // Se entra directo al club recién creado: lo siguiente que quiere el usuario
   // es invitar a alguien y elegir el primer ítem.
   router.push({ name: 'ClubDetail', params: { clubId: String(result.clubId) } })

@@ -153,7 +153,7 @@ export function useGoogleAuth() {
       }
 
       googleCredential.value = idToken;
-      const result = await login(idToken);
+      const result = await login(idToken, 'google_native');
 
       if (!result.success) {
         throw new Error(result.message || t('authError.login'));

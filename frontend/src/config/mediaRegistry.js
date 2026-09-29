@@ -680,11 +680,15 @@ export const mediaRegistry = {
         genres: book.genres || [],
         ownership_format_id: book.ownership_format_id || null
       }),
-      toLocalItem: (book, statuses) => ({
+      // `user_edition_id` sale de la respuesta: las notas cuelgan de TU edición
+      // (`notesIdOf`), y sin él la ficha recién dada de alta las pedía con otro id y
+      // enseñaba un 400 «Edition not found» hasta recargar.
+      toLocalItem: (book, statuses, _payload, response) => ({
         ...book,
         userStatuses: statuses,
         user_rating: book.user_rating || null,
-        itemType: 'book'
+        itemType: 'book',
+        ...(response?.user_edition_id ? { user_edition_id: response.user_edition_id } : {})
       })
     },
     api: {

@@ -1,6 +1,8 @@
 <template>
   <BaseModal
+    ref="modalRef"
     :model-value="modelValue"
+    analytics-name="journal_entry"
     :title="entry ? t('journal.editTitle') : t('journal.addTitle')"
     size="md"
     icon="fas fa-book-open"
@@ -141,6 +143,7 @@ import { useAlbums } from '@/composables/useAlbums'
 import { useVideos } from '@/composables/useVideos'
 import { useI18n } from '@/composables/useI18n'
 import { hoyISO } from '@/utils/dates'
+import { track } from '@/analytics'
 
 const { t } = useI18n()
 
@@ -171,6 +174,7 @@ const emit = defineEmits(['update:modelValue', 'saved'])
 const journalStore = useJournalStore()
 const { isSaving, error } = storeToRefs(journalStore)
 
+const modalRef = ref(null)
 const fecha = ref('')
 const valoracion = ref(null)
 const busqueda = ref('')
@@ -333,7 +337,10 @@ const guardar = async () => {
       rating: valoracion.value
     })
 
+  track('form_submit', { form: 'journal_entry', ok: Boolean(ok) })
+
   if (ok) {
+    modalRef.value?.markSubmitted()
     emit('saved')
     emit('update:modelValue', false)
   }

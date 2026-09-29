@@ -5,6 +5,39 @@ import { getMediaConfig } from '@/config/mediaRegistry'
 import { handleStoreError } from '@/utils/storeHelpers'
 import Logger from '@/utils/logger'
 import { t } from '@/config/i18n'
+import { track, failureCode, statusSlug } from '@/analytics'
+
+/** Los `source` de `library_item_added` que el catálogo conoce; el resto sale como `unknown`. */
+const ADD_SOURCES = ['search', 'detail', 'import', 'recommendation', 'list']
+
+/**
+ * La valoración en MEDIAS ESTRELLAS (0-10): el catálogo solo admite enteros y la app valora de
+ * media en media (`RatingComponent`), así que 3,5 estrellas viajan como 7.
+ */
+const halfStars = (rating) => {
+  const n = Number(rating)
+  return Number.isFinite(n) ? Math.round(n * 2) : 0
+}
+
+/**
+ * El estado NUEVO de un cambio de estados, como slug: el que entra y no estaba, o, si solo se
+ * quitó alguno, el último que queda; `none` si se quitaron todos. Augur no agrupa por arrays, así
+ * que de la lista entera se manda uno. Los ids sueltos se traducen con `allowedStatuses`.
+ */
+function newStatusSlug (previous, next, allowed = []) {
+  const slugOf = (entry) => {
+    if (typeof entry === 'number' || (typeof entry === 'string' && /^\d+$/.test(entry))) {
+      const found = allowed.find((st) => String(st?.id) === String(entry))
+      return statusSlug(found ?? null)
+    }
+    return statusSlug(entry?.status_name ?? entry)
+  }
+  if (!Array.isArray(next) || next.length === 0) return 'none'
+  const before = new Set((Array.isArray(previous) ? previous : []).map(slugOf))
+  const now = next.map(slugOf)
+  const added = now.filter((slug) => !before.has(slug))
+  return added.length > 0 ? added[added.length - 1] : now[now.length - 1]
+}
 
 /**
  * Factoría de stores de medio.
@@ -60,6 +93,9 @@ export function createMediaStore (media) {
     error: null,
     lastSearchQuery: '',
     searchResults: [],
+    // La frescura de la última búsqueda (`search_youtube_videos` y compañía avisan de la caché
+    // degradada). Va aparte de `searchResults` para no cambiar lo que devuelve `search()`.
+    searchStale: false,
     isSearching: false
   })
 
@@ -142,6 +178,7 @@ export function createMediaStore (media) {
           const stamp = api.list.stamp || {}
           this[collection] = (data[api.list.fromLibraryCache] || []).map((item) => ({ ...item, ...stamp }))
           Logger.debug(`${log} Fetched ${this[collection].length} ${collection}`)
+          track('library_loaded', { media, n_items: this[collection].length })
           return this[collection]
         }
 
@@ -151,6 +188,7 @@ export function createMediaStore (media) {
         if (response.data.status === 'success') {
           this[collection] = Array.isArray(response.data.data) ? response.data.data : []
           Logger.debug(`${log} Fetched ${this[collection].length} ${collection}`)
+          track('library_loaded', { media, n_items: this[collection].length })
           return this[collection]
         }
         throw new Error(t('storeError.fetch', { que: collection }))
@@ -174,6 +212,7 @@ export function createMediaStore (media) {
     async search (query) {
       if (!query || query.trim() === '') {
         this.searchResults = []
+        this.searchStale = false
         return []
       }
 
@@ -198,6 +237,9 @@ export function createMediaStore (media) {
             ? payload
             : (payload?.[collection] || [])
           this.searchResults = crudos.map(api.search.transform)
+          // `stale` viene al lado de la colección en la forma anidada; la lista pelada no lo
+          // trae y es fresca por definición.
+          this.searchStale = !Array.isArray(payload) && payload?.stale === true
           Logger.debug(`${log} Found ${this.searchResults.length} ${collection}`)
           return this.searchResults
         }
@@ -205,6 +247,7 @@ export function createMediaStore (media) {
       } catch (err) {
         this.error = this._handleError(err)
         Logger.error(`${log} Error searching ${collection}:`, err)
+        this.searchStale = false
         if (cfg.clearSearchOnError) this.searchResults = []
         return []
       } finally {
@@ -216,10 +259,14 @@ export function createMediaStore (media) {
      * Añade un ítem a la biblioteca. El payload va anidado bajo la clave del
      * medio salvo en vídeos, y lo que se empuja al array es la respuesta del
      * backend o un objeto local, según lo que hiciera cada store.
+     *
+     * `source` es desde dónde se añade (`library_item_added`): lo sabe quien llama, no el store,
+     * y lo que no lo diga sale como `unknown`.
      */
-    async add (item, statuses = []) {
+    async add (item, statuses = [], source = 'unknown') {
       this.isLoading = true
       this.error = null
+      let failure = null
 
       try {
         Logger.debug(`${log} Adding ${media} to library:`, item)
@@ -237,18 +284,21 @@ export function createMediaStore (media) {
 
         if (response.data.status === 'success') {
           const added = cfg.addPushes === 'local'
-            ? cfg.toLocalItem(item, statuses, body)
+            ? cfg.toLocalItem(item, statuses, body, response.data.data)
             : (response.data.data || body)
           this[collection].push(added)
           Logger.debug(`${log} ${One} added successfully`)
+          track('library_item_added', { media, source: ADD_SOURCES.includes(source) ? source : 'unknown' })
           // La clave con nombre de medio se conserva: los consumidores viejos
           // esperan `result.video` / `result.album` / …
           return { success: true, item: added, [media]: added }
         }
+        failure = response.data
         throw new Error(t('storeError.add', { que: media }))
       } catch (err) {
         this.error = this._handleError(err)
         Logger.error(`${log} Error adding ${media}:`, err)
+        track('library_item_add_failed', { media, code: failureCode(failure ?? err) })
         return { success: false, message: this.error }
       } finally {
         this.isLoading = false
@@ -271,6 +321,7 @@ export function createMediaStore (media) {
         if (response.data.status === 'success') {
           this[collection] = this[collection].filter((i) => !matches(i, id))
           Logger.debug(`${log} ${One} deleted successfully`)
+          track('library_item_removed', { media })
           return { success: true }
         }
         throw new Error(t('storeError.delete', { que: media }))
@@ -294,6 +345,7 @@ export function createMediaStore (media) {
           const item = this[collection].find((i) => matches(i, id))
           if (item) item[ratingField] = rating
           Logger.debug(`${log} ${One} rating updated successfully`)
+          track('item_rated', { media, rating: halfStars(rating) })
           return { success: true }
         }
         throw new Error(t('storeError.rating'))
@@ -313,8 +365,10 @@ export function createMediaStore (media) {
 
         if (response.data.status === 'success') {
           const item = this[collection].find((i) => matches(i, id))
+          const status = newStatusSlug(item?.userStatuses, statuses, this.allowedStatuses)
           if (item) item.userStatuses = statuses
           Logger.debug(`${log} ${One} statuses updated successfully`)
+          track('item_status_changed', { media, status })
           return { success: true }
         }
         throw new Error(t('storeError.statuses'))
@@ -341,6 +395,7 @@ export function createMediaStore (media) {
             this[collection][index] = { ...this[collection][index], ...updatedData }
           }
           Logger.debug(`${log} ${One} edited successfully`)
+          track('item_edited', { media, fields: Object.keys(updatedData ?? {}).length })
           return { success: true }
         }
         throw new Error(t('storeError.edit', { que: media }))
@@ -402,6 +457,7 @@ export function createMediaStore (media) {
           const newTag = response.data.data
           this.userTags.push(newTag)
           Logger.debug(`${log} Tag created successfully`)
+          track('tag_created', { media })
           return { success: true, tag: newTag }
         }
         throw new Error(t('storeError.createTag'))
@@ -424,6 +480,7 @@ export function createMediaStore (media) {
 
         if (response.data.status === 'success') {
           Logger.debug(`${log} ${One} tags updated successfully`)
+          track('item_tags_updated', { media, n_tags: Array.isArray(tagIds) ? tagIds.length : 0 })
           return { success: true }
         }
         throw new Error(t('storeError.updateTags'))

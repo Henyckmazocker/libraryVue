@@ -20,6 +20,10 @@ import { getMediaConfig, storeMediaKeys } from '@/config/mediaRegistry'
 import Logger from '@/utils/logger'
 import { apiError } from '@/composables/useApiError'
 import { t } from '@/config/i18n'
+import { track, mediaOrNull } from '@/analytics'
+
+/** Los filtros de la bandeja que cuenta `inbox_viewed` (los estados de `get_inbox`). */
+const INBOX_FILTERS = ['pending', 'added', 'dismissed']
 
 export const useInboxStore = defineStore('inbox', {
   state: () => ({
@@ -103,6 +107,9 @@ export const useInboxStore = defineStore('inbox', {
           if (status === 'pending') {
             this.pendingCount = this.total
           }
+          if (INBOX_FILTERS.includes(status)) {
+            track('inbox_viewed', { filter: status, n_items: this.items.length })
+          }
         } else {
           this.error = apiError(response.data, { defecto: 'inboxError.load' })
         }
@@ -143,6 +150,16 @@ export const useInboxStore = defineStore('inbox', {
             message: apiError(response.data, { defecto: 'inboxError.send' }),
             code: response.data.http_code ?? null
           }
+        }
+
+        // Del comentario, solo si lo hay. `entityType` es el medio con el que se guarda (una
+        // serie viaja como `movie`): es el que se cuenta.
+        const media = mediaOrNull(entityType)
+        if (media) {
+          track('recommendation_sent', {
+            media,
+            has_comment: typeof comment === 'string' && comment.trim().length > 0
+          })
         }
 
         return { success: true, recommendationId: response.data.data?.recommendationId }
@@ -204,7 +221,7 @@ export const useInboxStore = defineStore('inbox', {
 
         const store = mediaStores[media]()
         const defaultStatus = config.libraryItem?.defaultStatus
-        const added = await store.add(result.item, defaultStatus ? [defaultStatus] : [])
+        const added = await store.add(result.item, defaultStatus ? [defaultStatus] : [], 'recommendation')
 
         if (!added?.success) {
           throw new Error(added?.message || t('inboxError.add'))
@@ -243,6 +260,7 @@ export const useInboxStore = defineStore('inbox', {
         }
 
         this._forget(invitation.id)
+        track('list_collaboration_accepted')
 
         return { success: true, listId: response.data.data?.listId }
       } catch (err) {
@@ -279,6 +297,10 @@ export const useInboxStore = defineStore('inbox', {
         }
 
         this._forget(recommendation.id)
+        // Descartar una invitación a colaborar también pasa por aquí (`entity_type = 'list'`), y
+        // no es una recomendación: `mediaOrNull` la deja fuera.
+        const media = mediaOrNull(recommendation.entity_type)
+        if (media) track('recommendation_resolved', { resolution, media })
 
         return { success: true }
       } catch (err) {

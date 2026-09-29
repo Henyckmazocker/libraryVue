@@ -103,7 +103,7 @@ onMounted(async () => {
 
 const handleSendRequest = async (userId) => {
   try {
-    await sendFriendRequest(userId)
+    await sendFriendRequest(userId, 'user_search')
     toast.add({ severity: 'success', summary: t('toasts.requestSent'), life: 3000 })
     // Mark user as request_sent in results
     const user = searchResults.value.find(u => u.id === userId)

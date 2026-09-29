@@ -228,7 +228,8 @@ describe('MediaDetailView — guardar y borrar pasan por el store', () => {
     // El juego emite `{ game, statuses }`; el store recibe los dos por separado.
     expect(store.add).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Hollow Knight' }),
-      ['owned']
+      ['owned'],
+      'detail'
     )
   })
 

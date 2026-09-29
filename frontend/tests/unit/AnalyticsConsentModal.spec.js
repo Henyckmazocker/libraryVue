@@ -7,7 +7,9 @@ import { flushPromises } from '@vue/test-utils'
 import { mountComponent } from './helpers/mount'
 
 const disponible = vi.hoisted(() => ({ valor: true }))
-vi.mock('@/analytics', () => ({
+// El resto del módulo, el real: `track` y compañía validan y, sin clave, no mandan nada.
+vi.mock('@/analytics', async (importOriginal) => ({
+  ...(await importOriginal()),
   isAnalyticsAvailable: () => disponible.valor,
   syncAnalytics: vi.fn(),
   stopAnalytics: vi.fn(() => Promise.resolve()),

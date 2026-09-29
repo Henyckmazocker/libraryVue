@@ -208,6 +208,11 @@ describe('i18n — la barrera del catálogo', () => {
       // de fuera, que no se edita aquí, y sus cadenas son de consola, no de interfaz.
       // Se salta por lo mismo que `stamp.cjs` la saca del `build_id`.
       if (rel.split(/[\\/]/)[0] === 'augur') continue
+      // `analytics/catalog.js` es el catálogo de eventos de Augur: sus `description` las lee
+      // quien monta gráficas en el dashboard de Augur, nunca el usuario de la app, y
+      // traducirlas partiría el catálogo en dos idiomas. Datos para otra herramienta, como
+      // las cadenas del SDK de arriba.
+      if (rel.split(/[\\/]/).join('/') === 'analytics/catalog.js') continue
       for (const { texto, monton } of cadenasDe(readFileSync(fichero, 'utf8'), fichero)) {
         if (monton !== 'interfaz') continue
         if (datos.has(`${rel}||${texto}`)) continue

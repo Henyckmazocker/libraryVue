@@ -2,7 +2,9 @@
   <!-- El chasis —overlay, Teleport, trampa de foco, Escape, cabecera y pie— lo
        pone `BaseModal`. El filete de color del medio va por su prop `accent`. -->
   <BaseModal
+    ref="modalRef"
     :model-value="isVisible"
+    analytics-name="edit_item"
     :title="item?.title || t('common.untitled')"
     :accent="`var(--color-card-${itemType}-accent)`"
     size="lg"
@@ -206,11 +208,11 @@
             {{ t('edit.favouriteTrackNone') }}
           </option>
           <option
-            v-for="track in albumTracks"
-            :key="track.id || track.track_number"
-            :value="track.name"
+            v-for="albumTrack in albumTracks"
+            :key="albumTrack.id || albumTrack.track_number"
+            :value="albumTrack.name"
           >
-            {{ track.track_number }}. {{ track.name }}
+            {{ albumTrack.track_number }}. {{ albumTrack.name }}
           </option>
         </select>
         <input
@@ -276,7 +278,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, inject, defineProps, defineEmits } from 'vue'
+import { ref, computed, watch, onMounted, defineProps, defineEmits } from 'vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import RatingComponent from '@/components/common/RatingComponent.vue'
 import ReadingProgressBar from '@/components/common/ReadingProgressBar.vue'
@@ -288,6 +290,7 @@ import { useGames } from '@/composables/useGames'
 import { useAlbums } from '@/composables/useAlbums'
 import { useItemEdit } from '@/composables/useItemEdit'
 import { useUIStore } from '@/store/ui'
+import { track } from '@/analytics'
 import { hoyISO } from '@/utils/dates'
 import Logger from '@/utils/logger'
 import { useI18n } from '@/composables/useI18n';
@@ -351,8 +354,8 @@ const emit = defineEmits(['close', 'saved'])
 
 // Composables
 const itemEdit = useItemEdit()
-const notifications = inject('notifications', null)
 const uiStore = useUIStore()
+const modalRef = ref(null)
 
 // Get appropriate composables based on item type
 const booksComposable = useBooks()
@@ -500,21 +503,19 @@ const handleAddTag = async (tagName) => {
     if (result?.success) {
       localTags.value.push(result.data.id)
     } else {
-      if (notifications) {
-        notifications.showError(result?.message || t('editItem.tagFailed'))
-      }
+      uiStore.showError(result?.message || t('editItem.tagFailed'))
     }
   } catch (error) {
     Logger.error('Error creating tag:', error)
-    if (notifications) {
-      notifications.showError(t('editItem.tagFailed'))
-    }
+    uiStore.showError(t('editItem.tagFailed'))
   }
 }
 
 // Handle save
 const handleSave = async () => {
   isSaving.value = true
+  // `form_submit` una vez por intento, salga por donde salga.
+  let submitCounted = false
   
   try {
     // Get the correct ID based on item type
@@ -638,6 +639,9 @@ const handleSave = async () => {
     
     Logger.debug('Save result:', result)
     
+    track('form_submit', { form: 'edit_item', ok: result.success === true })
+    submitCounted = true
+
     if (result.success) {
       // For books, also call update_reading_progress to record session + history
       if (props.itemType === 'book' && props.item.isbn) {
@@ -650,9 +654,7 @@ const handleSave = async () => {
       }
 
       // Show success message
-      if (notifications) {
-        notifications.showSuccess(t('editItem.saved', { medio: nombreDelMedio('name') }))
-      }
+      uiStore.showSuccess(t('editItem.saved', { medio: nombreDelMedio('name') }))
       
       // Emit updated item
       const updatedItem = {
@@ -701,19 +703,18 @@ const handleSave = async () => {
       }
       
       Logger.debug('Emitting saved event with updatedItem:', updatedItem)
+      modalRef.value?.markSubmitted()
       emit('saved', updatedItem)
       emit('close')
     } else {
       // Show error message
-      if (notifications) {
-        notifications.showError(result.message || t('editItem.saveFailed', { medio: nombreDelMedio('the') }))
-      }
+      uiStore.showError(result.message || t('editItem.saveFailed', { medio: nombreDelMedio('the') }))
     }
   } catch (error) {
     Logger.error('Error saving item:', error)
-    if (notifications) {
-      notifications.showError(t('editItem.saveFailed', { medio: nombreDelMedio('the') }))
-    }
+    // Un fallo que no llegó a `editItem` (p. ej. los estados del libro) también es un envío fallido.
+    if (!submitCounted) track('form_submit', { form: 'edit_item', ok: false })
+    uiStore.showError(t('editItem.saveFailed', { medio: nombreDelMedio('the') }))
   } finally {
     isSaving.value = false
   }

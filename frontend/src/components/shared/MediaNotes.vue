@@ -180,7 +180,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, inject } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { useMediaNotes } from '@/composables/useMediaNotes'
 import { getMediaConfig, mediaKeys } from '@/config/mediaRegistry'
@@ -191,6 +191,8 @@ import Textarea from 'primevue/textarea'
 import Checkbox from 'primevue/checkbox'
 import InputNumber from 'primevue/inputnumber'
 import Logger from '@/utils/logger'
+import { useUIStore } from '@/store/ui'
+import { track, mediaOrNull } from '@/analytics'
 import { useI18n } from '@/composables/useI18n';
 import { intlLocale } from '@/config/i18n';
 
@@ -210,7 +212,7 @@ const props = defineProps({
 
 const config = getMediaConfig(props.media)
 const mediaNotes = useMediaNotes(props.media)
-const notifications = inject('notifications', null)
+const uiStore = useUIStore()
 
 const showNoteDialog = computed({
   get: () => showAddNoteDialog.value || showEditNoteDialog.value,
@@ -271,8 +273,8 @@ async function loadNotes () {
   }
   Logger.info('Loading notes', { media: props.media, itemId: props.itemId })
   const result = await mediaNotes.getNotes(props.itemId)
-  if (!result.success && notifications) {
-    notifications.showError(result.error || t('noteActions.loadFailed'))
+  if (!result.success) {
+    uiStore.showError(result.error || t('noteActions.loadFailed'))
   }
 }
 
@@ -299,15 +301,16 @@ function confirmDeleteNote (note) {
 async function deleteNote (note) {
   const result = await mediaNotes.deleteNote(note.id, props.itemId)
   if (result.success) {
-    if (notifications) notifications.showSuccess(t('noteActions.deleted'))
+    uiStore.showSuccess(t('noteActions.deleted'))
   } else {
-    if (notifications) notifications.showError(result.error || t('noteActions.deleteFailed'))
+    uiStore.showError(result.error || t('noteActions.deleteFailed'))
   }
 }
 
 async function saveNote () {
   if (!noteForm.value.noteText.trim()) {
-    if (notifications) notifications.showError(t('noteActions.empty'))
+    if (mediaOrNull(props.media)) track('note_empty_rejected', { media: props.media })
+    uiStore.showError(t('noteActions.empty'))
     return
   }
 
@@ -334,18 +337,16 @@ async function saveNote () {
     }
 
     if (result.success) {
-      if (notifications) {
-        notifications.showSuccess(
-          editingNote.value ? t('noteActions.updated') : t('noteActions.added')
-        )
-      }
+      uiStore.showSuccess(
+        editingNote.value ? t('noteActions.updated') : t('noteActions.added')
+      )
       closeNoteDialog()
     } else {
-      if (notifications) notifications.showError(result.error || t('noteActions.saveFailed'))
+      uiStore.showError(result.error || t('noteActions.saveFailed'))
     }
   } catch (error) {
     Logger.error('Error saving note', { media: props.media, error })
-    if (notifications) notifications.showError(t('noteActions.saveFailed'))
+    uiStore.showError(t('noteActions.saveFailed'))
   } finally {
     saving.value = false
   }

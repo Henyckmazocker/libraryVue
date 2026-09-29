@@ -713,7 +713,8 @@ function abrirMenu (event) {
 async function handleSave (payload) {
   try {
     const [data, statuses] = d.value.unwrapSave(payload)
-    const result = await props.store.add(data, statuses)
+    // `detail`: el alta sale siempre de la ficha, también cuando se llegó a ella desde un buscador.
+    const result = await props.store.add(data, statuses, 'detail')
 
     if (result.success) {
       if (item.value) item.value = { ...item.value, userStatuses: statuses }

@@ -81,6 +81,7 @@
          formulario no existe mientras nadie lo abre. -->
     <ListFormDialog
       v-if="showCreate"
+      ref="formRef"
       v-model="showCreate"
       @submit="handleCreate"
     />
@@ -88,10 +89,12 @@
 </template>
 
 <script setup>
-import { computed, inject, onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useListsStore } from '@/store/lists'
+import { useUIStore } from '@/store/ui'
+import { track } from '@/analytics'
 import ListFormDialog from '@/components/Lists/ListFormDialog.vue'
 import { VISIBILITY } from '@/components/Lists/visibility'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -104,23 +107,26 @@ const { lists, isLoading, error } = storeToRefs(listsStore)
 const hasLists = computed(() => listsStore.hasLists)
 
 const router = useRouter()
-const notifications = inject('notifications', null)
+const uiStore = useUIStore()
 
 const showCreate = ref(false)
+const formRef = ref(null)
 const openCreate = () => { showCreate.value = true }
 
 onMounted(() => listsStore.fetchMyLists())
 
 const handleCreate = async (form) => {
   const result = await listsStore.createList(form)
+  track('form_submit', { form: 'list_form', ok: result.success === true })
 
   if (!result.success) {
-    notifications?.showError?.(result.message || t('toasts.listCreateFailed'))
+    uiStore.showError(result.message || t('toasts.listCreateFailed'))
     return
   }
 
+  formRef.value?.markSubmitted()
   showCreate.value = false
-  notifications?.showSuccess?.(t('toasts.listCreated'))
+  uiStore.showSuccess(t('toasts.listCreated'))
   // Se entra directo a la lista recién creada: lo siguiente que quiere el
   // usuario es meterle algo.
   router.push({ name: 'ListDetail', params: { listId: String(result.listId) } })

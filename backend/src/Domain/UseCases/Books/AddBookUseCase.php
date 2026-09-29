@@ -208,6 +208,10 @@ class AddBookUseCase extends AbstractUseCase
 
         // Return in legacy format for frontend compatibility
         $legacyFormat = $edition->toLegacyFormat($work);
+        // El id de la edición DEL USUARIO, que es de lo que cuelgan las notas: sin él, la
+        // ficha recién dada de alta pedía las notas con otro id y el backend contestaba
+        // 400 «Edition not found» (Plan «Catálogo de Eventos de Producto», enmienda M2).
+        $legacyFormat['user_edition_id'] = $userBookEdition->getId();
 
         // `coverUrl`, no `cover`: `Edition::toLegacyFormat()` (`Edition.php:314`) no
         // emite ninguna clave `cover`, así que el `?? null` ganaba SIEMPRE y todo

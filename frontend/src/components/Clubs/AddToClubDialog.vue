@@ -2,7 +2,10 @@
   <!-- El chasis lo pone `BaseModal`: overlay, trampa de foco, Escape, cabecera
        y pie ordenado, igual que en los cuatro modales propios. -->
   <BaseModal
+    ref="modalRef"
     v-model="visible"
+    analytics-name="add_to_club"
+    :analytics-dirty="clubId !== null"
     :title="t('addToClub.title')"
     class="add-to-club-dialog"
   >
@@ -87,10 +90,12 @@
 </template>
 
 <script setup>
-import { computed, inject, onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import { storeToRefs } from 'pinia'
 import { useClubsStore } from '@/store/clubs'
+import { useUIStore } from '@/store/ui'
+import { track } from '@/analytics'
 import { useI18n } from '@/composables/useI18n';
 
 const { t } = useI18n();
@@ -112,7 +117,8 @@ const emit = defineEmits(['update:modelValue'])
 
 const clubs = useClubsStore()
 const { clubs: allClubs, isLoading, isSaving, error } = storeToRefs(clubs)
-const notifications = inject('notifications', null)
+const uiStore = useUIStore()
+const modalRef = ref(null)
 
 const clubId = ref(null)
 
@@ -185,15 +191,18 @@ const submit = async () => {
     ? await clubs.proposeItem(clubId.value, datos)
     : await clubs.setPick(clubId.value, datos)
 
+  track('form_submit', { form: 'add_to_club', ok: result.success === true })
+
   if (!result.success) {
     // Traducido por código desde el store: el backend responde en inglés y no
     // se lee su texto.
-    notifications?.showError?.(result.message || t('toasts.clubAddFailed'))
+    uiStore.showError(result.message || t('toasts.clubAddFailed'))
     return
   }
 
+  modalRef.value?.markSubmitted()
   visible.value = false
-  notifications?.showSuccess?.(
+  uiStore.showSuccess(
     proponer ? t('toasts.clubProposed') : t('toasts.clubHasNext')
   )
 }

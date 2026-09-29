@@ -115,6 +115,7 @@ import MediaListItem from '@/components/shared/MediaListItem.vue'
 import MediaSkeleton from '@/components/shared/MediaSkeleton.vue'
 import StaleNotice from '@/components/shared/StaleNotice.vue'
 import Logger from '@/utils/logger'
+import { track } from '@/analytics'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -260,7 +261,21 @@ async function buscar (texto) {
   pedidas.local = false
   pedidas.remota = false
 
-  lanzarTandas(mia, texto)
+  // `catalog_searched` sale UNA vez por búsqueda, cuando han vuelto las dos tandas (o la que se
+  // pidió), y solo si sigue siendo la vigente: una consulta pisada por la siguiente no se cuenta.
+  // Los medios fallidos y rancios, como número: cuáles no agrupa nada en Augur.
+  const resumen = { failed: 0, stale: 0 }
+  const tandas = lanzarTandas(mia, texto, resumen)
+  if (tandas.length === 0) return
+  Promise.allSettled(tandas).then(() => {
+    if (mia !== generacion) return
+    track('catalog_searched', {
+      query_length: texto.length,
+      results: resultados.value.length,
+      failed_media: resumen.failed,
+      stale_media: resumen.stale
+    })
+  })
 }
 
 /**
@@ -270,32 +285,39 @@ async function buscar (texto) {
  * este diseño evita. Y una tanda con sus tres medios desmarcados no se pide
  * siquiera — desmarcar libros, juegos y vídeos ahorra la petición lenta entera.
  */
-function lanzarTandas (mia, texto) {
+function lanzarTandas (mia, texto, resumen = null) {
   const vigente = () => mia === generacion
+  const tandas = []
 
   if (hayActivo('local') && !pedidas.local) {
     pedidas.local = true
     buscando.value = true
-    auth.authenticatedApiCall('search_catalog_local', { query: texto })
+    tandas.push(auth.authenticatedApiCall('search_catalog_local', { query: texto })
       .then((r) => { if (vigente()) locales.value = aEntradas(r?.data?.data?.results) })
       .catch((e) => Logger.error('[SearchView] Falló la búsqueda local', e))
-      .finally(() => { if (vigente()) buscando.value = false })
+      .finally(() => { if (vigente()) buscando.value = false }))
   }
 
   if (hayActivo('remota') && !pedidas.remota) {
     pedidas.remota = true
     esperandoRemoto.value = true
-    auth.authenticatedApiCall('search_catalog_remote', { query: texto })
+    tandas.push(auth.authenticatedApiCall('search_catalog_remote', { query: texto })
       .then((r) => {
         if (!vigente()) return
         const data = r?.data?.data
+        if (resumen) {
+          resumen.failed = Array.isArray(data?.failed) ? data.failed.length : 0
+          resumen.stale = Object.values(data?.stale ?? {}).filter(Boolean).length
+        }
         remotos.value = aEntradas(data?.results)
         avisos.value = avisosDe(data)
         fallidos.value = (data?.failed ?? []).map((m) => getMediaConfig(m).labelPlural)
       })
       .catch((e) => Logger.error('[SearchView] Falló la búsqueda remota', e))
-      .finally(() => { if (vigente()) esperandoRemoto.value = false })
+      .finally(() => { if (vigente()) esperandoRemoto.value = false }))
   }
+
+  return tandas
 }
 
 /**

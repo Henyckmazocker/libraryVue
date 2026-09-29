@@ -75,6 +75,11 @@ CAP_ENV=production npx cap sync android      # Sync with https:// scheme
 # Android Studio: Build → Generate Signed APK/AAB
 ```
 
+Analytics (Augur) in the production APK needs **no** mobile build: the WebView loads the remote
+`https://library.dcahomelab.com` (`server.url` below), so it measures with the web bundle's
+`VUE_APP_AUGUR_*` (from `.env.prod`, baked by `prod-deploy.sh --rebuild`) and the web's CSP.
+`.env.mobile`'s Augur keys are for the **dev** Augur only.
+
 ### Verify build was picked up
 
 ```bash

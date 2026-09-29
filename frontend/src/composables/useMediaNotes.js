@@ -3,6 +3,11 @@ import { useAuthStore } from '@/store/auth'
 import { getMediaConfig } from '@/config/mediaRegistry'
 import Logger from '@/utils/logger'
 import { t } from '@/config/i18n';
+import { track, mediaOrNull } from '@/analytics'
+import { NOTE_TYPES } from '@/analytics/catalog'
+
+/** El tipo de nota del catálogo, o `unknown`: el texto de la nota no viaja nunca, su tipo sí. */
+const noteTypeOf = (type) => (NOTE_TYPES.includes(type) ? type : 'unknown')
 
 /**
  * Composable único de notas para los cinco medios.
@@ -18,6 +23,8 @@ export function useMediaNotes (media) {
   const config = getMediaConfig(media)
   const { actions, typeIcons, typeFallbackIcon, typeFallbackLabel, types } = config.notes
   const idKey = config.idPayloadKey
+  // El medio del evento: la clave del registry, que es la del catálogo.
+  const eventMedia = mediaOrNull(media)
 
   const authStore = useAuthStore()
   const notes = ref([])
@@ -98,6 +105,7 @@ export function useMediaNotes (media) {
 
     return call(actions.add, payload, '[useMediaNotes] add note', async (data) => {
       Logger.info('Note added', { media, noteType })
+      if (eventMedia) track('note_added', { media: eventMedia, note_type: noteTypeOf(noteType), is_private: Boolean(isPrivate) })
       await getNotes(itemId)
       return { success: true, data: data.data }
     })
@@ -117,6 +125,7 @@ export function useMediaNotes (media) {
 
     return call(actions.update, payload, '[useMediaNotes] update note', async () => {
       Logger.info('Note updated', { media, noteId })
+      if (eventMedia) track('note_updated', { media: eventMedia, note_type: noteTypeOf(noteType) })
       await getNotes(itemId)
       return { success: true }
     })
@@ -130,6 +139,7 @@ export function useMediaNotes (media) {
   async function deleteNote (noteId, itemId) {
     return call(actions.delete, { noteId }, '[useMediaNotes] delete note', async () => {
       Logger.info('Note deleted', { media, noteId })
+      if (eventMedia) track('note_deleted', { media: eventMedia })
       await getNotes(itemId)
       return { success: true }
     })

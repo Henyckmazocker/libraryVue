@@ -2,7 +2,10 @@
   <!-- El chasis lo pone `BaseModal`: overlay, trampa de foco, Escape, cabecera
        y pie ordenado, igual que en los cuatro modales propios. -->
   <BaseModal
+    ref="modalRef"
     v-model="visible"
+    analytics-name="recommend"
+    :analytics-dirty="recipientId !== null"
     :title="t('recommend.title')"
     class="recommend-dialog"
   >
@@ -105,12 +108,14 @@
 </template>
 
 <script setup>
-import { computed, inject, onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import Textarea from 'primevue/textarea'
 import { storeToRefs } from 'pinia'
 import { useSocialStore } from '@/store/social'
 import { useInboxStore } from '@/store/inbox'
+import { useUIStore } from '@/store/ui'
+import { track } from '@/analytics'
 import { useI18n } from '@/composables/useI18n';
 
 const { t } = useI18n();
@@ -137,7 +142,8 @@ const visible = computed({
 const socialStore = useSocialStore()
 const { friends } = storeToRefs(socialStore)
 const inboxStore = useInboxStore()
-const notifications = inject('notifications', null)
+const uiStore = useUIStore()
+const modalRef = ref(null)
 
 const recipientId = ref(null)
 const comment = ref('')
@@ -183,9 +189,11 @@ const send = async () => {
   })
 
   isSending.value = false
+  track('form_submit', { form: 'recommend', ok: result.success === true })
 
   if (result.success) {
-    notifications?.showSuccess?.(t('recommendDialog.sent'))
+    modalRef.value?.markSubmitted()
+    uiStore.showSuccess(t('recommendDialog.sent'))
     visible.value = false
     return
   }

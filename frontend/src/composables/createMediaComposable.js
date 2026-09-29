@@ -9,6 +9,22 @@ import { getMediaConfig } from '@/config/mediaRegistry'
 import { useConfirmationModal } from './useConfirmationModal'
 import Logger from '@/utils/logger'
 import { t } from '@/config/i18n'
+import { track } from '@/analytics'
+
+/**
+ * Cuántos campos cambia una edición (`item_edited.fields`), comparando con el ítem del store. La
+ * valoración y los estados llegan con otro nombre que el del ítem (`personalRating`, `statuses`);
+ * lo que el ítem no tiene cuenta como cambio. Sin el ítem en el store, cuenta todos los enviados.
+ */
+function changedFields (current, data, ratingField) {
+  const keys = Object.keys(data ?? {})
+  if (!current) return keys.length
+  const alias = { personalRating: ratingField, statuses: 'userStatuses' }
+  return keys.filter((key) => {
+    const before = current[alias[key] ?? key]
+    return JSON.stringify(before ?? null) !== JSON.stringify(data[key] ?? null)
+  }).length
+}
 
 // Los `useXStore` por medio. Mapa explícito aquí y no una entrada del registry:
 // `mediaRegistry` es lo que importa `createMediaStore`, así que declarar ahí el
@@ -101,12 +117,12 @@ export function createMediaComposable (media, extras = () => ({})) {
   /**
    * Añade un ítem pre-cargando los estados permitidos si aún no están.
    */
-  const add = async (item, statuses = []) => {
+  const add = async (item, statuses = [], source = 'unknown') => {
     if (allowedStatuses.value.length === 0) {
       await fetchAllowedStatuses()
     }
 
-    return await store[`add${One}`](item, statuses)
+    return await store[`add${One}`](item, statuses, source)
   }
 
   /**
@@ -168,6 +184,9 @@ export function createMediaComposable (media, extras = () => ({})) {
 
       if (response.data.status === 'success') {
         const index = items.value.findIndex((i) => cfg.matches(i, id))
+        // Es ESTA edición, y no `store.edit`, la que usa la app (`useItemEdit` → `EditItemModal`):
+        // el `item_edited` va aquí. Se cuenta antes de sincronizar, o ya no habría diferencia.
+        track('item_edited', { media, fields: changedFields(items.value[index], data, ratingField) })
         if (index !== -1) {
           const current = items.value[index]
           const patch = {

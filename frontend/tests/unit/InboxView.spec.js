@@ -4,7 +4,8 @@ import { RouterLinkStub } from '@vue/test-utils'
 import { flushPromises } from '@vue/test-utils'
 import InboxView from '@/views/InboxView.vue'
 import { useInboxStore } from '@/store/inbox'
-import { mountComponent, createNotificationsStub } from './helpers/mount'
+import { useUIStore } from '@/store/ui'
+import { mountComponent } from './helpers/mount'
 
 /**
  * La bandeja: la lista, el vacío y los dos botones.
@@ -34,12 +35,14 @@ const recomendacion = (extra = {}) => ({
   ...extra
 })
 
-const montar = (notifications = createNotificationsStub()) => mountComponent(InboxView, {
+const montar = () => mountComponent(InboxView, {
   global: {
-    stubs: { RouterLink: RouterLinkStub },
-    provide: { notifications }
+    stubs: { RouterLink: RouterLinkStub }
   }
 })
+
+// Los avisos salen por `uiStore`, que es lo que pinta `Layout.vue`.
+const avisos = () => useUIStore().notifications
 
 describe('InboxView', () => {
   beforeEach(() => {
@@ -100,37 +103,35 @@ describe('InboxView', () => {
 
   it('«Añadir» llama a addToLibrary y avisa al usuario', async () => {
     const store = useInboxStore()
-    const notifications = createNotificationsStub()
     store.fetchInbox = vi.fn()
     store.addToLibrary = vi.fn().mockResolvedValue({ success: true })
     store.items = [recomendacion()]
     store.isLoading = false
 
-    const w = montar(notifications)
+    const w = montar()
     await flushPromises()
 
     await w.findAll('.recommendation-card__actions button')[0].trigger('click')
     await flushPromises()
 
     expect(store.addToLibrary).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }))
-    expect(notifications.calls.some((c) => c.type === 'success')).toBe(true)
+    expect(avisos().some((n) => n.type === 'success')).toBe(true)
   })
 
   it('un fallo al añadir se dice, y la recomendación no desaparece', async () => {
     const store = useInboxStore()
-    const notifications = createNotificationsStub()
     store.fetchInbox = vi.fn()
     store.addToLibrary = vi.fn().mockResolvedValue({ success: false, message: 'No se pudo recuperar la ficha' })
     store.items = [recomendacion()]
     store.isLoading = false
 
-    const w = montar(notifications)
+    const w = montar()
     await flushPromises()
 
     await w.findAll('.recommendation-card__actions button')[0].trigger('click')
     await flushPromises()
 
-    expect(notifications.calls.some((c) => c.type === 'error')).toBe(true)
+    expect(avisos().some((n) => n.type === 'error')).toBe(true)
     expect(w.findAll('.recommendation-card')).toHaveLength(1)
   })
 

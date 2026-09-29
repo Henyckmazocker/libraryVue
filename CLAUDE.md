@@ -591,8 +591,9 @@ se cachean en `mb_track` (ver abajo).
     wrappers. Es un fallo que **jsdom no puede detectar**: se ve con capturas
     (`.github/skills/frontend.md`, *Visual Verification*).
 - **Tests de frontend en `frontend/tests/unit/`** (Vitest + `@vue/test-utils`, entorno `jsdom`). Monta
-  con el helper `tests/unit/helpers/mount.js`, no con `mount` a pelo: registra PrimeVue, provee el
-  `notifications` del `inject` e instala un Pinia **solo si no hay uno activo** —los specs que traen
+  con el helper `tests/unit/helpers/mount.js`, no con `mount` a pelo: registra PrimeVue (ya **no**
+  provee `notifications`: ver «Avisos» en la sección de Augur) e instala un Pinia **solo si no hay
+  uno activo** —los specs que traen
   el suyo siguen mandando; los demás dejan de reventar al montar un componente que llama a un store
   en su `setup`—. `tests/unit/setup.js` trae el polyfill de `matchMedia` sin el cual no
   se puede montar nada que lleve un `Dropdown`.
@@ -668,8 +669,8 @@ Las tres variables:
 
 | Variable | Qué |
 |---|---|
-| `VUE_APP_AUGUR_KEY` | `write_key` del proyecto `libraryvue` (tipo `app`) en el Augur de dev. **Sin ella no se llama a nada**: ni `localStorage` ni red, y la app se comporta como antes |
-| `VUE_APP_AUGUR_ENDPOINT` | origen sin barra final; por defecto `http://localhost:8897` |
+| `VUE_APP_AUGUR_KEY` | `write_key` del proyecto `libraryvue` (tipo `app`) **del Augur de ese entorno**: dev y prod son proyectos distintos en Augurs distintos, con claves distintas. **Sin ella no se llama a nada**: ni `localStorage` ni red, y la app se comporta como antes |
+| `VUE_APP_AUGUR_ENDPOINT` | origen sin barra final; por defecto `http://localhost:8897` (en prod, `https://augur.dcahomelab.com` por el compose) |
 
 - **Web**: por el `environment:` del servicio `frontend` de `docker-compose.yml`, que lee
   `AUGUR_KEY` y `AUGUR_ENDPOINT` del `.env` raíz (patrón `GOOGLE_CLIENT_ID`). Ya **no existe**
@@ -682,6 +683,22 @@ Las tres variables:
   `AUGUR_*` del `.env` raíz y `setup_mobile_env()` las `VUE_APP_AUGUR_*` de `.env.mobile` (si falta
   la clave la toma del `AUGUR_KEY` raíz, con endpoint `http://10.0.2.2:8897`). No las pregunta:
   vacías, el SDK no hace nada.
+- **Producción** *(2026-09-29, Plan «Augur en Producción»)*: mide contra `https://augur.dcahomelab.com`,
+  proyecto `libraryvue` creado allí con `bin/augur project:create libraryvue app <email>` (desde el
+  checkout de Augur, con su compose de prod). La clave va **horneada en el bundle** en el build:
+  `.env.prod` → `AUGUR_KEY` (y `AUGUR_ENDPOINT`, opcional) → `docker-compose.prod.yml:10-13`
+  (`VUE_APP_AUGUR_KEY: ${AUGUR_KEY:-}`, endpoint por defecto el de prod) → `ARG`/`ENV` de
+  `Dockerfile.frontend.prod:36-41`. Cambiarla pide `./prod-deploy.sh --rebuild`, no un reinicio.
+  **`AUGUR_KEY` vacía o ausente = Augur apagado en prod**: es el interruptor de emergencia.
+  `setup_prod_env()` (`prod-deploy.sh`) conserva las `AUGUR_*` al reescribir `.env.prod` y no las
+  pregunta. La CSP de `nginx.prod.conf` lleva `https://augur.dcahomelab.com` en `connect-src`
+  (`'self'` no lo cubre: es otro subdominio). **El APK de prod no se reconstruye**: carga la web
+  remota (`capacitor.config.ts`, `server.url`), así que mide en cuanto la mide la web.
+  - 🔴 **El Augur de prod tiene que ser posterior a su plan «SDK Web» (2026-09-28)**: el SDK web
+    manda la clave en el campo `write_key` del cuerpo, y un backend anterior solo lee la cabecera
+    `X-Augur-Key` → **`401 invalid_key` en cada subida aunque la clave sea buena**. Se comprueba con
+    `docker exec augur-backend-prod grep -c 'body->write_key' /var/www/html/src/Infrastructure/Http/IngestEndpoint.php`
+    (≠ `0`). Si Augur cambia su ingesta, redesplegar su prod antes de actualizar el SDK aquí.
 - 🔴 **El móvil se compila en el HOST, nunca en el contenedor.** `./dev-setup.sh --mobile` es el
   camino: nvm con Node ≥ 22 (lo exige `@capacitor/cli` 8), Gradle y el Android SDK solo existen
   ahí. Dentro de `libraryvue-frontend-1`, las `VUE_APP_AUGUR_*` del `environment:` del compose se
@@ -692,6 +709,63 @@ Las tres variables:
   devDependency `typescript@^5` para leer `capacitor.config.ts` (la 7 no expone la API que usa).
 - 🔴 `vue.config.js` es un **bind mount de fichero**: una edición que cambie el inodo deja al
   contenedor con la versión vieja hasta recrearlo.
+
+#### Eventos de producto: `analytics/catalog.js` *(2026-09-29, Plan «Catálogo de Eventos de Producto»)*
+
+Además de lo que emite el SDK (`session_*`, `page_view`, `error`), la app manda **82 eventos
+propios** declarados en `frontend/src/analytics/catalog.js` (`CATALOG`, más los enums `MEDIA`,
+`API_ACTIONS`, `DIALOGS`, `STATUSES`…). Es **datos puros, sin imports**: también lo lee Node en
+`tools/augur-catalog-export.cjs`, y `i18n.spec.js` se lo salta. Se mandan con
+`track(name, props)` de `@/analytics` —**nunca** de `@/augur/`—, que valida contra el catálogo con
+`checkEvent()`: nombre no declarado, prop de más o de menos, o valor fuera de su tipo → **no se
+envía** y avisa por consola fuera de prod (con el nombre y el motivo, nunca el valor). `track()`
+**no lanza nunca** y valida aunque no haya clave, así que un disparo mal escrito se ve en dev y en
+los tests.
+
+- 🔴 **Props cerradas y ni un dato personal.** Tres tipos: `{ enum: [...] }`, `'int'`, `'bool'`.
+  **No existe `string`** y no se añade: ni títulos, ni nombres de usuario, ni emails, ni textos
+  (una búsqueda manda `query_length`; una recomendación, `has_comment`). Nada de arrays: Augur no
+  agrupa por ellos, así que `fields` es **cuántos** campos cambiaron. Props planas y todas
+  presentes (una que falte también calla el evento). Lo que el código trae de fuera se normaliza
+  antes: `mediaOrNull()` (si no es un medio conocido, el evento no sale), `statusSlug()`, y
+  `failureCode()` para el `code` de un `*_failed` (el `http_code` o el HTTP, `0` sin respuesta;
+  nunca el `message`).
+- **Dónde se dispara**: en el store, **tras el OK** del API; el `*_failed` en su error. Solo si no
+  hay store, en el componente (`PublicProfileView`, `GenericSearch`). **El nombre va literal**:
+  `track('club_created')`, nunca `track(variable)` ni un helper que reciba el nombre —el test no lo
+  encontraría—. Lo que el store no sabe lo pasa quien llama con un default: `add(item, statuses,
+  source = 'unknown')` en `createMediaStore`, `sendFriendRequest(id, source = 'unknown')`.
+- **Cómo se añade un evento**: (1) entrada en `CATALOG` (y su prop en `PROP_DOCS` si es nueva)
+  → (2) `track('nombre_literal', {...})` tras el éxito → (3) test con `track` mockeado **y** el
+  `checkEvent` real, sembrando textos para comprobar que no salen (patrón en
+  `tests/unit/analyticsSocialInbox.spec.js`, `analyticsClubsLists.spec.js`,
+  `analyticsLibrary.spec.js`) → (4) `tools/augur-catalog.sh <endpoint> <email>` contra dev y contra
+  prod, que hace `catalog.upsert` de todo el catálogo (idempotente; **pide la contraseña con
+  `read -s`**; no borra los retirados). Sin el paso 4 el dashboard lo lista como `undeclared`.
+- **Barreras**: `tests/unit/analytics-catalog.spec.js` (tipos cerrados, nombres válidos para Augur,
+  todo `track('…')` de `src/` declarado, y `API_ACTIONS` ↔ `ActionRouter.php` —este caso **solo
+  corre en el host** (`cd frontend && npx vitest run tests/unit/analytics-catalog.spec.js`): el
+  contenedor no monta `backend/` y lo salta con aviso—) y `tests/unit/analytics.spec.js` (nadie
+  fuera de `analytics/` importa `@/augur/`). Los specs que mockean `@/analytics` lo hacen
+  **parcial** (`{ ...(await importOriginal()), track: vi.fn() }`).
+- 🔴 **`api_error` se cuenta UNA vez por llamada**, en `auth.apiCall` (error HTTP o 2xx con
+  `status: 'error'`), que marca el error en un `WeakSet`. `useApiError` y `handleStoreError` solo
+  cuentan lo **no marcado** (`trackUncountedApiError`, con `action: 'unknown'`). Un punto nuevo de
+  errores de negocio pasa por ahí, no por `track('api_error')`.
+- **Diálogos**: `BaseModal` con `analytics-name` (enum `DIALOGS`) emite `dialog_opened` y, al dejar
+  de estar abierto sin envío (X, overlay, Escape, un «Cancelar» propio o el `v-if` del padre),
+  `dialog_dismissed {dialog, had_input}`. Quien envía llama a `track('form_submit', {form, ok})` y,
+  si fue bien, a `modalRef.markSubmitted()` para que ese cierre no cuente como abandono.
+  `had_input` sale de los `input`/`change` dentro del diálogo; los selectores de botones (lista,
+  club, amigo) lo dicen con `:analytics-dirty`.
+- **No existe `analytics_consent_changed`, a propósito**: con «no» el SDK no manda nada; el
+  recuento de consentimientos sale de la BD de LibraryVue.
+
+**Avisos: todos por `uiStore`.** `useUIStore().showError`/`showSuccess` (`store/ui.js`) es el único
+camino que pinta (`Layout.vue`) y dispara `error_shown`. Los doce componentes que hacían
+`inject('notifications', null)` —sin **ningún** `provide` en `src/`, así que no enseñaban nada— se
+migraron. **No se añade un `provide('notifications')`**: dos mecanismos para lo mismo es lo que
+causó aquello. Los tests leen `useUIStore().notifications` (`tests/unit/toasts.spec.js`).
 
 ## Buenos comportamientos en este repo
 

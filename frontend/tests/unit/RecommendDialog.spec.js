@@ -4,7 +4,8 @@ import { flushPromises } from '@vue/test-utils'
 import RecommendDialog from '@/components/Social/RecommendDialog.vue'
 import { useSocialStore } from '@/store/social'
 import { useInboxStore } from '@/store/inbox'
-import { mountComponent, createNotificationsStub } from './helpers/mount'
+import { useUIStore } from '@/store/ui'
+import { mountComponent } from './helpers/mount'
 
 /**
  * El diálogo de recomendar.
@@ -31,7 +32,7 @@ const amigos = [
   { id: 3, username: 'luis', name: 'Luis', picture: null }
 ]
 
-const montar = (props = {}, notifications = createNotificationsStub()) => mountComponent(RecommendDialog, {
+const montar = (props = {}) => mountComponent(RecommendDialog, {
   props: {
     modelValue: true,
     entityType: 'movie',
@@ -41,7 +42,6 @@ const montar = (props = {}, notifications = createNotificationsStub()) => mountC
     ...props
   },
   global: {
-    provide: { notifications },
     stubs: { Dialog: DialogStub }
   }
 })
@@ -152,16 +152,15 @@ describe('RecommendDialog', () => {
 
     const inbox = useInboxStore()
     inbox.sendRecommendation = vi.fn().mockResolvedValue({ success: true })
-    const notifications = createNotificationsStub()
-
-    const w = montar({}, notifications)
+    const w = montar()
     await flushPromises()
 
     await w.find('.recommend-dialog__friend').trigger('click')
     await w.find('.btn--primary').trigger('click')
     await flushPromises()
 
-    expect(notifications.calls.some((c) => c.type === 'success')).toBe(true)
+    // Por `uiStore`, que es lo que pinta `Layout.vue`: el `inject` de antes no llegaba a nada.
+    expect(useUIStore().notifications.some((n) => n.type === 'success')).toBe(true)
     expect(w.emitted('update:modelValue')?.at(-1)).toEqual([false])
   })
 

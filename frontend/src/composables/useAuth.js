@@ -47,9 +47,10 @@ export function useAuth() {
   /**
    * Realiza login con token de Google
    * @param {string} googleToken - Token de Google OAuth
+   * @param {'google_web'|'google_native'} [method] - por dónde llegó el token (solo analítica)
    * @returns {Promise<{success: boolean, message?: string}>}
    */
-  const login = async (googleToken) => {
+  const login = async (googleToken, method = 'google_web') => {
     if (!googleToken) {
       const message = '[useAuth] Google token is required';
       error.value = message;
@@ -62,7 +63,7 @@ export function useAuth() {
 
     try {
       Logger.auth('[useAuth] Attempting login...');
-      const result = await authStore.login(googleToken);
+      const result = await authStore.login(googleToken, method);
       
       if (result.success) {
         Logger.auth('[useAuth] Login successful');

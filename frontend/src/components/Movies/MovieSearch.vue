@@ -222,6 +222,9 @@ const searchConfig = computed(() => ({
   ],
   carouselItemComponent: MovieCarouselItem,
   itemProp: 'movie',
+  // El medio de los eventos de búsqueda (`search`). No enciende la franja de degradación: el
+  // registry no le declara `supportsStale`, porque lo sirve el mirror.
+  media: 'movie',
   searchHandler: searchMovies,
   // La transformación vive en el registry desde el M1: la comparte con
   // el buscador general en vez de existir dos veces.

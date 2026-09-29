@@ -259,10 +259,11 @@
 </template>
 
 <script setup>
-import { computed, inject, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useClubsStore } from '@/store/clubs'
+import { useUIStore } from '@/store/ui'
 import ClubMemberProgress from '@/components/Clubs/ClubMemberProgress.vue'
 import ClubRound from '@/components/Clubs/ClubRound.vue'
 import InviteToClubDialog from '@/components/Clubs/InviteToClubDialog.vue'
@@ -290,7 +291,7 @@ const isCurrentOwner = computed(() => clubsStore.isCurrentOwner)
 const finishedCount = computed(() => clubsStore.finishedCount)
 
 const router = useRouter()
-const notifications = inject('notifications', null)
+const uiStore = useUIStore()
 
 const numericId = computed(() => Number(props.clubId))
 
@@ -357,11 +358,11 @@ const handleFinish = async () => {
   const result = await clubsStore.finishPick(numericId.value)
 
   if (!result.success) {
-    notifications?.showError?.(result.message || t('clubActions.finishFailed'))
+    uiStore.showError(result.message || t('clubActions.finishFailed'))
     return
   }
 
-  notifications?.showSuccess?.(t('clubActions.finished'))
+  uiStore.showSuccess(t('clubActions.finished'))
 }
 
 /**
@@ -374,36 +375,36 @@ const handleVote = async (proposalId) => {
   const result = await clubsStore.voteProposal(numericId.value, proposalId)
 
   if (!result.success) {
-    notifications?.showError?.(result.message || t('clubActions.voteFailed'))
+    uiStore.showError(result.message || t('clubActions.voteFailed'))
     return
   }
 
-  notifications?.showSuccess?.(t('clubActions.voted'))
+  uiStore.showSuccess(t('clubActions.voted'))
 }
 
 const handleOpenVote = async () => {
   const result = await clubsStore.openVote(numericId.value)
 
   if (!result.success) {
-    notifications?.showError?.(result.message || t('clubActions.openVoteFailed'))
+    uiStore.showError(result.message || t('clubActions.openVoteFailed'))
     return
   }
 
-  notifications?.showSuccess?.(t('clubActions.voteOpened'))
+  uiStore.showSuccess(t('clubActions.voteOpened'))
 }
 
 const handleCloseVote = async () => {
   const result = await clubsStore.closeVote(numericId.value)
 
   if (!result.success) {
-    notifications?.showError?.(result.message || t('clubActions.closeVoteFailed'))
+    uiStore.showError(result.message || t('clubActions.closeVoteFailed'))
     return
   }
 
   // Cerrar NO garantiza ítem: si los votos empataban en el primer recuento, la
   // ronda pasa al desempate y sigue votándose. La válvula destraba la espera,
   // no la regla.
-  notifications?.showSuccess?.(
+  uiStore.showSuccess(
     result.pickId ? t('clubActions.alreadyNext') : t('clubActions.tie')
   )
 }
@@ -412,11 +413,11 @@ const handleLeave = async () => {
   const result = await clubsStore.leaveClub(numericId.value)
 
   if (!result.success) {
-    notifications?.showError?.(result.message || t('clubActions.leaveFailed'))
+    uiStore.showError(result.message || t('clubActions.leaveFailed'))
     return
   }
 
-  notifications?.showSuccess?.(t('clubActions.left'))
+  uiStore.showSuccess(t('clubActions.left'))
   router.push({ name: 'Clubs' })
 }
 </script>

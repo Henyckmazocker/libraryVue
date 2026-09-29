@@ -192,6 +192,7 @@ import { useJournalStore } from '@/store/journal'
 import JournalEntryRow from '@/components/Journal/JournalEntryRow.vue'
 import { journalDayLabel } from '@/utils/dates'
 import { useI18n } from '@/composables/useI18n';
+import { track, failureCode } from '@/analytics'
 
 const { t } = useI18n();
 
@@ -223,11 +224,15 @@ onMounted(async () => {
     })
     if (response.data.status === 'success') {
       profile.value = response.data.data
+      // Solo si es amigo: ni el nombre ni el id del perfil viajan.
+      track('public_profile_viewed', { is_friend: profile.value?.friend_status === 'friends' })
     } else {
       error.value = response.data.message || t('toasts.profileNotFound')
+      track('public_profile_view_failed', { code: failureCode(response.data) })
     }
-  } catch {
+  } catch (err) {
     error.value = t('toasts.profileFailed')
+    track('public_profile_view_failed', { code: failureCode(err) })
   } finally {
     loading.value = false
   }
@@ -241,7 +246,7 @@ onMounted(async () => {
 const handleSendRequest = async () => {
   requestSending.value = true
   try {
-    await socialStore.sendFriendRequest(profile.value.id)
+    await socialStore.sendFriendRequest(profile.value.id, 'public_profile')
     // El estado vive en el `ref` local: es un cambio de un campo que el usuario
     // acaba de provocar, y volver a pedir el perfil entero no diría nada nuevo.
     profile.value.friend_status = 'pending_sent'

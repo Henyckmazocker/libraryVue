@@ -2,7 +2,9 @@
   <!-- El chasis lo pone `BaseModal`: overlay, trampa de foco, Escape, cabecera
        y pie ordenado, igual que en los cuatro modales propios. -->
   <BaseModal
+    ref="modalRef"
     v-model="visible"
+    analytics-name="list_form"
     :title="isEdit ? t('listForm.titleEdit') : t('listForm.titleNew')"
     class="list-form-dialog"
   >
@@ -103,6 +105,12 @@ const visible = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value)
 })
+
+// El envío lo resuelve el padre (este diálogo solo emite `submit`), así que es él quien sabe si
+// fue bien: cuenta `form_submit` y, si fue bien, llama a esto antes de cerrar para que ese cierre
+// no salga como abandono.
+const modalRef = ref(null)
+defineExpose({ markSubmitted: () => modalRef.value?.markSubmitted() })
 
 const isEdit = computed(() => Boolean(props.list))
 

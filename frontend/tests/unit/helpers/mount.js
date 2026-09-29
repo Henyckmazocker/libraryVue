@@ -4,8 +4,13 @@ import { createPinia, getActivePinia, setActivePinia } from 'pinia'
 
 /**
  * Monta un componente con el andamiaje mínimo que el proyecto da por hecho en
- * runtime: el plugin de PrimeVue registrado y el `notifications` que los
- * paneles de notas reciben por inject (AlbumNotes.vue:20).
+ * runtime: el plugin de PrimeVue registrado.
+ *
+ * Ya NO provee un `notifications`: ese `provide` solo existía aquí, en los
+ * tests, y hacía pasar por buenos los doce `inject('notifications')` que en la
+ * app no pintaban nada. Desde el 2026-09-29 (Plan «Catálogo de Eventos de
+ * Producto», M2) los avisos salen por `uiStore` y se leen de
+ * `useUIStore().notifications`.
  *
  * PrimeVue va en modo `unstyled`: los tests no assertan sobre estilos y así no
  * hay que arrastrar el preset de src/config/primevue-preset.js.
@@ -48,24 +53,10 @@ export function mountComponent (component, options = {}) {
     global: {
       ...global,
       plugins: [...(pinia ? [pinia] : []), [PrimeVue, { unstyled: true }], ...(global.plugins ?? [])],
-      provide: { notifications: createNotificationsStub(), ...(global.provide ?? {}) },
+      provide: { ...(global.provide ?? {}) },
       stubs: { teleport: true, ...(global.stubs ?? {}) },
     },
   })
-}
-
-/** Registra las notificaciones emitidas en vez de mostrarlas. */
-export function createNotificationsStub () {
-  const calls = []
-  const record = (type) => (...args) => calls.push({ type, args })
-
-  return {
-    calls,
-    showSuccess: record('success'),
-    showError: record('error'),
-    showInfo: record('info'),
-    showWarning: record('warning'),
-  }
 }
 
 /**

@@ -167,6 +167,7 @@
 
     <ListFormDialog
       v-if="showEdit && current"
+      ref="formRef"
       v-model="showEdit"
       :list="current"
       @submit="handleEdit"
@@ -184,7 +185,7 @@
 </template>
 
 <script setup>
-import { computed, inject, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useListsStore } from '@/store/lists'
@@ -193,6 +194,8 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import ListFormDialog from '@/components/Lists/ListFormDialog.vue'
 import InviteCollaboratorDialog from '@/components/Lists/InviteCollaboratorDialog.vue'
 import { useAuthStore } from '@/store/auth'
+import { useUIStore } from '@/store/ui'
+import { track } from '@/analytics'
 import { VISIBILITY } from '@/components/Lists/visibility'
 import { useI18n } from '@/composables/useI18n';
 
@@ -209,9 +212,10 @@ const canEdit = computed(() => lists.canEditCurrent)
 const isOwner = computed(() => lists.isCurrentOwner)
 
 const router = useRouter()
-const notifications = inject('notifications', null)
+const uiStore = useUIStore()
 
 const showEdit = ref(false)
+const formRef = ref(null)
 const showInvite = ref(false)
 const myUserId = computed(() => useAuthStore().user?.id ?? null)
 const removingId = ref(null)
@@ -228,7 +232,7 @@ const handleRemove = async (item) => {
   removingId.value = null
 
   if (!result.success) {
-    notifications?.showError?.(result.message || t('listActions.removeFailed'))
+    uiStore.showError(result.message || t('listActions.removeFailed'))
   }
 }
 
@@ -243,7 +247,7 @@ const handleRemoveCollaborator = async (person) => {
   const result = await lists.removeCollaborator(numericId.value, person.user_id)
 
   if (!result.success) {
-    notifications?.showError?.(result.message || t('errors.unknown'))
+    uiStore.showError(result.message || t('errors.unknown'))
     return
   }
 
@@ -256,14 +260,16 @@ const handleRemoveCollaborator = async (person) => {
 
 const handleEdit = async (form) => {
   const result = await lists.updateList(numericId.value, form)
+  track('form_submit', { form: 'list_form', ok: result.success === true })
 
   if (!result.success) {
-    notifications?.showError?.(result.message || t('listActions.saveFailed'))
+    uiStore.showError(result.message || t('listActions.saveFailed'))
     return
   }
 
+  formRef.value?.markSubmitted()
   showEdit.value = false
-  notifications?.showSuccess?.(t('listActions.updated'))
+  uiStore.showSuccess(t('listActions.updated'))
 }
 
 const confirmDelete = async () => {
@@ -274,11 +280,11 @@ const confirmDelete = async () => {
   const result = await lists.deleteList(numericId.value)
 
   if (!result.success) {
-    notifications?.showError?.(result.message || t('listActions.deleteFailed'))
+    uiStore.showError(result.message || t('listActions.deleteFailed'))
     return
   }
 
-  notifications?.showSuccess?.(t('listActions.deleted'))
+  uiStore.showSuccess(t('listActions.deleted'))
   router.push({ name: 'Lists' })
 }
 </script>

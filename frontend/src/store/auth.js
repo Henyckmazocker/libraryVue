@@ -4,7 +4,7 @@ import Logger from '@/utils/logger'
 import { RateLimitError } from '@/utils/errors'
 import { useUIStore } from './ui'
 import { t } from '@/config/i18n'
-import { syncAnalytics, stopAnalytics } from '@/analytics'
+import { syncAnalytics, stopAnalytics, track, trackApiError, trackRateLimited } from '@/analytics'
 
 // Espera máxima que se absorbe con un reintento silencioso. Por encima de esto se
 // avisa al usuario en vez de dejar la interfaz colgada.
@@ -65,7 +65,11 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async login(googleToken) {
+    /**
+     * @param {string} googleToken
+     * @param {'google_web'|'google_native'} [method] - por dónde llegó el token (solo analítica)
+     */
+    async login(googleToken, method = 'google_web') {
       this.isLoading = true
       try {
         Logger.auth('Sending login request with token...')
@@ -88,6 +92,8 @@ export const useAuthStore = defineStore('auth', {
           
           Logger.auth('Login successful:', this.user.name)
           syncAnalytics(this.user)
+          // Después de syncAnalytics: antes, sin consentimiento aún, el SDK lo descartaría.
+          track('logged_in', { method })
           
           // Small delay to ensure session is properly set before any other operations
           await new Promise(resolve => setTimeout(resolve, 100))
@@ -103,6 +109,9 @@ export const useAuthStore = defineStore('auth', {
           response: error.response?.data,
           status: error.response?.status
         })
+        // Solo el código HTTP (0 sin respuesta o con un error de negocio en un 200). Casi siempre
+        // lo descarta el SDK —sin sesión no hay consentimiento—; sale en un re-login con sesión.
+        track('login_failed', { status: Number.isInteger(error.response?.status) ? error.response.status : 0 })
         // Clean up any partial authentication state
         await this.logout()
         return { 
@@ -114,7 +123,14 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async logout() {
+    /**
+     * @param {{forced?: boolean}} [options] - `forced`: la sesión se cae sola (401), no la cierra
+     *   el usuario. Solo para la analítica.
+     */
+    async logout({ forced = false } = {}) {
+      // Solo se cuenta el cierre de una sesión que existía: initializeAuth y un login fallido
+      // también pasan por aquí para limpiar, y eso no es cerrar sesión.
+      const hadSession = this.isAuthenticated
       try {
         // Only call backend logout if we have an active session
         if (this.isAuthenticated) {
@@ -125,6 +141,8 @@ export const useAuthStore = defineStore('auth', {
         Logger.error('Logout error:', error)
         // Continue with cleanup even if backend call fails
       } finally {
+        // ANTES de stopAnalytics: con el consentimiento apagado el SDK ya no lo mandaría.
+        if (hadSession) track('logged_out', { forced: forced === true })
         // Analítica: sube lo pendiente y apaga (nadie sin sesión se mide). No lanza.
         await stopAnalytics()
         // Always clean up local state
@@ -200,13 +218,25 @@ export const useAuthStore = defineStore('auth', {
       }
 
       try {
-        return await axios.post(backendApiUrl, requestData, config)
+        return this.countBusinessError(action, await axios.post(backendApiUrl, requestData, config))
       } catch (error) {
         if (error.response?.status !== 429) {
+          // api_error se cuenta AQUÍ, una vez por llamada: es el único sitio que sabe qué action
+          // falló. `apiError` / `handleStoreError` no vuelven a contar este mismo error.
+          trackApiError(action, error)
           throw error
         }
         return await this.handleRateLimit(error, action, backendApiUrl, requestData, config)
       }
+    },
+
+    /**
+     * Un 2xx que trae `status: 'error'` también es un fallo (el backend convierte `http_code` en
+     * el código HTTP, así que es raro, pero cabe). Devuelve la respuesta tal cual.
+     */
+    countBusinessError(action, response) {
+      if (response?.data?.status === 'error') trackApiError(action, response)
+      return response
     },
 
     /**
@@ -223,17 +253,20 @@ export const useAuthStore = defineStore('auth', {
       const uiStore = useUIStore()
 
       Logger.warn('Rate limit alcanzado', { action, retryAfter })
+      trackRateLimited(action, retryAfter)
 
       if (retryAfter > 0 && retryAfter <= RATE_LIMIT_AUTO_RETRY_MAX_SECONDS) {
         await new Promise(resolve => setTimeout(resolve, retryAfter * 1000))
         try {
-          return await axios.post(url, requestData, config)
+          return this.countBusinessError(action, await axios.post(url, requestData, config))
         } catch (retryError) {
           if (retryError.response?.status !== 429) {
+            trackApiError(action, retryError)
             throw retryError
           }
           // El segundo 429 ya no se reintenta: se avisa con la espera actualizada
           const secondRetryAfter = parseInt(retryError.response.headers['retry-after'], 10) || retryAfter
+          trackRateLimited(action, secondRetryAfter)
           uiStore.showWarning(this.rateLimitMessage(secondRetryAfter), t('auth.tooManyRequests'))
           throw new RateLimitError(secondRetryAfter)
         }
@@ -267,7 +300,7 @@ export const useAuthStore = defineStore('auth', {
     handleAuthError(error) {
       if (error.response?.status === 401 || error.response?.data?.code === 'AUTH_REQUIRED') {
         Logger.auth('Authentication required, logging out...')
-        this.logout() // Clean logout for auth errors
+        this.logout({ forced: true }) // Clean logout for auth errors
         // Optionally redirect to login page
         if (window.location.pathname !== '/') {
           window.location.href = '/'
@@ -287,6 +320,8 @@ export const useAuthStore = defineStore('auth', {
       })
       if (response.data.status === 'success') {
         this.user = { ...this.user, ...response.data.data.user }
+        // Cuántos campos, nunca cuáles ni su valor (el de Last.fm es un nombre de usuario).
+        track('profile_updated', { fields: Object.keys(profileData ?? {}).length })
       }
       return response
     },

@@ -17,6 +17,8 @@
         aria-modal="true"
         :aria-labelledby="titleId"
         @click.stop
+        @input="onUserInput"
+        @change="onUserInput"
       >
         <header class="base-modal__header">
           <h2
@@ -62,9 +64,11 @@
 </template>
 
 <script setup>
-import { ref, useId } from 'vue'
+import { onBeforeUnmount, ref, useId, watch } from 'vue'
 import { useFocusTrap } from '@/composables/useFocusTrap'
 import { useI18n } from '@/composables/useI18n';
+import { track } from '@/analytics'
+import { DIALOGS } from '@/analytics/catalog'
 
 const { t } = useI18n();
 
@@ -98,7 +102,18 @@ const props = defineProps({
   accent: { type: String, default: '' },
   closeOnOverlay: { type: Boolean, default: true },
   // `false` para un proceso en curso: ni X ni Escape, para no dejarlo a medias.
-  dismissible: { type: Boolean, default: true }
+  dismissible: { type: Boolean, default: true },
+  // Con nombre (uno de `DIALOGS` de `analytics/catalog.js`), el modal mide su propio uso:
+  // `dialog_opened` al abrirse y `dialog_dismissed` si se cierra sin que quien lo usa haya
+  // llamado a `markSubmitted()`. Sin él, no mide nada: solo los diálogos con formulario lo llevan.
+  analyticsName: {
+    type: String,
+    default: '',
+    validator: (v) => v === '' || DIALOGS.includes(v)
+  },
+  // Para lo que se elige sin teclear (una lista, un amigo): quien usa el modal dice si ya hay algo
+  // elegido, y eso también cuenta como `had_input`.
+  analyticsDirty: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['update:modelValue', 'close'])
@@ -111,6 +126,58 @@ const cerrar = () => {
   emit('update:modelValue', false)
   emit('close')
 }
+
+// ── Analítica (Plan «Catálogo de Eventos de Producto», M2) ──────────────────────────────────
+//
+// Una apertura = un `dialog_opened` y, como mucho, un `dialog_dismissed`. El abandono se decide al
+// dejar de estar abierto y no solo en `cerrar()`: los diálogos también se cierran con su propio
+// «Cancelar» (que emite `update:modelValue` sin pasar por aquí) o desmontándose por el `v-if` del
+// padre, y los tres son el mismo abandono.
+//
+// `had_input`: hubo algún evento `input` o `change` DENTRO del diálogo desde que se abrió
+// (teclear, elegir en un `<select>`, marcar un radio, poner una fecha). Lo que no dispara ninguno
+// de los dos —las estrellas de valoración, un desplegable de PrimeVue cuyo panel se teletransporta
+// fuera— no cuenta, salvo que quien usa el modal lo diga con `analyticsDirty` (los selectores
+// hechos de botones). Es deliberadamente simple: responde «¿llegó a tocar el formulario?».
+let abierto = false
+let enviado = false
+let tocado = false
+
+const onUserInput = () => { tocado = true }
+
+const alAbrir = () => {
+  abierto = true
+  enviado = false
+  tocado = false
+  track('dialog_opened', { dialog: props.analyticsName })
+}
+
+const alDejarDeEstarAbierto = () => {
+  if (!abierto) return
+  abierto = false
+  if (!enviado) {
+    track('dialog_dismissed', { dialog: props.analyticsName, had_input: tocado || props.analyticsDirty })
+  }
+}
+
+// `immediate`: la mayoría de estos diálogos se montan con `v-if` y nacen ya abiertos.
+watch(() => props.modelValue, (valor) => {
+  if (!props.analyticsName) return
+  if (valor && !abierto) alAbrir()
+  else if (!valor) alDejarDeEstarAbierto()
+}, { immediate: true })
+
+onBeforeUnmount(() => {
+  if (props.analyticsName) alDejarDeEstarAbierto()
+})
+
+/**
+ * Quien usa el modal lo llama cuando el envío ha ido bien, ANTES de cerrarlo: ese cierre ya no
+ * es un abandono. El envío en sí lo cuenta él con `form_submit { form, ok }`.
+ */
+const markSubmitted = () => { enviado = true }
+
+defineExpose({ markSubmitted })
 
 const onOverlayClick = () => {
   if (props.closeOnOverlay) cerrar()

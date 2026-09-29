@@ -83,6 +83,12 @@ import EmptyState from '@/components/common/EmptyState.vue';
 import { getMediaConfig, mediaKeys } from '@/config/mediaRegistry';
 import Logger from '@/utils/logger';
 import { useI18n } from '@/composables/useI18n';
+import { track, mediaOrNull } from '@/analytics';
+
+// Los `search_type` del catálogo; el resto sale como `unknown`.
+const SEARCH_TYPES = ['auto', 'name', 'title', 'id', 'direct'];
+// Qué identificador lleva directo a la ficha, por medio (`search_direct_navigated.kind`).
+const DIRECT_KINDS = { book: 'isbn', movie: 'imdb', series: 'imdb' };
 
 const { t } = useI18n();
 
@@ -140,6 +146,11 @@ const cachedAt = ref(null);
 
 const isStale = computed(() => supportsStale.value && staleFlag.value);
 
+// El medio de los eventos de búsqueda. Sin un medio del catálogo en la config no se manda nada:
+// no hay un `unknown` que agrupar, y un buscador sin medio es un fallo de quien lo monta. Los
+// eventos nunca llevan el texto buscado, solo su longitud.
+const analyticsMedia = computed(() => mediaOrNull(props.config.media));
+
 // Métodos
 const handleSearch = async (input, index) => {
   errorMessage.value = '';
@@ -147,6 +158,7 @@ const handleSearch = async (input, index) => {
   const query = inputValues.value[index].trim();
   
   if (!query) {
+    if (analyticsMedia.value) track('search_empty_submitted', { media: analyticsMedia.value });
     errorMessage.value = input.emptyMessage || t('toasts.searchEmpty');
     return;
   }
@@ -170,6 +182,9 @@ const handleSearch = async (input, index) => {
     if (shouldNavigateDirect || input.type === 'direct') {
       const navData = input.idField ? { [input.idField]: query } : { id: query };
       props.config.navigateToDetail(router, navData);
+      if (analyticsMedia.value) {
+        track('search_direct_navigated', { media: analyticsMedia.value, kind: DIRECT_KINDS[analyticsMedia.value] ?? 'unknown' });
+      }
       return;
     }
     
@@ -185,6 +200,18 @@ const handleSearch = async (input, index) => {
     staleFlag.value = Array.isArray(respuesta) ? false : respuesta?.stale === true;
     cachedAt.value = Array.isArray(respuesta) ? null : (respuesta?.cached_at ?? null);
 
+    // `results: 0` es la búsqueda sin resultados: no hay un evento aparte. De la consulta solo
+    // viaja su longitud.
+    if (analyticsMedia.value) {
+      track('search', {
+        media: analyticsMedia.value,
+        search_type: SEARCH_TYPES.includes(searchType) ? searchType : 'unknown',
+        query_length: query.length,
+        results: Array.isArray(searchResults) ? searchResults.length : 0,
+        stale: staleFlag.value
+      });
+    }
+
     if (!searchResults || searchResults.length === 0) {
       sinResultados.value = true;
       results.value = [];
@@ -199,6 +226,7 @@ const handleSearch = async (input, index) => {
     Logger.debug(`[GenericSearch] Found ${results.value.length} results`);
   } catch (error) {
     Logger.error('[GenericSearch] Search error:', error);
+    if (analyticsMedia.value) track('search_failed', { media: analyticsMedia.value });
     errorMessage.value = input.errorMessage || t('toasts.searchFailed');
     results.value = [];
     // Sin resultados no hay nada que la franja describa, y dejarla puesta

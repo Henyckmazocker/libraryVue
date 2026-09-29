@@ -22,6 +22,14 @@ import { useAuthStore } from './auth'
 import Logger from '@/utils/logger'
 import { apiError } from '@/composables/useApiError'
 import { t } from '@/config/i18n'
+import { track, failureCode, mediaOrNull } from '@/analytics'
+
+// Las escrituras del diario y su `op` en los eventos (`journal_entry_saved`, `journal_save_failed`).
+const OPS = {
+  add_journal_entry: 'add',
+  update_journal_entry: 'update',
+  delete_journal_entry: 'delete'
+}
 
 const PAGINA = 30
 
@@ -345,6 +353,7 @@ export const useJournalStore = defineStore('journal', {
           ? datos.years.map(Number).filter(Number.isFinite)
           : []
 
+        track('journal_calendar_viewed', { view: 'year' })
         return true
       } catch (err) {
         Logger.error('[JournalStore] get_journal_calendar error:', err)
@@ -410,6 +419,7 @@ export const useJournalStore = defineStore('journal', {
         }
 
         this.monthEntries = acumulado
+        track('journal_calendar_viewed', { view: 'month' })
         return true
       } finally {
         this.isLoadingMonth = false
@@ -429,6 +439,7 @@ export const useJournalStore = defineStore('journal', {
      */
     async setMedia (media) {
       this.media = media || null
+      track('journal_filter_changed', { media: mediaOrNull(this.media) ?? 'all' })
       this.entries = []
       this.calendarYear = null
       this.monthKey = null
@@ -460,7 +471,7 @@ export const useJournalStore = defineStore('journal', {
         entityId: datos.entityId,
         entryDate: datos.entryDate,
         rating: datos.rating
-      })
+      }, datos.media)
     },
 
     /**
@@ -473,16 +484,28 @@ export const useJournalStore = defineStore('journal', {
         entryId,
         entryDate: datos.entryDate,
         rating: datos.rating
-      })
+      }, this._mediaDe(entryId))
     },
 
     async remove (entryId) {
-      return this._escribir('delete_journal_entry', { entryId })
+      return this._escribir('delete_journal_entry', { entryId }, this._mediaDe(entryId))
     },
 
-    async _escribir (accion, payload) {
+    /**
+     * El medio de una entrada ya cargada (listado o rejilla del mes), para los eventos: editar y
+     * borrar solo mandan el id. Se lee ANTES de escribir, porque el `fetch()` de después puede
+     * dejarla fuera de la página.
+     */
+    _mediaDe (entryId) {
+      const entrada = [...this.entries, ...this.monthEntries].find((e) => e?.id === entryId)
+      return entrada?.media
+    },
+
+    async _escribir (accion, payload, media) {
       this.isSaving = true
       this.error = null
+      const op = OPS[accion]
+      const eventMedia = mediaOrNull(media) ?? 'unknown'
 
       try {
         const authStore = useAuthStore()
@@ -490,7 +513,15 @@ export const useJournalStore = defineStore('journal', {
 
         if (response.data.status !== 'success') {
           this.error = apiError(response.data, { defecto: 'journalError.save' })
+          track('journal_save_failed', { op, code: failureCode(response.data) })
           return false
+        }
+
+        // Tras el OK del backend y antes de recargar: si la recarga falla, la escritura ya pasó.
+        if (op === 'delete') {
+          track('journal_entry_deleted', { media: eventMedia })
+        } else {
+          track('journal_entry_saved', { op, media: eventMedia, has_rating: payload.rating != null && payload.rating !== '' })
         }
 
         await this.fetch()
@@ -498,6 +529,7 @@ export const useJournalStore = defineStore('journal', {
       } catch (err) {
         Logger.error(`[JournalStore] ${accion} error:`, err)
         this.error = t('journalError.save')
+        track('journal_save_failed', { op, code: failureCode(err) })
         return false
       } finally {
         this.isSaving = false

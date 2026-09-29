@@ -1,5 +1,6 @@
 import { t } from '@/config/i18n'
 import Logger from '@/utils/logger'
+import { trackUncountedApiError } from '@/analytics'
 
 /**
  * Traduce el resultado de una llamada al backend a algo que el usuario pueda
@@ -52,6 +53,9 @@ function mensajeDelBackend (origen) {
 }
 
 export function apiError (origen, claves = {}) {
+  // `api_error` solo si `auth.apiCall` no lo contó ya (casi nunca: allí se cuenta todo lo que
+  // pasa por el backend). Un número no se cuenta aquí jamás. Ver `analytics/index.js`.
+  trackUncountedApiError(origen)
   const codigo = codigoDe(origen)
   const delBackend = mensajeDelBackend(origen)
 

@@ -1,5 +1,6 @@
 import { createMediaComposable } from './createMediaComposable'
 import { useAuthStore } from '@/store/auth'
+import { track } from '@/analytics'
 
 /**
  * Composable de películas y series.
@@ -23,6 +24,11 @@ export function useMovies() {
           personalRating: data.personalRating || null,
           notes: data.notes || null
         })
+        // Solo con el OK del backend: `apiCall` no lanza con un 2xx que trae `status: 'error'`.
+        if (response?.data?.status === 'success') {
+          const season = Number(seasonNumber)
+          track('series_season_tracked', { season: Number.isInteger(season) ? season : 0 })
+        }
         return { success: true, data: response.data }
       } catch (err) {
         return { success: false, message: err.message }

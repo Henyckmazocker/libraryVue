@@ -11,7 +11,9 @@ vi.mock('@/store/auth', () => ({
 
 const MediaNotes = (await import('@/components/shared/MediaNotes.vue')).default
 const { mediaRegistry } = await import('@/config/mediaRegistry')
-const { mountComponent, createNotificationsStub } = await import('./helpers/mount')
+const { mountComponent } = await import('./helpers/mount')
+const { createPinia, setActivePinia } = await import('pinia')
+const { useUIStore } = await import('@/store/ui')
 
 /** Dialog de PrimeVue se teletransporta a body; en su lugar rinde el slot inline. */
 const DialogStub = {
@@ -27,17 +29,18 @@ const flush = async () => {
   await nextTick()
 }
 
-function mountNotes (media, itemId, { notifications } = {}) {
+function mountNotes (media, itemId) {
   return mountComponent(MediaNotes, {
     props: { media, itemId },
     global: {
-      provide: notifications ? { notifications } : {},
       stubs: { Dialog: DialogStub }
     }
   })
 }
 
 beforeEach(() => {
+  // Pinia limpio por test: los avisos salen por `uiStore` y se leen de ahí.
+  setActivePinia(createPinia())
   apiCall.mockReset()
   apiCall.mockResolvedValue(ok())
 })
@@ -114,8 +117,7 @@ describe('MediaNotes — configuración por medio', () => {
 
 describe('MediaNotes — alta de nota', () => {
   it('rechaza el texto vacío sin llamar al backend', async () => {
-    const notifications = createNotificationsStub()
-    const wrapper = mountNotes('album', 13, { notifications })
+    const wrapper = mountNotes('album', 13)
     await nextTick()
     apiCall.mockClear()
 
@@ -123,8 +125,8 @@ describe('MediaNotes — alta de nota', () => {
     await wrapper.findAll('button').at(-1).trigger('click')
 
     expect(apiCall).not.toHaveBeenCalled()
-    expect(notifications.calls).toEqual([
-      { type: 'error', args: ['El contenido de la nota no puede estar vacío'] }
+    expect(useUIStore().notifications.map(({ type, message }) => ({ type, message }))).toEqual([
+      { type: 'error', message: 'El contenido de la nota no puede estar vacío' }
     ])
   })
 
@@ -209,8 +211,7 @@ describe('MediaNotes — borrado', () => {
     apiCall.mockResolvedValue(ok([
       { id: 9, noteText: 'fuera', noteType: 'note', isPrivate: true, createdAt: '2026-01-01', updatedAt: '2026-01-01' }
     ]))
-    const notifications = createNotificationsStub()
-    const wrapper = mountNotes('game', 7, { notifications })
+    const wrapper = mountNotes('game', 7)
     await nextTick()
     await nextTick()
     apiCall.mockClear()

@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory, createWebHashHistory } from 'vue-router';
+import { track } from '@/analytics';
+import { ROUTE_NAMES } from '@/analytics/catalog';
 
 // Las vistas de detalle van en diferido con `webpackPrefetch`: el navegador se baja su chunk en
 // tiempo ocioso, después del arranque, así que la transición sigue siendo instantánea sin cobrar
@@ -226,6 +228,7 @@ router.beforeEach(async (to, from, next) => {
     }
 
     if (!authStore.isLoggedIn) {
+      track('auth_redirected', { to: ROUTE_NAMES.includes(to.name) ? to.name : 'unknown' });
       return next({ name: 'Home' });
     }
   }

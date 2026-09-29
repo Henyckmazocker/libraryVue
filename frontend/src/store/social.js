@@ -6,6 +6,13 @@ import { defineStore } from 'pinia'
 import { useAuthStore } from './auth'
 import Logger from '@/utils/logger'
 import { t } from '@/config/i18n'
+import { track } from '@/analytics'
+
+/** Desde dónde se puede pedir una amistad (el enum de `friend_request_sent.source`). */
+const FRIEND_REQUEST_SOURCES = ['user_search', 'public_profile']
+
+/** El tamaño de página del feed: de él sale el `page` de `feed_loaded`. */
+const FEED_PAGE_SIZE = 20
 
 export const useSocialStore = defineStore('social', {
   state: () => ({
@@ -57,12 +64,19 @@ export const useSocialStore = defineStore('social', {
       }
     },
 
-    async sendFriendRequest(addresseeId) {
+    /**
+     * `source` lo pone quien llama (`user_search` desde /friends, `public_profile` desde el
+     * perfil): el store no sabe desde qué pantalla le piden. Sin él, `unknown`.
+     */
+    async sendFriendRequest(addresseeId, source = 'unknown') {
       const authStore = useAuthStore()
       const response = await authStore.authenticatedApiCall('send_friend_request', { addresseeId })
       if (response.data.status !== 'success') {
         throw new Error(t('friends.sendFailed'))
       }
+      track('friend_request_sent', {
+        source: FRIEND_REQUEST_SOURCES.includes(source) ? source : 'unknown'
+      })
       return response.data.data
     },
 
@@ -72,6 +86,7 @@ export const useSocialStore = defineStore('social', {
       if (response.data.status !== 'success') {
         throw new Error(t('friends.acceptFailed'))
       }
+      track('friend_request_accepted')
       // Remove from pending, refresh friends
       this.pendingRequests = this.pendingRequests.filter(r => r.friendship_id !== friendshipId)
       await this.fetchFriends()
@@ -84,6 +99,7 @@ export const useSocialStore = defineStore('social', {
       if (response.data.status !== 'success') {
         throw new Error(t('friends.rejectFailed'))
       }
+      track('friend_request_rejected')
       this.pendingRequests = this.pendingRequests.filter(r => r.friendship_id !== friendshipId)
     },
 
@@ -93,6 +109,7 @@ export const useSocialStore = defineStore('social', {
       if (response.data.status !== 'success') {
         throw new Error(t('friends.removeFailed'))
       }
+      track('friend_removed')
       this.friends = this.friends.filter(f => f.id !== friendId)
     },
 
@@ -107,6 +124,11 @@ export const useSocialStore = defineStore('social', {
         const response = await authStore.authenticatedApiCall('search_users', { term })
         if (response.data.status === 'success') {
           this.searchResults = response.data.data ?? []
+          // Del término, solo su longitud: es un nombre de usuario o parte de uno.
+          track('user_searched', {
+            query_length: String(term ?? '').length,
+            results: Array.isArray(this.searchResults) ? this.searchResults.length : 0
+          })
         }
       } catch (err) {
         Logger.error('[SocialStore] searchUsers error:', err)
@@ -135,9 +157,11 @@ export const useSocialStore = defineStore('social', {
 
       const authStore = useAuthStore()
       this.feedLoading = true
+      // La página se fija ANTES de pedirla: el offset avanza al llegar la respuesta.
+      const page = Math.floor(this.feedOffset / FEED_PAGE_SIZE) + 1
       try {
         const response = await authStore.authenticatedApiCall('get_feed', {
-          limit: 20,
+          limit: FEED_PAGE_SIZE,
           offset: this.feedOffset
         })
         if (response.data.status === 'success') {
@@ -145,6 +169,7 @@ export const useSocialStore = defineStore('social', {
           this.feed = reset ? (events ?? []) : [...this.feed, ...(events ?? [])]
           this.feedHasMore = hasMore ?? false
           this.feedOffset += (events?.length ?? 0)
+          track('feed_loaded', { page, n_events: Array.isArray(events) ? events.length : 0 })
         }
       } catch (err) {
         Logger.error('[SocialStore] loadFeed error:', err)
@@ -171,10 +196,15 @@ export const useSocialStore = defineStore('social', {
 
     async updatePrivacySettings(settings) {
       const authStore = useAuthStore()
+      const before = this.privacySettings ?? {}
       const response = await authStore.authenticatedApiCall('update_privacy_settings', settings)
       if (response.data.status !== 'success') {
         throw new Error(t('friends.privacyFailed'))
       }
+      // CUÁNTOS interruptores cambiaron, no cuáles: el panel manda siempre los siete. Contra lo
+      // que había en el store antes de guardar (sin ajustes cargados, cuentan todos los enviados).
+      const fields = Object.keys(settings ?? {}).filter((key) => settings[key] !== before[key]).length
+      track('privacy_settings_updated', { fields })
       this.privacySettings = response.data.data
       return this.privacySettings
     }

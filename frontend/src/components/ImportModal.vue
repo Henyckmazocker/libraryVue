@@ -3,7 +3,9 @@
        `dismissible` se apaga mientras se importa: cerrar a medias dejaría la
        importación en marcha sin nada que la enseñe. -->
   <BaseModal
+    ref="modalRef"
     :model-value="show"
+    analytics-name="import"
     :title="t('importer.title')"
     icon="fas fa-upload"
     size="lg"
@@ -73,6 +75,7 @@ import FileUploader from './import/FileUploader.vue';
 import ImportStatus from './import/ImportStatus.vue';
 import { useFileImport } from '@/composables/useFileImport';
 import { useI18n } from '@/composables/useI18n';
+import { track } from '@/analytics';
 
 const { t } = useI18n();
 
@@ -103,6 +106,7 @@ const {
 
 // Refs
 const fileUploader = ref(null);
+const modalRef = ref(null);
 
 // Methods
 const handleClose = () => {
@@ -125,8 +129,12 @@ const handleFileSelect = (file) => {
 
 const handleImport = async () => {
   const result = await startImport();
-  
-  if (result.success) {
+  track('form_submit', { form: 'import', ok: result?.success === true });
+
+  if (result?.success) {
+    // El cierre de dentro de dos segundos ya no es un abandono.
+    modalRef.value?.markSubmitted();
+
     // Emit success event to parent component
     emit('import-success', result.data);
     

@@ -17,6 +17,7 @@ import Tooltip from 'primevue/tooltip';
 import { CustomPreset } from '@/config/primevue-preset';
 import { useInboxStore } from '@/store/inbox';
 import { initI18n } from '@/config/i18n';
+import { initAnalytics } from '@/analytics';
 
 const app = createApp(App);
 app.use(createPinia());
@@ -44,6 +45,11 @@ app.directive('tooltip', Tooltip);
 
 if (router) {
   app.use(router);
+
+  // Augur (analítica de uso): todo el ciclo de vida del SDK vive en src/analytics/. Aquí solo
+  // se configura —sin clave en el entorno, no hace nada— y SIN consentimiento: lo enciende
+  // store/auth.js cuando sabe quién es el usuario y qué decidió (users.analytics_consent).
+  initAnalytics(router);
 
   // El contador de la bandeja, sin polling: se refresca en cada navegación (y
   // el propio Header lo pide al montar). Cero peticiones con la pestaña quieta.

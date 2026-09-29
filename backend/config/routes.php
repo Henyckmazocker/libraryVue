@@ -1545,6 +1545,20 @@ return [
         'validation' => []
     ],
 
+    // Consentimiento de analítica (Plan «Consentimiento de Analítica», M1).
+    // Mismo pipeline que `update_privacy_settings`. `consent` lo valida el
+    // command (solo booleano JSON), no ValidationMiddleware: `false` no pasaría
+    // su comprobación de «requerido».
+    'update_analytics_consent' => [
+        'controller' => ['AuthController', 'updateAnalyticsConsent'],
+        'middleware' => [
+            LoggingMiddleware::class,
+            AuthenticationMiddleware::class,
+            CSRFMiddleware::class,
+        ],
+        'validation' => []
+    ],
+
     // Read operations (require Auth only)
     'get_friends' => [
         'controller' => ['SocialController', 'getFriends'],

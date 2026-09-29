@@ -8,6 +8,7 @@ interface AuthControllerInterface
     /** Acepta sesión PHP o el `user_id` que deja AuthenticationMiddleware con un Bearer JWT. */
     public function checkAuth(?int $userId = null, ?string $authMethod = null);
     public function updateProfile(array $inputData);
+    public function updateAnalyticsConsent(\App\Domain\DTO\Commands\UpdateAnalyticsConsentCommand $command);
     public function logFrontend(array $logData);
     public function logFrontendBatch(array $logs);
 }

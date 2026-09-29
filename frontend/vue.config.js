@@ -1,3 +1,10 @@
+// Sello de Augur (SDK web): versión y build_id, calculados por Node al arrancar serve/build y
+// metidos en el bundle por el DefinePlugin de Vue CLI (lo recoge todo VUE_APP_*). El build_id
+// cambia si cambia un fichero de src/ o public/ (sin src/augur/) o el package-lock.json.
+const augurStamp = require('./src/augur/stamp.cjs')
+process.env.VUE_APP_AUGUR_VERSION = augurStamp.clientVersion(__dirname)
+process.env.VUE_APP_AUGUR_BUILD = augurStamp.buildId(__dirname)
+
 const { defineConfig } = require('@vue/cli-service')
 
 // En build móvil (VUE_APP_MODE=mobile) los assets se cargan desde el protocolo

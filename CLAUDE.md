@@ -635,6 +635,64 @@ APIs: `GOOGLE_CLIENT_ID`, `GOOGLE_BOOKS_API_KEY`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_
 Mirror de catálogos: `DB_MIRROR_DATABASE`, `DB_MIRROR_IMPORT_USER`, `DB_MIRROR_IMPORT_PASSWORD`.
 **No subas secretos**: `.env` está gitignored y contiene claves reales.
 
+### Augur: analítica de uso, con consentimiento por usuario *(2026-09-28)*
+
+`frontend/src/augur/` es una **copia** del SDK web de Augur: la verdad está en
+`workspace/augur/sdk/web/` y se actualiza con `augur/sdk/web/install.sh frontend`, que escribe
+también `src/augur/VERSION`. **No se edita aquí.** Tres piezas en este repo:
+
+- `frontend/vue.config.js:1-6` — el sello: `VUE_APP_AUGUR_VERSION` (el `version` de
+  `package.json`) y `VUE_APP_AUGUR_BUILD` (hash de `src/`, `public/` y `package-lock.json`, **sin**
+  `src/augur/`), calculados por Node al arrancar `serve`/`build`.
+- `frontend/src/analytics/index.js` — **el único fichero que importa `@/augur/`** (lo vigila
+  `tests/unit/analytics.spec.js`). `initAnalytics(router)` (desde `main.js`) configura **solo** con
+  `VUE_APP_AUGUR_KEY`, `window.isSecureContext` y `navigator.locks`, en el orden `configure →
+  setConsent(false) → trackRouter → captureErrors` (sin `locks`, `configure()` subiría un
+  `session_start` de un «sí» guardado antes de saber quién es el usuario). `syncAnalytics(user)` lo
+  enciende solo con `user.analytics_consent === 1` y, en la transición a «sí», emite a mano el
+  `page_view` de la ruta actual si esa navegación no lo emitió. `stopAnalytics()` (logout) hace
+  `await flush()` **antes** de `setConsent(false)`, que borra la cola. **Sin sesión, Augur no mide
+  nunca.**
+- **El consentimiento es por usuario y vive en el backend**: `users.analytics_consent` (`NULL` = sin
+  decidir, `1`/`0`) y `analytics_consent_at` (migración `20260928_120000_analytics_consent.sql`),
+  que llega en `login`/`check_auth` y se cambia con `update_analytics_consent {consent: bool}`
+  (estricto; Auth + CSRF; en `protectedActions` de `store/auth.js`). No entra en el `UPDATE` genérico
+  del login para que un backend nuevo sin migrar no falle. Con `NULL`, `AnalyticsConsentModal.vue`
+  (en `Layout.vue`) pregunta al entrar —cerrarlo no guarda nada y vuelve a salir en el siguiente
+  login—; `AnalyticsConsentPanel.vue` en `/profile` lo cambia; y `/privacy` (`PrivacyView.vue`, sin
+  sesión) explica qué se manda. Sin clave en la build, ni modal ni panel.
+- `frontend/tests/unit/i18n.spec.js` — la barrera de cadenas en el `<script>` **se salta
+  `src/augur/`**: es código de fuera y sus cadenas son de consola.
+
+Las tres variables:
+
+| Variable | Qué |
+|---|---|
+| `VUE_APP_AUGUR_KEY` | `write_key` del proyecto `libraryvue` (tipo `app`) en el Augur de dev. **Sin ella no se llama a nada**: ni `localStorage` ni red, y la app se comporta como antes |
+| `VUE_APP_AUGUR_ENDPOINT` | origen sin barra final; por defecto `http://localhost:8897` |
+
+- **Web**: por el `environment:` del servicio `frontend` de `docker-compose.yml`, que lee
+  `AUGUR_KEY` y `AUGUR_ENDPOINT` del `.env` raíz (patrón `GOOGLE_CLIENT_ID`). Ya **no existe**
+  `VUE_APP_AUGUR_CONSENT`: el interruptor de humo se retiró con el consentimiento real.
+  **No sirve un `frontend/.env.*`**: el compose no los monta en el contenedor. Cambiarlas pide
+  `docker compose up -d frontend` (un `restart` no relee el compose).
+- **Móvil**: en `frontend/.env.mobile`, con `VUE_APP_AUGUR_ENDPOINT=http://10.0.2.2:8897` (el host
+  visto desde el emulador; pasa por el `network_security_config` que ya permite `10.0.2.2`).
+- **`dev-setup.sh` conserva las claves de Augur** al reescribir: `setup_root_env()` guarda las
+  `AUGUR_*` del `.env` raíz y `setup_mobile_env()` las `VUE_APP_AUGUR_*` de `.env.mobile` (si falta
+  la clave la toma del `AUGUR_KEY` raíz, con endpoint `http://10.0.2.2:8897`). No las pregunta:
+  vacías, el SDK no hace nada.
+- 🔴 **El móvil se compila en el HOST, nunca en el contenedor.** `./dev-setup.sh --mobile` es el
+  camino: nvm con Node ≥ 22 (lo exige `@capacitor/cli` 8), Gradle y el Android SDK solo existen
+  ahí. Dentro de `libraryvue-frontend-1`, las `VUE_APP_AUGUR_*` del `environment:` del compose se
+  imponen a `.env.mobile` (Vue CLI prioriza el entorno) y el APK saldría apuntando a
+  `localhost:8897`. Si el script se para con `frontend/node_modules` de root, bórralo con el
+  `sudo rm -rf` que imprime: lo deja Docker y tumba el `npm install`. Ese `npm install` lleva
+  `--legacy-peer-deps` por el mismo peer roto que los Dockerfiles, y `cap sync` necesita la
+  devDependency `typescript@^5` para leer `capacitor.config.ts` (la 7 no expone la API que usa).
+- 🔴 `vue.config.js` es un **bind mount de fichero**: una edición que cambie el inodo deja al
+  contenedor con la versión vieja hasta recrearlo.
+
 ## Buenos comportamientos en este repo
 
 - **Endpoint = tres sitios coherentes** (routes, match/getController, controller) — **cuatro cuando

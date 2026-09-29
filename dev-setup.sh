@@ -162,6 +162,20 @@ setup_root_env() {
   # cambias aquí hay que cambiarla en el .env.prod de libraryVue_prod.
   mirror_password=$(env_get "$ENV_FILE" DB_MIRROR_PASSWORD)
   mirror_password="${mirror_password:-$MIRROR_DEFAULT_PASSWORD}"
+  # Augur (opcional): ni se pregunta ni entra en needs_input —vacías = SDK
+  # apagado—; solo se leen para no perderlas si el `cat >` de abajo reescribe.
+  # El consentimiento ya no es de entorno: es de cada usuario (users.analytics_consent)
+  # y lo gobierna frontend/src/analytics/. Una variable de consentimiento vieja se deja de copiar.
+  local augur_key augur_endpoint augur_block=""
+  augur_key=$(env_get "$ENV_FILE"      AUGUR_KEY)
+  augur_endpoint=$(env_get "$ENV_FILE" AUGUR_ENDPOINT)
+  if [[ -n "$augur_key" || -n "$augur_endpoint" ]]; then
+    augur_block="
+
+# Augur (opcional). Sin AUGUR_KEY el SDK no hace nada.
+AUGUR_KEY=${augur_key}
+AUGUR_ENDPOINT=${augur_endpoint}"
+  fi
 
   # Detectar si falta alguna clave antes de mostrar el bloque interactivo
   local needs_input=false
@@ -220,7 +234,7 @@ MYSQL_PASSWORD=${mysql_password}
 DB_PASSWORD=${mysql_password}
 DB_MIRROR_IMPORT_PASSWORD=${mirror_import_password}
 DB_MIRROR_PASSWORD=${mirror_password}
-TMDB_API_KEY=${tmdb_api_key}
+TMDB_API_KEY=${tmdb_api_key}${augur_block}
 EOF
 
   success ".env raíz creado/actualizado."
@@ -437,6 +451,27 @@ check_deps_mobile() {
     error "Instálalas y vuelve a intentarlo."
     exit 1
   fi
+
+  # Node >= 22: lo exige @capacitor/cli 8. Tras cargar nvm; si node faltara ya
+  # habría salido arriba, pero el guard evita que `node -p` tumbe el script.
+  if command -v node &>/dev/null; then
+    local node_major
+    node_major=$(node -p 'process.versions.node.split(".")[0]')
+    if (( node_major < 22 )); then
+      error "Node $node_major detectado; hace falta >= 22 (nvm install 22)."
+      exit 1
+    fi
+  fi
+
+  # node_modules que no se puede escribir: lo deja Docker como root y tumba el
+  # `npm install` de cmd_mobile. No se borra aquí: escalar a sudo en silencio
+  # desde un script de setup es peor que el fallo.
+  local node_modules="$ROOT_DIR/frontend/node_modules"
+  if [[ -e "$node_modules" && ! -w "$node_modules" ]]; then
+    error "frontend/node_modules es de $(stat -c %U "$node_modules") y no se puede escribir."
+    error "Bórralo y vuelve a lanzar:  sudo rm -rf $node_modules"
+    exit 1
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -467,6 +502,25 @@ setup_mobile_env() {
     api_url=$(ask_if_empty    "VUE_APP_API_URL"        "${api_url:-http://10.0.2.2:8888/index.php}")
     google_client_id=$(ask_if_empty "Google OAuth Client ID" "$google_client_id")
 
+    # Augur (opcional): se conserva lo que hubiera y NO se pregunta; sin clave el
+    # SDK no hace nada. La clave cae al AUGUR_KEY del .env raíz (mismo patrón que
+    # GOOGLE_CLIENT_ID); el endpoint, solo si hay clave, al host visto desde el
+    # emulador. El AUGUR_ENDPOINT raíz NO sirve: es el de la web (localhost).
+    # El consentimiento es por usuario (frontend/src/analytics/): la variable de
+    # consentimiento del humo ya no se lee ni se escribe.
+    local augur_key augur_endpoint augur_block=""
+    augur_key=$(env_get "$MOBILE_ENV_FILE"      VUE_APP_AUGUR_KEY)
+    augur_endpoint=$(env_get "$MOBILE_ENV_FILE" VUE_APP_AUGUR_ENDPOINT)
+    [[ -z "$augur_key" ]] && augur_key=$(env_get "$ENV_FILE" AUGUR_KEY)
+    if [[ -n "$augur_key" ]]; then
+      augur_endpoint="${augur_endpoint:-http://10.0.2.2:8897}"
+      augur_block="
+
+# Augur (opcional). 10.0.2.2 = el host visto desde el emulador.
+VUE_APP_AUGUR_KEY=${augur_key}
+VUE_APP_AUGUR_ENDPOINT=${augur_endpoint}"
+    fi
+
     cat > "$MOBILE_ENV_FILE" <<EOF
 # Mobile environment — Capacitor / Android
 # Generado por dev-setup.sh el $(date '+%Y-%m-%d %H:%M:%S')
@@ -474,7 +528,7 @@ setup_mobile_env() {
 
 VUE_APP_API_URL=${api_url}
 VUE_APP_MODE=mobile
-VUE_APP_GOOGLE_CLIENT_ID=${google_client_id}
+VUE_APP_GOOGLE_CLIENT_ID=${google_client_id}${augur_block}
 EOF
     success "frontend/.env.mobile creado/actualizado."
   fi
@@ -520,7 +574,7 @@ cmd_mobile() {
   cd "$ROOT_DIR/frontend"
 
   info "Instalando dependencias npm (si es necesario)..."
-  npm install --silent
+  npm install --legacy-peer-deps   # mismo peer roto que esquivan los Dockerfiles; sin --silent para que un fallo se vea
 
   info "Compilando app móvil (npm run build:mobile)..."
   npm run build:mobile

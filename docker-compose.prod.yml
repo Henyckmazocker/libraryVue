@@ -7,6 +7,10 @@ services:
       args:
         VUE_APP_API_URL: https://library.dcahomelab.com/api
         VUE_APP_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+        # Augur de prod. AUGUR_KEY vacía o ausente en .env.prod = Augur apagado
+        # (es el interruptor de emergencia). Nunca apuntar aquí el Augur de dev.
+        VUE_APP_AUGUR_KEY: ${AUGUR_KEY:-}
+        VUE_APP_AUGUR_ENDPOINT: ${AUGUR_ENDPOINT:-https://augur.dcahomelab.com}
     ports:
       - "8082:80"
     environment:

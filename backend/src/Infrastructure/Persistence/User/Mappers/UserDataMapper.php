@@ -38,6 +38,17 @@ class UserDataMapper
         $updatedAt = $updatedAtDateTime ? Timestamp::fromString($updatedAtDateTime->format('Y-m-d H:i:s')) : null;
         $lastLogin = $lastLoginDateTime ? Timestamp::fromString($lastLoginDateTime->format('Y-m-d H:i:s')) : null;
 
+        // Consentimiento de analítica (migración 20260928_120000). Con `isset` y no
+        // con `extractBool`: NULL es un tercer estado («sin decidir») y no puede
+        // caer a false. Una base sin migrar no trae la clave y queda igual en null.
+        $analyticsConsent = isset($row['analytics_consent']) ? (int) $row['analytics_consent'] : null;
+        $analyticsConsentAtDateTime = isset($row['analytics_consent_at'])
+            ? $this->extractDateTime($row, 'analytics_consent_at')
+            : null;
+        $analyticsConsentAt = $analyticsConsentAtDateTime
+            ? Timestamp::fromString($analyticsConsentAtDateTime->format('Y-m-d H:i:s'))
+            : null;
+
         // User entity now uses VOs directly
         return new User(
             $this->extractInt($row, 'id', null),
@@ -52,7 +63,9 @@ class UserDataMapper
             $this->extractBool($row, 'is_active', false),
             $this->extractString($row, 'lastfm_username', null),
             $this->extractString($row, 'username', null),
-            $this->extractBool($row, 'is_admin', false)
+            $this->extractBool($row, 'is_admin', false),
+            $analyticsConsent,
+            $analyticsConsentAt
         );
     }
 
@@ -78,6 +91,10 @@ class UserDataMapper
             'lastfm_username' => $user->getLastFmUsername(),
             'username' => $user->getUsername(),
             'is_admin' => $user->isAdmin() ? 1 : 0,
+            // `analytics_consent` y `analytics_consent_at` NO van aquí a propósito: este
+            // array alimenta el UPDATE genérico del login, y con ellas el login moriría
+            // con «Unknown column» en una base sin migrar (producción va por detrás).
+            // Se escriben solo con `analyticsConsentToPersistence()`.
         ];
 
         if ($includeId && $user->getId() !== null) {
@@ -85,6 +102,19 @@ class UserDataMapper
         }
 
         return $data;
+    }
+
+    /**
+     * Columnas del consentimiento de analítica, para su UPDATE dedicado.
+     *
+     * @return array{analytics_consent: int, analytics_consent_at: string}
+     */
+    public function analyticsConsentToPersistence(bool $consent, Timestamp $decidedAt): array
+    {
+        return [
+            'analytics_consent' => $consent ? 1 : 0,
+            'analytics_consent_at' => $decidedAt->toString(),
+        ];
     }
 
     /**

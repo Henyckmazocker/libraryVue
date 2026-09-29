@@ -58,4 +58,10 @@ interface UserRepositoryInterface
      * @return User[]
      */
     public function searchByUsername(string $term, int $excludeUserId, int $limit = 10): array;
+
+    /**
+     * Guarda la decisión de analítica (1/0) y su fecha, sin tocar el resto del usuario.
+     * Devuelve el usuario releído, o null si no existe.
+     */
+    public function updateAnalyticsConsent(int $userId, bool $consent): ?User;
 }

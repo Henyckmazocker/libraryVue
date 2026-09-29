@@ -1,5 +1,5 @@
 # Stage 1: Build the Vue.js application
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -19,15 +19,26 @@ COPY frontend/vue.config.js .
 
 # Set the API URL for the production build
 # This will be overridden at build time from docker-compose.prod.yml
-# Las dos que necesita este build. El frontend solo lee tres VUE_APP_* (grep
-# process.env.VUE_APP_ en src/) y la tercera, VUE_APP_MODE, es del build de
-# Capacitor, que no pasa por aquí. La de OMDb se retiró
-# con OmdbService: las películas las sirve el mirror y a TMDB llama el backend,
-# así que ninguna clave de catálogo viaja ya al bundle.
+# Las cuatro que este build recibe como args. VUE_APP_MODE es del build de
+# Capacitor, que no pasa por aquí, y VUE_APP_AUGUR_VERSION/VUE_APP_AUGUR_BUILD
+# no son args: las calcula vue.config.js (src/augur/stamp.cjs) dentro del
+# npm run build. La de OMDb se retiró con OmdbService: las películas las sirve
+# el mirror y a TMDB llama el backend, así que ninguna clave de catálogo viaja
+# ya al bundle.
+#
+# Augur (src/analytics/index.js): sin VUE_APP_AUGUR_KEY el SDK no se configura,
+# así que una clave vacía es el interruptor de apagado. La write_key es pública
+# por diseño; el compose la toma de AUGUR_KEY en .env.prod y el endpoint de
+# AUGUR_ENDPOINT (por defecto el Augur de prod). Un endpoint vacío cae al
+# default de index.js.
 ARG VUE_APP_API_URL
 ARG VUE_APP_GOOGLE_CLIENT_ID
+ARG VUE_APP_AUGUR_KEY
+ARG VUE_APP_AUGUR_ENDPOINT
 ENV VUE_APP_API_URL=${VUE_APP_API_URL}
 ENV VUE_APP_GOOGLE_CLIENT_ID=${VUE_APP_GOOGLE_CLIENT_ID}
+ENV VUE_APP_AUGUR_KEY=${VUE_APP_AUGUR_KEY}
+ENV VUE_APP_AUGUR_ENDPOINT=${VUE_APP_AUGUR_ENDPOINT}
 
 # Build the application (outputs to /app/dist by default in vue.config.js)
 RUN npm run build

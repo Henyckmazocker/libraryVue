@@ -17,6 +17,8 @@ This skill covers all mobile development: Capacitor integration, Android/iOS nat
 | `firebase/php-jwt` | — | JWT generation/validation (backend) |
 
 **Build tool**: Vue CLI (`vue-cli-service build --mode mobile`)  
+**Node**: 22 via nvm, on the HOST (`@capacitor/cli` 8 requires `>=22`; the Docker images also run `node:22-alpine`)  
+**TypeScript**: `^5` devDependency — `cap sync` needs it to parse `capacitor.config.ts` (TS 7 lacks the JS API it uses)  
 **Emulator**: Pixel 7 API 34 (Android 14), `emulator-5554`  
 **Android SDK**: `~/Android/Sdk`  
 **Java**: OpenJDK 17 at `/usr/lib/jvm/java-17-openjdk-amd64`
@@ -46,11 +48,20 @@ This skill covers all mobile development: Capacitor integration, Android/iOS nat
 
 ### Development (emulator)
 
+The official path is `./dev-setup.sh --mobile` from the repo root, **on the host**: it checks Node
+>= 22, installs with `--legacy-peer-deps`, builds, runs `cap sync` and keeps the Augur keys in
+`.env.mobile`. **Never build mobile inside the frontend container**: the compose `environment:`
+injects the web `VUE_APP_AUGUR_*`, which override `.env.mobile`. If it stops because
+`frontend/node_modules` belongs to root (Docker leaves it behind), run the `sudo rm -rf` it prints.
+
+By hand:
+
 ```bash
-# Always load nvm first
+# Always load nvm first (Node 22)
 export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh"
 
 cd frontend
+npm install --legacy-peer-deps
 npm run build:mobile        # vue-cli-service build --mode mobile → loads .env.mobile
 npx cap sync android        # Copy dist/ to android/app/src/main/assets/public/
 npx cap open android        # Open Android Studio → Run ▶ on emulator

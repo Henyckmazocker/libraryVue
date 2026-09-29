@@ -150,6 +150,7 @@ const buildRoutes = async () => {
     ['/movies', 'Buscar películas'],
     ['/games', 'Buscar videojuegos'],
     ['/albums', 'Buscar álbumes'],
+    ['/privacy', 'Privacidad'],
     ['/esta-ruta-no-existe', 'NotFound'],
   ].map(([path, nombre]) => ({ path, nombre, auth: false }));
 
@@ -349,8 +350,8 @@ const main = async () => {
   }
 
   if (!JWT) {
-    console.log('⚠ Sin token: se recorren solo las 6 rutas públicas.');
-    console.log('  Se saltan las 12 privadas y las fichas de detalle. Pasa --jwt=<token>');
+    console.log(`⚠ Sin token: se recorren solo las ${publicas.length} rutas públicas.`);
+    console.log(`  Se saltan las ${privadas.length} privadas y las fichas de detalle. Pasa --jwt=<token>`);
     console.log('  o exporta LIBRARYVUE_JWT para recorrerlas todas.\n');
   }
 

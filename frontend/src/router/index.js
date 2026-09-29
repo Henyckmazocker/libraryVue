@@ -192,6 +192,13 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    // Qué mide la analítica y qué no (Plan «Consentimiento de Analítica»). SIN `requiresAuth`:
+    // se tiene que poder leer antes de decidir, y el modal de consentimiento enlaza aquí.
+    path: '/privacy',
+    name: 'Privacy',
+    component: () => import('../views/PrivacyView.vue')
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('../views/NotFoundView.vue')

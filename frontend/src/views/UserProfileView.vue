@@ -164,6 +164,15 @@
     <div class="settings-section">
       <PrivacySettingsPanel />
     </div>
+
+    <!-- La analítica de uso: otra decisión de la cuenta, no de amigos. El panel se oculta solo
+         si la build no tiene Augur; el `v-if` evita la tarjeta vacía. -->
+    <div
+      v-if="showAnalyticsPanel"
+      class="settings-section"
+    >
+      <AnalyticsConsentPanel />
+    </div>
   </div>
 </template>
 
@@ -172,12 +181,14 @@ import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/store/auth'
 import { storeToRefs } from 'pinia'
 import PrivacySettingsPanel from '@/components/Social/PrivacySettingsPanel.vue'
+import AnalyticsConsentPanel from '@/components/Social/AnalyticsConsentPanel.vue'
+import { isAnalyticsAvailable } from '@/analytics'
 import { useI18n } from '@/composables/useI18n'
 
 export default {
   name: 'UserProfileView',
 
-  components: { PrivacySettingsPanel },
+  components: { PrivacySettingsPanel, AnalyticsConsentPanel },
 
   setup() {
     const authStore = useAuthStore()
@@ -189,6 +200,12 @@ export default {
     const isSaving = ref(false)
     const saveSuccess = ref(false)
     const saveError = ref(null)
+
+    // Mismo criterio que el propio panel: sin Augur en la build, o con un backend que aún no
+    // manda el campo (`undefined`), no hay nada que decidir.
+    const showAnalyticsPanel = computed(
+      () => isAnalyticsAvailable() && authStore.user?.analytics_consent !== undefined
+    )
 
     const lastfmUsernameChanged = computed(
       () => lastfmUsername.value !== originalLastfmUsername.value
@@ -234,7 +251,8 @@ export default {
       isSaving,
       saveSuccess,
       saveError,
-      saveLastFmUsername
+      saveLastFmUsername,
+      showAnalyticsPanel
     }
   }
 }

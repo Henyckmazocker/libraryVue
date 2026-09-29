@@ -1,8 +1,10 @@
 <?php
 namespace App\Controllers;
 
+use App\Domain\DTO\Commands\UpdateAnalyticsConsentCommand;
 use App\Domain\DTO\Commands\UpdateUserProfileCommand;
 use App\Domain\UseCases\Auth\LoginUserUseCase;
+use App\Domain\UseCases\Auth\UpdateAnalyticsConsentUseCase;
 use App\Domain\UseCases\Auth\UpdateUserProfileUseCase;
 use App\Infrastructure\Session\SessionManager;
 use App\Infrastructure\Middleware\AuthMiddleware;
@@ -17,6 +19,7 @@ class AuthController extends BaseController implements Contracts\AuthControllerI
     private AuthMiddleware $authMiddleware;
     private GoogleOAuthVerifier $googleVerifier;
     private JWTService $jwtService;
+    private UpdateAnalyticsConsentUseCase $updateAnalyticsConsentUseCase;
 
     public function __construct(
         LoginUserUseCase $loginUserUseCase,
@@ -24,7 +27,8 @@ class AuthController extends BaseController implements Contracts\AuthControllerI
         SessionManager $sessionManager,
         AuthMiddleware $authMiddleware,
         GoogleOAuthVerifier $googleVerifier,
-        JWTService $jwtService
+        JWTService $jwtService,
+        UpdateAnalyticsConsentUseCase $updateAnalyticsConsentUseCase
     ) {
         $this->loginUserUseCase = $loginUserUseCase;
         $this->updateUserProfileUseCase = $updateUserProfileUseCase;
@@ -32,6 +36,7 @@ class AuthController extends BaseController implements Contracts\AuthControllerI
         $this->authMiddleware = $authMiddleware;
         $this->googleVerifier = $googleVerifier;
         $this->jwtService = $jwtService;
+        $this->updateAnalyticsConsentUseCase = $updateAnalyticsConsentUseCase;
     }
 
     public function login(array $inputData): array
@@ -118,6 +123,16 @@ class AuthController extends BaseController implements Contracts\AuthControllerI
         } catch (\InvalidArgumentException $e) {
             return $this->errorResponse($e->getMessage());
         }
+    }
+
+    /**
+     * `update_analytics_consent`: guarda el sí/no del usuario a la analítica.
+     * Responde `data: { analytics_consent: 1|0, analytics_consent_at: 'Y-m-d H:i:s' }`.
+     */
+    public function updateAnalyticsConsent(UpdateAnalyticsConsentCommand $command): array
+    {
+        $result = $this->updateAnalyticsConsentUseCase->execute($command);
+        return $this->successResponse('Analytics consent updated', $result);
     }
 
     public function logFrontend(array $logData): array

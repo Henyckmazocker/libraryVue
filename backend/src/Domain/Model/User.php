@@ -23,6 +23,9 @@ class User
     private ?string $lastfmUsername;
     private ?string $username;
     private bool $isAdmin;
+    /** Consentimiento de analítica: null = sin decidir, 0 = no, 1 = sí. */
+    private ?int $analyticsConsent;
+    private ?Timestamp $analyticsConsentAt;
 
     public function __construct(
         ?int $id,
@@ -37,7 +40,9 @@ class User
         bool $isActive = true,
         ?string $lastfmUsername = null,
         ?string $username = null,
-        bool $isAdmin = false
+        bool $isAdmin = false,
+        ?int $analyticsConsent = null,
+        ?Timestamp $analyticsConsentAt = null
     ) {
         $this->id = $id;
         $this->googleId = $googleId;
@@ -52,6 +57,8 @@ class User
         $this->lastfmUsername = $lastfmUsername;
         $this->username = $username;
         $this->isAdmin = $isAdmin;
+        $this->analyticsConsent = $analyticsConsent;
+        $this->analyticsConsentAt = $analyticsConsentAt;
     }
 
     // Getters
@@ -68,6 +75,8 @@ class User
     public function getLastFmUsername(): ?string { return $this->lastfmUsername; }
     public function getUsername(): ?string { return $this->username; }
     public function isAdmin(): bool { return $this->isAdmin; }
+    public function getAnalyticsConsent(): ?int { return $this->analyticsConsent; }
+    public function getAnalyticsConsentAt(): ?Timestamp { return $this->analyticsConsentAt; }
 
     // Setters with validation
     public function setGoogleId(GoogleId $googleId): void
@@ -176,6 +185,11 @@ class User
             'lastfm_username' => $this->lastfmUsername,
             'username' => $this->username,
             'is_admin' => $this->isAdmin,
+            // null | 0 | 1. Llega así a `login` y a `check_auth`; el frontend trata
+            // la clave ausente (backend sin migrar) igual que null.
+            // `analytics_consent_at` no va aquí: las fechas de este array son unix y
+            // la action `update_analytics_consent` la devuelve como 'Y-m-d H:i:s'.
+            'analytics_consent' => $this->analyticsConsent,
         ];
     }
 
@@ -194,7 +208,8 @@ class User
             $data['is_active'] ?? true,
             $data['lastfm_username'] ?? null,
             $data['username'] ?? null,
-            $data['is_admin'] ?? false
+            $data['is_admin'] ?? false,
+            isset($data['analytics_consent']) ? (int) $data['analytics_consent'] : null
         );
     }
 }

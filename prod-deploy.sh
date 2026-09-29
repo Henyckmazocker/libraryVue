@@ -169,6 +169,7 @@ setup_prod_env() {
   local lastfm_api_key youtube_api_key tmdb_api_key mysql_root_password mysql_password
   local google_books_api_key
   local mirror_password
+  local augur_key augur_endpoint
 
   google_client_id=$(env_get      "$ENV_FILE" GOOGLE_CLIENT_ID)
   google_books_api_key=$(env_get  "$ENV_FILE" GOOGLE_BOOKS_API_KEY)
@@ -180,6 +181,11 @@ setup_prod_env() {
   mysql_root_password=$(env_get   "$ENV_FILE" MYSQL_ROOT_PASSWORD)
   mysql_password=$(env_get        "$ENV_FILE" MYSQL_PASSWORD)
   mirror_password=$(env_get       "$ENV_FILE" DB_MIRROR_PASSWORD)
+  # Augur es opcional: NO se pregunta ni entra en needs_input. Se leen solo
+  # para conservarlas si hay que reescribir el fichero. Sin AUGUR_KEY, Augur
+  # queda apagado; sin AUGUR_ENDPOINT, el compose usa el Augur de prod.
+  augur_key=$(env_get             "$ENV_FILE" AUGUR_KEY)
+  augur_endpoint=$(env_get        "$ENV_FILE" AUGUR_ENDPOINT)
 
   local needs_input=false
   [[ -z "$google_client_id" || -z "$google_books_api_key" || -z "$spotify_client_id" || -z "$spotify_client_secret" \
@@ -244,6 +250,19 @@ DB_PASSWORD=${mysql_password}
 # Mirror de catálogos — servidor compartido (docker-compose.mirror.yml)
 DB_MIRROR_PASSWORD=${mirror_password}
 EOF
+
+  # Augur (opcional): se reescribe solo si ya había clave, para no perderla.
+  if [[ -n "$augur_key" ]]; then
+    {
+      echo ""
+      echo "# Augur (opcional) — vacía o ausente = analítica apagada"
+      echo "AUGUR_KEY=${augur_key}"
+      # if y no `&&`: con set -e, un grupo que acaba en falso tumbaría el script.
+      if [[ -n "$augur_endpoint" ]]; then
+        echo "AUGUR_ENDPOINT=${augur_endpoint}"
+      fi
+    } >> "$ENV_FILE"
+  fi
 
   success ".env.prod creado/actualizado."
 }

@@ -94,6 +94,7 @@ use App\Domain\DTO\Commands\ResolveRecommendationCommand;
 use App\Domain\DTO\Commands\SendFriendRequestCommand;
 use App\Domain\DTO\Commands\SendRecommendationCommand;
 use App\Domain\DTO\Commands\UpdatePrivacySettingsCommand;
+use App\Domain\DTO\Commands\UpdateAnalyticsConsentCommand;
 use App\Domain\DTO\Queries\GetFeedQuery;
 use App\Domain\DTO\Queries\GetJournalCalendarQuery;
 use App\Domain\DTO\Queries\GetJournalQuery;
@@ -706,6 +707,11 @@ class ActionRouter
             ),
             'update_privacy_settings' => $controller->updatePrivacySettings(
                 UpdatePrivacySettingsCommand::fromArray($data, $userId)
+            ),
+            // Consentimiento de analítica: va a AuthController (es un dato del
+            // usuario, `users.analytics_consent`), no a FeedController.
+            'update_analytics_consent' => $controller->updateAnalyticsConsent(
+                UpdateAnalyticsConsentCommand::fromArray($data, $userId)
             ),
 
             // MEDIA LISTS

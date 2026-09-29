@@ -4,6 +4,7 @@ import Logger from '@/utils/logger'
 import { RateLimitError } from '@/utils/errors'
 import { useUIStore } from './ui'
 import { t } from '@/config/i18n'
+import { syncAnalytics, stopAnalytics } from '@/analytics'
 
 // Espera máxima que se absorbe con un reintento silencioso. Por encima de esto se
 // avisa al usuario en vez de dejar la interfaz colgada.
@@ -48,6 +49,8 @@ export const useAuthStore = defineStore('auth', {
           this.csrfToken = response.data.data.csrf_token
           this.isAuthenticated = true
           Logger.auth('User authenticated successfully:', this.user.name)
+          // La decisión de analítica llega con el usuario (null/undefined = sin decidir → no mide)
+          syncAnalytics(this.user)
         } else {
           Logger.auth('Auth check failed:', response.data.message)
         }
@@ -84,6 +87,7 @@ export const useAuthStore = defineStore('auth', {
           }
           
           Logger.auth('Login successful:', this.user.name)
+          syncAnalytics(this.user)
           
           // Small delay to ensure session is properly set before any other operations
           await new Promise(resolve => setTimeout(resolve, 100))
@@ -121,6 +125,8 @@ export const useAuthStore = defineStore('auth', {
         Logger.error('Logout error:', error)
         // Continue with cleanup even if backend call fails
       } finally {
+        // Analítica: sube lo pendiente y apaga (nadie sin sesión se mide). No lanza.
+        await stopAnalytics()
         // Always clean up local state
         this.user = null
         this.isAuthenticated = false
@@ -171,7 +177,9 @@ export const useAuthStore = defineStore('auth', {
         'pause_reading_session', 'resume_reading_session', 'delete_reading_session',
         // Social
         'send_friend_request', 'accept_friend_request', 'reject_friend_request',
-        'remove_friend', 'update_privacy_settings'
+        'remove_friend', 'update_privacy_settings',
+        // Analítica
+        'update_analytics_consent'
       ]
 
       if (this.csrfToken && protectedActions.includes(action)) {
@@ -279,6 +287,23 @@ export const useAuthStore = defineStore('auth', {
       })
       if (response.data.status === 'success') {
         this.user = { ...this.user, ...response.data.data.user }
+      }
+      return response
+    },
+
+    /**
+     * Guarda la decisión de analítica del usuario y la aplica al SDK con el valor que
+     * devuelve el backend (1|0), no con el que se mandó.
+     * @param {boolean} consent
+     */
+    async updateAnalyticsConsent(consent) {
+      if (!this.isAuthenticated || !this.user) {
+        throw new Error(t('auth.notAuthenticated'))
+      }
+      const response = await this.apiCall('update_analytics_consent', { consent: consent === true })
+      if (response.data.status === 'success') {
+        this.user = { ...this.user, analytics_consent: response.data.data.analytics_consent }
+        syncAnalytics(this.user)
       }
       return response
     }

@@ -204,6 +204,10 @@ describe('i18n — la barrera del catálogo', () => {
 
     for (const fichero of ficherosDe(SRC)) {
       const rel = relative(SRC, fichero)
+      // `src/augur/` es la copia del SDK de Augur (`augur/sdk/web/install.sh`): código
+      // de fuera, que no se edita aquí, y sus cadenas son de consola, no de interfaz.
+      // Se salta por lo mismo que `stamp.cjs` la saca del `build_id`.
+      if (rel.split(/[\\/]/)[0] === 'augur') continue
       for (const { texto, monton } of cadenasDe(readFileSync(fichero, 'utf8'), fichero)) {
         if (monton !== 'interfaz') continue
         if (datos.has(`${rel}||${texto}`)) continue

@@ -6,6 +6,7 @@ namespace App\Infrastructure\Persistence\User;
 use App\Domain\Model\User;
 use App\Domain\Model\ValueObjects\Email;
 use App\Domain\Model\ValueObjects\GoogleId;
+use App\Domain\Model\ValueObjects\Timestamp;
 use App\Domain\Repository\User\UserRepositoryInterface;
 use App\Infrastructure\Persistence\Concerns\LoggableTrait;
 use App\Infrastructure\Persistence\User\Mappers\UserDataMapper;
@@ -281,6 +282,39 @@ class MySqlUserRepository implements UserRepositoryInterface
             return $this->mapper->toDomainCollection($rows);
         } catch (PDOException $e) {
             $this->logError('Failed to search users by username', $e, ['term' => $term]);
+            throw $e;
+        }
+    }
+
+    /**
+     * @inheritDoc
+     *
+     * UPDATE propio y no `update()`: el genérico reescribe todas las columnas de
+     * `toPersistence()`, que a propósito no incluye las del consentimiento.
+     */
+    public function updateAnalyticsConsent(int $userId, bool $consent): ?User
+    {
+        try {
+            $data = $this->mapper->analyticsConsentToPersistence($consent, Timestamp::now());
+
+            $stmt = $this->db->prepare(
+                "UPDATE " . self::TABLE
+                . " SET analytics_consent = :analytics_consent,"
+                . "     analytics_consent_at = :analytics_consent_at"
+                . " WHERE id = :id"
+            );
+            $stmt->execute($data + ['id' => $userId]);
+
+            $this->logInfo('Analytics consent updated', [
+                'user_id' => $userId,
+                'analytics_consent' => $data['analytics_consent']
+            ]);
+
+            return $this->findById($userId);
+        } catch (PDOException $e) {
+            $this->logError('Failed to update analytics consent', $e, [
+                'user_id' => $userId
+            ]);
             throw $e;
         }
     }

@@ -3,6 +3,15 @@
 node_modules
 dist
 
+# Frontend: nada de esto lo necesita ninguna imagen. Los Dockerfiles copian
+# frontend/package*.json + el código; node_modules se instala dentro.
+# 🔴 Acotado a frontend/ A PROPÓSITO: backend/.env.docker-production TIENE que
+# entrar en la imagen de prod (docker-compose.prod.yml hace `cp` de él al arrancar).
+frontend/.env*
+frontend/node_modules
+frontend/android
+frontend/dist
+
 # Docker specific files
 Dockerfile.frontend
 Dockerfile.backend

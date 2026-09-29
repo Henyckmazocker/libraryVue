@@ -39,6 +39,9 @@
       @confirm="handleConfirm"
       @cancel="handleCancel"
     />
+
+    <!-- Pregunta por la analítica de uso a quien aún no ha decidido (se abre solo) -->
+    <AnalyticsConsentModal />
   </div>
 </template>
 
@@ -56,6 +59,7 @@ import AppHeader from './Header.vue';
 import AppSidebar from './Sidebar.vue';
 import MobileNavBar from './MobileNavBar.vue';
 import ConfirmationModal from './ConfirmationModal.vue';
+import AnalyticsConsentModal from './AnalyticsConsentModal.vue';
 import { useUIStore } from '@/store/ui';
 import { useConfirmationModal } from '@/composables/useConfirmationModal';
 import { useBreakpoint } from '@/composables/useBreakpoint';

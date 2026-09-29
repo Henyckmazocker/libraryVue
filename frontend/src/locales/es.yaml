@@ -1038,6 +1038,38 @@ privacy:
   achievements: Cuando consigo un logro
   journal: Enseñar mi diario a mis amigos
   journalHint: No se publica en el feed. Tus amigos lo ven al entrar en tu perfil.
+  page:
+    title: Privacidad y analítica de uso
+    intro: LibraryVue puede medir, de forma anónima, cómo se usa la app para saber qué funciona y qué no. Solo mide a quien ha iniciado sesión y ha dicho que sí.
+    sentTitle: Qué se envía
+    sentPages: Las páginas que visitas, por su patrón de ruta (por ejemplo «/books/:isbn»), nunca con el identificador concreto.
+    sentActions: Las acciones que haces, sin su contenido (que guardaste algo, no qué).
+    sentErrors: Los errores de la app, para poder arreglarlos.
+    sentSession: Datos técnicos de la sesión y la versión de la app.
+    notSentTitle: Qué NO se envía nunca
+    notSentContent: Títulos de libros, películas, juegos, álbumes ni vídeos.
+    notSentNotes: Tus notas, valoraciones escritas ni tu diario.
+    notSentIdentity: Tu email, tu nombre ni tu nombre de usuario.
+    notSentIp: Tu dirección IP.
+    whereTitle: A dónde va
+    whereBody: A un servidor de analítica propio (Augur, en augur.dcahomelab.com). No se comparte con terceros ni hay cookies de publicidad.
+    controlTitle: Tú decides
+    controlBody: La decisión es tuya y va con tu cuenta, no con el navegador. Puedes cambiarla cuando quieras desde
+    controlLink: tu perfil
+    back: Volver al inicio
+
+analytics:
+  consent:
+    modalTitle: ¿Nos ayudas a mejorar LibraryVue?
+    modalBody: Si aceptas, la app enviará datos anónimos de uso (qué páginas visitas y qué errores aparecen) para saber qué mejorar.
+    modalHint: Nunca se envían tus títulos, notas, email ni nombre de usuario. Puedes cambiarlo cuando quieras en tu perfil.
+    moreInfo: Qué se envía y qué no
+    accept: Sí, ayudar
+    decline: No, gracias
+    panelTitle: Analítica de uso
+    panelLabel: Enviar datos anónimos de uso
+    panelHint: Qué páginas visitas y qué errores aparecen, sin títulos, notas ni datos personales.
+    saveFailed: No se pudo guardar tu preferencia de analítica.
 
 rating:
   rateWith:

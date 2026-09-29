@@ -25,6 +25,13 @@ services:
       - NODE_ENV=development
       - VUE_APP_API_URL=http://127.0.0.1:8888/index.php
       - VUE_APP_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      # Augur (analítica de uso, SDK en src/augur/). Valores en el .env raíz, que
+      # está ignorado: la write_key no va en ningún fichero commiteado. Vacías, el
+      # SDK no hace nada (main.js solo lo configura con VUE_APP_AUGUR_KEY).
+      # El consentimiento no es de entorno: es de cada usuario y lo aplica
+      # src/analytics/ tras el login.
+      - VUE_APP_AUGUR_KEY=${AUGUR_KEY:-}
+      - VUE_APP_AUGUR_ENDPOINT=${AUGUR_ENDPOINT:-}
     depends_on:
       - backend
     restart: unless-stopped

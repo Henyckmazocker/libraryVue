@@ -1014,6 +1014,38 @@ privacy:
   achievements: When I earn an achievement
   journal: Show my journal to my friends
   journalHint: It is not published to the feed. Your friends see it when they open your profile.
+  page:
+    title: Privacy and usage analytics
+    intro: LibraryVue can measure, anonymously, how the app is used to learn what works and what does not. It only measures people who are signed in and have said yes.
+    sentTitle: What is sent
+    sentPages: The pages you visit, by their route pattern (for example "/books/:isbn"), never with the specific identifier.
+    sentActions: The actions you take, without their content (that you saved something, not what).
+    sentErrors: App errors, so they can be fixed.
+    sentSession: Technical session data and the app version.
+    notSentTitle: What is NEVER sent
+    notSentContent: Titles of books, movies, games, albums or videos.
+    notSentNotes: Your notes, written reviews or your journal.
+    notSentIdentity: Your email, your name or your username.
+    notSentIp: Your IP address.
+    whereTitle: Where it goes
+    whereBody: To a self-hosted analytics server (Augur, at augur.dcahomelab.com). It is not shared with third parties and there are no advertising cookies.
+    controlTitle: You decide
+    controlBody: The choice is yours and belongs to your account, not the browser. You can change it at any time from
+    controlLink: your profile
+    back: Back to home
+
+analytics:
+  consent:
+    modalTitle: Will you help us improve LibraryVue?
+    modalBody: If you accept, the app will send anonymous usage data (which pages you visit and which errors show up) so we know what to improve.
+    modalHint: Your titles, notes, email and username are never sent. You can change this at any time in your profile.
+    moreInfo: What is sent and what is not
+    accept: Yes, help out
+    decline: No, thanks
+    panelTitle: Usage analytics
+    panelLabel: Send anonymous usage data
+    panelHint: Which pages you visit and which errors show up, without titles, notes or personal data.
+    saveFailed: Could not save your analytics preference.
 
 rating:
   rateWith:

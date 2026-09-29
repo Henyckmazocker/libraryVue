@@ -330,6 +330,7 @@ return function (): ContainerInterface {
         \App\Domain\UseCases\Search\SearchCatalogRemoteUseCase::class => DI\autowire(),
         \App\Domain\UseCases\Auth\LoginUserUseCase::class => DI\autowire(),
         \App\Domain\UseCases\Auth\UpdateUserProfileUseCase::class => DI\autowire(),
+        \App\Domain\UseCases\Auth\UpdateAnalyticsConsentUseCase::class => DI\autowire(),
         
         // ===========================
         // USE CASES - Books
